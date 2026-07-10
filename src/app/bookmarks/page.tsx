@@ -56,10 +56,12 @@ export default function BookmarksPage() {
   const [dragging, setDragging] = useState(false)
 
   // Bulk select
-  const [selected,    setSelected]    = useState<Set<string>>(new Set())
-  const [selectMode,  setSelectMode]  = useState(false)
-  const [confirmOpen, setConfirmOpen] = useState(false)
+  const [selected,      setSelected]      = useState<Set<string>>(new Set())
+  const [selectMode,    setSelectMode]    = useState(false)
+  const [confirmOpen,   setConfirmOpen]   = useState(false)
   const [confirmTarget, setConfirmTarget] = useState<{ ids: string[]; label: string } | null>(null)
+  const [deleting,      setDeleting]      = useState(false)
+  const [deleteProgress, setDeleteProgress] = useState<{ done: number; total: number } | null>(null)
 
   const fetchBookmarks = useCallback(async () => {
     const params = new URLSearchParams()
@@ -241,17 +243,37 @@ export default function BookmarksPage() {
     if (!confirmTarget) return
     const { ids } = confirmTarget
     setConfirmOpen(false)
+    setDeleting(true)
 
-    let deleted = 0
-    await Promise.all(ids.map(async id => {
-      const res = await fetch(`/api/bookmarks/${id}`, { method: 'DELETE' })
-      if (res.ok) deleted++
-    }))
+    const BATCH = 500  // Supabase IN clause limit
+    let totalDeleted = 0
+    setDeleteProgress({ done: 0, total: ids.length })
 
-    setBookmarks(prev => prev.filter(b => !ids.includes(b.id)))
-    setSelected(new Set())
-    setSelectMode(false)
-    toast.success(`Deleted ${deleted} bookmark${deleted !== 1 ? 's' : ''}`)
+    try {
+      for (let i = 0; i < ids.length; i += BATCH) {
+        const batch = ids.slice(i, i + BATCH)
+        const res = await fetch('/api/bookmarks/bulk-delete', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ids: batch }),
+        })
+        if (res.ok) {
+          const data = await res.json()
+          totalDeleted += data.deleted ?? batch.length
+        }
+        setDeleteProgress({ done: Math.min(i + BATCH, ids.length), total: ids.length })
+      }
+
+      setBookmarks(prev => prev.filter(b => !ids.includes(b.id)))
+      setSelected(new Set())
+      setSelectMode(false)
+      toast.success(`Deleted ${totalDeleted} bookmark${totalDeleted !== 1 ? 's' : ''}`)
+    } catch {
+      toast.error('Delete failed — please try again')
+    } finally {
+      setDeleting(false)
+      setDeleteProgress(null)
+    }
   }
 
   // All unique tags from all bookmarks
@@ -266,6 +288,43 @@ export default function BookmarksPage() {
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
       >
+        {/* ── Delete progress overlay ── */}
+        {deleting && deleteProgress && (
+          <div style={{
+            position: 'fixed', inset: 0, zIndex: 600,
+            backgroundColor: 'rgba(0,0,0,0.7)',
+            backdropFilter: 'blur(6px)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <div style={{
+              backgroundColor: '#12121a', border: '1px solid #2a2a3e',
+              borderRadius: 16, padding: '32px 40px', minWidth: 320, textAlign: 'center',
+              boxShadow: '0 24px 64px rgba(0,0,0,0.6)',
+            }}>
+              <div style={{ fontSize: 36, marginBottom: 16 }}>🗑️</div>
+              <h3 style={{ fontSize: 16, fontWeight: 700, color: '#e8e8f0', margin: '0 0 6px' }}>
+                Deleting bookmarks...
+              </h3>
+              <p style={{ fontSize: 13, color: '#6b6b88', margin: '0 0 20px' }}>
+                {deleteProgress.done} of {deleteProgress.total} deleted
+              </p>
+
+              {/* Progress bar */}
+              <div style={{ height: 6, backgroundColor: '#1e1e2e', borderRadius: 99, overflow: 'hidden', marginBottom: 10 }}>
+                <div style={{
+                  height: '100%', borderRadius: 99,
+                  backgroundColor: '#ef4444',
+                  width: `${Math.round((deleteProgress.done / deleteProgress.total) * 100)}%`,
+                  transition: 'width 0.3s ease',
+                }} />
+              </div>
+              <p style={{ fontSize: 12, color: '#3a3a5e', margin: 0 }}>
+                {Math.round((deleteProgress.done / deleteProgress.total) * 100)}% complete
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* Drag overlay */}
         {dragging && (
           <div style={{
@@ -560,6 +619,7 @@ export default function BookmarksPage() {
             <Button variant="outline" onClick={() => setConfirmOpen(false)}>Cancel</Button>
             <Button
               onClick={confirmDelete}
+              disabled={deleting}
               style={{ backgroundColor: '#ef4444', color: 'white' }}
             >
               <Trash2 size={14} /> Yes, delete
