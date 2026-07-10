@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { Plus, ExternalLink, Trash2, Search, Upload, X, Clock, Tag, Link2, LayoutList, Layers, Pencil } from 'lucide-react'
+import { Plus, ExternalLink, Trash2, Search, Upload, X, Clock, Tag, Link2, LayoutList, Layers, Pencil, CheckSquare, Square, AlertTriangle } from 'lucide-react'
 import { toast } from 'sonner'
 import { Bookmark } from '@/types'
 import { AppLayout } from '@/components/layout/AppLayout'
@@ -54,6 +54,12 @@ export default function BookmarksPage() {
 
   // Drag and drop
   const [dragging, setDragging] = useState(false)
+
+  // Bulk select
+  const [selected,    setSelected]    = useState<Set<string>>(new Set())
+  const [selectMode,  setSelectMode]  = useState(false)
+  const [confirmOpen, setConfirmOpen] = useState(false)
+  const [confirmTarget, setConfirmTarget] = useState<{ ids: string[]; label: string } | null>(null)
 
   const fetchBookmarks = useCallback(async () => {
     const params = new URLSearchParams()
@@ -200,6 +206,54 @@ export default function BookmarksPage() {
     if (res.ok) { setBookmarks(prev => prev.filter(b => b.id !== id)); toast.success('Deleted') }
   }
 
+  // ── Bulk operations ──────────────────────────────────────
+  function toggleSelect(id: string) {
+    setSelected(prev => {
+      const next = new Set(prev)
+      next.has(id) ? next.delete(id) : next.add(id)
+      return next
+    })
+  }
+
+  function selectAll() {
+    setSelected(new Set(displayed.map(b => b.id)))
+  }
+
+  function selectNone() {
+    setSelected(new Set())
+  }
+
+  function selectGroup(ids: string[]) {
+    setSelected(prev => {
+      const next = new Set(prev)
+      const allIn = ids.every(id => next.has(id))
+      ids.forEach(id => allIn ? next.delete(id) : next.add(id))
+      return next
+    })
+  }
+
+  function promptDelete(ids: string[], label: string) {
+    setConfirmTarget({ ids, label })
+    setConfirmOpen(true)
+  }
+
+  async function confirmDelete() {
+    if (!confirmTarget) return
+    const { ids } = confirmTarget
+    setConfirmOpen(false)
+
+    let deleted = 0
+    await Promise.all(ids.map(async id => {
+      const res = await fetch(`/api/bookmarks/${id}`, { method: 'DELETE' })
+      if (res.ok) deleted++
+    }))
+
+    setBookmarks(prev => prev.filter(b => !ids.includes(b.id)))
+    setSelected(new Set())
+    setSelectMode(false)
+    toast.success(`Deleted ${deleted} bookmark${deleted !== 1 ? 's' : ''}`)
+  }
+
   // All unique tags from all bookmarks
   const allTags = [...new Set(bookmarks.flatMap(b => b.tags))]
   const displayed = tagFilter ? bookmarks.filter(b => b.tags.includes(tagFilter)) : bookmarks
@@ -233,6 +287,13 @@ export default function BookmarksPage() {
           description="Save links — paste, drop, or import"
           action={
             <div style={{ display: 'flex', gap: 8 }}>
+              <Button
+                variant="outline" size="sm"
+                onClick={() => { setSelectMode(s => !s); setSelected(new Set()) }}
+                style={selectMode ? { borderColor: '#7c6aff', color: '#7c6aff', backgroundColor: '#7c6aff11' } : {}}
+              >
+                <CheckSquare size={14} /> {selectMode ? 'Cancel' : 'Select'}
+              </Button>
               <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()} disabled={importing}>
                 <Upload size={14} /> {importing ? 'Importing...' : 'Import'}
               </Button>
@@ -243,6 +304,68 @@ export default function BookmarksPage() {
             </div>
           }
         />
+
+        {/* ── Bulk action toolbar ── */}
+        {selectMode && (
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 10,
+            padding: '10px 14px', marginBottom: 14,
+            backgroundColor: '#1a1a28', border: '1px solid #3a3a5e',
+            borderRadius: 10,
+          }}>
+            {/* Select all / none */}
+            <button type="button" onClick={selected.size === displayed.length ? selectNone : selectAll} style={{
+              display: 'flex', alignItems: 'center', gap: 6,
+              background: 'none', border: 'none', cursor: 'pointer',
+              color: '#a0a0b8', fontSize: 13,
+            }}>
+              {selected.size === displayed.length
+                ? <CheckSquare size={15} color="#7c6aff" />
+                : <Square size={15} color="#6b6b88" />}
+              {selected.size === displayed.length ? 'Deselect all' : 'Select all'}
+            </button>
+
+            <span style={{ fontSize: 12, color: '#6b6b88', marginLeft: 4 }}>
+              {selected.size > 0 ? `${selected.size} selected` : 'None selected'}
+            </span>
+
+            <div style={{ flex: 1 }} />
+
+            {/* Delete selected */}
+            {selected.size > 0 && (
+              <button type="button"
+                onClick={() => promptDelete([...selected], `${selected.size} selected bookmark${selected.size !== 1 ? 's' : ''}`)}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 6,
+                  padding: '6px 14px', borderRadius: 8,
+                  backgroundColor: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)',
+                  color: '#ef4444', fontSize: 13, fontWeight: 600, cursor: 'pointer',
+                  transition: 'all 0.15s',
+                }}
+                onMouseEnter={e => { e.currentTarget.style.backgroundColor = 'rgba(239,68,68,0.18)' }}
+                onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'rgba(239,68,68,0.1)' }}
+              >
+                <Trash2 size={14} /> Delete {selected.size}
+              </button>
+            )}
+
+            {/* Delete ALL visible */}
+            <button type="button"
+              onClick={() => promptDelete(displayed.map(b => b.id), `all ${displayed.length} bookmark${displayed.length !== 1 ? 's' : ''}${tagFilter ? ` in "${tagFilter}"` : ''}`)}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 6,
+                padding: '6px 14px', borderRadius: 8,
+                backgroundColor: 'transparent', border: '1px solid #2a2a3e',
+                color: '#6b6b88', fontSize: 13, cursor: 'pointer',
+                transition: 'all 0.15s',
+              }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = '#ef444444'; e.currentTarget.style.color = '#ef4444' }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = '#2a2a3e'; e.currentTarget.style.color = '#6b6b88' }}
+            >
+              <Trash2 size={14} /> Delete all {displayed.length}
+            </button>
+          </div>
+        )}
 
         {/* Import result banner */}
         {importResult && (
@@ -372,8 +495,13 @@ export default function BookmarksPage() {
             bookmarks={displayed}
             allTags={allTags}
             onEdit={openEdit}
-            onDelete={deleteBookmark}
+            onDelete={id => promptDelete([id], '1 bookmark')}
             onTagClick={tag => setTagFilter(tag)}
+            selectMode={selectMode}
+            selected={selected}
+            onToggleSelect={toggleSelect}
+            onSelectGroup={selectGroup}
+            onDeleteGroup={(ids, label) => promptDelete(ids, label)}
           />
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -382,13 +510,44 @@ export default function BookmarksPage() {
                 key={bm.id}
                 bookmark={bm}
                 onEdit={() => openEdit(bm)}
-                onDelete={() => deleteBookmark(bm.id)}
+                onDelete={() => promptDelete([bm.id], `"${bm.title}"`)}
                 onTagClick={tag => setTagFilter(tag)}
+                selectMode={selectMode}
+                isSelected={selected.has(bm.id)}
+                onToggleSelect={() => toggleSelect(bm.id)}
               />
             ))}
           </div>
         )}
       </div>
+
+      {/* ── Confirmation dialog ── */}
+      <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <AlertTriangle size={18} color="#ef4444" />
+              Delete bookmarks?
+            </DialogTitle>
+          </DialogHeader>
+          <div style={{ padding: '4px 0 16px' }}>
+            <p style={{ fontSize: 14, color: '#a0a0b8', lineHeight: 1.6 }}>
+              You are about to permanently delete{' '}
+              <strong style={{ color: '#e8e8f0' }}>{confirmTarget?.label}</strong>.
+              This cannot be undone.
+            </p>
+          </div>
+          <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+            <Button variant="outline" onClick={() => setConfirmOpen(false)}>Cancel</Button>
+            <Button
+              onClick={confirmDelete}
+              style={{ backgroundColor: '#ef4444', color: 'white' }}
+            >
+              <Trash2 size={14} /> Yes, delete
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Edit dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
@@ -425,11 +584,14 @@ export default function BookmarksPage() {
 }
 
 // ── Bookmark card ────────────────────────────────────────────
-function BookmarkCard({ bookmark: bm, onEdit, onDelete, onTagClick }: {
+function BookmarkCard({ bookmark: bm, onEdit, onDelete, onTagClick, selectMode, isSelected, onToggleSelect }: {
   bookmark: Bookmark
   onEdit: () => void
   onDelete: () => void
   onTagClick: (tag: string) => void
+  selectMode?: boolean
+  isSelected?: boolean
+  onToggleSelect?: () => void
 }) {
   const hostname = bm.hostname ?? (() => { try { return new URL(bm.url).hostname } catch { return bm.url } })()
   const color = domainColor(hostname)
@@ -438,14 +600,26 @@ function BookmarkCard({ bookmark: bm, onEdit, onDelete, onTagClick }: {
     <div
       style={{
         display: 'flex', alignItems: 'flex-start', gap: 12,
-        backgroundColor: '#12121a', border: '1px solid #2a2a3e',
+        backgroundColor: isSelected ? 'rgba(124,106,255,0.06)' : '#12121a',
+        border: isSelected ? '1px solid #7c6aff55' : '1px solid #2a2a3e',
         borderRadius: 10, padding: '12px 14px',
-        transition: 'border-color 0.15s',
+        transition: 'border-color 0.15s, background 0.15s',
+        cursor: selectMode ? 'pointer' : 'default',
       }}
-      onMouseEnter={e => (e.currentTarget.style.borderColor = '#3a3a5e')}
-      onMouseLeave={e => (e.currentTarget.style.borderColor = '#2a2a3e')}
+      onClick={selectMode ? onToggleSelect : undefined}
+      onMouseEnter={e => { if (!selectMode) e.currentTarget.style.borderColor = '#3a3a5e' }}
+      onMouseLeave={e => { if (!selectMode) e.currentTarget.style.borderColor = isSelected ? '#7c6aff55' : '#2a2a3e' }}
       className="group"
     >
+      {/* Checkbox (select mode) */}
+      {selectMode && (
+        <div style={{ paddingTop: 6, flexShrink: 0 }}>
+          {isSelected
+            ? <CheckSquare size={17} color="#7c6aff" />
+            : <Square size={17} color="#3a3a5e" />}
+        </div>
+      )}
+
       {/* Favicon */}
       <div style={{
         width: 32, height: 32, borderRadius: 8, flexShrink: 0,
@@ -551,12 +725,17 @@ function BookmarkCard({ bookmark: bm, onEdit, onDelete, onTagClick }: {
 }
 
 // ── Collections view — grouped by tag ───────────────────────
-function CollectionsView({ bookmarks, allTags, onEdit, onDelete, onTagClick }: {
+function CollectionsView({ bookmarks, allTags, onEdit, onDelete, onTagClick, selectMode, selected, onToggleSelect, onSelectGroup, onDeleteGroup }: {
   bookmarks: Bookmark[]
   allTags: string[]
   onEdit: (bm: Bookmark) => void
   onDelete: (id: string) => void
   onTagClick: (tag: string) => void
+  selectMode?: boolean
+  selected?: Set<string>
+  onToggleSelect?: (id: string) => void
+  onSelectGroup?: (ids: string[]) => void
+  onDeleteGroup?: (ids: string[], label: string) => void
 }) {
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set())
 
@@ -589,31 +768,57 @@ function CollectionsView({ bookmarks, allTags, onEdit, onDelete, onTagClick }: {
         return (
           <div key={tag} style={{ backgroundColor: '#12121a', border: '1px solid #2a2a3e', borderRadius: 12, overflow: 'hidden' }}>
             {/* Group header */}
-            <button
-              type="button"
-              onClick={() => toggleGroup(tag)}
-              style={{
-                width: '100%', display: 'flex', alignItems: 'center', gap: 10,
-                padding: '11px 16px', background: 'none', border: 'none',
-                cursor: 'pointer', textAlign: 'left',
-                borderBottom: isCollapsed ? 'none' : '1px solid #2a2a3e',
-              }}
-            >
-              <div style={{
-                width: 24, height: 24, borderRadius: 6,
-                backgroundColor: color + '22', border: `1px solid ${color}44`,
-                display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 8,
+              padding: '10px 16px',
+              borderBottom: isCollapsed ? 'none' : '1px solid #2a2a3e',
+            }}>
+              <button type="button" onClick={() => toggleGroup(tag)} style={{
+                display: 'flex', alignItems: 'center', gap: 8, flex: 1,
+                background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left',
               }}>
-                <Tag size={12} color={color} />
-              </div>
-              <span style={{ fontSize: 13, fontWeight: 600, color: '#e8e8f0', flex: 1, textTransform: tag === '__untagged__' ? 'none' : 'capitalize' }}>
-                {label}
-              </span>
-              <span style={{ fontSize: 11, color: '#6b6b88', backgroundColor: '#1e1e2e', padding: '2px 8px', borderRadius: 99 }}>
-                {items.length}
-              </span>
-              <span style={{ fontSize: 12, color: '#6b6b88', marginLeft: 4 }}>{isCollapsed ? '›' : '‹'}</span>
-            </button>
+                <div style={{
+                  width: 24, height: 24, borderRadius: 6,
+                  backgroundColor: color + '22', border: `1px solid ${color}44`,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                }}>
+                  <Tag size={12} color={color} />
+                </div>
+                <span style={{ fontSize: 13, fontWeight: 600, color: '#e8e8f0', textTransform: tag === '__untagged__' ? 'none' : 'capitalize' }}>
+                  {label}
+                </span>
+                <span style={{ fontSize: 11, color: '#6b6b88', backgroundColor: '#1e1e2e', padding: '2px 8px', borderRadius: 99 }}>
+                  {items.length}
+                </span>
+                <span style={{ fontSize: 12, color: '#6b6b88' }}>{isCollapsed ? '›' : '‹'}</span>
+              </button>
+
+              {/* Group actions */}
+              {selectMode && onSelectGroup && (
+                <button type="button" onClick={() => onSelectGroup(items.map(i => i.id))} style={{
+                  fontSize: 11, color: '#7c6aff', background: 'none',
+                  border: '1px solid #7c6aff44', borderRadius: 6,
+                  padding: '3px 8px', cursor: 'pointer',
+                }}>
+                  {items.every(i => selected?.has(i.id)) ? 'Deselect' : 'Select all'}
+                </button>
+              )}
+              {onDeleteGroup && (
+                <button type="button"
+                  onClick={() => onDeleteGroup(items.map(i => i.id), `all ${items.length} bookmarks in "${label}"`)}
+                  title={`Delete all in ${label}`}
+                  style={{
+                    width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    background: 'none', border: '1px solid #2a2a3e', borderRadius: 6,
+                    color: '#6b6b88', cursor: 'pointer',
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.color = '#ef4444'; e.currentTarget.style.borderColor = '#ef444433' }}
+                  onMouseLeave={e => { e.currentTarget.style.color = '#6b6b88'; e.currentTarget.style.borderColor = '#2a2a3e' }}
+                >
+                  <Trash2 size={12} />
+                </button>
+              )}
+            </div>
 
             {/* Group items */}
             {!isCollapsed && (
@@ -625,6 +830,9 @@ function CollectionsView({ bookmarks, allTags, onEdit, onDelete, onTagClick }: {
                     onEdit={() => onEdit(bm)}
                     onDelete={() => onDelete(bm.id)}
                     onTagClick={onTagClick}
+                    selectMode={selectMode}
+                    isSelected={selected?.has(bm.id)}
+                    onToggleSelect={() => onToggleSelect?.(bm.id)}
                   />
                 ))}
               </div>
