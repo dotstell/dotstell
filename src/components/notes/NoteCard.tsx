@@ -6,19 +6,20 @@ import { Button } from '@/components/ui/button'
 import { formatRelative } from '@/lib/utils'
 
 const TYPE_ICON  = { plain: AlignLeft, markdown: FileText, checklist: CheckSquare }
-const TYPE_LABEL = { plain: 'Plain', markdown: 'MD', checklist: 'List' }
+const TYPE_LABEL = { plain: 'Plain', markdown: 'Rich text', checklist: 'List' }
 const TYPE_COLOR = { plain: '#6b6b88', markdown: '#7c6aff', checklist: '#10b981' }
 
-function cleanMarkdown(text: string): string {
-  return text
-    .replace(/^#{1,6}\s+/gm, '')
-    .replace(/\*\*(.+?)\*\*/g, '$1')
-    .replace(/\*(.+?)\*/g, '$1')
-    .replace(/`(.+?)`/g, '$1')
-    .replace(/```[\s\S]*?```/g, '')
-    .replace(/\[(.+?)\]\(.+?\)/g, '$1')
-    .replace(/^[-*>]\s+/gm, '')
-    .replace(/\n{2,}/g, ' ')
+/** Strip all HTML tags and decode basic entities → plain readable text */
+function htmlToText(html: string): string {
+  return html
+    .replace(/<(h[1-6])[^>]*>(.*?)<\/\1>/gi, '$2 ')   // headings → text + space
+    .replace(/<li[^>]*>(.*?)<\/li>/gi, '• $1 ')         // list items → bullets
+    .replace(/<br\s*\/?>/gi, ' ')                        // line breaks → space
+    .replace(/<[^>]+>/g, '')                             // strip remaining tags
+    .replace(/&amp;/g, '&').replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>').replace(/&quot;/g, '"')
+    .replace(/&#039;/g, "'").replace(/&nbsp;/g, ' ')
+    .replace(/\s{2,}/g, ' ')                             // collapse whitespace
     .trim()
 }
 
@@ -38,8 +39,8 @@ export function NoteCard({ note, onClick, onDelete }: NoteCardProps) {
     const total = note.checklist_items?.length ?? 0
     preview = `${done}/${total} items done`
   } else {
-    preview = cleanMarkdown(note.content)
-    if (preview.length > 110) preview = preview.slice(0, 110) + '…'
+    const raw = htmlToText(note.content)
+    preview = raw.length > 120 ? raw.slice(0, 120) + '…' : raw
   }
 
   return (
@@ -77,9 +78,12 @@ export function NoteCard({ note, onClick, onDelete }: NoteCardProps) {
         </Button>
       </div>
 
-      {/* Preview */}
+      {/* Preview — clean readable text, no HTML */}
       {preview && (
-        <p style={{ fontSize: 12, color: '#6b6b88', lineHeight: 1.55, margin: 0, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' } as React.CSSProperties}>
+        <p style={{
+          fontSize: 12, color: '#6b6b88', lineHeight: 1.55, margin: 0,
+          display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden',
+        } as React.CSSProperties}>
           {preview}
         </p>
       )}
