@@ -27,7 +27,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <div style={{
-      display: 'flex', height: '100vh', overflow: 'hidden',
+      display: 'flex', minHeight: '100vh',
       backgroundColor: '#0a0a0f',
     }}>
       <Sidebar onOpenPalette={() => setPaletteOpen(true)} />
@@ -35,10 +35,8 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         flex: 1,
         marginLeft: collapsed ? '64px' : '240px',
         transition: 'margin-left 0.22s cubic-bezier(0.4,0,0.2,1)',
-        overflow: 'auto',          // scrolls normally on regular pages
-        height: '100vh',
-        display: 'flex',
-        flexDirection: 'column',
+        minWidth: 0,
+        overflowX: 'hidden',
       }}>
         {children}
       </main>

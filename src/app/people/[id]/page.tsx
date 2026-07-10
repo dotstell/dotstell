@@ -74,7 +74,7 @@ export default function PersonPage({ params }: { params: Promise<{ id: string }>
 
   return (
     <AppLayout>
-      <div className="p-6 max-w-4xl mx-auto">
+      <div className="p-6 max-w-4xl">
         <Link href="/people" className="flex items-center gap-1.5 text-sm text-[var(--muted-foreground)] hover:text-[var(--foreground)] mb-5 transition-colors">
           <ArrowLeft size={14} /> Back to People
         </Link>

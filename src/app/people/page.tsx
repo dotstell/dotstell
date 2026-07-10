@@ -90,7 +90,7 @@ export default function PeoplePage() {
 
   return (
     <AppLayout>
-      <div className="p-6 max-w-6xl mx-auto">
+      <div className="p-6 max-w-6xl">
         <PageHeader
           title="People"
           description="Your team, colleagues, and contacts"

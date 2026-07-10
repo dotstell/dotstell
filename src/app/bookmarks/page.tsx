@@ -391,7 +391,7 @@ export default function BookmarksPage() {
   return (
     <AppLayout>
       <div
-        style={{ padding: '24px 28px', maxWidth: 1100, margin: '0 auto' }}
+        style={{ padding: '24px 28px', maxWidth: 1100, margin: 0 }}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}

@@ -245,7 +245,9 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
       <div style={{
         display: 'flex', flexDirection: 'column',
         height: '100vh',
+        overflow: 'hidden',
         backgroundColor: '#0a0a0f',
+        marginTop: 0,
       }}>
         {editorContent}
       </div>

@@ -53,7 +53,7 @@ export default function DashboardPage() {
 
   return (
     <AppLayout>
-      <div style={{ padding: '32px', maxWidth: 1100, margin: '0 auto' }}>
+      <div style={{ padding: '32px', maxWidth: 1100, margin: 0 }}>
 
         {/* Greeting */}
         <div style={{ marginBottom: 28 }}>

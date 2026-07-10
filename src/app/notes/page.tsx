@@ -47,7 +47,7 @@ export default function NotesPage() {
 
   return (
     <AppLayout>
-      <div style={{ padding: '24px 28px', maxWidth: 1100, margin: '0 auto' }}>
+      <div style={{ padding: '24px 28px', maxWidth: 1100, margin: 0 }}>
         <PageHeader
           title="Notes"
           description="Rich text, plain, and checklist notes"

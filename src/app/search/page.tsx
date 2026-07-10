@@ -40,7 +40,7 @@ export default function SearchPage() {
 
   return (
     <AppLayout>
-      <div className="p-6 max-w-2xl mx-auto">
+      <div className="p-6 max-w-2xl">
         <h1 className="text-xl font-semibold mb-6">Search</h1>
         <div className="relative mb-6">
           <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--muted-foreground)]" />

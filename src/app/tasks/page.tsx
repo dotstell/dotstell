@@ -105,7 +105,7 @@ export default function TasksPage() {
 
   return (
     <AppLayout>
-      <div className="p-6 max-w-6xl mx-auto">
+      <div className="p-6 max-w-6xl">
         <PageHeader
           title="Tasks"
           description="Track your work and deadlines"
