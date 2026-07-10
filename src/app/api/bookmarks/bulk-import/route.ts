@@ -112,6 +112,7 @@ export async function POST(req: NextRequest) {
   const BATCH = 500
   let imported = 0
   let insert_errors = 0
+  let first_error: string | null = null
 
   for (let i = 0; i < newBookmarks.length; i += BATCH) {
     const batch = newBookmarks.slice(i, i + BATCH).map(b => ({
@@ -131,6 +132,7 @@ export async function POST(req: NextRequest) {
       imported += data.length
     } else {
       insert_errors += batch.length
+      if (!first_error && error) first_error = error.message
     }
   }
 
@@ -141,6 +143,7 @@ export async function POST(req: NextRequest) {
     total_in_file: parsed.length + skipped.length,
     existing_in_db: existing_count,
     insert_errors,
+    first_error,
     skip_reasons: summariseReasons(skipped),
   })
 }

@@ -56,6 +56,7 @@ export default function BookmarksPage() {
     total_in_file: number
     existing_in_db: number
     insert_errors: number
+    first_error: string | null
     skip_reasons: Record<string, number>
   } | null>(null)
   const [lastImportHtml, setLastImportHtml] = useState<string | null>(null)
@@ -496,6 +497,7 @@ export default function BookmarksPage() {
                   {importResult.insert_errors > 0 && (
                     <span style={{ fontSize: 13, color: '#ef4444' }}>
                       · {importResult.insert_errors} failed to save
+                      {importResult.first_error && `: "${importResult.first_error}"`}
                     </span>
                   )}
                 </div>
