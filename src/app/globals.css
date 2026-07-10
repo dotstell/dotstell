@@ -58,3 +58,7 @@
 
 /* Bookmark card hover actions */
 .group:hover .group-hover-actions { opacity: 1 !important; }
+
+/* Spinner animation */
+@keyframes spin { to { transform: rotate(360deg); } }
+

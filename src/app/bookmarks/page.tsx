@@ -462,16 +462,14 @@ export default function BookmarksPage() {
         )}
 
         {/* ── Quick capture bar ── */}
-        <form onSubmit={handleQuickCapture} style={{ marginBottom: 20 }}>
+        <form onSubmit={handleQuickCapture} style={{ marginBottom: 12 }}>
           <div style={{
             display: 'flex', alignItems: 'center', gap: 0,
             backgroundColor: '#12121a',
             border: dragging ? '2px solid #7c6aff' : '2px solid #3a3a5e',
             borderRadius: 12, overflow: 'hidden',
             transition: 'border-color 0.15s',
-          }}
-            onFocus={() => {}}
-          >
+          }}>
             <div style={{ padding: '0 14px', color: '#6b6b88', flexShrink: 0 }}>
               <Link2 size={16} />
             </div>
@@ -486,10 +484,13 @@ export default function BookmarksPage() {
                 fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
               }}
               onFocus={e => { e.currentTarget.closest('div')!.style.borderColor = '#7c6aff' }}
-              onBlur={e => { e.currentTarget.closest('div')!.style.borderColor = '#3a3a5e' }}
+              onBlur={e => { e.currentTarget.closest('div')!.style.borderColor = dragging ? '#7c6aff' : '#3a3a5e' }}
             />
             {captureFetching ? (
-              <div style={{ padding: '0 16px', color: '#6b6b88', fontSize: 12 }}>Fetching...</div>
+              <div style={{ padding: '0 16px', color: '#6b6b88', fontSize: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
+                <div style={{ width: 14, height: 14, border: '2px solid #3a3a5e', borderTopColor: '#7c6aff', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />
+                Fetching...
+              </div>
             ) : captureUrl ? (
               <button type="submit" style={{
                 padding: '10px 18px', backgroundColor: '#7c6aff', border: 'none',
@@ -499,10 +500,15 @@ export default function BookmarksPage() {
                 Save ↵
               </button>
             ) : (
-              <div style={{ padding: '0 16px', color: '#3a3a5e', fontSize: 11 }}>or drag a link here</div>
+              <div style={{ padding: '0 16px', display: 'flex', alignItems: 'center', gap: 6, color: '#3a3a5e', fontSize: 12 }}>
+                <span>or</span>
+              </div>
             )}
           </div>
         </form>
+
+        {/* ── Drop zone strip (always visible, lights up on drag) ── */}
+        <DropZoneStrip dragging={dragging} hasBookmarks={displayed.length > 0} />
 
         {/* Search + filters + view toggle */}
         <div style={{ display: 'flex', gap: 10, marginBottom: 14, flexWrap: 'wrap', alignItems: 'center' }}>
@@ -563,11 +569,11 @@ export default function BookmarksPage() {
         {loading ? (
           <p style={{ color: '#6b6b88', fontSize: 13 }}>Loading...</p>
         ) : displayed.length === 0 ? (
-          <EmptyState
-            icon="🔖"
-            title={search || tagFilter ? 'No results' : 'No bookmarks yet'}
-            description={search || tagFilter ? 'Try a different search or tag.' : 'Paste a URL above, drag a link here, or import from your browser.'}
-          />
+          search || tagFilter ? (
+            <EmptyState icon="🔖" title="No results" description="Try a different search or tag." />
+          ) : (
+            <BigDropZone dragging={dragging} onClickImport={() => fileInputRef.current?.click()} />
+          )
         ) : viewMode === 'collections' ? (
           <CollectionsView
             bookmarks={displayed}
@@ -919,6 +925,94 @@ function CollectionsView({ bookmarks, allTags, onEdit, onDelete, onTagClick, sel
           </div>
         )
       })}
+    </div>
+  )
+}
+
+// ── Drop zone strip — compact, always visible below capture bar ──
+function DropZoneStrip({ dragging, hasBookmarks }: { dragging: boolean; hasBookmarks: boolean }) {
+  if (!hasBookmarks) return null
+
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
+      padding: '10px 16px', marginBottom: 16,
+      border: dragging ? '2px dashed #7c6aff' : '1.5px dashed #2a2a3e',
+      borderRadius: 10,
+      backgroundColor: dragging ? 'rgba(124,106,255,0.08)' : 'transparent',
+      transition: 'all 0.2s ease',
+    }}>
+      <span style={{ fontSize: 18 }}>{dragging ? '🎯' : '🔗'}</span>
+      <span style={{ fontSize: 13, color: dragging ? '#7c6aff' : '#3a3a5e', fontWeight: dragging ? 600 : 400, transition: 'color 0.2s' }}>
+        {dragging ? 'Release to save this link' : 'Drag any link from your browser and drop it here'}
+      </span>
+    </div>
+  )
+}
+
+// ── Big drop zone — shown when bookmarks list is empty ──
+function BigDropZone({ dragging, onClickImport }: { dragging: boolean; onClickImport: () => void }) {
+  return (
+    <div style={{
+      display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+      padding: '60px 24px', gap: 16,
+      border: dragging ? '2.5px dashed #7c6aff' : '2px dashed #2a2a3e',
+      borderRadius: 16,
+      backgroundColor: dragging ? 'rgba(124,106,255,0.08)' : 'rgba(124,106,255,0.02)',
+      transition: 'all 0.2s ease',
+      minHeight: 320,
+    }}>
+      <div style={{ fontSize: 56, transition: 'filter 0.2s', filter: dragging ? 'none' : 'grayscale(0.4)' }}>
+        {dragging ? '🎯' : '🔗'}
+      </div>
+
+      <div style={{ textAlign: 'center' }}>
+        <p style={{ fontSize: 18, fontWeight: 700, color: dragging ? '#7c6aff' : '#e8e8f0', margin: '0 0 8px', transition: 'color 0.2s' }}>
+          {dragging ? 'Release to save this link' : 'Drop a link anywhere on this page'}
+        </p>
+        {!dragging && (
+          <p style={{ fontSize: 13, color: '#6b6b88', margin: 0, lineHeight: 1.6 }}>
+            Drag any URL from your browser address bar, a tab, or a webpage
+          </p>
+        )}
+      </div>
+
+      {!dragging && (
+        <>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', maxWidth: 320 }}>
+            <div style={{ flex: 1, height: 1, backgroundColor: '#2a2a3e' }} />
+            <span style={{ fontSize: 12, color: '#3a3a5e' }}>or</span>
+            <div style={{ flex: 1, height: 1, backgroundColor: '#2a2a3e' }} />
+          </div>
+
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', justifyContent: 'center' }}>
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 8,
+              padding: '10px 16px', borderRadius: 10,
+              backgroundColor: '#12121a', border: '1px solid #2a2a3e',
+              fontSize: 13, color: '#a0a0b8',
+            }}>
+              <span>📋</span>
+              <span>Paste a URL above and press{' '}
+                <kbd style={{ backgroundColor: '#1e1e2e', border: '1px solid #2a2a3e', borderRadius: 4, padding: '1px 6px', fontSize: 11, color: '#7c6aff' }}>Enter</kbd>
+              </span>
+            </div>
+            <button type="button" onClick={onClickImport} style={{
+              display: 'flex', alignItems: 'center', gap: 8,
+              padding: '10px 16px', borderRadius: 10,
+              backgroundColor: '#12121a', border: '1px solid #2a2a3e',
+              fontSize: 13, color: '#a0a0b8', cursor: 'pointer',
+              transition: 'border-color 0.15s, color 0.15s',
+            }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = '#7c6aff44'; e.currentTarget.style.color = '#e8e8f0' }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = '#2a2a3e'; e.currentTarget.style.color = '#a0a0b8' }}
+            >
+              <span>📂</span>
+              <span>Import from Chrome / Firefox / Edge</span>
+            </button>
+          </div>
+        </>
+      )}
     </div>
   )
 }
