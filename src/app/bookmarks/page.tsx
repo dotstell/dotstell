@@ -54,8 +54,11 @@ export default function BookmarksPage() {
     duplicates: number
     skipped_invalid: number
     total_in_file: number
+    existing_in_db: number
+    insert_errors: number
     skip_reasons: Record<string, number>
   } | null>(null)
+  const [lastImportHtml, setLastImportHtml] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   // Drag and drop
@@ -152,25 +155,34 @@ export default function BookmarksPage() {
   }
 
   // ── Bulk import ──────────────────────────────────────────
-  async function handleFileImport(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0]
-    if (!file) return
+  async function runImport(html: string, force = false) {
     setImporting(true)
-    const html = await file.text()
     const res = await fetch('/api/bookmarks/bulk-import', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ html }),
+      body: JSON.stringify({ html, force }),
     })
     const data = await res.json()
     if (res.ok) {
       setImportResult(data)
-      toast.success(`Imported ${data.imported} new bookmark${data.imported !== 1 ? 's' : ''}`)
-      fetchBookmarks()
+      if (data.imported > 0) {
+        toast.success(`Imported ${data.imported} new bookmark${data.imported !== 1 ? 's' : ''}`)
+        fetchBookmarks()
+      } else if (data.duplicates > 0) {
+        toast.info(`All ${data.duplicates} bookmarks already exist`)
+      }
     } else {
       toast.error(data.error ?? 'Import failed')
     }
     setImporting(false)
+  }
+
+  async function handleFileImport(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const html = await file.text()
+    setLastImportHtml(html)
+    await runImport(html, false)
     e.target.value = ''
   }
 
@@ -461,26 +473,42 @@ export default function BookmarksPage() {
             <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 }}>
               <div style={{ flex: 1 }}>
                 {/* Summary row */}
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, marginBottom: importResult.skipped_invalid > 0 ? 8 : 0 }}>
-                  <span style={{ fontSize: 13, color: '#10b981', fontWeight: 600 }}>
-                    ✓ {importResult.imported} new bookmark{importResult.imported !== 1 ? 's' : ''} imported
-                  </span>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, marginBottom: 8 }}>
+                  {importResult.imported > 0 ? (
+                    <span style={{ fontSize: 13, color: '#10b981', fontWeight: 600 }}>
+                      ✓ {importResult.imported} new bookmark{importResult.imported !== 1 ? 's' : ''} imported
+                    </span>
+                  ) : (
+                    <span style={{ fontSize: 13, color: '#7c6aff', fontWeight: 600 }}>
+                      ℹ No new bookmarks to import
+                    </span>
+                  )}
                   {importResult.duplicates > 0 && (
                     <span style={{ fontSize: 13, color: '#6b6b88' }}>
-                      · {importResult.duplicates} already existed (skipped)
+                      · {importResult.duplicates} already in your library
                     </span>
                   )}
                   {importResult.skipped_invalid > 0 && (
                     <span style={{ fontSize: 13, color: '#f59e0b' }}>
-                      · {importResult.skipped_invalid} invalid (skipped)
+                      · {importResult.skipped_invalid} invalid links skipped
+                    </span>
+                  )}
+                  {importResult.insert_errors > 0 && (
+                    <span style={{ fontSize: 13, color: '#ef4444' }}>
+                      · {importResult.insert_errors} failed to save
                     </span>
                   )}
                 </div>
 
-                {/* Skip reasons breakdown */}
+                {/* Debug: existing count */}
+                <div style={{ fontSize: 11, color: '#3a3a5e', marginBottom: importResult.skipped_invalid > 0 ? 6 : 0 }}>
+                  {importResult.total_in_file} links in file · {importResult.existing_in_db} already in your library
+                </div>
+
+                {/* Skip reasons */}
                 {importResult.skipped_invalid > 0 && Object.keys(importResult.skip_reasons).length > 0 && (
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                    <span style={{ fontSize: 11, color: '#6b6b88' }}>Why skipped:</span>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
+                    <span style={{ fontSize: 11, color: '#6b6b88' }}>Skipped:</span>
                     {Object.entries(importResult.skip_reasons).map(([reason, count]) => (
                       <span key={reason} style={{
                         fontSize: 11, color: '#6b6b88',
@@ -490,6 +518,27 @@ export default function BookmarksPage() {
                         {reason}: {count}
                       </span>
                     ))}
+                  </div>
+                )}
+
+                {/* Force re-import option when 0 imported but there were duplicates */}
+                {importResult.imported === 0 && importResult.duplicates > 0 && lastImportHtml && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, paddingTop: 6, borderTop: '1px solid #2a2a3e' }}>
+                    <span style={{ fontSize: 12, color: '#6b6b88' }}>
+                      Expected new bookmarks but got none?
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => runImport(lastImportHtml, true)}
+                      disabled={importing}
+                      style={{
+                        fontSize: 12, color: '#7c6aff', fontWeight: 600,
+                        background: 'none', border: '1px solid #7c6aff44',
+                        borderRadius: 6, padding: '3px 10px', cursor: 'pointer',
+                      }}
+                    >
+                      Force re-import all
+                    </button>
                   </div>
                 )}
               </div>

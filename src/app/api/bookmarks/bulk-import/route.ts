@@ -39,15 +39,12 @@ function parseNetscapeHTML(html: string): { bookmarks: ParsedBookmark[]; skipped
       const url = href.trim()
       const title = aText.replace(/<[^>]+>/g, '').trim()
 
-      // Track skipped with reasons
       if (!url) { skipped.push({ url: title || '(empty)', reason: 'Empty URL' }); continue }
       if (url.startsWith('javascript:')) { skipped.push({ url, reason: 'JavaScript link' }); continue }
       if (url.startsWith('place:')) { skipped.push({ url, reason: 'Firefox internal link' }); continue }
       if (url.length > 2000) { skipped.push({ url: url.slice(0, 80) + '…', reason: 'URL too long' }); continue }
 
-      try {
-        new URL(url)
-      } catch {
+      try { new URL(url) } catch {
         skipped.push({ url, reason: 'Invalid URL format' })
         continue
       }
@@ -65,36 +62,56 @@ function parseNetscapeHTML(html: string): { bookmarks: ParsedBookmark[]; skipped
   return { bookmarks, skipped }
 }
 
+// Fetch ALL existing URLs with pagination — Supabase default limit is 1000
+async function fetchAllExistingUrls(supabase: Awaited<ReturnType<typeof createClient>>, userId: string): Promise<Set<string>> {
+  const urls = new Set<string>()
+  const PAGE = 1000
+  let from = 0
+
+  while (true) {
+    const { data, error } = await supabase
+      .from('bookmarks')
+      .select('url')
+      .eq('user_id', userId)
+      .range(from, from + PAGE - 1)
+
+    if (error || !data || data.length === 0) break
+    data.forEach(b => urls.add(b.url))
+    if (data.length < PAGE) break
+    from += PAGE
+  }
+
+  return urls
+}
+
 export async function POST(req: NextRequest) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const body = await req.json()
-  const { html } = body as { html: string }
+  const { html, force } = body as { html: string; force?: boolean }
   if (!html) return NextResponse.json({ error: 'Missing html' }, { status: 400 })
 
   const { bookmarks: parsed, skipped } = parseNetscapeHTML(html)
   if (parsed.length === 0) {
     return NextResponse.json({
       error: 'No valid bookmarks found',
-      skipped_count: skipped.length,
+      skipped_invalid: skipped.length,
       skip_reasons: summariseReasons(skipped),
     }, { status: 400 })
   }
 
-  // Get existing URLs for this user to detect duplicates
-  const { data: existing } = await supabase
-    .from('bookmarks')
-    .select('url')
-    .eq('user_id', user.id)
+  // Fetch existing URLs with full pagination
+  const existingUrls = force ? new Set<string>() : await fetchAllExistingUrls(supabase, user.id)
+  const existing_count = existingUrls.size
 
-  const existingUrls = new Set((existing ?? []).map(b => b.url))
-  const newBookmarks    = parsed.filter(b => !existingUrls.has(b.url))
-  const duplicateCount  = parsed.length - newBookmarks.length
+  const newBookmarks   = parsed.filter(b => !existingUrls.has(b.url))
+  const duplicateCount = parsed.length - newBookmarks.length
 
   const BATCH = 500
   let imported = 0
+  let insert_errors = 0
 
   for (let i = 0; i < newBookmarks.length; i += BATCH) {
     const batch = newBookmarks.slice(i, i + BATCH).map(b => ({
@@ -110,7 +127,11 @@ export async function POST(req: NextRequest) {
       .insert(batch)
       .select('id')
 
-    if (!error) imported += data?.length ?? batch.length
+    if (!error && data) {
+      imported += data.length
+    } else {
+      insert_errors += batch.length
+    }
   }
 
   return NextResponse.json({
@@ -118,6 +139,8 @@ export async function POST(req: NextRequest) {
     duplicates: duplicateCount,
     skipped_invalid: skipped.length,
     total_in_file: parsed.length + skipped.length,
+    existing_in_db: existing_count,
+    insert_errors,
     skip_reasons: summariseReasons(skipped),
   })
 }
