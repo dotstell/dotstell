@@ -55,6 +55,7 @@ export default function BookmarksPage() {
     skipped_invalid: number
     total_in_file: number
     existing_in_db: number
+    in_file_duplicates: number
     insert_errors: number
     first_error: string | null
     skip_reasons: Record<string, number>
@@ -502,9 +503,11 @@ export default function BookmarksPage() {
                   )}
                 </div>
 
-                {/* Debug: existing count */}
+                {/* Debug: counts */}
                 <div style={{ fontSize: 11, color: '#3a3a5e', marginBottom: importResult.skipped_invalid > 0 ? 6 : 0 }}>
-                  {importResult.total_in_file} links in file · {importResult.existing_in_db} already in your library
+                  {importResult.total_in_file} links in file
+                  {importResult.in_file_duplicates > 0 && ` · ${importResult.in_file_duplicates} duplicate URLs within file (merged tags)`}
+                  {` · ${importResult.existing_in_db} already in your library`}
                 </div>
 
                 {/* Skip reasons */}

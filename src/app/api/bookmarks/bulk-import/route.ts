@@ -102,12 +102,26 @@ export async function POST(req: NextRequest) {
     }, { status: 400 })
   }
 
+  // Deduplicate within the file itself — same URL in multiple folders
+  // Merge tags from all occurrences so no folder info is lost
+  const urlMap = new Map<string, ParsedBookmark>()
+  for (const b of parsed) {
+    if (urlMap.has(b.url)) {
+      const existing = urlMap.get(b.url)!
+      existing.tags = [...new Set([...existing.tags, ...b.tags])]
+    } else {
+      urlMap.set(b.url, { ...b })
+    }
+  }
+  const deduped = [...urlMap.values()]
+  const inFileDuplicates = parsed.length - deduped.length
+
   // Fetch existing URLs with full pagination
   const existingUrls = force ? new Set<string>() : await fetchAllExistingUrls(supabase, user.id)
   const existing_count = existingUrls.size
 
-  const newBookmarks   = parsed.filter(b => !existingUrls.has(b.url))
-  const duplicateCount = parsed.length - newBookmarks.length
+  const newBookmarks   = deduped.filter(b => !existingUrls.has(b.url))
+  const duplicateCount = deduped.length - newBookmarks.length
 
   const BATCH = 500
   let imported = 0
@@ -139,6 +153,7 @@ export async function POST(req: NextRequest) {
   return NextResponse.json({
     imported,
     duplicates: duplicateCount,
+    in_file_duplicates: inFileDuplicates,
     skipped_invalid: skipped.length,
     total_in_file: parsed.length + skipped.length,
     existing_in_db: existing_count,
