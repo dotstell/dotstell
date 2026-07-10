@@ -5,6 +5,10 @@ import { Toaster } from 'sonner'
 export const metadata: Metadata = {
   title: 'Dotstell — Connect your knowledge',
   description: 'A personal knowledge graph and memory platform — connect your notes, people, tasks and bookmarks.',
+  icons: {
+    icon: '/favicon.svg',
+    shortcut: '/favicon.svg',
+  },
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
