@@ -105,8 +105,34 @@ export default function GraphPage() {
   const [selected, setSelected] = useState<GraphItem | null>(null)
   const [connecting, setConnecting] = useState(false)
 
+  const STORAGE_KEY = 'dotstell-graph-positions'
+
+  function loadSavedPositions(): Map<string, { x: number; y: number }> {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY)
+      if (!raw) return new Map()
+      return new Map(Object.entries(JSON.parse(raw)))
+    } catch { return new Map() }
+  }
+
+  function savePositions(nodeList: Node[]) {
+    const obj: Record<string, { x: number; y: number }> = {}
+    nodeList.forEach(n => { obj[n.id] = n.position })
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(obj))
+  }
+
   const [nodes, setNodes, onNodesChange] = useNodesState([])
   const [edges, setEdges, onEdgesChange] = useEdgesState([])
+
+  // Save positions whenever nodes are moved
+  function handleNodesChange(changes: Parameters<typeof onNodesChange>[0]) {
+    onNodesChange(changes)
+    // After applying changes, persist positions
+    setNodes(prev => {
+      savePositions(prev)
+      return prev
+    })
+  }
 
   const fetchData = useCallback(async () => {
     const [nr, pr, br, tr, lr] = await Promise.all([
@@ -137,13 +163,14 @@ export default function GraphPage() {
     const typeOrder = ['note', 'person', 'bookmark', 'task']
     const sorted = [...filtered].sort((a, b) => typeOrder.indexOf(a.type) - typeOrder.indexOf(b.type))
 
+    const savedPos = loadSavedPositions()
     setNodes(prev => {
-      const posMap = new Map(prev.map(n => [n.id, n.position]))
+      // Priority: 1) saved localStorage position, 2) current in-memory position, 3) grid fallback
+      const memMap = new Map(prev.map(n => [n.id, n.position]))
       return sorted.map((item, idx) => ({
         id: item.id,
         type: 'graphNode',
-        // Reuse existing position if node already placed, otherwise assign grid position
-        position: posMap.get(item.id) ?? { x: (idx % cols) * xGap, y: Math.floor(idx / cols) * yGap },
+        position: savedPos.get(item.id) ?? memMap.get(item.id) ?? { x: (idx % cols) * xGap, y: Math.floor(idx / cols) * yGap },
         data: { label: item.title, type: item.type, selected: false },
       }))
     })
@@ -243,9 +270,28 @@ export default function GraphPage() {
                 Drag from a node handle to another to create a link · Click a node to inspect it
               </p>
             </div>
-            <span style={{ fontSize: 12, color: '#6b6b88' }}>
-              {nodes.length} nodes · {edges.length} links
-            </span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <span style={{ fontSize: 12, color: '#6b6b88' }}>
+                {nodes.length} nodes · {edges.length} links
+              </span>
+              <button
+                type="button"
+                onClick={() => {
+                  localStorage.removeItem(STORAGE_KEY)
+                  // Force re-render with grid positions
+                  setItems(prev => [...prev])
+                }}
+                style={{
+                  fontSize: 11, color: '#6b6b88', background: 'none',
+                  border: '1px solid #2a2a3e', borderRadius: 6,
+                  padding: '3px 10px', cursor: 'pointer',
+                }}
+                onMouseEnter={e => { e.currentTarget.style.color = '#e8e8f0'; e.currentTarget.style.borderColor = '#3a3a5e' }}
+                onMouseLeave={e => { e.currentTarget.style.color = '#6b6b88'; e.currentTarget.style.borderColor = '#2a2a3e' }}
+              >
+                Reset layout
+              </button>
+            </div>
           </div>
 
           {/* Filter tabs */}
@@ -303,7 +349,7 @@ export default function GraphPage() {
                 edges={edges}
                 nodeTypes={NODE_TYPES}
                 edgeTypes={EDGE_TYPES}
-                onNodesChange={onNodesChange}
+                onNodesChange={handleNodesChange}
                 onEdgesChange={onEdgesChange}
                 onConnect={handleConnect}
                 onNodeClick={handleNodeClick}
