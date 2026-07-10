@@ -55,3 +55,6 @@
 .react-flow__controls-button { background: var(--card); border-color: var(--border); color: var(--foreground); fill: var(--foreground); }
 .react-flow__minimap { background: var(--card); }
 .graph-full-height { height: 100vh; }
+
+/* Bookmark card hover actions */
+.group:hover .group-hover-actions { opacity: 1 !important; }

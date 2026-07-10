@@ -43,6 +43,8 @@ export interface Bookmark {
   url: string
   description?: string
   favicon_url?: string
+  reading_time?: number | null
+  hostname?: string
   tags: string[]
   linked_items: LinkedItem[]
   created_at: string
