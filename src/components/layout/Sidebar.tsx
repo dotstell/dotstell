@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import {
   FileText, Bookmark, Users, CheckSquare, Network,
-  LayoutDashboard, LogOut, Search, ChevronLeft, ChevronRight
+  LayoutDashboard, LogOut, Search, ChevronLeft, ChevronRight, Tag
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { DotstellLogo, ConstellationIcon } from '@/components/brand/DotstellLogo'
@@ -15,6 +15,7 @@ const NAV_ITEMS = [
   { href: '/people',    icon: Users,           label: 'People' },
   { href: '/bookmarks', icon: Bookmark,        label: 'Bookmarks' },
   { href: '/tasks',     icon: CheckSquare,     label: 'Tasks' },
+  { href: '/tags',      icon: Tag,             label: 'Tags' },
   { href: '/graph',     icon: Network,         label: 'Graph' },
 ]
 
@@ -23,7 +24,7 @@ interface TooltipState {
   top: number
 }
 
-export function Sidebar() {
+export function Sidebar({ onOpenPalette }: { onOpenPalette?: () => void }) {
   const pathname  = usePathname()
   const router    = useRouter()
   const [collapsed, setCollapsed] = useState(false)
@@ -109,24 +110,29 @@ export function Sidebar() {
         <div style={{ padding: collapsed ? '10px 12px' : '10px 10px 4px', flexShrink: 0 }}>
           {collapsed ? (
             <SidebarIconBtn
-              as="link" href="/search"
+              as="button"
               label="Search"
-              onMouseEnter={e => showTip(e, 'Search')}
+              onMouseEnter={e => showTip(e, 'Search  ⌘K')}
               onMouseLeave={hideTip}
+              onClick={onOpenPalette}
             >
               <Search size={17} />
             </SidebarIconBtn>
           ) : (
-            <Link href="/search" style={{
-              display: 'flex', alignItems: 'center', gap: 8,
-              padding: '7px 10px', borderRadius: 8,
-              border: '1px solid #2a2a3e', backgroundColor: '#1a1a28',
-              color: '#6b6b88', fontSize: 13, textDecoration: 'none',
-            }}>
+            <button
+              type="button"
+              onClick={onOpenPalette}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 8,
+                padding: '7px 10px', borderRadius: 8, width: '100%',
+                border: '1px solid #2a2a3e', backgroundColor: '#1a1a28',
+                color: '#6b6b88', fontSize: 13, cursor: 'pointer',
+              }}
+            >
               <Search size={14} />
               <span>Search...</span>
               <kbd style={{ marginLeft: 'auto', fontSize: 10, backgroundColor: '#2a2a3e', color: '#6b6b88', padding: '2px 5px', borderRadius: 4 }}>⌘K</kbd>
-            </Link>
+            </button>
           )}
         </div>
 

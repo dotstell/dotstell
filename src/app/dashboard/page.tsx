@@ -6,6 +6,7 @@ import { AppLayout } from '@/components/layout/AppLayout'
 import { Task, Note } from '@/types'
 import { formatDate, formatRelative } from '@/lib/utils'
 import { EmptyState } from '@/components/ui/empty-state'
+import { useTaskReminders } from '@/hooks/useTaskReminders'
 
 const PRIORITY_COLORS: Record<string, string> = { low: '#10b981', medium: '#f59e0b', high: '#ef4444' }
 const STATUS_COLORS: Record<string, string>   = { todo: '#6b6b88', in_progress: '#7c6aff', done: '#10b981' }
@@ -15,6 +16,8 @@ export default function DashboardPage() {
   const [tasks,   setTasks]   = useState<Task[]>([])
   const [counts,  setCounts]  = useState({ notes: 0, people: 0, bookmarks: 0 })
   const [loading, setLoading] = useState(true)
+
+  useTaskReminders()
 
   useEffect(() => {
     async function load() {

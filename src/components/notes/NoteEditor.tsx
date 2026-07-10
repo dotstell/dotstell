@@ -1,6 +1,6 @@
 'use client'
-import { useState, useCallback } from 'react'
-import { Plus, Trash2, Check } from 'lucide-react'
+import { useState, useCallback, useRef } from 'react'
+import { Plus, Trash2, Check, AtSign } from 'lucide-react'
 import dynamic from 'next/dynamic'
 import { Note, NoteType, ChecklistItem } from '@/types'
 import { Input } from '@/components/ui/input'
@@ -8,6 +8,8 @@ import { Textarea } from '@/components/ui/textarea'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { generateId } from '@/lib/utils'
+import { useMention } from '@/hooks/useMention'
+import { LinkPanel } from '@/components/links/LinkPanel'
 
 const MDEditor = dynamic(() => import('@uiw/react-md-editor'), { ssr: false })
 
@@ -24,6 +26,12 @@ const TYPE_TABS: { value: NoteType; label: string }[] = [
 
 export function NoteEditor({ note, onChange }: NoteEditorProps) {
   const [tagInput, setTagInput] = useState('')
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
+
+  const { suggestions, selectedIdx, pickSuggestion, handleKeyDown: mentionKeyDown, active: mentionActive } = useMention(
+    note.content ?? '',
+    (updated) => onChange({ content: updated })
+  )
 
   const addTag = useCallback(() => {
     const tag = tagInput.trim().toLowerCase()
@@ -42,14 +50,14 @@ export function NoteEditor({ note, onChange }: NoteEditorProps) {
   }, [note.checklist_items, onChange])
 
   const updateCheckItem = useCallback((id: string, updates: Partial<ChecklistItem>) => {
-    onChange({
-      checklist_items: note.checklist_items?.map(item => item.id === id ? { ...item, ...updates } : item) ?? []
-    })
+    onChange({ checklist_items: note.checklist_items?.map(item => item.id === id ? { ...item, ...updates } : item) ?? [] })
   }, [note.checklist_items, onChange])
 
   const removeCheckItem = useCallback((id: string) => {
     onChange({ checklist_items: note.checklist_items?.filter(item => item.id !== id) ?? [] })
   }, [note.checklist_items, onChange])
+
+  const noteId = (note as Note).id
 
   return (
     <div className="flex flex-col gap-4">
@@ -58,11 +66,10 @@ export function NoteEditor({ note, onChange }: NoteEditorProps) {
         {TYPE_TABS.map(({ value, label }) => (
           <button
             key={value}
+            type="button"
             onClick={() => onChange({ type: value })}
             className={`px-3 py-1 rounded text-xs font-medium transition-colors ${
-              note.type === value
-                ? 'bg-[var(--primary)] text-white'
-                : 'text-[var(--muted-foreground)] hover:text-[var(--foreground)]'
+              note.type === value ? 'bg-[var(--primary)] text-white' : 'text-[var(--muted-foreground)] hover:text-[var(--foreground)]'
             }`}
           >
             {label}
@@ -80,12 +87,52 @@ export function NoteEditor({ note, onChange }: NoteEditorProps) {
 
       {/* Content */}
       {note.type === 'plain' && (
-        <Textarea
-          placeholder="Start writing..."
-          value={note.content ?? ''}
-          onChange={e => onChange({ content: e.target.value })}
-          rows={10}
-        />
+        <div style={{ position: 'relative' }}>
+          <Textarea
+            ref={textareaRef}
+            placeholder="Start writing... (type @ to mention a person)"
+            value={note.content ?? ''}
+            onChange={e => onChange({ content: e.target.value })}
+            onKeyDown={mentionKeyDown}
+            rows={10}
+          />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 4 }}>
+            <AtSign size={11} color="#6b6b88" />
+            <span style={{ fontSize: 11, color: '#6b6b88' }}>Type @ to mention a person</span>
+          </div>
+
+          {/* @mention dropdown */}
+          {mentionActive && suggestions.length > 0 && (
+            <div style={{
+              position: 'absolute', bottom: '100%', left: 0, right: 0, zIndex: 50,
+              backgroundColor: '#12121a', border: '1px solid #2a2a3e',
+              borderRadius: 8, overflow: 'hidden', marginBottom: 4,
+              boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
+            }}>
+              {suggestions.map((s, i) => (
+                <button
+                  key={s.id}
+                  type="button"
+                  onClick={() => pickSuggestion(s)}
+                  style={{
+                    width: '100%', display: 'flex', alignItems: 'center', gap: 10,
+                    padding: '8px 12px', border: 'none', cursor: 'pointer', textAlign: 'left',
+                    backgroundColor: i === selectedIdx ? 'rgba(124,106,255,0.12)' : 'transparent',
+                    color: '#e8e8f0',
+                  }}
+                >
+                  <div style={{ width: 26, height: 26, borderRadius: '50%', backgroundColor: '#10b98122', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, color: '#10b981', fontWeight: 700, flexShrink: 0 }}>
+                    {s.name.charAt(0).toUpperCase()}
+                  </div>
+                  <div>
+                    <p style={{ fontSize: 13, color: '#e8e8f0', margin: 0 }}>{s.name}</p>
+                    {s.role && <p style={{ fontSize: 11, color: '#6b6b88', margin: 0 }}>{s.role}</p>}
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
       )}
 
       {note.type === 'markdown' && (
@@ -104,11 +151,10 @@ export function NoteEditor({ note, onChange }: NoteEditorProps) {
           {(note.checklist_items ?? []).map(item => (
             <div key={item.id} className="flex items-center gap-2">
               <button
+                type="button"
                 onClick={() => updateCheckItem(item.id, { checked: !item.checked })}
                 className={`w-4 h-4 rounded border flex-shrink-0 flex items-center justify-center transition-colors ${
-                  item.checked
-                    ? 'bg-[var(--primary)] border-[var(--primary)]'
-                    : 'border-[var(--border)] hover:border-[var(--primary)]'
+                  item.checked ? 'bg-[var(--primary)] border-[var(--primary)]' : 'border-[var(--border)] hover:border-[var(--primary)]'
                 }`}
               >
                 {item.checked && <Check size={10} className="text-white" />}
@@ -122,7 +168,7 @@ export function NoteEditor({ note, onChange }: NoteEditorProps) {
                 placeholder="Item..."
                 onKeyDown={e => e.key === 'Enter' && addCheckItem()}
               />
-              <button onClick={() => removeCheckItem(item.id)} className="text-[var(--muted-foreground)] hover:text-[var(--destructive)]">
+              <button type="button" onClick={() => removeCheckItem(item.id)} className="text-[var(--muted-foreground)] hover:text-[var(--destructive)]">
                 <Trash2 size={12} />
               </button>
             </div>
@@ -153,6 +199,13 @@ export function NoteEditor({ note, onChange }: NoteEditorProps) {
           <Button variant="outline" size="sm" onClick={addTag}>Add</Button>
         </div>
       </div>
+
+      {/* Knowledge links — only shown when editing an existing note */}
+      {noteId && (
+        <div style={{ borderTop: '1px solid #2a2a3e', paddingTop: 12 }}>
+          <LinkPanel sourceId={noteId} sourceType="note" />
+        </div>
+      )}
     </div>
   )
 }
