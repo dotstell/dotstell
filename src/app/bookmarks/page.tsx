@@ -58,6 +58,10 @@ export default function BookmarksPage() {
   // Tag expansion
   const [showAllTags, setShowAllTags] = useState(false)
 
+  // Import preview
+  const [previewOpen, setPreviewOpen] = useState(false)
+  const [previewData, setPreviewData] = useState<{ folder: string; count: number }[] | null>(null)
+
   // Bulk import
   const [importing,    setImporting]    = useState(false)
   const [importResult, setImportResult] = useState<{
@@ -195,7 +199,20 @@ export default function BookmarksPage() {
     if (!file) return
     const html = await file.text()
     setLastImportHtml(html)
-    await runImport(html, false)
+
+    // Show preview first so user can see what collections will be created
+    const res = await fetch('/api/bookmarks/preview-import', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ html }),
+    })
+    if (res.ok) {
+      const data = await res.json()
+      setPreviewData(data.folders)
+      setPreviewOpen(true)
+    } else {
+      await runImport(html, false)
+    }
     e.target.value = ''
   }
 
@@ -755,6 +772,44 @@ export default function BookmarksPage() {
           </div>
         )}
       </div>
+
+      {/* ── Import preview dialog ── */}
+      <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Preview import</DialogTitle>
+          </DialogHeader>
+          <div style={{ marginBottom: 12 }}>
+            <p style={{ fontSize: 13, color: '#a0a0b8', margin: '0 0 12px' }}>
+              Found <strong style={{ color: '#e8e8f0' }}>{previewData?.reduce((s, f) => s + f.count, 0)}</strong> bookmarks
+              across <strong style={{ color: '#e8e8f0' }}>{previewData?.length}</strong> collections:
+            </p>
+            <div style={{ maxHeight: 320, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 4 }}>
+              {previewData?.map(({ folder, count }) => (
+                <div key={folder} style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                  padding: '6px 10px', borderRadius: 8,
+                  backgroundColor: '#1a1a28', border: '1px solid #2a2a3e',
+                }}>
+                  <span style={{ fontSize: 13, color: '#e8e8f0', textTransform: 'capitalize' }}>{folder}</span>
+                  <span style={{ fontSize: 12, color: '#6b6b88', backgroundColor: '#2a2a3e', padding: '1px 8px', borderRadius: 99 }}>
+                    {count}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+            <Button variant="outline" onClick={() => setPreviewOpen(false)}>Cancel</Button>
+            <Button onClick={async () => {
+              setPreviewOpen(false)
+              if (lastImportHtml) await runImport(lastImportHtml, false)
+            }}>
+              Import all
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* ── Confirmation dialog ── */}
       <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
