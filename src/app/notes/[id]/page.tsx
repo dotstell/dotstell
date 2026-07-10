@@ -118,7 +118,7 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
   }
 
   const editorContent = (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, overflow: 'hidden' }}>
 
       {/* Header bar */}
       <div style={{
@@ -178,7 +178,7 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
       </div>
 
       {/* Body: editor + sidebar */}
-      <div style={{ flex: 1, display: 'flex', minHeight: 0, overflow: 'hidden' }}>
+      <div style={{ flex: 1, display: 'flex', minHeight: 0 }}>
 
         {/* Template panel (new notes only) */}
         {showTemplates && isNew && (
@@ -194,7 +194,7 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
         )}
 
         {/* Editor */}
-        <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
+        <div style={{ flex: 1, minWidth: 0, overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
           <RichTextEditor
             content={note.content ?? '<p></p>'}
             onChange={handleContentChange}
@@ -231,7 +231,10 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
 
   if (focusMode) {
     return (
-      <div style={{ position: 'fixed', inset: 0, backgroundColor: '#0a0a0f', zIndex: 100, display: 'flex', flexDirection: 'column' }}>
+      <div style={{
+        position: 'fixed', inset: 0, backgroundColor: '#0a0a0f',
+        zIndex: 100, display: 'flex', flexDirection: 'column',
+      }}>
         {editorContent}
       </div>
     )
@@ -239,7 +242,11 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
 
   return (
     <AppLayout>
-      <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+      <div style={{
+        display: 'flex', flexDirection: 'column',
+        height: '100vh',
+        backgroundColor: '#0a0a0f',
+      }}>
         {editorContent}
       </div>
     </AppLayout>

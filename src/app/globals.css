@@ -40,10 +40,18 @@
   }
 }
 
+/* ── Scrollbars — thin, styled, visible but unobtrusive ── */
+* { scrollbar-width: thin; scrollbar-color: #2a2a3e transparent; }
+
 ::-webkit-scrollbar { width: 6px; height: 6px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: var(--muted-foreground); }
+::-webkit-scrollbar-track { background: transparent; border-radius: 3px; }
+::-webkit-scrollbar-thumb {
+  background: #2a2a3e;
+  border-radius: 3px;
+  transition: background 0.2s;
+}
+::-webkit-scrollbar-thumb:hover { background: #7c6aff66; }
+::-webkit-scrollbar-corner { background: transparent; }
 
 :focus-visible {
   outline: 2px solid var(--primary);

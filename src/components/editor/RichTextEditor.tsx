@@ -141,7 +141,7 @@ export function RichTextEditor({
   if (!editor) return null
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', position: 'relative' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, position: 'relative' }}>
 
       {/* ── Toolbar ── */}
       <div style={{
@@ -208,7 +208,7 @@ export function RichTextEditor({
       </div>
 
       {/* ── Editor area ── */}
-      <div style={{ flex: 1, overflowY: 'auto', position: 'relative' }} onKeyDown={handleKeyDown}>
+      <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', position: 'relative', minHeight: 0 }} onKeyDown={handleKeyDown}>
         <EditorContent editor={editor} style={{ height: '100%' }} />
 
         {/* Slash command menu */}
