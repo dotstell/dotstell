@@ -47,6 +47,9 @@ export default function BookmarksPage() {
   // View mode
   const [viewMode, setViewMode] = useState<'list' | 'collections'>('list')
 
+  // Tag expansion
+  const [showAllTags, setShowAllTags] = useState(false)
+
   // Bulk import
   const [importing,    setImporting]    = useState(false)
   const [importResult, setImportResult] = useState<{
@@ -627,7 +630,7 @@ export default function BookmarksPage() {
                 <X size={12} />
               </button>
             )}
-            {allTags.slice(0, 12).map(tag => {
+            {(showAllTags ? allTags : allTags.slice(0, 12)).map(tag => {
               const active = tagFilter === tag
               return (
                 <button
@@ -663,7 +666,25 @@ export default function BookmarksPage() {
               )
             })}
             {allTags.length > 12 && (
-              <span style={{ fontSize: 11, color: '#3a3a5e' }}>+{allTags.length - 12} more</span>
+              <button
+                type="button"
+                onClick={() => setShowAllTags(s => !s)}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 4,
+                  padding: '4px 10px', borderRadius: 20, fontSize: 12,
+                  cursor: 'pointer', transition: 'all 0.15s',
+                  border: '1px dashed #3a3a5e',
+                  backgroundColor: 'transparent',
+                  color: '#6b6b88',
+                }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = '#7c6aff55'; e.currentTarget.style.color = '#7c6aff' }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = '#3a3a5e'; e.currentTarget.style.color = '#6b6b88' }}
+              >
+                {showAllTags
+                  ? <><ChevronRight size={10} style={{ rotate: '270deg' }} /> Show less</>
+                  : <>+{allTags.length - 12} more</>
+                }
+              </button>
             )}
           </div>
 
