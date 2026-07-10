@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/badge'
 import { NoteCard } from '@/components/notes/NoteCard'
 import { NoteEditor } from '@/components/notes/NoteEditor'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { PageContainer } from '@/components/layout/PageContainer'
 
 const DEFAULT_NOTE: Partial<Note> = { title: '', content: '', type: 'plain', checklist_items: [], tags: [] }
 
@@ -74,7 +75,7 @@ export default function PersonPage({ params }: { params: Promise<{ id: string }>
 
   return (
     <AppLayout>
-      <div className="p-6 max-w-4xl">
+      <PageContainer narrow>
         <Link href="/people" className="flex items-center gap-1.5 text-sm text-[var(--muted-foreground)] hover:text-[var(--foreground)] mb-5 transition-colors">
           <ArrowLeft size={14} /> Back to People
         </Link>
@@ -123,7 +124,7 @@ export default function PersonPage({ params }: { params: Promise<{ id: string }>
             ))}
           </div>
         )}
-      </div>
+      </PageContainer>
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">

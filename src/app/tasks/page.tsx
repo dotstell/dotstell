@@ -13,6 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { EmptyState } from '@/components/ui/empty-state'
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '@/components/ui/select'
 import { formatDate, cn } from '@/lib/utils'
+import { PageContainer } from '@/components/layout/PageContainer'
 
 const DEFAULT_TASK: Partial<Task> = {
   title: '', description: '', status: 'todo', priority: 'medium', tags: [],
@@ -105,7 +106,7 @@ export default function TasksPage() {
 
   return (
     <AppLayout>
-      <div className="p-6 max-w-6xl">
+      <PageContainer wide>
         <PageHeader
           title="Tasks"
           description="Track your work and deadlines"
@@ -201,7 +202,7 @@ export default function TasksPage() {
             ))}
           </div>
         )}
-      </div>
+      </PageContainer>
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-md">

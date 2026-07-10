@@ -12,6 +12,7 @@ import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { EmptyState } from '@/components/ui/empty-state'
 import { formatRelative } from '@/lib/utils'
+import { PageContainer } from '@/components/layout/PageContainer'
 
 // ── Metadata fetch helper ────────────────────────────────────
 async function fetchMeta(url: string) {
@@ -390,8 +391,7 @@ export default function BookmarksPage() {
 
   return (
     <AppLayout>
-      <div
-        style={{ padding: '24px 28px', maxWidth: 1100, margin: 0 }}
+      <PageContainer
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
@@ -890,7 +890,7 @@ export default function BookmarksPage() {
             ))}
           </div>
         )}
-      </div>
+      </PageContainer>
 
       {/* ── Tag manager dialog ── */}
       <Dialog open={tagManagerOpen} onOpenChange={setTagManagerOpen}>

@@ -7,6 +7,7 @@ import { Task, Note } from '@/types'
 import { formatDate, formatRelative } from '@/lib/utils'
 import { EmptyState } from '@/components/ui/empty-state'
 import { useTaskReminders } from '@/hooks/useTaskReminders'
+import { PageContainer } from '@/components/layout/PageContainer'
 
 const PRIORITY_COLORS: Record<string, string> = { low: '#10b981', medium: '#f59e0b', high: '#ef4444' }
 const STATUS_COLORS: Record<string, string>   = { todo: '#6b6b88', in_progress: '#7c6aff', done: '#10b981' }
@@ -53,7 +54,7 @@ export default function DashboardPage() {
 
   return (
     <AppLayout>
-      <div style={{ padding: '32px', maxWidth: 1100, margin: 0 }}>
+      <PageContainer>
 
         {/* Greeting */}
         <div style={{ marginBottom: 28 }}>
@@ -209,7 +210,7 @@ export default function DashboardPage() {
           </div>
         </div>
 
-      </div>
+      </PageContainer>
     </AppLayout>
   )
 }

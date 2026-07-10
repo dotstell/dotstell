@@ -13,6 +13,7 @@ import { Badge } from '@/components/ui/badge'
 import { EmptyState } from '@/components/ui/empty-state'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { formatRelative } from '@/lib/utils'
+import { PageContainer } from '@/components/layout/PageContainer'
 
 const DEFAULT_PERSON: Partial<Person> = {
   name: '', role: '', company: '', email: '', phone: '', tags: [],
@@ -90,7 +91,7 @@ export default function PeoplePage() {
 
   return (
     <AppLayout>
-      <div className="p-6 max-w-6xl">
+      <PageContainer>
         <PageHeader
           title="People"
           description="Your team, colleagues, and contacts"
@@ -179,7 +180,7 @@ export default function PeoplePage() {
             ))}
           </div>
         )}
-      </div>
+      </PageContainer>
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-md">

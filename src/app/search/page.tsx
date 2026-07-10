@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { AppLayout } from '@/components/layout/AppLayout'
 import { Input } from '@/components/ui/input'
 import { useDebounce } from '@/hooks/useDebounce'
+import { PageContainer } from '@/components/layout/PageContainer'
 
 const TYPE_META: Record<string, { icon: React.ElementType; color: string; href: (id: string) => string }> = {
   note: { icon: FileText, color: 'text-[var(--primary)]', href: () => '/notes' },
@@ -40,7 +41,7 @@ export default function SearchPage() {
 
   return (
     <AppLayout>
-      <div className="p-6 max-w-2xl">
+      <PageContainer narrow>
         <h1 className="text-xl font-semibold mb-6">Search</h1>
         <div className="relative mb-6">
           <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--muted-foreground)]" />
@@ -87,7 +88,7 @@ export default function SearchPage() {
             Type to search across all your knowledge
           </p>
         )}
-      </div>
+      </PageContainer>
     </AppLayout>
   )
 }

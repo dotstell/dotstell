@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { Tag, FileText, Users, Bookmark, CheckSquare } from 'lucide-react'
 import { AppLayout } from '@/components/layout/AppLayout'
 import { PageHeader } from '@/components/layout/PageHeader'
+import { PageContainer } from '@/components/layout/PageContainer'
 
 interface TagGroup {
   tag: string
@@ -66,7 +67,7 @@ export default function TagsPage() {
 
   return (
     <AppLayout>
-      <div style={{ padding: '32px', maxWidth: 1100, margin: 0 }}>
+      <PageContainer>
         <PageHeader title="Tags" description="Browse your knowledge by tag" />
 
         {loading ? (
@@ -149,7 +150,7 @@ export default function TagsPage() {
             </div>
           </div>
         )}
-      </div>
+      </PageContainer>
     </AppLayout>
   )
 }

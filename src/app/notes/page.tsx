@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { NoteCard } from '@/components/notes/NoteCard'
 import { EmptyState } from '@/components/ui/empty-state'
+import { PageContainer } from '@/components/layout/PageContainer'
 
 const TYPE_FILTERS: { value: NoteType | 'all'; label: string }[] = [
   { value: 'all',       label: 'All' },
@@ -47,7 +48,7 @@ export default function NotesPage() {
 
   return (
     <AppLayout>
-      <div style={{ padding: '24px 28px', maxWidth: 1100, margin: 0 }}>
+      <PageContainer>
         <PageHeader
           title="Notes"
           description="Rich text, plain, and checklist notes"
@@ -109,7 +110,7 @@ export default function NotesPage() {
             ))}
           </div>
         )}
-      </div>
+      </PageContainer>
     </AppLayout>
   )
 }
