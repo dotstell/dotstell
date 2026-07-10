@@ -517,31 +517,60 @@ export default function BookmarksPage() {
             <Input placeholder="Search bookmarks..." value={search} onChange={e => setSearch(e.target.value)} style={{ paddingLeft: 32 }} />
           </div>
 
-          {/* Tag filter chips */}
-          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', flex: 1 }}>
-            {tagFilter ? (
-              <button type="button" onClick={() => setTagFilter(null)} style={{
-                display: 'flex', alignItems: 'center', gap: 5,
-                padding: '4px 10px', borderRadius: 20,
-                border: '1px solid #7c6aff', backgroundColor: '#7c6aff22',
-                color: '#7c6aff', fontSize: 12, cursor: 'pointer',
-              }}>
-                <Tag size={10} /> {tagFilter} <X size={10} />
-              </button>
-            ) : (
-              allTags.slice(0, 10).map(tag => (
-                <button key={tag} type="button" onClick={() => setTagFilter(tag)} style={{
-                  display: 'flex', alignItems: 'center', gap: 4,
-                  padding: '4px 10px', borderRadius: 20,
-                  border: '1px solid #2a2a3e', backgroundColor: 'transparent',
-                  color: '#6b6b88', fontSize: 12, cursor: 'pointer',
+          {/* Tag filter chips — always visible, active one highlighted */}
+          <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', flex: 1, alignItems: 'center' }}>
+            {tagFilter && (
+              <button
+                type="button"
+                onClick={() => setTagFilter(null)}
+                title="Clear filter"
+                style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  width: 26, height: 26, borderRadius: '50%',
+                  border: '1px solid #ef444444', backgroundColor: '#ef444411',
+                  color: '#ef4444', cursor: 'pointer', flexShrink: 0,
                 }}
-                  onMouseEnter={e => { e.currentTarget.style.borderColor = '#7c6aff55'; e.currentTarget.style.color = '#e8e8f0' }}
-                  onMouseLeave={e => { e.currentTarget.style.borderColor = '#2a2a3e'; e.currentTarget.style.color = '#6b6b88' }}
+              >
+                <X size={12} />
+              </button>
+            )}
+            {allTags.slice(0, 12).map(tag => {
+              const active = tagFilter === tag
+              return (
+                <button
+                  key={tag}
+                  type="button"
+                  onClick={() => setTagFilter(active ? null : tag)}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 4,
+                    padding: '4px 10px', borderRadius: 20, fontSize: 12,
+                    cursor: 'pointer', transition: 'all 0.15s',
+                    border: active ? '1px solid #7c6aff' : '1px solid #2a2a3e',
+                    backgroundColor: active ? '#7c6aff22' : 'transparent',
+                    color: active ? '#7c6aff' : '#6b6b88',
+                    fontWeight: active ? 600 : 400,
+                  }}
+                  onMouseEnter={e => {
+                    if (!active) {
+                      e.currentTarget.style.borderColor = '#7c6aff55'
+                      e.currentTarget.style.color = '#e8e8f0'
+                    }
+                  }}
+                  onMouseLeave={e => {
+                    if (!active) {
+                      e.currentTarget.style.borderColor = '#2a2a3e'
+                      e.currentTarget.style.color = '#6b6b88'
+                    }
+                  }}
                 >
-                  <Tag size={9} /> {tag}
+                  <Tag size={9} />
+                  {tag}
+                  {active && <X size={9} style={{ marginLeft: 2, opacity: 0.7 }} />}
                 </button>
-              ))
+              )
+            })}
+            {allTags.length > 12 && (
+              <span style={{ fontSize: 11, color: '#3a3a5e' }}>+{allTags.length - 12} more</span>
             )}
           </div>
 
