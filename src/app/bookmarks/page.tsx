@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { Plus, ExternalLink, Trash2, Search, Upload, X, Clock, Tag, Link2 } from 'lucide-react'
+import { Plus, ExternalLink, Trash2, Search, Upload, X, Clock, Tag, Link2, LayoutList, Layers, Pencil } from 'lucide-react'
 import { toast } from 'sonner'
 import { Bookmark } from '@/types'
 import { AppLayout } from '@/components/layout/AppLayout'
@@ -43,6 +43,9 @@ export default function BookmarksPage() {
   // Quick capture
   const [captureUrl,    setCaptureUrl]    = useState('')
   const [captureFetching, setCaptureFetching] = useState(false)
+
+  // View mode
+  const [viewMode, setViewMode] = useState<'list' | 'collections'>('list')
 
   // Bulk import
   const [importing,    setImporting]    = useState(false)
@@ -300,45 +303,62 @@ export default function BookmarksPage() {
           </div>
         </form>
 
-        {/* Search + tag filters */}
-        <div style={{ display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center' }}>
+        {/* Search + filters + view toggle */}
+        <div style={{ display: 'flex', gap: 10, marginBottom: 14, flexWrap: 'wrap', alignItems: 'center' }}>
           <div style={{ position: 'relative', flex: '0 0 260px' }}>
             <Search size={14} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: '#6b6b88' }} />
-            <Input
-              placeholder="Search bookmarks..."
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              style={{ paddingLeft: 32 }}
-            />
+            <Input placeholder="Search bookmarks..." value={search} onChange={e => setSearch(e.target.value)} style={{ paddingLeft: 32 }} />
           </div>
-          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-            {tagFilter && (
+
+          {/* Tag filter chips */}
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', flex: 1 }}>
+            {tagFilter ? (
               <button type="button" onClick={() => setTagFilter(null)} style={{
                 display: 'flex', alignItems: 'center', gap: 5,
-                padding: '4px 10px', borderRadius: 20, border: '1px solid #7c6aff',
-                backgroundColor: '#7c6aff22', color: '#7c6aff', fontSize: 12, cursor: 'pointer',
+                padding: '4px 10px', borderRadius: 20,
+                border: '1px solid #7c6aff', backgroundColor: '#7c6aff22',
+                color: '#7c6aff', fontSize: 12, cursor: 'pointer',
               }}>
-                {tagFilter} <X size={10} />
+                <Tag size={10} /> {tagFilter} <X size={10} />
               </button>
+            ) : (
+              allTags.slice(0, 10).map(tag => (
+                <button key={tag} type="button" onClick={() => setTagFilter(tag)} style={{
+                  display: 'flex', alignItems: 'center', gap: 4,
+                  padding: '4px 10px', borderRadius: 20,
+                  border: '1px solid #2a2a3e', backgroundColor: 'transparent',
+                  color: '#6b6b88', fontSize: 12, cursor: 'pointer',
+                }}
+                  onMouseEnter={e => { e.currentTarget.style.borderColor = '#7c6aff55'; e.currentTarget.style.color = '#e8e8f0' }}
+                  onMouseLeave={e => { e.currentTarget.style.borderColor = '#2a2a3e'; e.currentTarget.style.color = '#6b6b88' }}
+                >
+                  <Tag size={9} /> {tag}
+                </button>
+              ))
             )}
-            {!tagFilter && allTags.slice(0, 8).map(tag => (
-              <button key={tag} type="button" onClick={() => setTagFilter(tag)} style={{
-                padding: '4px 10px', borderRadius: 20, border: '1px solid #2a2a3e',
-                backgroundColor: 'transparent', color: '#6b6b88', fontSize: 12, cursor: 'pointer',
-              }}
-                onMouseEnter={e => { e.currentTarget.style.borderColor = '#7c6aff55'; e.currentTarget.style.color = '#e8e8f0' }}
-                onMouseLeave={e => { e.currentTarget.style.borderColor = '#2a2a3e'; e.currentTarget.style.color = '#6b6b88' }}
-              >
-                {tag}
-              </button>
-            ))}
           </div>
-          <span style={{ marginLeft: 'auto', fontSize: 12, color: '#6b6b88' }}>
-            {displayed.length} bookmark{displayed.length !== 1 ? 's' : ''}
-          </span>
+
+          {/* View toggle + count */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
+            <span style={{ fontSize: 12, color: '#6b6b88' }}>{displayed.length} saved</span>
+            <div style={{ display: 'flex', gap: 2, backgroundColor: '#1e1e2e', borderRadius: 8, padding: 3 }}>
+              {([['list', LayoutList, 'List'], ['collections', Layers, 'Collections']] as const).map(([mode, Icon, label]) => (
+                <button key={mode} type="button" onClick={() => setViewMode(mode)} style={{
+                  display: 'flex', alignItems: 'center', gap: 5,
+                  padding: '5px 10px', borderRadius: 6, border: 'none', cursor: 'pointer',
+                  backgroundColor: viewMode === mode ? '#7c6aff' : 'transparent',
+                  color: viewMode === mode ? 'white' : '#6b6b88',
+                  fontSize: 12, fontWeight: viewMode === mode ? 600 : 400,
+                  transition: 'all 0.15s',
+                }}>
+                  <Icon size={13} /> {label}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
 
-        {/* Bookmark list */}
+        {/* Content */}
         {loading ? (
           <p style={{ color: '#6b6b88', fontSize: 13 }}>Loading...</p>
         ) : displayed.length === 0 ? (
@@ -346,6 +366,14 @@ export default function BookmarksPage() {
             icon="🔖"
             title={search || tagFilter ? 'No results' : 'No bookmarks yet'}
             description={search || tagFilter ? 'Try a different search or tag.' : 'Paste a URL above, drag a link here, or import from your browser.'}
+          />
+        ) : viewMode === 'collections' ? (
+          <CollectionsView
+            bookmarks={displayed}
+            allTags={allTags}
+            onEdit={openEdit}
+            onDelete={deleteBookmark}
+            onTagClick={tag => setTagFilter(tag)}
           />
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -468,18 +496,28 @@ function BookmarkCard({ bookmark: bm, onEdit, onDelete, onTagClick }: {
             </div>
           </div>
 
-          {/* Actions */}
-          <div style={{ display: 'flex', gap: 4, opacity: 0, transition: 'opacity 0.15s' }} className="group-hover-actions">
+          {/* Actions — always visible */}
+          <div style={{ display: 'flex', gap: 2, flexShrink: 0 }}>
             <button type="button" onClick={onEdit}
-              style={{ background: 'none', border: 'none', color: '#6b6b88', cursor: 'pointer', padding: 4, borderRadius: 4 }}
-              onMouseEnter={e => (e.currentTarget.style.color = '#e8e8f0')}
-              onMouseLeave={e => (e.currentTarget.style.color = '#6b6b88')}
-            >✏️</button>
+              title="Edit"
+              style={{
+                width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                background: 'none', border: '1px solid #2a2a3e', borderRadius: 6,
+                color: '#6b6b88', cursor: 'pointer', transition: 'all 0.15s',
+              }}
+              onMouseEnter={e => { e.currentTarget.style.color = '#e8e8f0'; e.currentTarget.style.borderColor = '#3a3a5e'; e.currentTarget.style.backgroundColor = '#1e1e2e' }}
+              onMouseLeave={e => { e.currentTarget.style.color = '#6b6b88'; e.currentTarget.style.borderColor = '#2a2a3e'; e.currentTarget.style.backgroundColor = 'transparent' }}
+            ><Pencil size={12} /></button>
             <button type="button" onClick={onDelete}
-              style={{ background: 'none', border: 'none', color: '#6b6b88', cursor: 'pointer', padding: 4, borderRadius: 4 }}
-              onMouseEnter={e => (e.currentTarget.style.color = '#ef4444')}
-              onMouseLeave={e => (e.currentTarget.style.color = '#6b6b88')}
-            ><Trash2 size={13} /></button>
+              title="Delete"
+              style={{
+                width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                background: 'none', border: '1px solid #2a2a3e', borderRadius: 6,
+                color: '#6b6b88', cursor: 'pointer', transition: 'all 0.15s',
+              }}
+              onMouseEnter={e => { e.currentTarget.style.color = '#ef4444'; e.currentTarget.style.borderColor = '#ef444433'; e.currentTarget.style.backgroundColor = '#ef444411' }}
+              onMouseLeave={e => { e.currentTarget.style.color = '#6b6b88'; e.currentTarget.style.borderColor = '#2a2a3e'; e.currentTarget.style.backgroundColor = 'transparent' }}
+            ><Trash2 size={12} /></button>
           </div>
         </div>
 
@@ -508,6 +546,92 @@ function BookmarkCard({ bookmark: bm, onEdit, onDelete, onTagClick }: {
           </div>
         )}
       </div>
+    </div>
+  )
+}
+
+// ── Collections view — grouped by tag ───────────────────────
+function CollectionsView({ bookmarks, allTags, onEdit, onDelete, onTagClick }: {
+  bookmarks: Bookmark[]
+  allTags: string[]
+  onEdit: (bm: Bookmark) => void
+  onDelete: (id: string) => void
+  onTagClick: (tag: string) => void
+}) {
+  const [collapsed, setCollapsed] = useState<Set<string>>(new Set())
+
+  function toggleGroup(tag: string) {
+    setCollapsed(prev => {
+      const next = new Set(prev)
+      next.has(tag) ? next.delete(tag) : next.add(tag)
+      return next
+    })
+  }
+
+  // Group bookmarks by tag, untagged go to "Uncategorised"
+  const groups: { tag: string; items: Bookmark[] }[] = []
+
+  allTags.forEach(tag => {
+    const items = bookmarks.filter(b => b.tags.includes(tag))
+    if (items.length > 0) groups.push({ tag, items })
+  })
+
+  const untagged = bookmarks.filter(b => b.tags.length === 0)
+  if (untagged.length > 0) groups.push({ tag: '__untagged__', items: untagged })
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+      {groups.map(({ tag, items }) => {
+        const isCollapsed = collapsed.has(tag)
+        const label = tag === '__untagged__' ? 'Uncategorised' : tag
+        const color = tag === '__untagged__' ? '#6b6b88' : domainColor(tag)
+
+        return (
+          <div key={tag} style={{ backgroundColor: '#12121a', border: '1px solid #2a2a3e', borderRadius: 12, overflow: 'hidden' }}>
+            {/* Group header */}
+            <button
+              type="button"
+              onClick={() => toggleGroup(tag)}
+              style={{
+                width: '100%', display: 'flex', alignItems: 'center', gap: 10,
+                padding: '11px 16px', background: 'none', border: 'none',
+                cursor: 'pointer', textAlign: 'left',
+                borderBottom: isCollapsed ? 'none' : '1px solid #2a2a3e',
+              }}
+            >
+              <div style={{
+                width: 24, height: 24, borderRadius: 6,
+                backgroundColor: color + '22', border: `1px solid ${color}44`,
+                display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+              }}>
+                <Tag size={12} color={color} />
+              </div>
+              <span style={{ fontSize: 13, fontWeight: 600, color: '#e8e8f0', flex: 1, textTransform: tag === '__untagged__' ? 'none' : 'capitalize' }}>
+                {label}
+              </span>
+              <span style={{ fontSize: 11, color: '#6b6b88', backgroundColor: '#1e1e2e', padding: '2px 8px', borderRadius: 99 }}>
+                {items.length}
+              </span>
+              <span style={{ fontSize: 12, color: '#6b6b88', marginLeft: 4 }}>{isCollapsed ? '›' : '‹'}</span>
+            </button>
+
+            {/* Group items */}
+            {!isCollapsed && (
+              <div style={{ padding: '6px 8px', display: 'flex', flexDirection: 'column', gap: 4 }}>
+                {items.map(bm => (
+                  <BookmarkCard
+                    key={bm.id}
+                    bookmark={bm}
+                    onEdit={() => onEdit(bm)}
+                    onDelete={() => onDelete(bm.id)}
+                    onTagClick={onTagClick}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+        )
+      })}
     </div>
   )
 }
