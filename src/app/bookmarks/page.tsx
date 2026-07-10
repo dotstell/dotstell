@@ -313,7 +313,7 @@ export default function BookmarksPage() {
             backgroundColor: '#1a1a28', border: '1px solid #3a3a5e',
             borderRadius: 10,
           }}>
-            {/* Select all / none */}
+            {/* Select all / none toggle */}
             <button type="button" onClick={selected.size === displayed.length ? selectNone : selectAll} style={{
               display: 'flex', alignItems: 'center', gap: 6,
               background: 'none', border: 'none', cursor: 'pointer',
@@ -321,49 +321,68 @@ export default function BookmarksPage() {
             }}>
               {selected.size === displayed.length
                 ? <CheckSquare size={15} color="#7c6aff" />
-                : <Square size={15} color="#6b6b88" />}
+                : selected.size > 0
+                  ? <CheckSquare size={15} color="#6b6b88" />
+                  : <Square size={15} color="#6b6b88" />}
               {selected.size === displayed.length ? 'Deselect all' : 'Select all'}
             </button>
 
-            <span style={{ fontSize: 12, color: '#6b6b88', marginLeft: 4 }}>
-              {selected.size > 0 ? `${selected.size} selected` : 'None selected'}
-            </span>
+            {/* Count pill */}
+            {selected.size > 0 && (
+              <span style={{
+                fontSize: 12, fontWeight: 600,
+                color: '#7c6aff', backgroundColor: '#7c6aff22',
+                padding: '2px 10px', borderRadius: 99,
+              }}>
+                {selected.size} of {displayed.length} selected
+              </span>
+            )}
+            {selected.size === 0 && (
+              <span style={{ fontSize: 12, color: '#3a3a5e' }}>Click cards to select</span>
+            )}
 
             <div style={{ flex: 1 }} />
 
-            {/* Delete selected */}
-            {selected.size > 0 && (
+            {/* Single smart delete button */}
+            {selected.size > 0 ? (
+              // Some or all selected — delete exactly what's selected
               <button type="button"
-                onClick={() => promptDelete([...selected], `${selected.size} selected bookmark${selected.size !== 1 ? 's' : ''}`)}
+                onClick={() => promptDelete(
+                  [...selected],
+                  selected.size === displayed.length
+                    ? `all ${selected.size} bookmark${selected.size !== 1 ? 's' : ''}${tagFilter ? ` in "${tagFilter}"` : ''}`
+                    : `${selected.size} selected bookmark${selected.size !== 1 ? 's' : ''}`
+                )}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 6,
+                  padding: '6px 16px', borderRadius: 8,
+                  backgroundColor: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.35)',
+                  color: '#ef4444', fontSize: 13, fontWeight: 600, cursor: 'pointer',
+                  transition: 'background 0.15s',
+                }}
+                onMouseEnter={e => { e.currentTarget.style.backgroundColor = 'rgba(239,68,68,0.22)' }}
+                onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'rgba(239,68,68,0.12)' }}
+              >
+                <Trash2 size={14} />
+                Delete {selected.size === displayed.length ? 'all' : selected.size}
+              </button>
+            ) : (
+              // Nothing selected — offer delete all as a secondary option
+              <button type="button"
+                onClick={() => promptDelete(displayed.map(b => b.id), `all ${displayed.length} bookmark${displayed.length !== 1 ? 's' : ''}${tagFilter ? ` in "${tagFilter}"` : ''}`)}
                 style={{
                   display: 'flex', alignItems: 'center', gap: 6,
                   padding: '6px 14px', borderRadius: 8,
-                  backgroundColor: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)',
-                  color: '#ef4444', fontSize: 13, fontWeight: 600, cursor: 'pointer',
+                  backgroundColor: 'transparent', border: '1px solid #2a2a3e',
+                  color: '#6b6b88', fontSize: 13, cursor: 'pointer',
                   transition: 'all 0.15s',
                 }}
-                onMouseEnter={e => { e.currentTarget.style.backgroundColor = 'rgba(239,68,68,0.18)' }}
-                onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'rgba(239,68,68,0.1)' }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = '#ef444444'; e.currentTarget.style.color = '#ef4444' }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = '#2a2a3e'; e.currentTarget.style.color = '#6b6b88' }}
               >
-                <Trash2 size={14} /> Delete {selected.size}
+                <Trash2 size={14} /> Delete all {displayed.length}
               </button>
             )}
-
-            {/* Delete ALL visible */}
-            <button type="button"
-              onClick={() => promptDelete(displayed.map(b => b.id), `all ${displayed.length} bookmark${displayed.length !== 1 ? 's' : ''}${tagFilter ? ` in "${tagFilter}"` : ''}`)}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 6,
-                padding: '6px 14px', borderRadius: 8,
-                backgroundColor: 'transparent', border: '1px solid #2a2a3e',
-                color: '#6b6b88', fontSize: 13, cursor: 'pointer',
-                transition: 'all 0.15s',
-              }}
-              onMouseEnter={e => { e.currentTarget.style.borderColor = '#ef444444'; e.currentTarget.style.color = '#ef4444' }}
-              onMouseLeave={e => { e.currentTarget.style.borderColor = '#2a2a3e'; e.currentTarget.style.color = '#6b6b88' }}
-            >
-              <Trash2 size={14} /> Delete all {displayed.length}
-            </button>
           </div>
         )}
 
