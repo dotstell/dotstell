@@ -1,51 +1,79 @@
 import Link from 'next/link'
+import { DotstellLogo } from '@/components/brand/DotstellLogo'
 
 export default function LandingPage() {
   return (
     <main className="min-h-screen bg-[var(--background)] flex flex-col items-center justify-center px-4">
-      <div className="text-center max-w-xl">
-        <div className="flex items-center justify-center gap-3 mb-6">
-          <div className="w-10 h-10 rounded-full bg-[var(--primary)] flex items-center justify-center">
-            <span className="text-white font-bold">D</span>
-          </div>
-          <h1 className="text-3xl font-bold">dotstell</h1>
+      <div className="text-center max-w-2xl">
+
+        {/* Hero logo */}
+        <div className="flex justify-center mb-8">
+          <DotstellLogo size="lg" />
         </div>
 
-        <p className="text-xl text-[var(--foreground)] mb-3 font-medium">
-          Every note, message, event, person, and decision is a dot.
+        {/* Hero text */}
+        <h1 className="text-4xl font-bold tracking-tight mb-4 leading-tight">
+          Your knowledge is scattered.<br />
+          <span className="text-[var(--primary)]">Dotstell connects it.</span>
+        </h1>
+
+        <p className="text-[var(--muted-foreground)] text-lg mb-3 max-w-lg mx-auto">
+          Notes, people, tasks, and bookmarks — linked together in one living knowledge graph.
         </p>
-        <p className="text-[var(--muted-foreground)] mb-10">
-          Dotstell helps you connect them into meaningful constellations. A knowledge graph and memory platform for Engineering Managers.
+        <p className="text-[var(--muted-foreground)] text-sm mb-10">
+          Free and open source. No lock-in. Your data, your graph.
         </p>
 
-        <div className="flex items-center justify-center gap-3">
+        {/* CTAs */}
+        <div className="flex items-center justify-center gap-3 mb-16">
           <Link
             href="/auth/register"
-            className="px-6 py-2.5 rounded-md bg-[var(--primary)] text-white font-medium hover:opacity-90 transition-opacity"
+            className="px-6 py-2.5 rounded-md bg-[var(--primary)] text-white font-medium hover:opacity-90 transition-opacity text-sm"
           >
-            Get started free
+            Get started — it&apos;s free
           </Link>
           <Link
             href="/auth/login"
-            className="px-6 py-2.5 rounded-md border border-[var(--border)] text-[var(--foreground)] hover:bg-[var(--accent)] transition-colors"
+            className="px-6 py-2.5 rounded-md border border-[var(--border)] text-[var(--foreground)] hover:bg-[var(--accent)] transition-colors text-sm"
           >
             Sign in
           </Link>
         </div>
 
-        <div className="mt-16 grid grid-cols-3 gap-4 text-left">
+        {/* Feature cards */}
+        <div className="grid grid-cols-3 gap-4 text-left">
           {[
-            { icon: '📑', title: 'Smart Notes', desc: 'Plain, markdown, and checklist notes in one place' },
-            { icon: '👥', title: 'People Graph', desc: 'Track 1-on-1s and relationships with your team' },
-            { icon: '🔗', title: 'Knowledge Links', desc: 'Connect any note, task, or person together' },
+            {
+              icon: '📑',
+              title: 'Smart Notes',
+              desc: 'Plain, Markdown and Checklist notes — all in one place, always searchable',
+            },
+            {
+              icon: '🌐',
+              title: 'Knowledge Graph',
+              desc: 'See how your ideas, people and tasks connect in a living visual map',
+            },
+            {
+              icon: '🔗',
+              title: 'Everything Linked',
+              desc: 'Connect any note to any person, task or bookmark — nothing lives in isolation',
+            },
           ].map(({ icon, title, desc }) => (
-            <div key={title} className="bg-[var(--card)] border border-[var(--border)] rounded-lg p-4">
-              <div className="text-2xl mb-2">{icon}</div>
+            <div
+              key={title}
+              className="bg-[var(--card)] border border-[var(--border)] rounded-xl p-4 hover:border-[var(--primary)]/40 transition-colors"
+            >
+              <div className="text-2xl mb-3">{icon}</div>
               <h3 className="text-sm font-semibold mb-1">{title}</h3>
-              <p className="text-xs text-[var(--muted-foreground)]">{desc}</p>
+              <p className="text-xs text-[var(--muted-foreground)] leading-relaxed">{desc}</p>
             </div>
           ))}
         </div>
+
+        {/* Footer note */}
+        <p className="text-xs text-[var(--muted-foreground)] mt-10">
+          Open source · Built in public · Part of the Dotstell ecosystem
+        </p>
       </div>
     </main>
   )

@@ -1,6 +1,6 @@
 <div align="center">
 
-# ✦ Dotstell
+<img src="public/logo-full.svg" alt="Dotstell" width="420" />
 
 ### Your knowledge is scattered. Dotstell connects it.
 

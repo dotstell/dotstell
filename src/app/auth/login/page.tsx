@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { DotstellLogo } from '@/components/brand/DotstellLogo'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -38,14 +39,8 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-[var(--background)]">
       <div className="w-full max-w-sm">
-        <div className="text-center mb-8">
-          <div className="flex items-center justify-center gap-2 mb-2">
-            <div className="w-8 h-8 rounded-full bg-[var(--primary)] flex items-center justify-center">
-              <span className="text-white font-bold text-sm">D</span>
-            </div>
-            <span className="text-xl font-bold text-[var(--foreground)]">dotstell</span>
-          </div>
-          <p className="text-[var(--muted-foreground)] text-sm">Connect your knowledge</p>
+        <div className="flex flex-col items-center mb-8 gap-2">
+          <DotstellLogo size="lg" showTagline />
         </div>
 
         <div className="bg-[var(--card)] border border-[var(--border)] rounded-xl p-6">

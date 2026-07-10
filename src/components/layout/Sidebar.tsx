@@ -7,6 +7,7 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
+import { DotstellLogo } from '@/components/brand/DotstellLogo'
 
 const NAV_ITEMS = [
   { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
@@ -31,10 +32,7 @@ export function Sidebar() {
     <aside className="fixed left-0 top-0 h-screen w-[var(--sidebar-width)] bg-[var(--card)] border-r border-[var(--border)] flex flex-col z-40">
       {/* Logo */}
       <div className="flex items-center gap-2.5 px-4 py-4 border-b border-[var(--border)]">
-        <div className="w-7 h-7 rounded-full bg-[var(--primary)] flex items-center justify-center flex-shrink-0">
-          <span className="text-white font-bold text-xs">D</span>
-        </div>
-        <span className="font-bold text-sm tracking-wide">dotstell</span>
+        <DotstellLogo size="sm" />
       </div>
 
       {/* Search shortcut */}
