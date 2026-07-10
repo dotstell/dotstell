@@ -67,7 +67,7 @@ export default function BookmarksPage() {
 
   // Tag manager
   const [tagManagerOpen, setTagManagerOpen] = useState(false)
-  const [tagSort,        setTagSort]        = useState<'name-asc' | 'name-desc' | 'count-desc' | 'count-asc'>('count-desc')
+  const [tagSort,        setTagSort]        = useState<'name-asc' | 'name-desc' | 'count-desc' | 'count-asc' | 'recent'>('count-desc')
   const [tagSearch,      setTagSearch]      = useState('')
   const [renamingTag,    setRenamingTag]    = useState<string | null>(null)
   const [renameValue,    setRenameValue]    = useState('')
@@ -108,6 +108,20 @@ export default function BookmarksPage() {
     setBookmarks(Array.isArray(data) ? data : [])
     setLoading(false)
   }, [search])
+
+  async function trackVisit(id: string) {
+    await fetch('/api/bookmarks/visit', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id }),
+    })
+    // Update local state immediately without refetch
+    setBookmarks(prev => prev.map(b => b.id === id ? {
+      ...b,
+      last_visited_at: new Date().toISOString(),
+      visit_count: (b.visit_count ?? 0) + 1,
+    } : b))
+  }
 
   useEffect(() => { fetchBookmarks() }, [fetchBookmarks])
 
@@ -680,6 +694,60 @@ export default function BookmarksPage() {
         {/* ── Drop zone strip (always visible, lights up on drag) ── */}
         <DropZoneStrip dragging={dragging} hasBookmarks={displayed.length > 0} />
 
+        {/* ── Recently visited ── */}
+        {(() => {
+          const recentlyVisited = bookmarks
+            .filter(b => b.last_visited_at)
+            .sort((a, b) => (b.last_visited_at! > a.last_visited_at! ? 1 : -1))
+            .slice(0, 6)
+          if (recentlyVisited.length === 0) return null
+          return (
+            <div style={{ marginBottom: 20 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+                <span style={{ fontSize: 11, fontWeight: 600, color: '#3a3a5e', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+                  Recently visited
+                </span>
+              </div>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                {recentlyVisited.map(bm => {
+                  const hostname = bm.hostname ?? (() => { try { return new URL(bm.url).hostname } catch { return bm.url } })()
+                  const color = domainColor(hostname)
+                  return (
+                    <a
+                      key={bm.id}
+                      href={bm.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={() => trackVisit(bm.id)}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: 8,
+                        padding: '7px 12px', borderRadius: 20, textDecoration: 'none',
+                        backgroundColor: '#12121a', border: `1px solid ${color}33`,
+                        maxWidth: 220, transition: 'border-color 0.15s',
+                      }}
+                      onMouseEnter={e => (e.currentTarget.style.borderColor = color + '88')}
+                      onMouseLeave={e => (e.currentTarget.style.borderColor = color + '33')}
+                    >
+                      {bm.favicon_url ? (
+                        <img src={bm.favicon_url} alt="" width={14} height={14} style={{ borderRadius: 2, flexShrink: 0 }}
+                          onError={e => { e.currentTarget.style.display = 'none' }} />
+                      ) : (
+                        <div style={{ width: 14, height: 14, borderRadius: '50%', backgroundColor: color, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <span style={{ fontSize: 8, color: 'white', fontWeight: 700 }}>{hostname.charAt(0).toUpperCase()}</span>
+                        </div>
+                      )}
+                      <span style={{ fontSize: 12, color: '#e8e8f0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {bm.title}
+                      </span>
+                      <span style={{ fontSize: 10, color: '#3a3a5e', flexShrink: 0 }}>{formatRelative(bm.last_visited_at!)}</span>
+                    </a>
+                  )
+                })}
+              </div>
+            </div>
+          )
+        })()}
+
         {/* Search + filters + view toggle */}
         <div style={{ display: 'flex', gap: 10, marginBottom: 14, flexWrap: 'wrap', alignItems: 'center' }}>
           <div style={{ position: 'relative', flex: '0 0 260px' }}>
@@ -803,6 +871,7 @@ export default function BookmarksPage() {
             onToggleSelect={toggleSelect}
             onSelectGroup={selectGroup}
             onDeleteGroup={(ids, label) => promptDelete(ids, label)}
+            onVisit={trackVisit}
           />
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -816,6 +885,7 @@ export default function BookmarksPage() {
                 selectMode={selectMode}
                 isSelected={selected.has(bm.id)}
                 onToggleSelect={() => toggleSelect(bm.id)}
+                onVisit={trackVisit}
               />
             ))}
           </div>
@@ -832,23 +902,39 @@ export default function BookmarksPage() {
           </DialogHeader>
 
           {(() => {
-            // Build tag → count map from current bookmarks
-            const tagCounts = new Map<string, number>()
-            bookmarks.forEach(b => b.tags.forEach(t => tagCounts.set(t, (tagCounts.get(t) ?? 0) + 1)))
+            // Build tag → {count, latestSaved} map
+            const tagMeta = new Map<string, { count: number; latestSaved: string; latestVisited: string | null }>()
+            bookmarks.forEach(b => {
+              b.tags.forEach(t => {
+                const existing = tagMeta.get(t)
+                const saved = b.created_at ?? ''
+                const visited = b.last_visited_at ?? null
+                if (!existing) {
+                  tagMeta.set(t, { count: 1, latestSaved: saved, latestVisited: visited })
+                } else {
+                  tagMeta.set(t, {
+                    count: existing.count + 1,
+                    latestSaved: saved > existing.latestSaved ? saved : existing.latestSaved,
+                    latestVisited: (!existing.latestVisited || (visited && visited > existing.latestVisited)) ? visited : existing.latestVisited,
+                  })
+                }
+              })
+            })
 
-            const sortedTags = [...tagCounts.entries()]
+            const sortedTags = [...tagMeta.entries()]
               .filter(([t]) => t.toLowerCase().includes(tagSearch.toLowerCase()))
               .sort((a, b) => {
                 if (tagSort === 'name-asc')   return a[0].localeCompare(b[0])
                 if (tagSort === 'name-desc')  return b[0].localeCompare(a[0])
-                if (tagSort === 'count-asc')  return a[1] - b[1]
-                return b[1] - a[1]
+                if (tagSort === 'count-asc')  return a[1].count - b[1].count
+                if (tagSort === 'recent')     return (b[1].latestSaved > a[1].latestSaved ? 1 : -1)
+                return b[1].count - a[1].count
               })
 
             return (
               <>
                 <div style={{ fontSize: 13, color: '#6b6b88', marginBottom: 10 }}>
-                  {tagCounts.size} tags across {bookmarks.length} bookmarks
+                  {tagMeta.size} tags across {bookmarks.length} bookmarks
                 </div>
 
                 {/* Search + Sort */}
@@ -878,12 +964,13 @@ export default function BookmarksPage() {
                     <option value="count-asc">Least used</option>
                     <option value="name-asc">A → Z</option>
                     <option value="name-desc">Z → A</option>
+                    <option value="recent">Last saved</option>
                   </select>
                 </div>
 
                 {/* Tag list */}
                 <div style={{ maxHeight: 360, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 3 }}>
-                  {sortedTags.map(([tag, count]) => (
+                  {sortedTags.map(([tag, meta]) => (
                     <div key={tag} style={{
                       display: 'flex', alignItems: 'center', gap: 10,
                       padding: '7px 10px', borderRadius: 8,
@@ -910,9 +997,16 @@ export default function BookmarksPage() {
                         <span style={{ flex: 1, fontSize: 13, color: '#e8e8f0', textTransform: 'capitalize' }}>{tag}</span>
                       )}
 
-                      <span style={{ fontSize: 11, color: '#6b6b88', backgroundColor: '#2a2a3e', padding: '1px 8px', borderRadius: 99, flexShrink: 0 }}>
-                        {count}
-                      </span>
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 2, flexShrink: 0 }}>
+                        <span style={{ fontSize: 11, color: '#6b6b88', backgroundColor: '#2a2a3e', padding: '1px 8px', borderRadius: 99 }}>
+                          {meta.count}
+                        </span>
+                        {tagSort === 'recent' && (
+                          <span style={{ fontSize: 10, color: '#3a3a5e' }}>
+                            {formatRelative(meta.latestSaved)}
+                          </span>
+                        )}
+                      </div>
 
                       {renamingTag === tag ? (
                         <>
@@ -1173,7 +1267,7 @@ export default function BookmarksPage() {
 }
 
 // ── Bookmark card ────────────────────────────────────────────
-function BookmarkCard({ bookmark: bm, onEdit, onDelete, onTagClick, selectMode, isSelected, onToggleSelect }: {
+function BookmarkCard({ bookmark: bm, onEdit, onDelete, onTagClick, selectMode, isSelected, onToggleSelect, onVisit }: {
   bookmark: Bookmark
   onEdit: () => void
   onDelete: () => void
@@ -1181,6 +1275,7 @@ function BookmarkCard({ bookmark: bm, onEdit, onDelete, onTagClick, selectMode, 
   selectMode?: boolean
   isSelected?: boolean
   onToggleSelect?: () => void
+  onVisit?: (id: string) => void
 }) {
   const hostname = bm.hostname ?? (() => { try { return new URL(bm.url).hostname } catch { return bm.url } })()
   const color = domainColor(hostname)
@@ -1230,6 +1325,7 @@ function BookmarkCard({ bookmark: bm, onEdit, onDelete, onTagClick, selectMode, 
             {/* Title + external link */}
             <a
               href={bm.url} target="_blank" rel="noopener noreferrer"
+              onClick={() => onVisit?.(bm.id)}
               style={{
                 display: 'inline-flex', alignItems: 'center', gap: 5,
                 fontSize: 14, fontWeight: 600, color: '#e8e8f0',
@@ -1314,7 +1410,7 @@ function BookmarkCard({ bookmark: bm, onEdit, onDelete, onTagClick, selectMode, 
 }
 
 // ── Collections view — grouped by tag ───────────────────────
-function CollectionsView({ bookmarks, allTags, onEdit, onDelete, onTagClick, selectMode, selected, onToggleSelect, onSelectGroup, onDeleteGroup }: {
+function CollectionsView({ bookmarks, allTags, onEdit, onDelete, onTagClick, selectMode, selected, onToggleSelect, onSelectGroup, onDeleteGroup, onVisit }: {
   bookmarks: Bookmark[]
   allTags: string[]
   onEdit: (bm: Bookmark) => void
@@ -1325,6 +1421,7 @@ function CollectionsView({ bookmarks, allTags, onEdit, onDelete, onTagClick, sel
   onToggleSelect?: (id: string) => void
   onSelectGroup?: (ids: string[]) => void
   onDeleteGroup?: (ids: string[], label: string) => void
+  onVisit?: (id: string) => void
 }) {
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set())
 
@@ -1449,6 +1546,7 @@ function CollectionsView({ bookmarks, allTags, onEdit, onDelete, onTagClick, sel
                     selectMode={selectMode}
                     isSelected={selected?.has(bm.id)}
                     onToggleSelect={() => onToggleSelect?.(bm.id)}
+                    onVisit={onVisit}
                   />
                 ))}
               </div>
