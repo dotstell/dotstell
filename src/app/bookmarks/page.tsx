@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { Plus, ExternalLink, Trash2, Search, Upload, X, Clock, Tag, Link2, LayoutList, Layers, Pencil, CheckSquare, Square, AlertTriangle } from 'lucide-react'
+import { Plus, ExternalLink, Trash2, Search, Upload, X, Clock, Tag, Link2, LayoutList, Layers, Pencil, CheckSquare, Square, AlertTriangle, ChevronDown, ChevronRight } from 'lucide-react'
 import { toast } from 'sonner'
 import { Bookmark } from '@/types'
 import { AppLayout } from '@/components/layout/AppLayout'
@@ -851,31 +851,58 @@ function CollectionsView({ bookmarks, allTags, onEdit, onDelete, onTagClick, sel
         const color = tag === '__untagged__' ? '#6b6b88' : domainColor(tag)
 
         return (
-          <div key={tag} style={{ backgroundColor: '#12121a', border: '1px solid #2a2a3e', borderRadius: 12, overflow: 'hidden' }}>
+          <div key={tag} style={{ backgroundColor: '#12121a', border: `1px solid ${isCollapsed ? '#2a2a3e' : color + '33'}`, borderRadius: 12, overflow: 'hidden', transition: 'border-color 0.2s' }}>
             {/* Group header */}
             <div style={{
               display: 'flex', alignItems: 'center', gap: 8,
-              padding: '10px 16px',
-              borderBottom: isCollapsed ? 'none' : '1px solid #2a2a3e',
+              padding: '12px 14px',
+              borderBottom: isCollapsed ? 'none' : `1px solid ${color}22`,
+              backgroundColor: isCollapsed ? 'transparent' : color + '08',
+              transition: 'background-color 0.2s',
             }}>
               <button type="button" onClick={() => toggleGroup(tag)} style={{
-                display: 'flex', alignItems: 'center', gap: 8, flex: 1,
+                display: 'flex', alignItems: 'center', gap: 10, flex: 1,
                 background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left',
               }}>
+                {/* Chevron — the main expand/collapse indicator */}
                 <div style={{
-                  width: 24, height: 24, borderRadius: 6,
-                  backgroundColor: color + '22', border: `1px solid ${color}44`,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                  width: 28, height: 28, borderRadius: 8, flexShrink: 0,
+                  backgroundColor: isCollapsed ? '#1e1e2e' : color + '22',
+                  border: `1px solid ${isCollapsed ? '#2a2a3e' : color + '44'}`,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  transition: 'all 0.2s',
                 }}>
-                  <Tag size={12} color={color} />
+                  {isCollapsed
+                    ? <ChevronRight size={15} color="#6b6b88" />
+                    : <ChevronDown size={15} color={color} />
+                  }
                 </div>
-                <span style={{ fontSize: 13, fontWeight: 600, color: '#e8e8f0', textTransform: tag === '__untagged__' ? 'none' : 'capitalize' }}>
+
+                {/* Tag icon */}
+                <div style={{
+                  width: 28, height: 28, borderRadius: 8, flexShrink: 0,
+                  backgroundColor: color + '22', border: `1px solid ${color}44`,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>
+                  <Tag size={13} color={color} />
+                </div>
+
+                {/* Label */}
+                <span style={{ fontSize: 14, fontWeight: 600, color: '#e8e8f0', textTransform: tag === '__untagged__' ? 'none' : 'capitalize', flex: 1 }}>
                   {label}
                 </span>
-                <span style={{ fontSize: 11, color: '#6b6b88', backgroundColor: '#1e1e2e', padding: '2px 8px', borderRadius: 99 }}>
+
+                {/* Count badge */}
+                <span style={{
+                  fontSize: 12, fontWeight: 600,
+                  color: isCollapsed ? '#6b6b88' : color,
+                  backgroundColor: isCollapsed ? '#1e1e2e' : color + '22',
+                  padding: '3px 10px', borderRadius: 99,
+                  border: `1px solid ${isCollapsed ? '#2a2a3e' : color + '33'}`,
+                  transition: 'all 0.2s',
+                }}>
                   {items.length}
                 </span>
-                <span style={{ fontSize: 12, color: '#6b6b88' }}>{isCollapsed ? '›' : '‹'}</span>
               </button>
 
               {/* Group actions */}
