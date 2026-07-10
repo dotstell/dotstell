@@ -49,7 +49,13 @@ export default function BookmarksPage() {
 
   // Bulk import
   const [importing,    setImporting]    = useState(false)
-  const [importResult, setImportResult] = useState<{ imported: number; total: number } | null>(null)
+  const [importResult, setImportResult] = useState<{
+    imported: number
+    duplicates: number
+    skipped_invalid: number
+    total_in_file: number
+    skip_reasons: Record<string, number>
+  } | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   // Drag and drop
@@ -158,8 +164,8 @@ export default function BookmarksPage() {
     })
     const data = await res.json()
     if (res.ok) {
-      setImportResult({ imported: data.imported, total: data.total })
-      toast.success(`Imported ${data.imported} bookmarks`)
+      setImportResult(data)
+      toast.success(`Imported ${data.imported} new bookmark${data.imported !== 1 ? 's' : ''}`)
       fetchBookmarks()
     } else {
       toast.error(data.error ?? 'Import failed')
@@ -448,16 +454,49 @@ export default function BookmarksPage() {
         {/* Import result banner */}
         {importResult && (
           <div style={{
-            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-            padding: '10px 16px', borderRadius: 10, marginBottom: 16,
-            backgroundColor: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.25)',
+            padding: '12px 16px', borderRadius: 10, marginBottom: 16,
+            backgroundColor: importResult.imported > 0 ? 'rgba(16,185,129,0.08)' : 'rgba(124,106,255,0.08)',
+            border: `1px solid ${importResult.imported > 0 ? 'rgba(16,185,129,0.25)' : 'rgba(124,106,255,0.25)'}`,
           }}>
-            <span style={{ fontSize: 13, color: '#10b981' }}>
-              ✓ Imported {importResult.imported} of {importResult.total} bookmarks
-            </span>
-            <button type="button" onClick={() => setImportResult(null)} style={{ background: 'none', border: 'none', color: '#10b981', cursor: 'pointer' }}>
-              <X size={14} />
-            </button>
+            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 }}>
+              <div style={{ flex: 1 }}>
+                {/* Summary row */}
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, marginBottom: importResult.skipped_invalid > 0 ? 8 : 0 }}>
+                  <span style={{ fontSize: 13, color: '#10b981', fontWeight: 600 }}>
+                    ✓ {importResult.imported} new bookmark{importResult.imported !== 1 ? 's' : ''} imported
+                  </span>
+                  {importResult.duplicates > 0 && (
+                    <span style={{ fontSize: 13, color: '#6b6b88' }}>
+                      · {importResult.duplicates} already existed (skipped)
+                    </span>
+                  )}
+                  {importResult.skipped_invalid > 0 && (
+                    <span style={{ fontSize: 13, color: '#f59e0b' }}>
+                      · {importResult.skipped_invalid} invalid (skipped)
+                    </span>
+                  )}
+                </div>
+
+                {/* Skip reasons breakdown */}
+                {importResult.skipped_invalid > 0 && Object.keys(importResult.skip_reasons).length > 0 && (
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                    <span style={{ fontSize: 11, color: '#6b6b88' }}>Why skipped:</span>
+                    {Object.entries(importResult.skip_reasons).map(([reason, count]) => (
+                      <span key={reason} style={{
+                        fontSize: 11, color: '#6b6b88',
+                        backgroundColor: '#1e1e2e', border: '1px solid #2a2a3e',
+                        padding: '1px 8px', borderRadius: 99,
+                      }}>
+                        {reason}: {count}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <button type="button" onClick={() => setImportResult(null)} style={{ background: 'none', border: 'none', color: '#6b6b88', cursor: 'pointer', flexShrink: 0 }}>
+                <X size={14} />
+              </button>
+            </div>
           </div>
         )}
 

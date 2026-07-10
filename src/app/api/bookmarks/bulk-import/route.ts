@@ -8,47 +8,28 @@ interface ParsedBookmark {
   tags: string[]
 }
 
-/**
- * Parses Netscape bookmark HTML (Chrome, Firefox, Edge, Safari export format).
- *
- * The format nests bookmarks inside <DL> lists with <H3> folder names:
- *
- *   <DT><H3>Work</H3>
- *   <DL>
- *     <DT><A HREF="https://...">Title</A>
- *     <DT><H3>Sub folder</H3>
- *     <DL>
- *       <DT><A HREF="https://...">Title</A>
- *     </DL>
- *   </DL>
- *
- * We walk the HTML as a flat token stream tracking which folders are currently
- * open. Each bookmark inherits ALL ancestor folder names as tags.
- */
-function parseNetscapeHTML(html: string): ParsedBookmark[] {
-  const bookmarks: ParsedBookmark[] = []
+interface SkippedEntry {
+  url: string
+  reason: string
+}
 
-  // Tokenise: pull out H3 opens, DL opens/closes, and A tags in order
+function parseNetscapeHTML(html: string): { bookmarks: ParsedBookmark[]; skipped: SkippedEntry[] } {
+  const bookmarks: ParsedBookmark[] = []
+  const skipped: SkippedEntry[] = []
+
   const tokenPattern = /<(\/DL|DL|DT)[^>]*>|<H3[^>]*>(.*?)<\/H3>|<A\s+[^>]*HREF="([^"]*)"[^>]*>(.*?)<\/A>/gi
   const folderStack: string[] = []
   let match: RegExpExecArray | null
 
   while ((match = tokenPattern.exec(html)) !== null) {
-    const [full, tagName, h3Text, href, aText] = match
+    const [, tagName, h3Text, href, aText] = match
 
     if (tagName) {
-      const tag = tagName.toUpperCase()
-      if (tag === 'DL') {
-        // Opening a new nested list — the folder name was pushed just before
-      } else if (tag === '/DL') {
-        // Closing a nested list — pop the most recent folder
-        folderStack.pop()
-      }
+      if (tagName.toUpperCase() === '/DL') folderStack.pop()
       continue
     }
 
     if (h3Text !== undefined) {
-      // A folder header — push its name, it applies to the next <DL>
       const name = h3Text.replace(/<[^>]+>/g, '').trim()
       if (name) folderStack.push(name)
       continue
@@ -57,21 +38,31 @@ function parseNetscapeHTML(html: string): ParsedBookmark[] {
     if (href && aText !== undefined) {
       const url = href.trim()
       const title = aText.replace(/<[^>]+>/g, '').trim()
-      if (!url || url.startsWith('javascript:') || url.startsWith('place:')) continue
-      try { new URL(url) } catch { continue }
 
-      // Convert folder names to lowercase tags, deduplicate
+      // Track skipped with reasons
+      if (!url) { skipped.push({ url: title || '(empty)', reason: 'Empty URL' }); continue }
+      if (url.startsWith('javascript:')) { skipped.push({ url, reason: 'JavaScript link' }); continue }
+      if (url.startsWith('place:')) { skipped.push({ url, reason: 'Firefox internal link' }); continue }
+      if (url.length > 2000) { skipped.push({ url: url.slice(0, 80) + '…', reason: 'URL too long' }); continue }
+
+      try {
+        new URL(url)
+      } catch {
+        skipped.push({ url, reason: 'Invalid URL format' })
+        continue
+      }
+
       const tags = [...new Set(
         folderStack
           .map(f => f.toLowerCase().trim())
-          .filter(f => f.length > 0 && f !== 'bookmarks bar' && f !== 'other bookmarks' && f !== 'mobile bookmarks')
+          .filter(f => f.length > 0 && !['bookmarks bar', 'other bookmarks', 'mobile bookmarks', 'bookmarks menu'].includes(f))
       )]
 
       bookmarks.push({ title: title || url, url, description: '', tags })
     }
   }
 
-  return bookmarks
+  return { bookmarks, skipped }
 }
 
 export async function POST(req: NextRequest) {
@@ -83,15 +74,30 @@ export async function POST(req: NextRequest) {
   const { html } = body as { html: string }
   if (!html) return NextResponse.json({ error: 'Missing html' }, { status: 400 })
 
-  const parsed = parseNetscapeHTML(html)
-  if (parsed.length === 0) return NextResponse.json({ error: 'No bookmarks found in file' }, { status: 400 })
+  const { bookmarks: parsed, skipped } = parseNetscapeHTML(html)
+  if (parsed.length === 0) {
+    return NextResponse.json({
+      error: 'No valid bookmarks found',
+      skipped_count: skipped.length,
+      skip_reasons: summariseReasons(skipped),
+    }, { status: 400 })
+  }
 
-  const BATCH = 50
+  // Get existing URLs for this user to detect duplicates
+  const { data: existing } = await supabase
+    .from('bookmarks')
+    .select('url')
+    .eq('user_id', user.id)
+
+  const existingUrls = new Set((existing ?? []).map(b => b.url))
+  const newBookmarks    = parsed.filter(b => !existingUrls.has(b.url))
+  const duplicateCount  = parsed.length - newBookmarks.length
+
+  const BATCH = 500
   let imported = 0
-  let skipped = 0
 
-  for (let i = 0; i < parsed.length; i += BATCH) {
-    const batch = parsed.slice(i, i + BATCH).map(b => ({
+  for (let i = 0; i < newBookmarks.length; i += BATCH) {
+    const batch = newBookmarks.slice(i, i + BATCH).map(b => ({
       user_id: user.id,
       title: b.title.slice(0, 500),
       url: b.url.slice(0, 2000),
@@ -101,12 +107,23 @@ export async function POST(req: NextRequest) {
 
     const { data, error } = await supabase
       .from('bookmarks')
-      .upsert(batch, { onConflict: 'user_id,url', ignoreDuplicates: false })
+      .insert(batch)
       .select('id')
 
     if (!error) imported += data?.length ?? batch.length
-    else skipped += batch.length
   }
 
-  return NextResponse.json({ imported, skipped, total: parsed.length })
+  return NextResponse.json({
+    imported,
+    duplicates: duplicateCount,
+    skipped_invalid: skipped.length,
+    total_in_file: parsed.length + skipped.length,
+    skip_reasons: summariseReasons(skipped),
+  })
+}
+
+function summariseReasons(skipped: SkippedEntry[]): Record<string, number> {
+  const counts: Record<string, number> = {}
+  skipped.forEach(s => { counts[s.reason] = (counts[s.reason] ?? 0) + 1 })
+  return counts
 }
