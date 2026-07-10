@@ -8,28 +8,39 @@ interface DotstellLogoProps {
 
 const BRAND_PURPLE = '#7c6aff'
 const BRAND_PURPLE_LIGHT = '#a594ff'
-const TEXT_COLOR = '#e8e8f0'
-const MUTED_COLOR = '#6b6b88'
+const TEXT_PRIMARY = '#e8e8f0'
+const TEXT_MUTED = '#6b6b88'
 
 export function DotstellLogo({ size = 'md', showTagline = false, className }: DotstellLogoProps) {
-  const iconSizes = { sm: 28, md: 36, lg: 52 }
-  const textSizes = { sm: 'text-sm', md: 'text-lg', lg: 'text-3xl' }
-  const taglineSizes = { sm: 'text-[10px]', md: 'text-xs', lg: 'text-sm' }
-  const s = iconSizes[size]
+  const configs = {
+    sm: { icon: 30, text: '15px', tagline: '10px', gap: '10px', letterSpacing: '-0.3px' },
+    md: { icon: 38, text: '18px', tagline: '11px', gap: '11px', letterSpacing: '-0.4px' },
+    lg: { icon: 56, text: '28px', tagline: '13px', gap: '14px', letterSpacing: '-0.6px' },
+  }
+  const c = configs[size]
 
   return (
-    <div className={cn('flex items-center gap-2.5', className)}>
-      <ConstellationIcon size={s} />
-      <div className="flex flex-col leading-none gap-0.5">
-        <span className={cn('font-bold tracking-tight', textSizes[size])}>
-          <span style={{ color: TEXT_COLOR }}>dots</span>
+    <div className={cn('flex items-center', className)} style={{ gap: c.gap }}>
+      <ConstellationIcon size={c.icon} />
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+        <span style={{
+          fontSize: c.text,
+          fontWeight: 700,
+          letterSpacing: c.letterSpacing,
+          lineHeight: 1,
+          fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+        }}>
+          <span style={{ color: TEXT_PRIMARY }}>dots</span>
           <span style={{ color: BRAND_PURPLE }}>tell</span>
         </span>
         {showTagline && (
-          <span
-            className={cn(taglineSizes[size])}
-            style={{ color: MUTED_COLOR }}
-          >
+          <span style={{
+            fontSize: c.tagline,
+            color: TEXT_MUTED,
+            letterSpacing: '0.3px',
+            lineHeight: 1,
+            fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+          }}>
             connect your knowledge
           </span>
         )}
@@ -42,12 +53,13 @@ function ConstellationIcon({ size: s }: { size: number }) {
   const cx = s / 2
   const cy = s / 2
 
+  // 5 outer constellation points
   const dots = [
-    { x: cx * 0.95, y: cy * 0.32 },
-    { x: cx * 1.65, y: cy * 0.62 },
-    { x: cx * 1.48, y: cy * 1.58 },
-    { x: cx * 0.62, y: cy * 1.62 },
-    { x: cx * 0.30, y: cy * 0.88 },
+    { x: cx * 1.0,  y: cy * 0.18 },  // top center
+    { x: cx * 1.72, y: cy * 0.68 },  // top right
+    { x: cx * 1.52, y: cy * 1.65 },  // bottom right
+    { x: cx * 0.48, y: cy * 1.65 },  // bottom left
+    { x: cx * 0.28, y: cy * 0.68 },  // top left
   ]
 
   return (
@@ -59,64 +71,58 @@ function ConstellationIcon({ size: s }: { size: number }) {
       xmlns="http://www.w3.org/2000/svg"
       style={{ flexShrink: 0 }}
     >
-      {/* Outer constellation lines */}
+      {/* Outer pentagon lines */}
       {dots.map((dot, i) => {
         const next = dots[(i + 1) % dots.length]
         return (
           <line
-            key={`line-outer-${i}`}
+            key={`l${i}`}
             x1={dot.x} y1={dot.y}
             x2={next.x} y2={next.y}
             stroke={BRAND_PURPLE}
-            strokeWidth={s * 0.032}
-            strokeOpacity="0.5"
+            strokeWidth={s * 0.03}
+            strokeOpacity="0.45"
             strokeLinecap="round"
           />
         )
       })}
 
-      {/* Dashed spokes from center to each dot */}
+      {/* Dashed spokes to center */}
       {dots.map((dot, i) => (
         <line
-          key={`spoke-${i}`}
+          key={`s${i}`}
           x1={cx} y1={cy}
           x2={dot.x} y2={dot.y}
           stroke={BRAND_PURPLE}
-          strokeWidth={s * 0.022}
-          strokeOpacity="0.35"
-          strokeDasharray={`${s * 0.07} ${s * 0.055}`}
+          strokeWidth={s * 0.02}
+          strokeOpacity="0.3"
+          strokeDasharray={`${s * 0.07} ${s * 0.05}`}
           strokeLinecap="round"
         />
       ))}
 
-      {/* Outer dot glow halos */}
+      {/* Outer dot glows */}
       {dots.map((dot, i) => (
-        <circle
-          key={`halo-${i}`}
-          cx={dot.x} cy={dot.y}
-          r={s * 0.11}
-          fill={BRAND_PURPLE}
-          fillOpacity="0.12"
-        />
+        <circle key={`g${i}`} cx={dot.x} cy={dot.y} r={s * 0.1} fill={BRAND_PURPLE} fillOpacity="0.1" />
       ))}
 
-      {/* Outer dots */}
+      {/* Outer dots — alternating sizes and shades */}
       {dots.map((dot, i) => (
         <circle
-          key={`dot-${i}`}
+          key={`d${i}`}
           cx={dot.x} cy={dot.y}
-          r={i % 2 === 0 ? s * 0.058 : s * 0.044}
+          r={i % 2 === 0 ? s * 0.055 : s * 0.04}
           fill={i % 2 === 0 ? BRAND_PURPLE : BRAND_PURPLE_LIGHT}
         />
       ))}
 
-      {/* Center hub — triple glow */}
-      <circle cx={cx} cy={cy} r={s * 0.26} fill={BRAND_PURPLE} fillOpacity="0.08" />
-      <circle cx={cx} cy={cy} r={s * 0.17} fill={BRAND_PURPLE} fillOpacity="0.18" />
-      <circle cx={cx} cy={cy} r={s * 0.10} fill={BRAND_PURPLE} />
+      {/* Center hub — 3 glow rings */}
+      <circle cx={cx} cy={cy} r={s * 0.28} fill={BRAND_PURPLE} fillOpacity="0.06" />
+      <circle cx={cx} cy={cy} r={s * 0.18} fill={BRAND_PURPLE} fillOpacity="0.15" />
+      <circle cx={cx} cy={cy} r={s * 0.11} fill={BRAND_PURPLE} />
 
-      {/* Center white spark */}
-      <circle cx={cx} cy={cy} r={s * 0.045} fill="white" fillOpacity="0.95" />
+      {/* White spark at center */}
+      <circle cx={cx} cy={cy} r={s * 0.048} fill="white" fillOpacity="0.95" />
     </svg>
   )
 }
