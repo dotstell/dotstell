@@ -278,8 +278,9 @@ export default function GraphPage() {
                 type="button"
                 onClick={() => {
                   localStorage.removeItem(STORAGE_KEY)
-                  // Force re-render with grid positions
-                  setItems(prev => [...prev])
+                  // Clear in-memory positions too, then rebuild from grid
+                  setNodes([])
+                  setTimeout(() => setItems(prev => [...prev]), 0)
                 }}
                 style={{
                   fontSize: 11, color: '#6b6b88', background: 'none',
