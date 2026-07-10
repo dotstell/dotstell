@@ -44,8 +44,16 @@ export default function BookmarksPage() {
   const [captureUrl,    setCaptureUrl]    = useState('')
   const [captureFetching, setCaptureFetching] = useState(false)
 
-  // View mode
-  const [viewMode, setViewMode] = useState<'list' | 'collections'>('list')
+  // View mode — default collections, persisted in localStorage
+  const [viewMode, setViewMode] = useState<'list' | 'collections'>(() => {
+    if (typeof window === 'undefined') return 'collections'
+    return (localStorage.getItem('bookmarks-view') as 'list' | 'collections') ?? 'collections'
+  })
+
+  function setAndPersistViewMode(mode: 'list' | 'collections') {
+    setViewMode(mode)
+    localStorage.setItem('bookmarks-view', mode)
+  }
 
   // Tag expansion
   const [showAllTags, setShowAllTags] = useState(false)
@@ -693,7 +701,7 @@ export default function BookmarksPage() {
             <span style={{ fontSize: 12, color: '#6b6b88' }}>{displayed.length} saved</span>
             <div style={{ display: 'flex', gap: 2, backgroundColor: '#1e1e2e', borderRadius: 8, padding: 3 }}>
               {([['list', LayoutList, 'List'], ['collections', Layers, 'Collections']] as const).map(([mode, Icon, label]) => (
-                <button key={mode} type="button" onClick={() => setViewMode(mode)} style={{
+                <button key={mode} type="button" onClick={() => setAndPersistViewMode(mode)} style={{
                   display: 'flex', alignItems: 'center', gap: 5,
                   padding: '5px 10px', borderRadius: 6, border: 'none', cursor: 'pointer',
                   backgroundColor: viewMode === mode ? '#7c6aff' : 'transparent',
