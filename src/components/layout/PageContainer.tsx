@@ -24,6 +24,7 @@ export function PageContainer({ children, className, style, narrow, wide, ...res
         padding: '28px 32px',
         maxWidth,
         width: '100%',
+        margin: '0 auto',
         ...style,
       }}
     >
