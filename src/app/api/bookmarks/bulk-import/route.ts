@@ -49,11 +49,18 @@ function parseNetscapeHTML(html: string): { bookmarks: ParsedBookmark[]; skipped
         continue
       }
 
-      const tags = [...new Set(
-        folderStack
-          .map(f => f.toLowerCase().trim())
-          .filter(f => f.length > 0 && !['bookmarks bar', 'other bookmarks', 'mobile bookmarks', 'bookmarks menu'].includes(f))
-      )]
+      const IGNORE = new Set(['bookmarks bar', 'other bookmarks', 'mobile bookmarks', 'bookmarks menu'])
+
+      const meaningfulFolders = folderStack
+        .map(f => f.toLowerCase().trim())
+        .filter(f => f.length > 0 && !IGNORE.has(f))
+
+      // Use only the deepest (most specific) folder as the tag.
+      // Using the full ancestor chain creates tag explosion:
+      // "Work > Tools > VS Code" → 3 collections instead of 1.
+      const tags = meaningfulFolders.length > 0
+        ? [meaningfulFolders[meaningfulFolders.length - 1]]
+        : []
 
       bookmarks.push({ title: title || url, url, description: '', tags })
     }
