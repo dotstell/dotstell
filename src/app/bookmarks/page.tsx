@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { Plus, ExternalLink, Trash2, Search, Upload, X, Clock, Tag, Link2, LayoutList, Layers, Pencil, CheckSquare, Square, AlertTriangle, ChevronDown, ChevronRight } from 'lucide-react'
+import { Plus, ExternalLink, Trash2, Search, Upload, X, Clock, Tag, Link2, LayoutList, Layers, Pencil, CheckSquare, Square, AlertTriangle, ChevronDown, ChevronRight, Settings2, ArrowUpDown } from 'lucide-react'
 import { toast } from 'sonner'
 import { Bookmark } from '@/types'
 import { AppLayout } from '@/components/layout/AppLayout'
@@ -60,7 +60,18 @@ export default function BookmarksPage() {
 
   // Import preview
   const [previewOpen, setPreviewOpen] = useState(false)
-  const [previewData, setPreviewData] = useState<{ folder: string; count: number }[] | null>(null)
+  const [previewData,     setPreviewData]     = useState<{ folder: string; count: number }[] | null>(null)
+  const [selectedFolders, setSelectedFolders] = useState<Set<string>>(new Set())
+  const [folderSearch,    setFolderSearch]    = useState('')
+  const [folderSort,      setFolderSort]      = useState<'name-asc' | 'name-desc' | 'count-desc' | 'count-asc'>('count-desc')
+
+  // Tag manager
+  const [tagManagerOpen, setTagManagerOpen] = useState(false)
+  const [tagSort,        setTagSort]        = useState<'name-asc' | 'name-desc' | 'count-desc' | 'count-asc'>('count-desc')
+  const [tagSearch,      setTagSearch]      = useState('')
+  const [renamingTag,    setRenamingTag]    = useState<string | null>(null)
+  const [renameValue,    setRenameValue]    = useState('')
+  const [tagWorking,     setTagWorking]     = useState(false)
 
   // Bulk import
   const [importing,    setImporting]    = useState(false)
@@ -172,12 +183,12 @@ export default function BookmarksPage() {
   }
 
   // ── Bulk import ──────────────────────────────────────────
-  async function runImport(html: string, force = false) {
+  async function runImport(html: string, force = false, selectedTags?: string[]) {
     setImporting(true)
     const res = await fetch('/api/bookmarks/bulk-import', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ html, force }),
+      body: JSON.stringify({ html, force, selectedTags }),
     })
     const data = await res.json()
     if (res.ok) {
@@ -209,6 +220,9 @@ export default function BookmarksPage() {
     if (res.ok) {
       const data = await res.json()
       setPreviewData(data.folders)
+      setSelectedFolders(new Set(data.folders.map((f: { folder: string }) => f.folder)))
+      setFolderSearch('')
+      setFolderSort('count-desc')
       setPreviewOpen(true)
     } else {
       await runImport(html, false)
@@ -324,6 +338,38 @@ export default function BookmarksPage() {
     }
   }
 
+  // ── Tag manager ──────────────────────────────────────────
+  async function renameTag(oldTag: string, newTag: string) {
+    if (!newTag.trim() || newTag === oldTag) { setRenamingTag(null); return }
+    setTagWorking(true)
+    const res = await fetch('/api/bookmarks/manage-tags', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ oldTag, newTag: newTag.toLowerCase().trim() }),
+    })
+    if (res.ok) {
+      toast.success(`Renamed "${oldTag}" → "${newTag}"`)
+      fetchBookmarks()
+    } else toast.error('Rename failed')
+    setRenamingTag(null)
+    setTagWorking(false)
+  }
+
+  async function deleteTag(tag: string) {
+    setTagWorking(true)
+    const res = await fetch('/api/bookmarks/manage-tags', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tag }),
+    })
+    if (res.ok) {
+      const data = await res.json()
+      toast.success(`Removed tag "${tag}" from ${data.updated} bookmarks`)
+      fetchBookmarks()
+    } else toast.error('Delete failed')
+    setTagWorking(false)
+  }
+
   // All unique tags from all bookmarks
   const allTags = [...new Set(bookmarks.flatMap(b => b.tags))]
   const displayed = tagFilter ? bookmarks.filter(b => b.tags.includes(tagFilter)) : bookmarks
@@ -394,6 +440,9 @@ export default function BookmarksPage() {
           description="Save links — paste, drop, or import"
           action={
             <div style={{ display: 'flex', gap: 8 }}>
+              <Button variant="outline" size="sm" onClick={() => setTagManagerOpen(true)}>
+                <Settings2 size={14} /> Manage tags
+              </Button>
               <Button
                 variant="outline" size="sm"
                 onClick={() => { setSelectMode(s => !s); setSelected(new Set()) }}
@@ -773,39 +822,288 @@ export default function BookmarksPage() {
         )}
       </div>
 
+      {/* ── Tag manager dialog ── */}
+      <Dialog open={tagManagerOpen} onOpenChange={setTagManagerOpen}>
+        <DialogContent className="max-w-xl">
+          <DialogHeader>
+            <DialogTitle style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <Settings2 size={16} color="#7c6aff" /> Manage Tags
+            </DialogTitle>
+          </DialogHeader>
+
+          {(() => {
+            // Build tag → count map from current bookmarks
+            const tagCounts = new Map<string, number>()
+            bookmarks.forEach(b => b.tags.forEach(t => tagCounts.set(t, (tagCounts.get(t) ?? 0) + 1)))
+
+            const sortedTags = [...tagCounts.entries()]
+              .filter(([t]) => t.toLowerCase().includes(tagSearch.toLowerCase()))
+              .sort((a, b) => {
+                if (tagSort === 'name-asc')   return a[0].localeCompare(b[0])
+                if (tagSort === 'name-desc')  return b[0].localeCompare(a[0])
+                if (tagSort === 'count-asc')  return a[1] - b[1]
+                return b[1] - a[1]
+              })
+
+            return (
+              <>
+                <div style={{ fontSize: 13, color: '#6b6b88', marginBottom: 10 }}>
+                  {tagCounts.size} tags across {bookmarks.length} bookmarks
+                </div>
+
+                {/* Search + Sort */}
+                <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
+                  <div style={{ position: 'relative', flex: 1 }}>
+                    <Search size={13} style={{ position: 'absolute', left: 9, top: '50%', transform: 'translateY(-50%)', color: '#6b6b88' }} />
+                    <input
+                      value={tagSearch}
+                      onChange={e => setTagSearch(e.target.value)}
+                      placeholder="Search tags..."
+                      style={{
+                        width: '100%', padding: '7px 10px 7px 28px', borderRadius: 8,
+                        border: '1px solid #2a2a3e', backgroundColor: '#1a1a28',
+                        color: '#e8e8f0', fontSize: 13, outline: 'none',
+                      }}
+                    />
+                  </div>
+                  <select
+                    value={tagSort}
+                    onChange={e => setTagSort(e.target.value as typeof tagSort)}
+                    style={{
+                      padding: '7px 10px', borderRadius: 8, border: '1px solid #2a2a3e',
+                      backgroundColor: '#1a1a28', color: '#a0a0b8', fontSize: 12, cursor: 'pointer',
+                    }}
+                  >
+                    <option value="count-desc">Most used</option>
+                    <option value="count-asc">Least used</option>
+                    <option value="name-asc">A → Z</option>
+                    <option value="name-desc">Z → A</option>
+                  </select>
+                </div>
+
+                {/* Tag list */}
+                <div style={{ maxHeight: 360, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 3 }}>
+                  {sortedTags.map(([tag, count]) => (
+                    <div key={tag} style={{
+                      display: 'flex', alignItems: 'center', gap: 10,
+                      padding: '7px 10px', borderRadius: 8,
+                      backgroundColor: '#1a1a28', border: '1px solid #2a2a3e',
+                    }}>
+                      <Tag size={12} color="#6b6b88" style={{ flexShrink: 0 }} />
+
+                      {renamingTag === tag ? (
+                        <input
+                          autoFocus
+                          value={renameValue}
+                          onChange={e => setRenameValue(e.target.value)}
+                          onKeyDown={e => {
+                            if (e.key === 'Enter') renameTag(tag, renameValue)
+                            if (e.key === 'Escape') setRenamingTag(null)
+                          }}
+                          style={{
+                            flex: 1, background: 'none', border: 'none',
+                            borderBottom: '1px solid #7c6aff', outline: 'none',
+                            color: '#e8e8f0', fontSize: 13, padding: '0 4px',
+                          }}
+                        />
+                      ) : (
+                        <span style={{ flex: 1, fontSize: 13, color: '#e8e8f0', textTransform: 'capitalize' }}>{tag}</span>
+                      )}
+
+                      <span style={{ fontSize: 11, color: '#6b6b88', backgroundColor: '#2a2a3e', padding: '1px 8px', borderRadius: 99, flexShrink: 0 }}>
+                        {count}
+                      </span>
+
+                      {renamingTag === tag ? (
+                        <>
+                          <button type="button" onClick={() => renameTag(tag, renameValue)} disabled={tagWorking}
+                            style={{ fontSize: 11, color: '#7c6aff', background: 'none', border: '1px solid #7c6aff44', borderRadius: 5, padding: '2px 8px', cursor: 'pointer' }}>
+                            Save
+                          </button>
+                          <button type="button" onClick={() => setRenamingTag(null)}
+                            style={{ fontSize: 11, color: '#6b6b88', background: 'none', border: '1px solid #2a2a3e', borderRadius: 5, padding: '2px 8px', cursor: 'pointer' }}>
+                            Cancel
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <button type="button"
+                            onClick={() => { setRenamingTag(tag); setRenameValue(tag) }}
+                            title="Rename tag"
+                            style={{ background: 'none', border: 'none', color: '#6b6b88', cursor: 'pointer', padding: 3, borderRadius: 4, display: 'flex', alignItems: 'center' }}
+                            onMouseEnter={e => (e.currentTarget.style.color = '#e8e8f0')}
+                            onMouseLeave={e => (e.currentTarget.style.color = '#6b6b88')}
+                          ><Pencil size={13} /></button>
+                          <button type="button"
+                            onClick={() => deleteTag(tag)}
+                            title="Remove tag from all bookmarks"
+                            disabled={tagWorking}
+                            style={{ background: 'none', border: 'none', color: '#6b6b88', cursor: 'pointer', padding: 3, borderRadius: 4, display: 'flex', alignItems: 'center' }}
+                            onMouseEnter={e => (e.currentTarget.style.color = '#ef4444')}
+                            onMouseLeave={e => (e.currentTarget.style.color = '#6b6b88')}
+                          ><Trash2 size={13} /></button>
+                        </>
+                      )}
+                    </div>
+                  ))}
+                  {sortedTags.length === 0 && (
+                    <p style={{ fontSize: 13, color: '#3a3a5e', textAlign: 'center', padding: '20px 0' }}>No tags match</p>
+                  )}
+                </div>
+              </>
+            )
+          })()}
+
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 12 }}>
+            <Button variant="outline" onClick={() => setTagManagerOpen(false)}>Close</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* ── Import preview dialog ── */}
       <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-xl">
           <DialogHeader>
-            <DialogTitle>Preview import</DialogTitle>
+            <DialogTitle>Choose collections to import</DialogTitle>
           </DialogHeader>
-          <div style={{ marginBottom: 12 }}>
-            <p style={{ fontSize: 13, color: '#a0a0b8', margin: '0 0 12px' }}>
-              Found <strong style={{ color: '#e8e8f0' }}>{previewData?.reduce((s, f) => s + f.count, 0)}</strong> bookmarks
-              across <strong style={{ color: '#e8e8f0' }}>{previewData?.length}</strong> collections:
-            </p>
-            <div style={{ maxHeight: 320, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 4 }}>
-              {previewData?.map(({ folder, count }) => (
-                <div key={folder} style={{
-                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                  padding: '6px 10px', borderRadius: 8,
-                  backgroundColor: '#1a1a28', border: '1px solid #2a2a3e',
-                }}>
-                  <span style={{ fontSize: 13, color: '#e8e8f0', textTransform: 'capitalize' }}>{folder}</span>
-                  <span style={{ fontSize: 12, color: '#6b6b88', backgroundColor: '#2a2a3e', padding: '1px 8px', borderRadius: 99 }}>
-                    {count}
+
+          {previewData && (() => {
+            const totalBookmarks = previewData.reduce((s, f) => s + f.count, 0)
+            const selectedBookmarks = previewData.filter(f => selectedFolders.has(f.folder)).reduce((s, f) => s + f.count, 0)
+
+            const sorted = [...previewData]
+              .filter(f => f.folder.toLowerCase().includes(folderSearch.toLowerCase()))
+              .sort((a, b) => {
+                if (folderSort === 'name-asc')   return a.folder.localeCompare(b.folder)
+                if (folderSort === 'name-desc')  return b.folder.localeCompare(a.folder)
+                if (folderSort === 'count-asc')  return a.count - b.count
+                return b.count - a.count
+              })
+
+            return (
+              <>
+                {/* Stats */}
+                <div style={{ display: 'flex', gap: 16, marginBottom: 12 }}>
+                  <span style={{ fontSize: 13, color: '#a0a0b8' }}>
+                    <strong style={{ color: '#e8e8f0' }}>{previewData.length}</strong> collections ·{' '}
+                    <strong style={{ color: '#e8e8f0' }}>{totalBookmarks}</strong> bookmarks in file
+                  </span>
+                  <span style={{ fontSize: 13, color: '#7c6aff', marginLeft: 'auto' }}>
+                    {selectedFolders.size} selected · {selectedBookmarks} bookmarks
                   </span>
                 </div>
-              ))}
-            </div>
-          </div>
-          <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+
+                {/* Search + Sort toolbar */}
+                <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
+                  <div style={{ position: 'relative', flex: 1 }}>
+                    <Search size={13} style={{ position: 'absolute', left: 9, top: '50%', transform: 'translateY(-50%)', color: '#6b6b88' }} />
+                    <input
+                      value={folderSearch}
+                      onChange={e => setFolderSearch(e.target.value)}
+                      placeholder="Search collections..."
+                      style={{
+                        width: '100%', padding: '6px 10px 6px 28px', borderRadius: 8,
+                        border: '1px solid #2a2a3e', backgroundColor: '#1a1a28',
+                        color: '#e8e8f0', fontSize: 13, outline: 'none',
+                      }}
+                    />
+                  </div>
+                  <select
+                    value={folderSort}
+                    onChange={e => setFolderSort(e.target.value as typeof folderSort)}
+                    style={{
+                      padding: '6px 10px', borderRadius: 8, border: '1px solid #2a2a3e',
+                      backgroundColor: '#1a1a28', color: '#a0a0b8', fontSize: 12, cursor: 'pointer',
+                    }}
+                  >
+                    <option value="count-desc">Most bookmarks</option>
+                    <option value="count-asc">Fewest bookmarks</option>
+                    <option value="name-asc">Name A → Z</option>
+                    <option value="name-desc">Name Z → A</option>
+                  </select>
+                </div>
+
+                {/* Select all / none */}
+                <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+                  <button type="button" onClick={() => setSelectedFolders(new Set(previewData.map(f => f.folder)))} style={{
+                    fontSize: 12, color: '#7c6aff', background: 'none',
+                    border: '1px solid #7c6aff44', borderRadius: 6, padding: '3px 10px', cursor: 'pointer',
+                  }}>Select all</button>
+                  <button type="button" onClick={() => setSelectedFolders(new Set())} style={{
+                    fontSize: 12, color: '#6b6b88', background: 'none',
+                    border: '1px solid #2a2a3e', borderRadius: 6, padding: '3px 10px', cursor: 'pointer',
+                  }}>Deselect all</button>
+                  <span style={{ fontSize: 12, color: '#3a3a5e', marginLeft: 4, alignSelf: 'center' }}>
+                    {sorted.length !== previewData.length && `Showing ${sorted.length} of ${previewData.length}`}
+                  </span>
+                </div>
+
+                {/* Folder list with checkboxes */}
+                <div style={{ maxHeight: 300, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 3 }}>
+                  {sorted.map(({ folder, count }) => {
+                    const checked = selectedFolders.has(folder)
+                    return (
+                      <div
+                        key={folder}
+                        onClick={() => {
+                          setSelectedFolders(prev => {
+                            const next = new Set(prev)
+                            checked ? next.delete(folder) : next.add(folder)
+                            return next
+                          })
+                        }}
+                        style={{
+                          display: 'flex', alignItems: 'center', gap: 10,
+                          padding: '7px 10px', borderRadius: 8, cursor: 'pointer',
+                          backgroundColor: checked ? 'rgba(124,106,255,0.08)' : 'transparent',
+                          border: checked ? '1px solid rgba(124,106,255,0.2)' : '1px solid transparent',
+                          transition: 'all 0.1s',
+                        }}
+                        onMouseEnter={e => { if (!checked) e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.03)' }}
+                        onMouseLeave={e => { if (!checked) e.currentTarget.style.backgroundColor = 'transparent' }}
+                      >
+                        {/* Checkbox */}
+                        <div style={{
+                          width: 16, height: 16, borderRadius: 4, flexShrink: 0,
+                          border: checked ? '2px solid #7c6aff' : '2px solid #3a3a5e',
+                          backgroundColor: checked ? '#7c6aff' : 'transparent',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          transition: 'all 0.1s',
+                        }}>
+                          {checked && <span style={{ color: 'white', fontSize: 10, fontWeight: 700 }}>✓</span>}
+                        </div>
+                        <span style={{ fontSize: 13, color: checked ? '#e8e8f0' : '#a0a0b8', flex: 1, textTransform: 'capitalize' }}>
+                          {folder}
+                        </span>
+                        <span style={{
+                          fontSize: 11, fontWeight: 600,
+                          color: checked ? '#7c6aff' : '#6b6b88',
+                          backgroundColor: checked ? '#7c6aff22' : '#1e1e2e',
+                          padding: '1px 8px', borderRadius: 99,
+                        }}>
+                          {count}
+                        </span>
+                      </div>
+                    )
+                  })}
+                  {sorted.length === 0 && (
+                    <p style={{ fontSize: 13, color: '#3a3a5e', textAlign: 'center', padding: '20px 0' }}>No collections match</p>
+                  )}
+                </div>
+              </>
+            )
+          })()}
+
+          <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 12 }}>
             <Button variant="outline" onClick={() => setPreviewOpen(false)}>Cancel</Button>
-            <Button onClick={async () => {
-              setPreviewOpen(false)
-              if (lastImportHtml) await runImport(lastImportHtml, false)
-            }}>
-              Import all
+            <Button
+              disabled={selectedFolders.size === 0}
+              onClick={async () => {
+                setPreviewOpen(false)
+                if (lastImportHtml) await runImport(lastImportHtml, false, [...selectedFolders])
+              }}
+            >
+              Import {selectedFolders.size === previewData?.length ? 'all' : `${selectedFolders.size} selected`}
             </Button>
           </div>
         </DialogContent>

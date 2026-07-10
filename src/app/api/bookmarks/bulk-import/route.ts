@@ -97,10 +97,15 @@ export async function POST(req: NextRequest) {
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const body = await req.json()
-  const { html, force } = body as { html: string; force?: boolean }
+  const { html, force, selectedTags } = body as { html: string; force?: boolean; selectedTags?: string[] }
   if (!html) return NextResponse.json({ error: 'Missing html' }, { status: 400 })
 
-  const { bookmarks: parsed, skipped } = parseNetscapeHTML(html)
+  const { bookmarks: allParsed, skipped } = parseNetscapeHTML(html)
+
+  // Filter to only selected categories if provided
+  const parsed = selectedTags && selectedTags.length > 0
+    ? allParsed.filter(b => b.tags.some(t => selectedTags.includes(t)) || (b.tags.length === 0 && selectedTags.includes('__uncategorised__')))
+    : allParsed
   if (parsed.length === 0) {
     return NextResponse.json({
       error: 'No valid bookmarks found',
