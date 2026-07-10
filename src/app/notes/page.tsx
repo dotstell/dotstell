@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input'
 import { NoteCard } from '@/components/notes/NoteCard'
 import { NoteEditor } from '@/components/notes/NoteEditor'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { EmptyState } from '@/components/ui/empty-state'
 
 const DEFAULT_NOTE: Partial<Note> = {
   title: '',
@@ -131,10 +132,13 @@ export default function NotesPage() {
         {loading ? (
           <div className="text-[var(--muted-foreground)] text-sm">Loading...</div>
         ) : notes.length === 0 ? (
-          <div className="text-center py-16">
-            <p className="text-[var(--muted-foreground)] mb-4">No notes yet</p>
-            <Button onClick={openNew} variant="outline">Create your first note</Button>
-          </div>
+          <EmptyState
+            icon="📑"
+            title="No notes yet"
+            description="Capture your thoughts, meeting notes, or ideas. Use plain text, markdown, or a checklist."
+            action="Create your first note"
+            onAction={openNew}
+          />
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {notes.map(note => (

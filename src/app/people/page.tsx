@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
+import { EmptyState } from '@/components/ui/empty-state'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { formatRelative } from '@/lib/utils'
 
@@ -108,10 +109,13 @@ export default function PeoplePage() {
         {loading ? (
           <div className="text-[var(--muted-foreground)] text-sm">Loading...</div>
         ) : people.length === 0 ? (
-          <div className="text-center py-16">
-            <p className="text-[var(--muted-foreground)] mb-4">No contacts yet</p>
-            <Button onClick={openNew} variant="outline">Add your first contact</Button>
-          </div>
+          <EmptyState
+            icon="👥"
+            title="No contacts yet"
+            description="Add people you work with and attach 1-on-1 notes, tasks, and context directly to them."
+            action="Add your first contact"
+            onAction={openNew}
+          />
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {people.map(person => (

@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { EmptyState } from '@/components/ui/empty-state'
 import { formatRelative } from '@/lib/utils'
 
 const DEFAULT_BOOKMARK: Partial<Bookmark> = { title: '', url: '', description: '', tags: [] }
@@ -98,10 +99,13 @@ export default function BookmarksPage() {
         {loading ? (
           <div className="text-[var(--muted-foreground)] text-sm">Loading...</div>
         ) : bookmarks.length === 0 ? (
-          <div className="text-center py-16">
-            <p className="text-[var(--muted-foreground)] mb-4">No bookmarks yet</p>
-            <Button onClick={openNew} variant="outline">Save your first link</Button>
-          </div>
+          <EmptyState
+            icon="🔖"
+            title="No bookmarks yet"
+            description="Save links from articles, tools, and resources. Tag them and connect them to your notes and people."
+            action="Save your first link"
+            onAction={openNew}
+          />
         ) : (
           <div className="flex flex-col gap-2">
             {bookmarks.map(bm => (

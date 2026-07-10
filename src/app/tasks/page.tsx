@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { EmptyState } from '@/components/ui/empty-state'
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '@/components/ui/select'
 import { formatDate, cn } from '@/lib/utils'
 
@@ -165,10 +166,13 @@ export default function TasksPage() {
         ) : (
           <div className="space-y-2">
             {tasks.length === 0 ? (
-              <div className="text-center py-16">
-                <p className="text-[var(--muted-foreground)] mb-4">No tasks yet</p>
-                <Button onClick={() => { setEditing({ ...DEFAULT_TASK }); setDialogOpen(true) }} variant="outline">Create your first task</Button>
-              </div>
+              <EmptyState
+                icon="✅"
+                title="No tasks yet"
+                description="Track your work with priorities and due dates. Switch between board and list view anytime."
+                action="Create your first task"
+                onAction={() => { setEditing({ ...DEFAULT_TASK }); setDialogOpen(true) }}
+              />
             ) : tasks.map(task => (
               <div key={task.id} className={cn(
                 'group flex items-center gap-3 bg-[var(--card)] border rounded-lg p-3 transition-all',
