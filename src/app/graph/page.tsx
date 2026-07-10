@@ -130,37 +130,54 @@ export default function GraphPage() {
 
   useEffect(() => { fetchData() }, [fetchData])
 
-  // Rebuild nodes/edges when data or filter changes
+  // Effect 1: Build nodes ONLY when items or filter changes (preserves positions after that)
   useEffect(() => {
     const filtered = filter === 'all' ? items : items.filter(i => i.type === filter)
     const cols = 5, xGap = 230, yGap = 130
     const typeOrder = ['note', 'person', 'bookmark', 'task']
     const sorted = [...filtered].sort((a, b) => typeOrder.indexOf(a.type) - typeOrder.indexOf(b.type))
 
-    const builtNodes: Node[] = sorted.map((item, idx) => ({
-      id: item.id,
-      type: 'graphNode',
-      position: { x: (idx % cols) * xGap, y: Math.floor(idx / cols) * yGap },
-      data: { label: item.title, type: item.type, selected: selected?.id === item.id },
-    }))
-
-    const visibleIds = new Set(filtered.map(i => i.id))
-    const builtEdges: Edge[] = links
-      .filter(l => visibleIds.has(l.source_id) && visibleIds.has(l.target_id))
-      .map(l => ({
-        id: l.id,
-        source: l.source_id,
-        target: l.target_id,
-        type: 'deletable',
-        animated: true,
-        style: { stroke: '#3a3a5e', strokeWidth: 1.5 },
-        markerEnd: { type: MarkerType.ArrowClosed, color: '#3a3a5e', width: 16, height: 16 },
-        data: { onDelete: handleDeleteEdge },
+    setNodes(prev => {
+      const posMap = new Map(prev.map(n => [n.id, n.position]))
+      return sorted.map((item, idx) => ({
+        id: item.id,
+        type: 'graphNode',
+        // Reuse existing position if node already placed, otherwise assign grid position
+        position: posMap.get(item.id) ?? { x: (idx % cols) * xGap, y: Math.floor(idx / cols) * yGap },
+        data: { label: item.title, type: item.type, selected: false },
       }))
+    })
+  }, [items, filter, setNodes])
 
-    setNodes(builtNodes)
-    setEdges(builtEdges)
-  }, [items, links, filter, selected, setNodes, setEdges])
+  // Effect 2: Update edges independently — never touches node positions
+  useEffect(() => {
+    const filtered = filter === 'all' ? items : items.filter(i => i.type === filter)
+    const visibleIds = new Set(filtered.map(i => i.id))
+    setEdges(
+      links
+        .filter(l => visibleIds.has(l.source_id) && visibleIds.has(l.target_id))
+        .map(l => ({
+          id: l.id,
+          source: l.source_id,
+          target: l.target_id,
+          type: 'deletable',
+          animated: true,
+          style: { stroke: '#3a3a5e', strokeWidth: 1.5 },
+          markerEnd: { type: MarkerType.ArrowClosed, color: '#3a3a5e', width: 16, height: 16 },
+          data: { onDelete: handleDeleteEdge },
+        }))
+    )
+  }, [links, items, filter, setEdges])
+
+  // Effect 3: Update selection highlight only — patches data, never moves nodes
+  useEffect(() => {
+    setNodes(prev =>
+      prev.map(n => ({
+        ...n,
+        data: { ...n.data, selected: n.id === selected?.id },
+      }))
+    )
+  }, [selected, setNodes])
 
   async function handleConnect(connection: Connection) {
     if (!connection.source || !connection.target || connection.source === connection.target) return
