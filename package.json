@@ -1,0 +1,53 @@
+{
+  "name": "dotstell",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "cross-env NODE_OPTIONS=--use-openssl-ca next dev",
+    "build": "cross-env NODE_OPTIONS=--use-openssl-ca next build",
+    "start": "cross-env NODE_OPTIONS=--use-openssl-ca next start",
+    "lint": "eslint"
+  },
+  "dependencies": {
+    "@radix-ui/react-avatar": "^1.2.2",
+    "@radix-ui/react-checkbox": "^1.3.7",
+    "@radix-ui/react-dialog": "^1.1.19",
+    "@radix-ui/react-dropdown-menu": "^2.1.20",
+    "@radix-ui/react-label": "^2.1.11",
+    "@radix-ui/react-popover": "^1.1.19",
+    "@radix-ui/react-select": "^2.3.3",
+    "@radix-ui/react-separator": "^1.1.11",
+    "@radix-ui/react-slot": "^1.3.0",
+    "@radix-ui/react-switch": "^1.3.3",
+    "@radix-ui/react-tabs": "^1.1.17",
+    "@radix-ui/react-tooltip": "^1.2.12",
+    "@supabase/ssr": "^0.12.0",
+    "@supabase/supabase-js": "^2.110.1",
+    "@tanstack/react-query": "^5.101.2",
+    "@uiw/react-md-editor": "^4.1.1",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "date-fns": "^4.4.0",
+    "lucide-react": "^1.23.0",
+    "next": "16.2.10",
+    "react": "19.2.4",
+    "react-dom": "19.2.4",
+    "react-markdown": "^10.1.0",
+    "reactflow": "^11.11.4",
+    "remark-gfm": "^4.0.1",
+    "sonner": "^2.0.7",
+    "tailwind-merge": "^3.6.0",
+    "zustand": "^5.0.14"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "cross-env": "^10.1.0",
+    "eslint": "^9",
+    "eslint-config-next": "16.2.10",
+    "tailwindcss": "^4",
+    "typescript": "^5"
+  }
+}
