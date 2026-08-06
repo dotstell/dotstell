@@ -1,5 +1,5 @@
 'use client'
-import { AlignLeft, FileText, CheckSquare, Trash2 } from 'lucide-react'
+import { AlignLeft, FileText, CheckSquare, Trash2, GitBranch } from 'lucide-react'
 import { Note } from '@/types'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -99,6 +99,11 @@ export function NoteCard({ note, onClick, onDelete }: NoteCardProps) {
           ))}
           {note.tags.length > 2 && (
             <span style={{ fontSize: 10, color: '#6b6b88' }}>+{note.tags.length - 2}</span>
+          )}
+          {(note.sub_notes_count ?? 0) > 0 && (
+            <span style={{ display: 'flex', alignItems: 'center', gap: 3, fontSize: 10, color: '#6b6b88', backgroundColor: '#1e1e2e', padding: '1px 6px', borderRadius: 99 }}>
+              <GitBranch size={9} /> {note.sub_notes_count}
+            </span>
           )}
         </div>
         <span style={{ fontSize: 11, color: '#6b6b88', flexShrink: 0 }}>{formatRelative(note.updated_at)}</span>

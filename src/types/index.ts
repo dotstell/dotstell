@@ -17,6 +17,7 @@ export interface Note {
   linked_items: LinkedItem[]
   person_id?: string | null
   parent_id?: string | null
+  sub_notes_count?: number
   created_at: string
   updated_at: string
 }

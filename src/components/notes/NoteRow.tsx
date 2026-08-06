@@ -1,5 +1,5 @@
 'use client'
-import { AlignLeft, FileText, CheckSquare, Trash2 } from 'lucide-react'
+import { AlignLeft, FileText, CheckSquare, Trash2, GitBranch } from 'lucide-react'
 import { Note } from '@/types'
 import { formatRelative } from '@/lib/utils'
 
@@ -69,8 +69,8 @@ export function NoteRow({ note, onClick, onDelete }: NoteRowProps) {
         )}
       </div>
 
-      {/* Tags */}
-      <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
+      {/* Tags + sub-note count */}
+      <div style={{ display: 'flex', gap: 4, flexShrink: 0, alignItems: 'center' }}>
         {note.tags?.slice(0, 3).map(tag => (
           <span key={tag} style={{ fontSize: 10, color: '#7c6aff', backgroundColor: '#7c6aff18', padding: '2px 7px', borderRadius: 99 }}>
             {tag}
@@ -78,6 +78,11 @@ export function NoteRow({ note, onClick, onDelete }: NoteRowProps) {
         ))}
         {(note.tags?.length ?? 0) > 3 && (
           <span style={{ fontSize: 10, color: '#6b6b88' }}>+{note.tags.length - 3}</span>
+        )}
+        {(note.sub_notes_count ?? 0) > 0 && (
+          <span style={{ display: 'flex', alignItems: 'center', gap: 3, fontSize: 10, color: '#6b6b88', backgroundColor: '#1e1e2e', padding: '2px 7px', borderRadius: 99 }}>
+            <GitBranch size={9} /> {note.sub_notes_count}
+          </span>
         )}
       </div>
 

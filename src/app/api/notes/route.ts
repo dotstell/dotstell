@@ -23,6 +23,24 @@ export async function GET(req: NextRequest) {
 
   const { data, error } = await query
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+  // Attach sub-note counts when fetching root-level notes
+  if (root_only === 'true' && data && data.length > 0) {
+    const ids = data.map((n: { id: string }) => n.id)
+    const { data: subs } = await supabase
+      .from('notes')
+      .select('parent_id')
+      .in('parent_id', ids)
+      .eq('user_id', user.id)
+
+    const countMap: Record<string, number> = {}
+    for (const s of (subs ?? [])) {
+      if (s.parent_id) countMap[s.parent_id] = (countMap[s.parent_id] ?? 0) + 1
+    }
+    const enriched = data.map((n: { id: string }) => ({ ...n, sub_notes_count: countMap[n.id] ?? 0 }))
+    return NextResponse.json(enriched)
+  }
+
   return NextResponse.json(data)
 }
 
