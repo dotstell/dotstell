@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import {
   FileText, Bookmark, Users, CheckSquare, Network,
-  LayoutDashboard, LogOut, Search, ChevronLeft, ChevronRight, Tag
+  LayoutDashboard, LogOut, Search, ChevronLeft, ChevronRight, Tag, Menu, X
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { DotstellLogo, ConstellationIcon } from '@/components/brand/DotstellLogo'
@@ -34,6 +34,8 @@ export function Sidebar({ onOpenPalette }: { onOpenPalette?: () => void }) {
   const { theme, setTheme } = useTheme()
   const [isDesktop, setIsDesktop] = useState(false)
   const [appVersion, setAppVersion] = useState<string | null>(null)
+  const [isMobile, setIsMobile] = useState(false)
+  const [mobileOpen, setMobileOpen] = useState(false)
 
   useEffect(() => {
     const desktop = typeof window !== 'undefined' && '__TAURI__' in window
@@ -44,6 +46,20 @@ export function Sidebar({ onOpenPalette }: { onOpenPalette?: () => void }) {
       )
     }
   }, [])
+
+  useEffect(() => {
+    function check() {
+      setIsMobile(window.innerWidth < 768)
+    }
+    check()
+    window.addEventListener('resize', check)
+    return () => window.removeEventListener('resize', check)
+  }, [])
+
+  // Close mobile drawer on route change
+  useEffect(() => {
+    setMobileOpen(false)
+  }, [pathname])
 
   useEffect(() => {
     setCollapsed(localStorage.getItem('sidebar-collapsed') === 'true')
@@ -62,6 +78,7 @@ export function Sidebar({ onOpenPalette }: { onOpenPalette?: () => void }) {
   }
 
   function showTip(e: React.MouseEvent<HTMLElement>, label: string) {
+    if (isMobile) return
     const rect = e.currentTarget.getBoundingClientRect()
     setTooltip({ label, top: rect.top + rect.height / 2 })
   }
@@ -72,6 +89,146 @@ export function Sidebar({ onOpenPalette }: { onOpenPalette?: () => void }) {
 
   const sidebarWidth = collapsed ? 64 : 240
 
+  // Mobile: render hamburger button + slide-in drawer
+  if (isMobile) {
+    return (
+      <>
+        {/* Hamburger button — fixed top-left */}
+        <button
+          type="button"
+          aria-label="Open navigation"
+          onClick={() => setMobileOpen(true)}
+          style={{
+            position: 'fixed', top: 14, left: 14, zIndex: 50,
+            width: 38, height: 38, borderRadius: 10,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            backgroundColor: 'var(--sidebar-bg)',
+            border: '1px solid var(--sidebar-border)',
+            color: 'var(--foreground)',
+            cursor: 'pointer',
+          }}
+        >
+          <Menu size={18} />
+        </button>
+
+        {/* Backdrop */}
+        {mobileOpen && (
+          <div
+            onClick={() => setMobileOpen(false)}
+            style={{
+              position: 'fixed', inset: 0, zIndex: 48,
+              backgroundColor: 'rgba(0,0,0,0.55)',
+              backdropFilter: 'blur(2px)',
+            }}
+          />
+        )}
+
+        {/* Drawer */}
+        <aside style={{
+          position: 'fixed', left: 0, top: 0, height: '100vh', zIndex: 49,
+          width: 260,
+          backgroundColor: 'var(--sidebar-bg)',
+          borderRight: '1px solid var(--sidebar-border)',
+          display: 'flex', flexDirection: 'column',
+          transform: mobileOpen ? 'translateX(0)' : 'translateX(-100%)',
+          transition: 'transform 0.25s cubic-bezier(0.4,0,0.2,1)',
+          overflowY: 'auto',
+        }}>
+          {/* Header */}
+          <div style={{
+            height: 64, flexShrink: 0,
+            borderBottom: '1px solid var(--sidebar-border)',
+            display: 'flex', alignItems: 'center',
+            padding: '0 14px',
+            justifyContent: 'space-between',
+          }}>
+            <DotstellLogo size="md" />
+            <button
+              type="button"
+              onClick={() => setMobileOpen(false)}
+              style={{
+                width: 32, height: 32, borderRadius: 8,
+                border: '1px solid var(--sidebar-border)',
+                backgroundColor: 'var(--muted)',
+                color: 'var(--sidebar-muted)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                cursor: 'pointer',
+              }}
+            >
+              <X size={15} />
+            </button>
+          </div>
+
+          {/* Search */}
+          <div style={{ padding: '10px 10px 4px', flexShrink: 0 }}>
+            <button
+              type="button"
+              onClick={() => { setMobileOpen(false); onOpenPalette?.() }}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 8,
+                padding: '9px 12px', borderRadius: 8, width: '100%',
+                border: '1px solid var(--sidebar-border)',
+                backgroundColor: 'var(--sidebar-search-bg)',
+                color: 'var(--sidebar-muted)', fontSize: 13, cursor: 'pointer',
+              }}
+            >
+              <Search size={14} />
+              <span>Search...</span>
+            </button>
+          </div>
+
+          {/* Section label */}
+          <div style={{ padding: '8px 16px 2px' }}>
+            <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--sidebar-section-fg)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Menu</span>
+          </div>
+
+          {/* Nav items */}
+          <nav style={{ flex: 1, padding: '4px 8px', display: 'flex', flexDirection: 'column', gap: 2, overflowY: 'auto' }}>
+            {NAV_ITEMS.map(({ href, icon: Icon, label }) => {
+              const active = pathname === href || (href !== '/dashboard' && pathname.startsWith(href))
+              return (
+                <Link key={href} href={href} style={{
+                  display: 'flex', alignItems: 'center', gap: 10,
+                  padding: '11px 12px', borderRadius: 8,
+                  backgroundColor: active ? 'var(--sidebar-active-bg)' : 'transparent',
+                  color: active ? 'var(--sidebar-active-fg)' : 'var(--sidebar-muted)',
+                  fontSize: 14, fontWeight: active ? 600 : 400,
+                  textDecoration: 'none',
+                }}>
+                  <Icon size={18} style={{ flexShrink: 0 }} />
+                  <span>{label}</span>
+                  {active && <div style={{ marginLeft: 'auto', width: 3, height: 18, borderRadius: 2, backgroundColor: 'var(--primary)' }} />}
+                </Link>
+              )
+            })}
+          </nav>
+
+          {/* Theme picker */}
+          <div style={{ padding: '4px 8px', borderTop: '1px solid var(--sidebar-border)', flexShrink: 0 }}>
+            <ThemePicker current={theme} onSelect={setTheme} collapsed={false} />
+          </div>
+
+          {/* Sign out */}
+          <div style={{ padding: '8px', borderTop: '1px solid var(--sidebar-border)', flexShrink: 0 }}>
+            <button type="button" onClick={signOut} style={{
+              display: 'flex', alignItems: 'center', gap: 10,
+              padding: '11px 12px', width: '100%', borderRadius: 8,
+              border: 'none', backgroundColor: 'transparent',
+              color: 'var(--sidebar-muted)', fontSize: 14, cursor: 'pointer',
+            }}
+              onTouchStart={e => { e.currentTarget.style.color = 'var(--destructive)'; e.currentTarget.style.backgroundColor = 'rgba(239,68,68,0.08)' }}
+              onTouchEnd={e => { e.currentTarget.style.color = 'var(--sidebar-muted)'; e.currentTarget.style.backgroundColor = 'transparent' }}
+            >
+              <LogOut size={17} />
+              <span>Sign out</span>
+            </button>
+          </div>
+        </aside>
+      </>
+    )
+  }
+
+  // Desktop: original sidebar
   return (
     <>
       <aside style={{

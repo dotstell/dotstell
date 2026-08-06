@@ -348,3 +348,13 @@
 .group:hover .group-hover-actions { opacity: 1 !important; }
 
 @keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── Mobile layout ───────────────────────────────── */
+@media (max-width: 767px) {
+  .page-container {
+    padding: 64px 16px 24px !important;
+  }
+  .note-header-bar {
+    padding-left: 56px !important;
+  }
+}

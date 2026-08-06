@@ -6,6 +6,14 @@ import { CommandPalette } from '@/components/command/CommandPalette'
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const [collapsed, setCollapsed]     = useState(false)
   const [paletteOpen, setPaletteOpen] = useState(false)
+  const [isMobile, setIsMobile]       = useState(false)
+
+  useEffect(() => {
+    function check() { setIsMobile(window.innerWidth < 768) }
+    check()
+    window.addEventListener('resize', check)
+    return () => window.removeEventListener('resize', check)
+  }, [])
 
   useEffect(() => {
     const sync = () => setCollapsed(localStorage.getItem('sidebar-collapsed') === 'true')
@@ -25,13 +33,15 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     return () => window.removeEventListener('keydown', handleKey)
   }, [])
 
+  const marginLeft = isMobile ? 0 : collapsed ? 64 : 240
+
   return (
     <div style={{ display: 'flex', minHeight: '100vh', backgroundColor: 'var(--background)' }}>
       <Sidebar onOpenPalette={() => setPaletteOpen(true)} />
       <main style={{
         flex: 1,
-        marginLeft: collapsed ? '64px' : '240px',
-        transition: 'margin-left 0.22s cubic-bezier(0.4,0,0.2,1)',
+        marginLeft,
+        transition: isMobile ? 'none' : 'margin-left 0.22s cubic-bezier(0.4,0,0.2,1)',
         minWidth: 0,
         overflowX: 'hidden',
         backgroundColor: 'var(--background)',

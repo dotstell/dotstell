@@ -148,7 +148,7 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, overflow: 'hidden' }}>
 
       {/* Header bar */}
-      <div style={{
+      <div className="note-header-bar" style={{
         display: 'flex', alignItems: 'center', gap: 12,
         padding: '10px 20px', borderBottom: '1px solid var(--border)',
         backgroundColor: 'var(--background)', flexShrink: 0,
