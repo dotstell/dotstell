@@ -18,6 +18,7 @@ export const THEME_DEFS: { id: ThemeId; label: string; dot: string; dark: boolea
 
 const STORAGE_KEY = 'dotstell-theme'
 
+
 export function useTheme() {
   const [theme, setThemeState] = useState<ThemeId>('midnight')
 
@@ -39,8 +40,5 @@ export function useTheme() {
 }
 
 function applyTheme(t: ThemeId) {
-  const html = document.documentElement
-  html.setAttribute('data-theme', t)
-  const isDark = THEME_DEFS.find(d => d.id === t)?.dark ?? true
-  html.style.colorScheme = isDark ? 'dark' : 'light'
+  document.documentElement.setAttribute('data-theme', t)
 }

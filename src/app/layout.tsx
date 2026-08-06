@@ -12,16 +12,13 @@ export const metadata: Metadata = {
 }
 
 const VALID_THEMES = ['midnight','slate','forest','sunset','ocean','aurora','light','rose']
-const LIGHT_THEMES = ['light','rose']
 
 // Applied before first paint — prevents flash of wrong theme
 const noFlashScript = `(function(){
   var t = localStorage.getItem('dotstell-theme');
   var valid = ${JSON.stringify(VALID_THEMES)};
-  var light = ${JSON.stringify(LIGHT_THEMES)};
   if (!t || valid.indexOf(t) === -1) t = 'midnight';
   document.documentElement.setAttribute('data-theme', t);
-  document.documentElement.style.colorScheme = light.indexOf(t) !== -1 ? 'light' : 'dark';
 })()`
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
