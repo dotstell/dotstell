@@ -11,19 +11,19 @@ export const metadata: Metadata = {
   },
 }
 
-const VALID_THEMES = ['midnight','slate','forest','sunset','ocean','aurora','light','rose']
+const VALID_THEMES = ['dracula','one-dark','tokyo-night','nord','solarized-dark','catppuccin','solarized-light','github-light']
 
 // Applied before first paint — prevents flash of wrong theme
 const noFlashScript = `(function(){
   var t = localStorage.getItem('dotstell-theme');
   var valid = ${JSON.stringify(VALID_THEMES)};
-  if (!t || valid.indexOf(t) === -1) t = 'midnight';
+  if (!t || valid.indexOf(t) === -1) t = 'dracula';
   document.documentElement.setAttribute('data-theme', t);
 })()`
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" data-theme="midnight" suppressHydrationWarning>
+    <html lang="en" data-theme="dracula" suppressHydrationWarning>
       <head>
         <meta name="color-scheme" content="dark light" />
         {/* No-flash theme script — must run before any paint */}
