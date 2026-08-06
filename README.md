@@ -183,7 +183,7 @@ supabase/
 | Wikilinks + Backlinks | ✅ Live |
 | Knowledge Graph | ✅ Live |
 | AI layer (auto-tagging, semantic search) | 🔜 Planned |
-| Desktop app | 🔜 Planned |
+| Desktop app (Windows + macOS) | ✅ Live |
 | Browser extension | 🔜 Planned |
 | Slack / Teams integrations | 🔜 Planned |
 | Mobile app | 🔜 Planned |
