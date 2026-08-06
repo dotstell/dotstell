@@ -1,5 +1,6 @@
 'use client'
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { THEME_DEFS, type ThemeId } from '@/hooks/useTheme'
 
 interface Props {
@@ -9,21 +10,66 @@ interface Props {
 }
 
 export function ThemePicker({ current, onSelect, collapsed }: Props) {
-  const [open, setOpen] = useState(false)
-  const [popPos, setPopPos] = useState({ left: 8, bottom: 60 })
+  const [open, setOpen]       = useState(false)
+  const [pos, setPos]         = useState({ x: 0, y: 0 })
+  const [mounted, setMounted] = useState(false)
   const btnRef = useRef<HTMLButtonElement>(null)
   const currentDef = THEME_DEFS.find(t => t.id === current)
 
-  function toggle() {
-    if (!open && btnRef.current) {
+  // createPortal requires the DOM to be mounted
+  useEffect(() => { setMounted(true) }, [])
+
+  function openPicker() {
+    if (btnRef.current) {
       const r = btnRef.current.getBoundingClientRect()
-      setPopPos({
-        left:   collapsed ? r.right + 8 : r.left,
-        bottom: window.innerHeight - r.top + 4,
+      setPos({
+        x: collapsed ? r.right + 8 : r.left,
+        y: r.top,                // popover opens upward from this y
       })
     }
     setOpen(o => !o)
   }
+
+  const popover = (open && mounted) ? createPortal(
+    <>
+      {/* Backdrop — closes on outside click, sits below popover */}
+      <div
+        style={{ position: 'fixed', inset: 0, zIndex: 9998 }}
+        onClick={() => setOpen(false)}
+      />
+      {/* Popover — portalled to body so it escapes ALL parent overflow/stacking */}
+      <div style={{
+        position: 'fixed',
+        left: pos.x,
+        // open upward: anchor to the button's top, shift by popover height estimate
+        top: Math.max(8, pos.y - 310),
+        zIndex: 9999,
+        minWidth: 200,
+        background: 'var(--popover)',
+        border: '1px solid var(--border)',
+        borderRadius: 10,
+        boxShadow: '0 8px 32px rgba(0,0,0,0.45)',
+        padding: '10px 8px',
+        display: 'flex', flexDirection: 'column', gap: 2,
+      }}>
+        <GroupLabel>Dark</GroupLabel>
+        {THEME_DEFS.filter(t => t.dark).map(t => (
+          <ThemeRow
+            key={t.id} theme={t} active={t.id === current}
+            onSelect={id => { onSelect(id); setOpen(false) }}
+          />
+        ))}
+        <GroupLabel>Light</GroupLabel>
+        {THEME_DEFS.filter(t => !t.dark).map(t => (
+          <ThemeRow
+            key={t.id} theme={t} active={t.id === current}
+            onSelect={id => { onSelect(id); setOpen(false) }}
+          />
+        ))}
+      </div>
+    </>,
+    document.body
+  ) : null
 
   return (
     <div>
@@ -31,7 +77,7 @@ export function ThemePicker({ current, onSelect, collapsed }: Props) {
         ref={btnRef}
         type="button"
         title="Change theme"
-        onClick={toggle}
+        onClick={openPicker}
         style={{
           display: 'flex', alignItems: 'center',
           gap: collapsed ? 0 : 8,
@@ -62,42 +108,7 @@ export function ThemePicker({ current, onSelect, collapsed }: Props) {
         )}
       </button>
 
-      {open && (
-        <>
-          {/* Full-screen backdrop — position:fixed escapes sidebar overflow:hidden */}
-          <div style={{ position: 'fixed', inset: 0, zIndex: 1000 }} onClick={() => setOpen(false)} />
-
-          {/* Popover — also fixed so it escapes sidebar overflow:hidden */}
-          <div style={{
-            position: 'fixed',
-            left: popPos.left,
-            bottom: popPos.bottom,
-            zIndex: 1001,
-            minWidth: 200,
-            background: 'var(--popover)',
-            border: '1px solid var(--border)',
-            borderRadius: 10,
-            boxShadow: '0 8px 32px rgba(0,0,0,0.45)',
-            padding: '10px 8px',
-            display: 'flex', flexDirection: 'column', gap: 2,
-          }}>
-            <GroupLabel>Dark</GroupLabel>
-            {THEME_DEFS.filter(t => t.dark).map(t => (
-              <ThemeRow
-                key={t.id} theme={t} active={t.id === current}
-                onSelect={id => { onSelect(id); setOpen(false) }}
-              />
-            ))}
-            <GroupLabel>Light</GroupLabel>
-            {THEME_DEFS.filter(t => !t.dark).map(t => (
-              <ThemeRow
-                key={t.id} theme={t} active={t.id === current}
-                onSelect={id => { onSelect(id); setOpen(false) }}
-              />
-            ))}
-          </div>
-        </>
-      )}
+      {popover}
     </div>
   )
 }
@@ -148,7 +159,7 @@ function ThemeDot({ color, size }: { color: string; size: number }) {
     <span style={{
       width: size, height: size, borderRadius: '50%',
       background: color, flexShrink: 0, display: 'inline-block',
-      boxShadow: `0 0 6px ${color}80`,
+      boxShadow: `0 0 5px ${color}80`,
     }} />
   )
 }
