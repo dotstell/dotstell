@@ -209,7 +209,7 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
         {showTemplates && isNew && (
           <div style={{
             width: 180, flexShrink: 0, borderRight: '1px solid var(--border)',
-            padding: 14, overflowY: 'auto', backgroundColor: '#0e0e16',
+            padding: 14, overflowY: 'auto', backgroundColor: 'var(--card)',
           }}>
             <NoteTemplates onSelect={tmpl => {
               setNote(prev => ({ ...prev, title: tmpl.title, content: tmpl.content }))
@@ -271,7 +271,7 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
                       padding: '7px 8px', borderRadius: 7, border: 'none',
                       background: 'none', cursor: 'pointer', textAlign: 'left', width: '100%',
                     }}
-                      onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.04)')}
+                      onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'var(--accent)')}
                       onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
                     >
                       <FileText size={12} color="var(--primary)" style={{ flexShrink: 0 }} />

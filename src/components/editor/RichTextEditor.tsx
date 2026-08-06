@@ -339,7 +339,7 @@ export function RichTextEditor({
       <div style={{
         display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap',
         padding: '5px 10px', borderBottom: '1px solid var(--border)',
-        backgroundColor: '#0e0e18', position: 'sticky', top: 0, zIndex: 20,
+        backgroundColor: 'var(--card)', position: 'sticky', top: 0, zIndex: 20,
         rowGap: 4,
         opacity: sourceMode ? 0.35 : 1,
         pointerEvents: sourceMode ? 'none' : 'auto',
@@ -383,7 +383,7 @@ export function RichTextEditor({
               width: 28, height: 28, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
               gap: 1, borderRadius: 6, border: 'none', cursor: 'pointer', backgroundColor: 'transparent',
             }}
-            onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.06)')}
+            onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'var(--accent)')}
             onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
           >
             <Type size={13} color={activeColor || 'var(--secondary-foreground)'} />
@@ -412,9 +412,9 @@ export function RichTextEditor({
             style={{
               width: 28, height: 28, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
               gap: 1, borderRadius: 6, border: 'none', cursor: 'pointer',
-              backgroundColor: editor.isActive('highlight') ? 'rgba(124,106,255,0.2)' : 'transparent',
+              backgroundColor: editor.isActive('highlight') ? 'color-mix(in srgb, var(--primary) 20%, transparent)' : 'transparent',
             }}
-            onMouseEnter={e => { if (!editor.isActive('highlight')) e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.06)' }}
+            onMouseEnter={e => { if (!editor.isActive('highlight')) e.currentTarget.style.backgroundColor = 'var(--accent)' }}
             onMouseLeave={e => { if (!editor.isActive('highlight')) e.currentTarget.style.backgroundColor = 'transparent' }}
           >
             <Highlighter size={13} color={editor.isActive('highlight') ? 'var(--primary)' : 'var(--secondary-foreground)'} />
@@ -499,7 +499,7 @@ export function RichTextEditor({
             display: 'flex', alignItems: 'center', gap: 5,
             padding: '4px 10px', borderRadius: 6, border: '1px solid',
             borderColor: sourceMode ? 'var(--primary)' : 'var(--border)',
-            backgroundColor: sourceMode ? 'rgba(124,106,255,0.2)' : '#0e0e18',
+            backgroundColor: sourceMode ? 'color-mix(in srgb, var(--primary) 20%, transparent)' : 'var(--card)',
             color: sourceMode ? 'var(--primary)' : 'var(--muted-foreground)',
             fontSize: 11, fontWeight: 600, cursor: 'pointer', transition: 'all 0.15s',
           }}
@@ -519,7 +519,7 @@ export function RichTextEditor({
             <div style={{
               display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap',
               padding: '6px 16px', borderBottom: '1px solid var(--secondary)',
-              backgroundColor: '#0a0a12',
+              backgroundColor: 'var(--muted)',
             }}>
               {[
                 ['# H1', '# '],['## H2', '## '],['**bold**', '**'],
@@ -528,8 +528,8 @@ export function RichTextEditor({
                 ['```code block', '```\n'],['==highlight==', '=='],
               ].map(([label]) => (
                 <span key={label} style={{
-                  fontSize: 11, color: '#4a4a6a', fontFamily: '"JetBrains Mono", monospace',
-                  backgroundColor: '#13131f', padding: '2px 6px', borderRadius: 4,
+                  fontSize: 11, color: 'var(--muted-foreground)', fontFamily: '"JetBrains Mono", monospace',
+                  backgroundColor: 'var(--secondary)', padding: '2px 6px', borderRadius: 4,
                   cursor: 'default', userSelect: 'none',
                 }}>
                   {label}
@@ -576,14 +576,14 @@ export function RichTextEditor({
                 style={{
                   width: '100%', display: 'flex', alignItems: 'center', gap: 10,
                   padding: '7px 10px', borderRadius: 8, border: 'none', cursor: 'pointer',
-                  backgroundColor: i === slashIdx ? 'rgba(124,106,255,0.15)' : 'transparent',
+                  backgroundColor: i === slashIdx ? 'color-mix(in srgb, var(--primary) 15%, transparent)' : 'transparent',
                   textAlign: 'left',
                 }}
                 onMouseEnter={() => setSlashIdx(i)}
               >
                 <div style={{
                   width: 30, height: 30, borderRadius: 7,
-                  backgroundColor: i === slashIdx ? 'rgba(124,106,255,0.2)' : 'var(--secondary)',
+                  backgroundColor: i === slashIdx ? 'color-mix(in srgb, var(--primary) 20%, transparent)' : 'var(--secondary)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   flexShrink: 0, fontSize: 13, fontWeight: 700, color: 'var(--primary)',
                 }}>
@@ -640,7 +640,7 @@ export function RichTextEditor({
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         padding: '5px 14px', borderTop: '1px solid var(--secondary)',
-        backgroundColor: '#0a0a12', flexShrink: 0,
+        backgroundColor: 'var(--muted)', flexShrink: 0,
       }}>
         <div style={{ display: 'flex', gap: 16 }}>
           {stats && (
@@ -701,11 +701,11 @@ function ToolBtn({ onClick, active, disabled, title, children }: {
       style={{
         width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center',
         borderRadius: 6, border: 'none', cursor: disabled ? 'not-allowed' : 'pointer',
-        backgroundColor: active ? 'rgba(124,106,255,0.2)' : 'transparent',
+        backgroundColor: active ? 'color-mix(in srgb, var(--primary) 20%, transparent)' : 'transparent',
         color: active ? 'var(--primary)' : disabled ? 'var(--border)' : 'var(--secondary-foreground)',
         transition: 'all 0.1s', flexShrink: 0,
       }}
-      onMouseEnter={e => { if (!active && !disabled) e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.06)' }}
+      onMouseEnter={e => { if (!active && !disabled) e.currentTarget.style.backgroundColor = 'var(--accent)' }}
       onMouseLeave={e => { if (!active) e.currentTarget.style.backgroundColor = 'transparent' }}
     >
       {children}
@@ -768,7 +768,7 @@ function HeadingDropdown({ editor }: { editor: ReturnType<typeof useEditor> }) {
               backgroundColor: 'transparent', color: 'var(--foreground)', cursor: 'pointer',
               textAlign: 'left', fontSize: item.fs, fontWeight: item.fw,
             }}
-              onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'rgba(124,106,255,0.1)')}
+              onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'color-mix(in srgb, var(--primary) 10%, transparent)')}
               onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
             >{item.label}</button>
           ))}
@@ -811,7 +811,7 @@ function FontDropdown({ editor, open, setOpen, ref }: {
       {open && (
         <div style={{
           position: 'absolute', top: '100%', left: 0, zIndex: 200, marginTop: 4,
-          backgroundColor: '#0e0e18', border: '1px solid var(--border)',
+          backgroundColor: 'var(--card)', border: '1px solid var(--border)',
           borderRadius: 12, padding: 6, width: 220,
           boxShadow: '0 12px 36px rgba(0,0,0,0.7)',
           maxHeight: 420, overflowY: 'auto',
@@ -839,10 +839,10 @@ function FontDropdown({ editor, open, setOpen, ref }: {
                     style={{
                       width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                       padding: '7px 10px', borderRadius: 8, border: 'none', cursor: 'pointer',
-                      backgroundColor: isActive ? 'rgba(124,106,255,0.15)' : 'transparent',
+                      backgroundColor: isActive ? 'color-mix(in srgb, var(--primary) 15%, transparent)' : 'transparent',
                       textAlign: 'left',
                     }}
-                    onMouseEnter={e => { if (!isActive) e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.05)' }}
+                    onMouseEnter={e => { if (!isActive) e.currentTarget.style.backgroundColor = 'var(--accent)' }}
                     onMouseLeave={e => { if (!isActive) e.currentTarget.style.backgroundColor = 'transparent' }}
                   >
                     <span style={{
