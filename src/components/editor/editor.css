@@ -1,211 +1,246 @@
-/* Tiptap editor styles */
+/* ── Base ─────────────────────────────────────────────────── */
 .tiptap-editor {
   outline: none;
-  padding: 20px 24px;
+  padding: 24px 28px;
   min-height: 300px;
   color: #e8e8f0;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  font-size: 14px;
-  line-height: 1.75;
+  font-size: 15px;
+  line-height: 1.8;
 }
 
 .tiptap-editor p { margin: 0 0 8px; }
 .tiptap-editor p:last-child { margin-bottom: 0; }
 
-.tiptap-editor h1 { font-size: 24px; font-weight: 700; margin: 20px 0 10px; color: #e8e8f0; line-height: 1.3; }
-.tiptap-editor h2 { font-size: 20px; font-weight: 700; margin: 18px 0 8px; color: #e8e8f0; line-height: 1.35; }
-.tiptap-editor h3 { font-size: 16px; font-weight: 600; margin: 16px 0 6px; color: #e8e8f0; line-height: 1.4; }
+/* ── Headings ─────────────────────────────────────────────── */
+.tiptap-editor h1 {
+  font-size: 28px; font-weight: 800; margin: 28px 0 10px;
+  color: #f0f0ff; line-height: 1.25; letter-spacing: -0.5px;
+  border-bottom: 1px solid #1e1e2e; padding-bottom: 8px;
+}
+.tiptap-editor h2 {
+  font-size: 22px; font-weight: 700; margin: 24px 0 8px;
+  color: #e8e8f0; line-height: 1.3; letter-spacing: -0.3px;
+}
+.tiptap-editor h3 {
+  font-size: 17px; font-weight: 700; margin: 20px 0 6px;
+  color: #d8d8f0; line-height: 1.4;
+}
 
+/* ── Inline formatting ────────────────────────────────────── */
 .tiptap-editor strong { color: #f0f0ff; font-weight: 700; }
-.tiptap-editor em { font-style: italic; color: #c8c8e8; }
-.tiptap-editor s { text-decoration: line-through; color: #6b6b88; }
+.tiptap-editor em     { font-style: italic; color: #c8c8e8; }
+.tiptap-editor u      { text-decoration: underline; text-decoration-color: rgba(124,106,255,0.6); }
+.tiptap-editor s      { text-decoration: line-through; color: #6b6b88; }
 
 .tiptap-editor code {
   background: rgba(124, 106, 255, 0.12);
-  border: 1px solid rgba(124, 106, 255, 0.2);
-  border-radius: 4px;
-  padding: 1px 5px;
-  font-family: 'JetBrains Mono', 'Fira Code', monospace;
-  font-size: 12px;
+  border: 1px solid rgba(124, 106, 255, 0.22);
+  border-radius: 5px;
+  padding: 2px 6px;
+  font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
+  font-size: 13px;
   color: #a594ff;
 }
 
+/* ── Text colours (applied via tiptap-color extension) ───── */
+/* Colour comes through as inline style — no extra CSS needed */
+
+/* ── Highlights ───────────────────────────────────────────── */
+.tiptap-editor mark {
+  border-radius: 4px;
+  padding: 1px 3px;
+}
+/* default yellow when no colour attr */
+.tiptap-editor mark:not([style]) {
+  background-color: rgba(251, 191, 36, 0.28);
+  color: #fbbf24;
+}
+
+/* ── Code blocks (lowlight syntax) ───────────────────────── */
 .tiptap-editor pre {
-  background: #0e0e16;
-  border: 1px solid #2a2a3e;
-  border-radius: 8px;
-  padding: 14px 16px;
+  background: #0a0a12;
+  border: 1px solid #1e1e30;
+  border-radius: 10px;
+  padding: 16px 18px;
   overflow-x: auto;
-  margin: 12px 0;
+  margin: 14px 0;
+  position: relative;
 }
-
 .tiptap-editor pre code {
-  background: none;
-  border: none;
-  padding: 0;
-  color: #e8e8f0;
-  font-size: 13px;
+  background: none; border: none; padding: 0;
+  color: #e8e8f0; font-size: 13px; line-height: 1.65;
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
 }
 
+/* lowlight token colours */
+.hljs-comment, .hljs-quote         { color: #5c6370; font-style: italic; }
+.hljs-keyword, .hljs-selector-tag  { color: #c678dd; }
+.hljs-string, .hljs-attr           { color: #98c379; }
+.hljs-number, .hljs-literal        { color: #d19a66; }
+.hljs-function, .hljs-title        { color: #61afef; }
+.hljs-variable, .hljs-name         { color: #e06c75; }
+.hljs-type, .hljs-class            { color: #e5c07b; }
+.hljs-built_in                     { color: #56b6c2; }
+.hljs-params                       { color: #abb2bf; }
+.hljs-punctuation                  { color: #abb2bf; }
+
+/* ── Blockquote ───────────────────────────────────────────── */
 .tiptap-editor blockquote {
   border-left: 3px solid #7c6aff;
-  padding: 8px 0 8px 16px;
-  margin: 12px 0;
-  color: #a0a0b8;
+  padding: 10px 0 10px 18px;
+  margin: 14px 0;
+  color: #a0a0c0;
   font-style: italic;
   background: rgba(124, 106, 255, 0.05);
-  border-radius: 0 6px 6px 0;
+  border-radius: 0 8px 8px 0;
 }
 
+/* ── Horizontal rule ─────────────────────────────────────── */
 .tiptap-editor hr {
   border: none;
   border-top: 1px solid #2a2a3e;
-  margin: 20px 0;
+  margin: 24px 0;
 }
 
-/* ── Lists ── */
+/* ── Callout blocks ───────────────────────────────────────── */
+.tiptap-editor .callout {
+  border-radius: 10px;
+  padding: 12px 16px;
+  margin: 14px 0;
+  border-left: 4px solid;
+}
+.tiptap-editor .callout p { margin: 0; }
+
+.tiptap-editor .callout-info {
+  background: rgba(96, 165, 250, 0.08);
+  border-color: #60a5fa;
+  color: #93c5fd;
+}
+.tiptap-editor .callout-warning {
+  background: rgba(251, 191, 36, 0.08);
+  border-color: #fbbf24;
+  color: #fcd34d;
+}
+.tiptap-editor .callout-tip {
+  background: rgba(52, 211, 153, 0.08);
+  border-color: #34d399;
+  color: #6ee7b7;
+}
+.tiptap-editor .callout-danger {
+  background: rgba(248, 113, 113, 0.08);
+  border-color: #f87171;
+  color: #fca5a5;
+}
+
+/* ── Images ───────────────────────────────────────────────── */
+.tiptap-editor img {
+  max-width: 100%;
+  border-radius: 10px;
+  margin: 12px 0;
+  border: 1px solid #2a2a3e;
+  display: block;
+}
+.tiptap-editor img.ProseMirror-selectednode {
+  outline: 2px solid #7c6aff;
+  border-radius: 10px;
+}
+
+/* ── Lists ────────────────────────────────────────────────── */
 .tiptap-editor ul,
-.tiptap-editor ol {
-  padding-left: 22px;
-  margin: 6px 0;
-}
+.tiptap-editor ol { padding-left: 22px; margin: 6px 0; }
 
-.tiptap-editor li {
-  margin: 3px 0;
-  padding-left: 2px;
-}
-.tiptap-editor li p { margin: 0; }
+.tiptap-editor li        { margin: 4px 0; padding-left: 2px; }
+.tiptap-editor li p      { margin: 0; }
 
-/* Bullet list — 3 levels of visual hierarchy */
+/* Bullet — 3-level visual hierarchy */
 .tiptap-editor ul { list-style: none; }
-
-/* Level 1 — filled circle (●) */
-.tiptap-editor ul > li::marker,
-.tiptap-editor ul > li {
-  list-style: none;
-}
-.tiptap-editor ul > li {
-  position: relative;
-}
+.tiptap-editor ul > li { position: relative; }
 .tiptap-editor ul > li::before {
-  content: '';
-  position: absolute;
-  left: -16px;
-  top: 9px;
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background-color: #7c6aff;
+  content: ''; position: absolute;
+  left: -16px; top: 10px;
+  width: 6px; height: 6px;
+  border-radius: 50%; background-color: #7c6aff;
 }
-
-/* Level 2 — open circle (○) */
 .tiptap-editor ul ul > li::before {
-  width: 5px;
-  height: 5px;
+  width: 5px; height: 5px;
   background-color: transparent;
-  border: 1.5px solid #7c6aff;
-  top: 9px;
-  left: -15px;
+  border: 1.5px solid #7c6aff; top: 10px; left: -15px;
 }
-
-/* Level 3 — small square (■) */
 .tiptap-editor ul ul ul > li::before {
-  width: 4px;
-  height: 4px;
-  border-radius: 1px;
-  background-color: #a594ff;
-  border: none;
-  top: 10px;
+  width: 4px; height: 4px;
+  border-radius: 1px; background-color: #a594ff; border: none; top: 11px;
 }
 
 /* Nested indentation */
 .tiptap-editor ul ul,
 .tiptap-editor ol ol,
 .tiptap-editor ul ol,
-.tiptap-editor ol ul {
-  margin: 2px 0;
-  padding-left: 20px;
-}
+.tiptap-editor ol ul { margin: 2px 0; padding-left: 20px; }
 
-/* Ordered list — decimal → lower-alpha → lower-roman */
-.tiptap-editor ol { list-style: decimal; }
-.tiptap-editor ol ol { list-style: lower-alpha; }
-.tiptap-editor ol ol ol { list-style: lower-roman; }
-
-/* Ordered list marker colour */
+/* Ordered lists */
+.tiptap-editor ol            { list-style: decimal; }
+.tiptap-editor ol ol         { list-style: lower-alpha; }
+.tiptap-editor ol ol ol      { list-style: lower-roman; }
 .tiptap-editor ol > li::marker { color: #7c6aff; font-weight: 600; font-size: 13px; }
 
 /* Task list */
 .tiptap-editor ul[data-type="taskList"] { list-style: none; padding-left: 4px; }
+.tiptap-editor ul[data-type="taskList"] li::before { display: none; }
 .tiptap-editor ul[data-type="taskList"] li {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-  margin: 5px 0;
+  display: flex; align-items: flex-start; gap: 8px; margin: 6px 0;
 }
-.tiptap-editor ul[data-type="taskList"] li > label {
-  flex-shrink: 0;
-  margin-top: 2px;
-}
+.tiptap-editor ul[data-type="taskList"] li > label { flex-shrink: 0; margin-top: 3px; }
 .tiptap-editor ul[data-type="taskList"] li > label input[type="checkbox"] {
-  width: 15px;
-  height: 15px;
-  accent-color: #7c6aff;
-  cursor: pointer;
+  width: 15px; height: 15px; accent-color: #7c6aff; cursor: pointer;
 }
 .tiptap-editor ul[data-type="taskList"] li[data-checked="true"] > div {
-  color: #6b6b88;
-  text-decoration: line-through;
+  color: #6b6b88; text-decoration: line-through;
 }
 
-/* Links */
+/* ── Links ────────────────────────────────────────────────── */
 .tiptap-link {
-  color: #7c6aff;
-  text-decoration: underline;
-  cursor: pointer;
+  color: #7c6aff; text-decoration: underline; cursor: pointer;
+  text-decoration-color: rgba(124,106,255,0.4); transition: color 0.15s;
 }
-.tiptap-link:hover { color: #a594ff; }
+.tiptap-link:hover { color: #a594ff; text-decoration-color: #a594ff; }
 
-/* Highlights */
-.tiptap-editor mark {
-  background-color: rgba(245, 158, 11, 0.25);
-  color: #f59e0b;
-  border-radius: 3px;
-  padding: 0 2px;
-}
-
-/* Table */
+/* ── Table ────────────────────────────────────────────────── */
 .tiptap-editor table {
-  border-collapse: collapse;
-  width: 100%;
-  margin: 12px 0;
-  font-size: 13px;
+  border-collapse: collapse; width: 100%;
+  margin: 14px 0; font-size: 14px; border-radius: 8px; overflow: hidden;
 }
 .tiptap-editor th {
-  background: #1e1e2e;
-  border: 1px solid #2a2a3e;
-  padding: 8px 12px;
-  text-align: left;
-  font-weight: 600;
-  color: #a0a0b8;
+  background: #1a1a28; border: 1px solid #2a2a3e;
+  padding: 9px 13px; text-align: left;
+  font-weight: 600; color: #a0a0c0; font-size: 13px;
 }
 .tiptap-editor td {
-  border: 1px solid #2a2a3e;
-  padding: 7px 12px;
-  vertical-align: top;
+  border: 1px solid #2a2a3e; padding: 8px 13px; vertical-align: top;
 }
+.tiptap-editor tr:hover td { background: rgba(255,255,255,0.02); }
 .tiptap-editor .selectedCell { background: rgba(124, 106, 255, 0.1); }
+.tiptap-editor .column-resize-handle {
+  position: absolute; right: -2px; top: 0; bottom: 0;
+  width: 4px; background: #7c6aff; cursor: col-resize; opacity: 0.6;
+}
 
-/* Placeholder */
+/* ── Text alignment ───────────────────────────────────────── */
+.tiptap-editor [style*="text-align: center"] { text-align: center; }
+.tiptap-editor [style*="text-align: right"]  { text-align: right;  }
+.tiptap-editor [style*="text-align: justify"]{ text-align: justify;}
+
+/* ── Superscript / Subscript ─────────────────────────────── */
+.tiptap-editor sup { vertical-align: super; font-size: 0.75em; }
+.tiptap-editor sub { vertical-align: sub;   font-size: 0.75em; }
+
+/* ── Placeholder ─────────────────────────────────────────── */
 .tiptap-editor p.is-empty:first-child::before {
   content: attr(data-placeholder);
-  color: #3a3a5e;
-  pointer-events: none;
-  float: left;
-  height: 0;
+  color: #3a3a5e; pointer-events: none; float: left; height: 0;
 }
 
-/* Selection */
+/* ── Selection ────────────────────────────────────────────── */
 .tiptap-editor ::selection {
-  background: rgba(124, 106, 255, 0.25);
+  background: rgba(124, 106, 255, 0.28);
 }
