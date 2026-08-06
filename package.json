@@ -6,7 +6,10 @@
     "dev": "cross-env NODE_OPTIONS=--use-openssl-ca next dev",
     "build": "cross-env NODE_OPTIONS=--use-openssl-ca next build",
     "start": "cross-env NODE_OPTIONS=--use-openssl-ca next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "tauri": "tauri",
+    "desktop:dev": "cross-env NODE_OPTIONS=--use-openssl-ca tauri dev",
+    "desktop:build": "cross-env NODE_OPTIONS=--use-openssl-ca tauri build"
   },
   "dependencies": {
     "@radix-ui/react-avatar": "^1.2.2",
@@ -24,6 +27,13 @@
     "@supabase/ssr": "^0.12.0",
     "@supabase/supabase-js": "^2.110.1",
     "@tanstack/react-query": "^5.101.2",
+    "@tauri-apps/api": "^2.11.1",
+    "@tauri-apps/plugin-dialog": "^2.7.2",
+    "@tauri-apps/plugin-notification": "^2.3.3",
+    "@tauri-apps/plugin-process": "^2.3.1",
+    "@tauri-apps/plugin-shell": "^2.3.5",
+    "@tauri-apps/plugin-updater": "^2.10.1",
+    "@tiptap/core": "^3.29.2",
     "@tiptap/extension-character-count": "^3.27.3",
     "@tiptap/extension-code-block-lowlight": "^3.27.3",
     "@tiptap/extension-color": "^3.29.2",
@@ -68,6 +78,7 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
+    "@tauri-apps/cli": "^2",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",

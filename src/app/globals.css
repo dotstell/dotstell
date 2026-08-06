@@ -1,286 +1,317 @@
 @import "tailwindcss";
 
 /* ══════════════════════════════════════════════════════
-   THEME SYSTEM — 6 famous dark + 2 light themes
-   Default = Dracula
+   THEME SYSTEM — all inside @layer base so Tailwind v4
+   cannot overwrite our variables with its own defaults
    ══════════════════════════════════════════════════════ */
-
-/* ── Dracula ─────────────────────────────────────────── */
-:root,
-[data-theme="dracula"] {
-  --background:           #282a36;
-  --foreground:           #f8f8f2;
-  --card:                 #21222c;
-  --card-foreground:      #f8f8f2;
-  --popover:              #21222c;
-  --popover-foreground:   #f8f8f2;
-  --primary:              #bd93f9;
-  --primary-foreground:   #282a36;
-  --secondary:            #44475a;
-  --secondary-foreground: #f8f8f2;
-  --muted:                #373844;
-  --muted-foreground:     #6272a4;
-  --accent:               #44475a;
-  --accent-foreground:    #f8f8f2;
-  --destructive:          #ff5555;
-  --destructive-foreground: #f8f8f2;
-  --border:               #44475a;
-  --input:                #44475a;
-  --ring:                 #bd93f9;
-  --sidebar-bg:           #21222c;
-  --sidebar-border:       #44475a;
-  --sidebar-muted:        #6272a4;
-  --sidebar-active-bg:    rgba(189,147,249,0.15);
-  --sidebar-active-fg:    #bd93f9;
-  --sidebar-hover-bg:     rgba(248,248,242,0.05);
-  --sidebar-hover-fg:     #f8f8f2;
-  --sidebar-search-bg:    #373844;
-  --sidebar-section-fg:   #44475a;
-  --radius: 0.5rem;
-  --sidebar-width: 240px;
-  --header-height: 56px;
-}
-
-/* ── One Dark (Atom / VS Code One Dark Pro) ──────────── */
-[data-theme="one-dark"] {
-  --background:           #282c34;
-  --foreground:           #abb2bf;
-  --card:                 #21252b;
-  --card-foreground:      #abb2bf;
-  --popover:              #21252b;
-  --popover-foreground:   #abb2bf;
-  --primary:              #61afef;
-  --primary-foreground:   #282c34;
-  --secondary:            #2c313a;
-  --secondary-foreground: #abb2bf;
-  --muted:                #2c313a;
-  --muted-foreground:     #5c6370;
-  --accent:               #2c313a;
-  --accent-foreground:    #abb2bf;
-  --destructive:          #e06c75;
-  --destructive-foreground: #ffffff;
-  --border:               #3e4451;
-  --input:                #2c313a;
-  --ring:                 #61afef;
-  --sidebar-bg:           #21252b;
-  --sidebar-border:       #3e4451;
-  --sidebar-muted:        #5c6370;
-  --sidebar-active-bg:    rgba(97,175,239,0.15);
-  --sidebar-active-fg:    #61afef;
-  --sidebar-hover-bg:     rgba(171,178,191,0.05);
-  --sidebar-hover-fg:     #abb2bf;
-  --sidebar-search-bg:    #2c313a;
-  --sidebar-section-fg:   #3e4451;
-}
-
-/* ── Tokyo Night ─────────────────────────────────────── */
-[data-theme="tokyo-night"] {
-  --background:           #1a1b26;
-  --foreground:           #c0caf5;
-  --card:                 #16161e;
-  --card-foreground:      #c0caf5;
-  --popover:              #16161e;
-  --popover-foreground:   #c0caf5;
-  --primary:              #7aa2f7;
-  --primary-foreground:   #1a1b26;
-  --secondary:            #24283b;
-  --secondary-foreground: #a9b1d6;
-  --muted:                #1f2335;
-  --muted-foreground:     #565f89;
-  --accent:               #24283b;
-  --accent-foreground:    #c0caf5;
-  --destructive:          #f7768e;
-  --destructive-foreground: #ffffff;
-  --border:               #292e42;
-  --input:                #24283b;
-  --ring:                 #7aa2f7;
-  --sidebar-bg:           #16161e;
-  --sidebar-border:       #292e42;
-  --sidebar-muted:        #565f89;
-  --sidebar-active-bg:    rgba(122,162,247,0.15);
-  --sidebar-active-fg:    #7aa2f7;
-  --sidebar-hover-bg:     rgba(192,202,245,0.05);
-  --sidebar-hover-fg:     #c0caf5;
-  --sidebar-search-bg:    #1f2335;
-  --sidebar-section-fg:   #292e42;
-}
-
-/* ── Nord ────────────────────────────────────────────── */
-[data-theme="nord"] {
-  --background:           #2e3440;
-  --foreground:           #eceff4;
-  --card:                 #272c36;
-  --card-foreground:      #eceff4;
-  --popover:              #272c36;
-  --popover-foreground:   #eceff4;
-  --primary:              #88c0d0;
-  --primary-foreground:   #2e3440;
-  --secondary:            #3b4252;
-  --secondary-foreground: #d8dee9;
-  --muted:                #353a47;
-  --muted-foreground:     #616e88;
-  --accent:               #3b4252;
-  --accent-foreground:    #eceff4;
-  --destructive:          #bf616a;
-  --destructive-foreground: #eceff4;
-  --border:               #434c5e;
-  --input:                #3b4252;
-  --ring:                 #88c0d0;
-  --sidebar-bg:           #272c36;
-  --sidebar-border:       #3b4252;
-  --sidebar-muted:        #616e88;
-  --sidebar-active-bg:    rgba(136,192,208,0.15);
-  --sidebar-active-fg:    #88c0d0;
-  --sidebar-hover-bg:     rgba(236,239,244,0.05);
-  --sidebar-hover-fg:     #eceff4;
-  --sidebar-search-bg:    #353a47;
-  --sidebar-section-fg:   #3b4252;
-}
-
-/* ── Solarized Dark ──────────────────────────────────── */
-[data-theme="solarized-dark"] {
-  --background:           #002b36;
-  --foreground:           #839496;
-  --card:                 #073642;
-  --card-foreground:      #93a1a1;
-  --popover:              #073642;
-  --popover-foreground:   #93a1a1;
-  --primary:              #268bd2;
-  --primary-foreground:   #002b36;
-  --secondary:            #073642;
-  --secondary-foreground: #657b83;
-  --muted:                #0d3f4f;
-  --muted-foreground:     #586e75;
-  --accent:               #073642;
-  --accent-foreground:    #93a1a1;
-  --destructive:          #dc322f;
-  --destructive-foreground: #fdf6e3;
-  --border:               #0d4455;
-  --input:                #073642;
-  --ring:                 #268bd2;
-  --sidebar-bg:           #073642;
-  --sidebar-border:       #0d4455;
-  --sidebar-muted:        #586e75;
-  --sidebar-active-bg:    rgba(38,139,210,0.18);
-  --sidebar-active-fg:    #268bd2;
-  --sidebar-hover-bg:     rgba(147,161,161,0.06);
-  --sidebar-hover-fg:     #93a1a1;
-  --sidebar-search-bg:    #0d3f4f;
-  --sidebar-section-fg:   #0d4455;
-}
-
-/* ── Catppuccin Mocha ────────────────────────────────── */
-[data-theme="catppuccin"] {
-  --background:           #1e1e2e;
-  --foreground:           #cdd6f4;
-  --card:                 #181825;
-  --card-foreground:      #cdd6f4;
-  --popover:              #181825;
-  --popover-foreground:   #cdd6f4;
-  --primary:              #cba6f7;
-  --primary-foreground:   #1e1e2e;
-  --secondary:            #313244;
-  --secondary-foreground: #cdd6f4;
-  --muted:                #262637;
-  --muted-foreground:     #6c7086;
-  --accent:               #313244;
-  --accent-foreground:    #cdd6f4;
-  --destructive:          #f38ba8;
-  --destructive-foreground: #1e1e2e;
-  --border:               #45475a;
-  --input:                #313244;
-  --ring:                 #cba6f7;
-  --sidebar-bg:           #181825;
-  --sidebar-border:       #313244;
-  --sidebar-muted:        #6c7086;
-  --sidebar-active-bg:    rgba(203,166,247,0.15);
-  --sidebar-active-fg:    #cba6f7;
-  --sidebar-hover-bg:     rgba(205,214,244,0.05);
-  --sidebar-hover-fg:     #cdd6f4;
-  --sidebar-search-bg:    #262637;
-  --sidebar-section-fg:   #45475a;
-}
-
-/* ── Solarized Light ─────────────────────────────────── */
-[data-theme="solarized-light"] {
-  --background:           #fdf6e3;
-  --foreground:           #657b83;
-  --card:                 #eee8d5;
-  --card-foreground:      #586e75;
-  --popover:              #eee8d5;
-  --popover-foreground:   #586e75;
-  --primary:              #268bd2;
-  --primary-foreground:   #fdf6e3;
-  --secondary:            #e8e2cf;
-  --secondary-foreground: #657b83;
-  --muted:                #e8e2cf;
-  --muted-foreground:     #93a1a1;
-  --accent:               #e0d9c6;
-  --accent-foreground:    #586e75;
-  --destructive:          #dc322f;
-  --destructive-foreground: #fdf6e3;
-  --border:               #d5cdb8;
-  --input:                #e8e2cf;
-  --ring:                 #268bd2;
-  --sidebar-bg:           #eee8d5;
-  --sidebar-border:       #d5cdb8;
-  --sidebar-muted:        #93a1a1;
-  --sidebar-active-bg:    rgba(38,139,210,0.12);
-  --sidebar-active-fg:    #268bd2;
-  --sidebar-hover-bg:     rgba(0,0,0,0.04);
-  --sidebar-hover-fg:     #586e75;
-  --sidebar-search-bg:    #e8e2cf;
-  --sidebar-section-fg:   #c8c2ae;
-}
-
-/* ── GitHub Light ────────────────────────────────────── */
-[data-theme="github-light"] {
-  --background:           #ffffff;
-  --foreground:           #1f2328;
-  --card:                 #f6f8fa;
-  --card-foreground:      #1f2328;
-  --popover:              #ffffff;
-  --popover-foreground:   #1f2328;
-  --primary:              #0969da;
-  --primary-foreground:   #ffffff;
-  --secondary:            #eaeef2;
-  --secondary-foreground: #57606a;
-  --muted:                #f6f8fa;
-  --muted-foreground:     #6e7781;
-  --accent:               #eaeef2;
-  --accent-foreground:    #1f2328;
-  --destructive:          #cf222e;
-  --destructive-foreground: #ffffff;
-  --border:               #d0d7de;
-  --input:                #eaeef2;
-  --ring:                 #0969da;
-  --sidebar-bg:           #f6f8fa;
-  --sidebar-border:       #d0d7de;
-  --sidebar-muted:        #6e7781;
-  --sidebar-active-bg:    rgba(9,105,218,0.10);
-  --sidebar-active-fg:    #0969da;
-  --sidebar-hover-bg:     rgba(0,0,0,0.04);
-  --sidebar-hover-fg:     #1f2328;
-  --sidebar-search-bg:    #ffffff;
-  --sidebar-section-fg:   #c8d0d8;
-}
-
-/* color-scheme per theme — must be outside @layer to win specificity */
-:root,
-[data-theme="dracula"],
-[data-theme="one-dark"],
-[data-theme="tokyo-night"],
-[data-theme="nord"],
-[data-theme="solarized-dark"],
-[data-theme="catppuccin"] { color-scheme: dark; }
-
-[data-theme="solarized-light"],
-[data-theme="github-light"] { color-scheme: light; }
-
 @layer base {
-  *, *::before, *::after {
-    box-sizing: border-box;
+
+  /* ── Dotstell (brand default) ───────────────────── */
+  :root,
+  [data-theme="dotstell"] {
+    --background:           #0a0a14;
+    --foreground:           #e8e8f0;
+    --card:                 #0f0f1e;
+    --card-foreground:      #e8e8f0;
+    --popover:              #13132a;
+    --popover-foreground:   #e8e8f0;
+    --primary:              #7c6aff;
+    --primary-foreground:   #ffffff;
+    --secondary:            #1a1a2e;
+    --secondary-foreground: #b0b0cc;
+    --muted:                #14142a;
+    --muted-foreground:     #6060a0;
+    --accent:               #1e1e38;
+    --accent-foreground:    #e8e8f0;
+    --destructive:          #ff4d6a;
+    --destructive-foreground: #ffffff;
+    --border:               #252545;
+    --input:                #1a1a2e;
+    --ring:                 #7c6aff;
+    --sidebar-bg:           #0f0f1e;
+    --sidebar-border:       #1e1e3a;
+    --sidebar-muted:        #5858a0;
+    --sidebar-active-bg:    rgba(124,106,255,0.15);
+    --sidebar-active-fg:    #a090ff;
+    --sidebar-hover-bg:     rgba(232,232,240,0.04);
+    --sidebar-hover-fg:     #e8e8f0;
+    --sidebar-search-bg:    #14142a;
+    --sidebar-section-fg:   #4848a0;
+    --radius: 0.5rem;
+    --sidebar-width: 240px;
+    --header-height: 56px;
+    color-scheme: dark;
   }
+
+  /* ── Dracula ─────────────────────────────────────── */
+  [data-theme="dracula"] {
+    --background:           #282a36;
+    --foreground:           #f8f8f2;
+    --card:                 #21222c;
+    --card-foreground:      #f8f8f2;
+    --popover:              #21222c;
+    --popover-foreground:   #f8f8f2;
+    --primary:              #bd93f9;
+    --primary-foreground:   #282a36;
+    --secondary:            #44475a;
+    --secondary-foreground: #f8f8f2;
+    --muted:                #373844;
+    --muted-foreground:     #6272a4;
+    --accent:               #44475a;
+    --accent-foreground:    #f8f8f2;
+    --destructive:          #ff5555;
+    --destructive-foreground: #f8f8f2;
+    --border:               #44475a;
+    --input:                #44475a;
+    --ring:                 #bd93f9;
+    --sidebar-bg:           #21222c;
+    --sidebar-border:       #44475a;
+    --sidebar-muted:        #6272a4;
+    --sidebar-active-bg:    rgba(189,147,249,0.15);
+    --sidebar-active-fg:    #bd93f9;
+    --sidebar-hover-bg:     rgba(248,248,242,0.05);
+    --sidebar-hover-fg:     #f8f8f2;
+    --sidebar-search-bg:    #373844;
+    --sidebar-section-fg:   #6272a4;
+    --radius: 0.5rem;
+    --sidebar-width: 240px;
+    --header-height: 56px;
+    color-scheme: dark;
+  }
+
+  /* ── One Dark ────────────────────────────────────── */
+  [data-theme="one-dark"] {
+    --background:           #282c34;
+    --foreground:           #abb2bf;
+    --card:                 #21252b;
+    --card-foreground:      #abb2bf;
+    --popover:              #21252b;
+    --popover-foreground:   #abb2bf;
+    --primary:              #61afef;
+    --primary-foreground:   #282c34;
+    --secondary:            #2c313a;
+    --secondary-foreground: #abb2bf;
+    --muted:                #2c313a;
+    --muted-foreground:     #5c6370;
+    --accent:               #2c313a;
+    --accent-foreground:    #abb2bf;
+    --destructive:          #e06c75;
+    --destructive-foreground: #ffffff;
+    --border:               #3e4451;
+    --input:                #2c313a;
+    --ring:                 #61afef;
+    --sidebar-bg:           #21252b;
+    --sidebar-border:       #3e4451;
+    --sidebar-muted:        #5c6370;
+    --sidebar-active-bg:    rgba(97,175,239,0.15);
+    --sidebar-active-fg:    #61afef;
+    --sidebar-hover-bg:     rgba(171,178,191,0.05);
+    --sidebar-hover-fg:     #abb2bf;
+    --sidebar-search-bg:    #2c313a;
+    --sidebar-section-fg:   #5c6370;
+    color-scheme: dark;
+  }
+
+  /* ── Tokyo Night ─────────────────────────────────── */
+  [data-theme="tokyo-night"] {
+    --background:           #1a1b26;
+    --foreground:           #c0caf5;
+    --card:                 #16161e;
+    --card-foreground:      #c0caf5;
+    --popover:              #16161e;
+    --popover-foreground:   #c0caf5;
+    --primary:              #7aa2f7;
+    --primary-foreground:   #1a1b26;
+    --secondary:            #24283b;
+    --secondary-foreground: #a9b1d6;
+    --muted:                #1f2335;
+    --muted-foreground:     #565f89;
+    --accent:               #24283b;
+    --accent-foreground:    #c0caf5;
+    --destructive:          #f7768e;
+    --destructive-foreground: #ffffff;
+    --border:               #292e42;
+    --input:                #24283b;
+    --ring:                 #7aa2f7;
+    --sidebar-bg:           #16161e;
+    --sidebar-border:       #292e42;
+    --sidebar-muted:        #565f89;
+    --sidebar-active-bg:    rgba(122,162,247,0.15);
+    --sidebar-active-fg:    #7aa2f7;
+    --sidebar-hover-bg:     rgba(192,202,245,0.05);
+    --sidebar-hover-fg:     #c0caf5;
+    --sidebar-search-bg:    #1f2335;
+    --sidebar-section-fg:   #565f89;
+    color-scheme: dark;
+  }
+
+  /* ── Nord ────────────────────────────────────────── */
+  [data-theme="nord"] {
+    --background:           #2e3440;
+    --foreground:           #eceff4;
+    --card:                 #272c36;
+    --card-foreground:      #eceff4;
+    --popover:              #272c36;
+    --popover-foreground:   #eceff4;
+    --primary:              #88c0d0;
+    --primary-foreground:   #2e3440;
+    --secondary:            #3b4252;
+    --secondary-foreground: #d8dee9;
+    --muted:                #353a47;
+    --muted-foreground:     #616e88;
+    --accent:               #3b4252;
+    --accent-foreground:    #eceff4;
+    --destructive:          #bf616a;
+    --destructive-foreground: #eceff4;
+    --border:               #434c5e;
+    --input:                #3b4252;
+    --ring:                 #88c0d0;
+    --sidebar-bg:           #272c36;
+    --sidebar-border:       #3b4252;
+    --sidebar-muted:        #616e88;
+    --sidebar-active-bg:    rgba(136,192,208,0.15);
+    --sidebar-active-fg:    #88c0d0;
+    --sidebar-hover-bg:     rgba(236,239,244,0.05);
+    --sidebar-hover-fg:     #eceff4;
+    --sidebar-search-bg:    #353a47;
+    --sidebar-section-fg:   #616e88;
+    color-scheme: dark;
+  }
+
+  /* ── Solarized Dark ──────────────────────────────── */
+  [data-theme="solarized-dark"] {
+    --background:           #002b36;
+    --foreground:           #93a1a1;
+    --card:                 #073642;
+    --card-foreground:      #93a1a1;
+    --popover:              #073642;
+    --popover-foreground:   #93a1a1;
+    --primary:              #268bd2;
+    --primary-foreground:   #fdf6e3;
+    --secondary:            #073642;
+    --secondary-foreground: #839496;
+    --muted:                #0d3f4f;
+    --muted-foreground:     #586e75;
+    --accent:               #073642;
+    --accent-foreground:    #93a1a1;
+    --destructive:          #dc322f;
+    --destructive-foreground: #fdf6e3;
+    --border:               #0d4455;
+    --input:                #073642;
+    --ring:                 #268bd2;
+    --sidebar-bg:           #073642;
+    --sidebar-border:       #0d4455;
+    --sidebar-muted:        #586e75;
+    --sidebar-active-bg:    rgba(38,139,210,0.18);
+    --sidebar-active-fg:    #268bd2;
+    --sidebar-hover-bg:     rgba(147,161,161,0.06);
+    --sidebar-hover-fg:     #93a1a1;
+    --sidebar-search-bg:    #0d3f4f;
+    --sidebar-section-fg:   #586e75;
+    color-scheme: dark;
+  }
+
+  /* ── Catppuccin Mocha ────────────────────────────── */
+  [data-theme="catppuccin"] {
+    --background:           #1e1e2e;
+    --foreground:           #cdd6f4;
+    --card:                 #181825;
+    --card-foreground:      #cdd6f4;
+    --popover:              #181825;
+    --popover-foreground:   #cdd6f4;
+    --primary:              #cba6f7;
+    --primary-foreground:   #1e1e2e;
+    --secondary:            #313244;
+    --secondary-foreground: #cdd6f4;
+    --muted:                #262637;
+    --muted-foreground:     #6c7086;
+    --accent:               #313244;
+    --accent-foreground:    #cdd6f4;
+    --destructive:          #f38ba8;
+    --destructive-foreground: #1e1e2e;
+    --border:               #45475a;
+    --input:                #313244;
+    --ring:                 #cba6f7;
+    --sidebar-bg:           #181825;
+    --sidebar-border:       #313244;
+    --sidebar-muted:        #6c7086;
+    --sidebar-active-bg:    rgba(203,166,247,0.15);
+    --sidebar-active-fg:    #cba6f7;
+    --sidebar-hover-bg:     rgba(205,214,244,0.05);
+    --sidebar-hover-fg:     #cdd6f4;
+    --sidebar-search-bg:    #262637;
+    --sidebar-section-fg:   #6c7086;
+    color-scheme: dark;
+  }
+
+  /* ── Solarized Light ─────────────────────────────── */
+  [data-theme="solarized-light"] {
+    --background:           #fdf6e3;
+    --foreground:           #657b83;
+    --card:                 #eee8d5;
+    --card-foreground:      #586e75;
+    --popover:              #eee8d5;
+    --popover-foreground:   #586e75;
+    --primary:              #268bd2;
+    --primary-foreground:   #fdf6e3;
+    --secondary:            #e8e2cf;
+    --secondary-foreground: #657b83;
+    --muted:                #e8e2cf;
+    --muted-foreground:     #93a1a1;
+    --accent:               #e0d9c6;
+    --accent-foreground:    #586e75;
+    --destructive:          #dc322f;
+    --destructive-foreground: #fdf6e3;
+    --border:               #d5cdb8;
+    --input:                #e8e2cf;
+    --ring:                 #268bd2;
+    --sidebar-bg:           #eee8d5;
+    --sidebar-border:       #d5cdb8;
+    --sidebar-muted:        #93a1a1;
+    --sidebar-active-bg:    rgba(38,139,210,0.12);
+    --sidebar-active-fg:    #268bd2;
+    --sidebar-hover-bg:     rgba(0,0,0,0.04);
+    --sidebar-hover-fg:     #586e75;
+    --sidebar-search-bg:    #e8e2cf;
+    --sidebar-section-fg:   #93a1a1;
+    color-scheme: light;
+  }
+
+  /* ── GitHub Light ────────────────────────────────── */
+  [data-theme="github-light"] {
+    --background:           #ffffff;
+    --foreground:           #1f2328;
+    --card:                 #f6f8fa;
+    --card-foreground:      #1f2328;
+    --popover:              #ffffff;
+    --popover-foreground:   #1f2328;
+    --primary:              #0969da;
+    --primary-foreground:   #ffffff;
+    --secondary:            #eaeef2;
+    --secondary-foreground: #57606a;
+    --muted:                #f6f8fa;
+    --muted-foreground:     #6e7781;
+    --accent:               #eaeef2;
+    --accent-foreground:    #1f2328;
+    --destructive:          #cf222e;
+    --destructive-foreground: #ffffff;
+    --border:               #d0d7de;
+    --input:                #eaeef2;
+    --ring:                 #0969da;
+    --sidebar-bg:           #f6f8fa;
+    --sidebar-border:       #d0d7de;
+    --sidebar-muted:        #6e7781;
+    --sidebar-active-bg:    rgba(9,105,218,0.10);
+    --sidebar-active-fg:    #0969da;
+    --sidebar-hover-bg:     rgba(0,0,0,0.04);
+    --sidebar-hover-fg:     #1f2328;
+    --sidebar-search-bg:    #ffffff;
+    --sidebar-section-fg:   #6e7781;
+    color-scheme: light;
+  }
+
+  /* ── Base element styles ─────────────────────────── */
+  *, *::before, *::after { box-sizing: border-box; }
 
   html {
     background-color: var(--background);
@@ -300,21 +331,13 @@
 
 /* ── Scrollbars ── */
 * { scrollbar-width: thin; scrollbar-color: var(--border) transparent; }
-
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: transparent; border-radius: 3px; }
-::-webkit-scrollbar-thumb {
-  background: var(--border);
-  border-radius: 3px;
-  transition: background 0.2s;
-}
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; transition: background 0.2s; }
 ::-webkit-scrollbar-thumb:hover { background: var(--primary); opacity: 0.4; }
 ::-webkit-scrollbar-corner { background: transparent; }
 
-:focus-visible {
-  outline: 2px solid var(--primary);
-  outline-offset: 2px;
-}
+:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
 
 .react-flow__background { background: var(--background); }
 .react-flow__controls { background: var(--card); border-color: var(--border); }
@@ -322,8 +345,6 @@
 .react-flow__minimap { background: var(--card); }
 .graph-full-height { height: 100vh; }
 
-/* Bookmark card hover actions */
 .group:hover .group-hover-actions { opacity: 1 !important; }
 
-/* Spinner animation */
 @keyframes spin { to { transform: rotate(360deg); } }

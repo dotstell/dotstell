@@ -2,10 +2,12 @@
 import { useEffect, useState, useCallback } from 'react'
 
 export type ThemeId =
+  | 'dotstell'
   | 'dracula' | 'one-dark' | 'tokyo-night' | 'nord' | 'solarized-dark' | 'catppuccin'
   | 'solarized-light' | 'github-light'
 
-export const THEME_DEFS: { id: ThemeId; label: string; dot: string; dark: boolean }[] = [
+export const THEME_DEFS: { id: ThemeId; label: string; dot: string; dark: boolean; brand?: boolean }[] = [
+  { id: 'dotstell',        label: 'Dotstell',        dot: '#7c6aff', dark: true,  brand: true },
   { id: 'dracula',         label: 'Dracula',         dot: '#bd93f9', dark: true  },
   { id: 'one-dark',        label: 'One Dark',        dot: '#61afef', dark: true  },
   { id: 'tokyo-night',     label: 'Tokyo Night',     dot: '#7aa2f7', dark: true  },
@@ -18,7 +20,7 @@ export const THEME_DEFS: { id: ThemeId; label: string; dot: string; dark: boolea
 
 const VALID_IDS = THEME_DEFS.map(t => t.id)
 const STORAGE_KEY = 'dotstell-theme'
-const DEFAULT: ThemeId = 'dracula'
+const DEFAULT: ThemeId = 'dotstell'
 
 function getStored(): ThemeId {
   if (typeof window === 'undefined') return DEFAULT

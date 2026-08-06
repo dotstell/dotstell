@@ -58,7 +58,9 @@ The question it answers that other tools don't:
 
 ## Screenshots
 
-> Coming soon — app is in active development.
+Live previews of the app are available on [dotstell.com](https://dotstell.com) — the landing page includes an interactive knowledge graph, dashboard mockup, and feature walkthroughs.
+
+App screenshots will be added here once the first public release is tagged.
 
 ---
 
@@ -67,7 +69,8 @@ The question it answers that other tools don't:
 ### Prerequisites
 
 - Node.js 18+
-- pnpm (`npm install -g pnpm`)
+- pnpm — `npm install -g pnpm`
+  > We use pnpm instead of npm/yarn because it is significantly faster (hard-linked global store, no re-downloading the same package twice), produces a deterministic `pnpm-lock.yaml`, and is required by the Tauri CLI toolchain used for the desktop build. The lockfile is committed — always use `pnpm install`, not `npm install`, to keep the lockfile consistent.
 - A free [Supabase](https://supabase.com) account
 
 ### 1. Clone
@@ -183,7 +186,7 @@ supabase/
 | Wikilinks + Backlinks | ✅ Live |
 | Knowledge Graph | ✅ Live |
 | AI layer (auto-tagging, semantic search) | 🔜 Planned |
-| Desktop app | 🔜 Planned |
+| Desktop app (Windows + macOS) | ✅ Live |
 | Browser extension | 🔜 Planned |
 | Slack / Teams integrations | 🔜 Planned |
 | Mobile app | 🔜 Planned |
@@ -219,4 +222,4 @@ Full self-hosting guide coming soon. In the meantime the Getting Started steps a
 
 This means you can use, modify and distribute Dotstell freely, including self-hosting it. If you run a modified version as a network service, you must make the modified source available to users of that service.
 
-© 2026 Shihab Uddin
+© 2026 Dotstell

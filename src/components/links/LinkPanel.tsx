@@ -59,10 +59,11 @@ export function LinkPanel({ sourceId, sourceType }: LinkPanelProps) {
     const res = await fetch(`/api/links?source_id=${sourceId}`)
     if (!res.ok) return
     const data = await res.json()
-    if (!Array.isArray(data) || data.length === 0) { setLinks([]); return }
+    const filtered = data.filter((l: { label?: string }) => l.label !== '__wikilink__')
+    if (!Array.isArray(filtered) || filtered.length === 0) { setLinks([]); return }
 
     const enriched: LinkedItem[] = await Promise.all(
-      data.map(async (link: { id: string; target_id: string; target_type: string }) => {
+      filtered.map(async (link: { id: string; target_id: string; target_type: string }) => {
         try {
           const r = await fetch(`/api/${link.target_type === 'person' ? 'people' : link.target_type + 's'}/${link.target_id}`)
           if (r.ok) {

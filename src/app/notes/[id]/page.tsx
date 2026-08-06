@@ -2,7 +2,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { use } from 'react'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, Tag, X, Maximize2, Minimize2, Layout, Plus, FileText, ChevronRight } from 'lucide-react'
+import { ArrowLeft, X, Maximize2, Minimize2, Layout, Plus, FileText, ChevronRight } from 'lucide-react'
 import Link from 'next/link'
 import { toast } from 'sonner'
 import { Note } from '@/types'
@@ -10,6 +10,7 @@ import { AppLayout } from '@/components/layout/AppLayout'
 import { RichTextEditor } from '@/components/editor/RichTextEditor'
 import { NoteTemplates, NOTE_TEMPLATES } from '@/components/editor/NoteTemplates'
 import { LinkPanel } from '@/components/links/LinkPanel'
+import { BacklinksPanel } from '@/components/notes/BacklinksPanel'
 import '@/components/editor/editor.css'
 
 type SaveStatus = 'saved' | 'saving' | 'unsaved' | null
@@ -28,6 +29,7 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
   const [noteId, setNoteId]       = useState<string | null>(isNew ? null : id)
   const [subNotes, setSubNotes]   = useState<Note[]>([])
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const wikiLinkIds = useRef<string[]>([])
 
   // Load existing note + sub-notes
   useEffect(() => {
@@ -59,6 +61,14 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
   }
 
   // Auto-save — debounced 1.5s after last change
+  const syncWikiLinks = useCallback(async (sourceNoteId: string) => {
+    await fetch('/api/wikilinks', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sourceNoteId, targetNoteIds: wikiLinkIds.current }),
+    })
+  }, [])
+
   const save = useCallback(async (data: Partial<Note>, currentId: string | null) => {
     setSaveStatus('saving')
     try {
@@ -68,8 +78,10 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(data),
         })
-        if (res.ok) setSaveStatus('saved')
-        else setSaveStatus('unsaved')
+        if (res.ok) {
+          setSaveStatus('saved')
+          syncWikiLinks(currentId)
+        } else setSaveStatus('unsaved')
       } else {
         const res = await fetch('/api/notes', {
           method: 'POST',
@@ -80,14 +92,14 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
           const saved = await res.json()
           setNoteId(saved.id)
           setSaveStatus('saved')
-          // Update URL without navigation
           window.history.replaceState({}, '', `/notes/${saved.id}`)
+          syncWikiLinks(saved.id)
         } else setSaveStatus('unsaved')
       }
     } catch {
       setSaveStatus('unsaved')
     }
-  }, [])
+  }, [syncWikiLinks])
 
   function scheduleAutoSave(updates: Partial<Note>) {
     setSaveStatus('unsaved')
@@ -223,18 +235,19 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
           <RichTextEditor
             content={note.content ?? '<p></p>'}
             onChange={handleContentChange}
-            placeholder="Start writing... (type / for commands)"
+            placeholder="Start writing... (type / for commands, [[ to link a note)"
             autoSaveStatus={saveStatus}
             focusMode={focusMode}
             onFocusMode={setFocusMode}
+            onWikiLinksChange={ids => { wikiLinkIds.current = ids }}
           />
         </div>
 
-        {/* Right panel: links + sub-notes (only when saved) */}
+        {/* Right panel: links + sub-notes + backlinks (only when saved) */}
         {!focusMode && noteId && (
           <div style={{
             width: 240, flexShrink: 0, borderLeft: '1px solid var(--border)',
-            padding: 16, overflowY: 'auto', backgroundColor: '#0e0e16',
+            padding: 16, overflowY: 'auto', backgroundColor: 'var(--card)',
             display: 'flex', flexDirection: 'column', gap: 20,
           }}>
             <LinkPanel sourceId={noteId} sourceType="note" />
@@ -293,6 +306,9 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
                 </div>
               )}
             </div>
+
+            {/* Backlinks */}
+            <BacklinksPanel noteId={noteId} />
 
             {/* Show templates button */}
             {isNew && !showTemplates && (
