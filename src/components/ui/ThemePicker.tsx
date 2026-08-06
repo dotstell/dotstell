@@ -1,6 +1,4 @@
 'use client'
-import { useState, useRef, useEffect } from 'react'
-import { createPortal } from 'react-dom'
 import { THEME_DEFS, type ThemeId } from '@/hooks/useTheme'
 
 interface Props {
@@ -10,156 +8,100 @@ interface Props {
 }
 
 export function ThemePicker({ current, onSelect, collapsed }: Props) {
-  const [open, setOpen]       = useState(false)
-  const [pos, setPos]         = useState({ x: 0, y: 0 })
-  const [mounted, setMounted] = useState(false)
-  const btnRef = useRef<HTMLButtonElement>(null)
-  const currentDef = THEME_DEFS.find(t => t.id === current)
-
-  // createPortal requires the DOM to be mounted
-  useEffect(() => { setMounted(true) }, [])
-
-  function openPicker() {
-    if (btnRef.current) {
-      const r = btnRef.current.getBoundingClientRect()
-      setPos({
-        x: collapsed ? r.right + 8 : r.left,
-        y: r.top,                // popover opens upward from this y
-      })
-    }
-    setOpen(o => !o)
-  }
-
-  const popover = (open && mounted) ? createPortal(
-    <>
-      {/* Backdrop — closes on outside click, sits below popover */}
-      <div
-        style={{ position: 'fixed', inset: 0, zIndex: 9998 }}
-        onClick={() => setOpen(false)}
-      />
-      {/* Popover — portalled to body so it escapes ALL parent overflow/stacking */}
-      <div style={{
-        position: 'fixed',
-        left: pos.x,
-        // open upward: anchor to the button's top, shift by popover height estimate
-        top: Math.max(8, pos.y - 310),
-        zIndex: 9999,
-        minWidth: 200,
-        background: 'var(--popover)',
-        border: '1px solid var(--border)',
-        borderRadius: 10,
-        boxShadow: '0 8px 32px rgba(0,0,0,0.45)',
-        padding: '10px 8px',
-        display: 'flex', flexDirection: 'column', gap: 2,
-      }}>
-        <GroupLabel>Dark</GroupLabel>
-        {THEME_DEFS.filter(t => t.dark).map(t => (
-          <ThemeRow
-            key={t.id} theme={t} active={t.id === current}
-            onSelect={id => { onSelect(id); setOpen(false) }}
-          />
-        ))}
-        <GroupLabel>Light</GroupLabel>
-        {THEME_DEFS.filter(t => !t.dark).map(t => (
-          <ThemeRow
-            key={t.id} theme={t} active={t.id === current}
-            onSelect={id => { onSelect(id); setOpen(false) }}
-          />
-        ))}
-      </div>
-    </>,
-    document.body
-  ) : null
-
-  return (
-    <div>
+  if (collapsed) {
+    // Collapsed: single dot that cycles to next theme on click
+    const idx  = THEME_DEFS.findIndex(t => t.id === current)
+    const next = THEME_DEFS[(idx + 1) % THEME_DEFS.length]
+    const dot  = THEME_DEFS.find(t => t.id === current)?.dot ?? 'var(--primary)'
+    return (
       <button
-        ref={btnRef}
         type="button"
-        title="Change theme"
-        onClick={openPicker}
+        title={`Theme: ${THEME_DEFS.find(t => t.id === current)?.label ?? ''} — click to cycle`}
+        onClick={() => onSelect(next.id)}
         style={{
-          display: 'flex', alignItems: 'center',
-          gap: collapsed ? 0 : 8,
-          justifyContent: collapsed ? 'center' : 'flex-start',
-          padding: collapsed ? '0' : '7px 12px',
-          width: '100%',
-          height: collapsed ? 40 : 'auto',
-          borderRadius: 8,
-          border: 'none', background: 'none', cursor: 'pointer',
-          color: 'var(--sidebar-muted)', fontSize: 12, fontWeight: 500,
-          transition: 'background 0.15s, color 0.15s',
-        }}
-        onMouseEnter={e => {
-          e.currentTarget.style.background = 'var(--sidebar-hover-bg)'
-          if (!collapsed) e.currentTarget.style.color = 'var(--sidebar-hover-fg)'
-        }}
-        onMouseLeave={e => {
-          e.currentTarget.style.background = 'none'
-          if (!collapsed) e.currentTarget.style.color = 'var(--sidebar-muted)'
+          width: '100%', height: 40, display: 'flex', alignItems: 'center',
+          justifyContent: 'center', background: 'none', border: 'none',
+          cursor: 'pointer', borderRadius: 8,
         }}
       >
-        <ThemeDot color={currentDef?.dot ?? 'var(--primary)'} size={collapsed ? 14 : 12} />
-        {!collapsed && (
-          <>
-            <span>{currentDef?.label ?? 'Theme'}</span>
-            <span style={{ marginLeft: 'auto', fontSize: 10, opacity: 0.5 }}>▾</span>
-          </>
-        )}
+        <Dot color={dot} size={14} active />
       </button>
+    )
+  }
 
-      {popover}
+  return (
+    <div style={{ padding: '6px 12px 8px' }}>
+      <p style={{
+        fontSize: 10, fontWeight: 600, color: 'var(--sidebar-section-fg)',
+        textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 8px',
+      }}>
+        Theme
+      </p>
+
+      {/* Dark themes row */}
+      <div style={{ display: 'flex', gap: 7, marginBottom: 5, flexWrap: 'wrap' }}>
+        {THEME_DEFS.filter(t => t.dark).map(t => (
+          <button
+            key={t.id}
+            type="button"
+            title={t.label}
+            onClick={() => onSelect(t.id)}
+            style={{
+              background: 'none', border: 'none', padding: 2,
+              cursor: 'pointer', borderRadius: '50%', lineHeight: 0,
+              outline: t.id === current ? `2px solid ${t.dot}` : '2px solid transparent',
+              outlineOffset: 2,
+              transition: 'outline-color 0.12s, transform 0.12s',
+              transform: t.id === current ? 'scale(1.2)' : 'scale(1)',
+            }}
+          >
+            <Dot color={t.dot} size={16} active={t.id === current} />
+          </button>
+        ))}
+      </div>
+
+      {/* Light themes row */}
+      <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap' }}>
+        {THEME_DEFS.filter(t => !t.dark).map(t => (
+          <button
+            key={t.id}
+            type="button"
+            title={t.label}
+            onClick={() => onSelect(t.id)}
+            style={{
+              background: 'none', border: 'none', padding: 2,
+              cursor: 'pointer', borderRadius: '50%', lineHeight: 0,
+              outline: t.id === current ? `2px solid ${t.dot}` : '2px solid transparent',
+              outlineOffset: 2,
+              transition: 'outline-color 0.12s, transform 0.12s',
+              transform: t.id === current ? 'scale(1.2)' : 'scale(1)',
+            }}
+          >
+            <Dot color={t.dot} size={16} active={t.id === current} />
+          </button>
+        ))}
+      </div>
+
+      {/* Current theme name */}
+      <p style={{
+        fontSize: 11, color: 'var(--sidebar-muted)',
+        margin: '6px 0 0', lineHeight: 1,
+      }}>
+        {THEME_DEFS.find(t => t.id === current)?.label ?? ''}
+      </p>
     </div>
   )
 }
 
-function GroupLabel({ children }: { children: string }) {
-  return (
-    <div style={{
-      fontSize: 10, fontWeight: 600, color: 'var(--muted-foreground)',
-      letterSpacing: '0.08em', textTransform: 'uppercase',
-      padding: '4px 8px 6px',
-    }}>
-      {children}
-    </div>
-  )
-}
-
-function ThemeRow({ theme, active, onSelect }: {
-  theme: typeof THEME_DEFS[0]
-  active: boolean
-  onSelect: (t: ThemeId) => void
-}) {
-  return (
-    <button
-      type="button"
-      onClick={() => onSelect(theme.id)}
-      style={{
-        display: 'flex', alignItems: 'center', gap: 9,
-        padding: '6px 8px', borderRadius: 7, width: '100%',
-        border: active ? `1px solid ${theme.dot}55` : '1px solid transparent',
-        background: active ? `${theme.dot}22` : 'transparent',
-        color: active ? 'var(--foreground)' : 'var(--muted-foreground)',
-        fontSize: 12, fontWeight: active ? 600 : 400,
-        cursor: 'pointer', transition: 'background 0.12s',
-        textAlign: 'left',
-      }}
-      onMouseEnter={e => { if (!active) e.currentTarget.style.background = 'var(--accent)' }}
-      onMouseLeave={e => { if (!active) e.currentTarget.style.background = 'transparent' }}
-    >
-      <ThemeDot color={theme.dot} size={11} />
-      {theme.label}
-      {active && <span style={{ marginLeft: 'auto', fontSize: 11, color: 'var(--primary)' }}>✓</span>}
-    </button>
-  )
-}
-
-function ThemeDot({ color, size }: { color: string; size: number }) {
+function Dot({ color, size, active }: { color: string; size: number; active?: boolean }) {
   return (
     <span style={{
-      width: size, height: size, borderRadius: '50%',
-      background: color, flexShrink: 0, display: 'inline-block',
-      boxShadow: `0 0 5px ${color}80`,
+      display: 'inline-block',
+      width: size, height: size,
+      borderRadius: '50%',
+      background: color,
+      boxShadow: active ? `0 0 7px ${color}` : `0 0 3px ${color}60`,
+      flexShrink: 0,
     }} />
   )
 }
