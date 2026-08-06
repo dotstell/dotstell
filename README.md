@@ -219,4 +219,4 @@ Full self-hosting guide coming soon. In the meantime the Getting Started steps a
 
 This means you can use, modify and distribute Dotstell freely, including self-hosting it. If you run a modified version as a network service, you must make the modified source available to users of that service.
 
-© 2026 Shihab Uddin
+© 2026 Dotstell
