@@ -23,7 +23,7 @@ const noFlashScript = `(function(){
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" data-theme="midnight">
+    <html lang="en" data-theme="midnight" suppressHydrationWarning>
       <head>
         <meta name="color-scheme" content="dark light" />
         {/* No-flash theme script — must run before any paint */}
