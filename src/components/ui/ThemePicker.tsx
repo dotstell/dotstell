@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { THEME_DEFS, type ThemeId } from '@/hooks/useTheme'
 
 interface Props {
@@ -10,92 +10,115 @@ interface Props {
 
 export function ThemePicker({ current, onSelect, collapsed }: Props) {
   const [open, setOpen] = useState(false)
+  const [popPos, setPopPos] = useState({ left: 8, bottom: 60 })
+  const btnRef = useRef<HTMLButtonElement>(null)
+  const currentDef = THEME_DEFS.find(t => t.id === current)
 
-  if (collapsed) {
-    return (
-      <div style={{ position: 'relative' }}>
-        <button
-          type="button"
-          title="Change theme"
-          onClick={() => setOpen(o => !o)}
-          style={{
-            width: '100%', height: 40, borderRadius: 8,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            background: 'none', border: '1px solid transparent',
-            cursor: 'pointer', transition: 'background 0.15s',
-          }}
-          onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.05)' }}
-          onMouseLeave={e => { e.currentTarget.style.background = 'none' }}
-        >
-          <ThemeDot color={THEME_DEFS.find(t => t.id === current)?.dot ?? 'var(--primary)'} size={14} />
-        </button>
-        {open && (
-          <Popover current={current} onSelect={t => { onSelect(t); setOpen(false) }} onClose={() => setOpen(false)} collapsed />
-        )}
-      </div>
-    )
+  function toggle() {
+    if (!open && btnRef.current) {
+      const r = btnRef.current.getBoundingClientRect()
+      setPopPos({
+        left:   collapsed ? r.right + 8 : r.left,
+        bottom: window.innerHeight - r.top + 4,
+      })
+    }
+    setOpen(o => !o)
   }
 
   return (
-    <div style={{ position: 'relative' }}>
+    <div>
       <button
+        ref={btnRef}
         type="button"
-        onClick={() => setOpen(o => !o)}
+        title="Change theme"
+        onClick={toggle}
         style={{
-          display: 'flex', alignItems: 'center', gap: 8,
-          padding: '7px 12px', width: '100%', borderRadius: 8,
+          display: 'flex', alignItems: 'center',
+          gap: collapsed ? 0 : 8,
+          justifyContent: collapsed ? 'center' : 'flex-start',
+          padding: collapsed ? '0' : '7px 12px',
+          width: '100%',
+          height: collapsed ? 40 : 'auto',
+          borderRadius: 8,
           border: 'none', background: 'none', cursor: 'pointer',
           color: 'var(--sidebar-muted)', fontSize: 12, fontWeight: 500,
           transition: 'background 0.15s, color 0.15s',
         }}
-        onMouseEnter={e => { e.currentTarget.style.background = 'var(--sidebar-hover-bg)'; e.currentTarget.style.color = 'var(--sidebar-hover-fg)' }}
-        onMouseLeave={e => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = 'var(--sidebar-muted)' }}
+        onMouseEnter={e => {
+          e.currentTarget.style.background = 'var(--sidebar-hover-bg)'
+          if (!collapsed) e.currentTarget.style.color = 'var(--sidebar-hover-fg)'
+        }}
+        onMouseLeave={e => {
+          e.currentTarget.style.background = 'none'
+          if (!collapsed) e.currentTarget.style.color = 'var(--sidebar-muted)'
+        }}
       >
-        <ThemeDot color={THEME_DEFS.find(t => t.id === current)?.dot ?? 'var(--primary)'} size={12} />
-        <span>{THEME_DEFS.find(t => t.id === current)?.label ?? 'Theme'}</span>
-        <span style={{ marginLeft: 'auto', fontSize: 10, opacity: 0.5 }}>▾</span>
+        <ThemeDot color={currentDef?.dot ?? 'var(--primary)'} size={collapsed ? 14 : 12} />
+        {!collapsed && (
+          <>
+            <span>{currentDef?.label ?? 'Theme'}</span>
+            <span style={{ marginLeft: 'auto', fontSize: 10, opacity: 0.5 }}>▾</span>
+          </>
+        )}
       </button>
+
       {open && (
-        <Popover current={current} onSelect={t => { onSelect(t); setOpen(false) }} onClose={() => setOpen(false)} />
+        <>
+          {/* Full-screen backdrop — position:fixed escapes sidebar overflow:hidden */}
+          <div style={{ position: 'fixed', inset: 0, zIndex: 1000 }} onClick={() => setOpen(false)} />
+
+          {/* Popover — also fixed so it escapes sidebar overflow:hidden */}
+          <div style={{
+            position: 'fixed',
+            left: popPos.left,
+            bottom: popPos.bottom,
+            zIndex: 1001,
+            minWidth: 200,
+            background: 'var(--popover)',
+            border: '1px solid var(--border)',
+            borderRadius: 10,
+            boxShadow: '0 8px 32px rgba(0,0,0,0.45)',
+            padding: '10px 8px',
+            display: 'flex', flexDirection: 'column', gap: 2,
+          }}>
+            <GroupLabel>Dark</GroupLabel>
+            {THEME_DEFS.filter(t => t.dark).map(t => (
+              <ThemeRow
+                key={t.id} theme={t} active={t.id === current}
+                onSelect={id => { onSelect(id); setOpen(false) }}
+              />
+            ))}
+            <GroupLabel>Light</GroupLabel>
+            {THEME_DEFS.filter(t => !t.dark).map(t => (
+              <ThemeRow
+                key={t.id} theme={t} active={t.id === current}
+                onSelect={id => { onSelect(id); setOpen(false) }}
+              />
+            ))}
+          </div>
+        </>
       )}
     </div>
   )
 }
 
-function Popover({ current, onSelect, onClose, collapsed }: { current: ThemeId; onSelect: (t: ThemeId) => void; onClose: () => void; collapsed?: boolean }) {
-  const dark  = THEME_DEFS.filter(t => t.dark)
-  const light = THEME_DEFS.filter(t => !t.dark)
-
-  const popStyle: React.CSSProperties = collapsed
-    ? { position: 'fixed', left: 68, bottom: 60, minWidth: 190 }
-    : { position: 'absolute', bottom: '110%', left: 0, right: 0, minWidth: 190 }
-
+function GroupLabel({ children }: { children: string }) {
   return (
-    <>
-      <div
-        style={{ position: 'fixed', inset: 0, zIndex: 99 }}
-        onClick={onClose}
-      />
-      <div style={{
-        ...popStyle,
-        zIndex: 100,
-        background: 'var(--popover)',
-        border: '1px solid var(--border)',
-        borderRadius: 10,
-        boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
-        padding: '10px 8px',
-        display: 'flex', flexDirection: 'column', gap: 2,
-      }}>
-        <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--muted-foreground)', letterSpacing: '0.08em', textTransform: 'uppercase', padding: '2px 8px 6px' }}>Dark</div>
-        {dark.map(t => <ThemeRow key={t.id} theme={t} active={t.id === current} onSelect={onSelect} />)}
-        <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--muted-foreground)', letterSpacing: '0.08em', textTransform: 'uppercase', padding: '8px 8px 6px' }}>Light</div>
-        {light.map(t => <ThemeRow key={t.id} theme={t} active={t.id === current} onSelect={onSelect} />)}
-      </div>
-    </>
+    <div style={{
+      fontSize: 10, fontWeight: 600, color: 'var(--muted-foreground)',
+      letterSpacing: '0.08em', textTransform: 'uppercase',
+      padding: '4px 8px 6px',
+    }}>
+      {children}
+    </div>
   )
 }
 
-function ThemeRow({ theme, active, onSelect }: { theme: typeof THEME_DEFS[0]; active: boolean; onSelect: (t: ThemeId) => void }) {
+function ThemeRow({ theme, active, onSelect }: {
+  theme: typeof THEME_DEFS[0]
+  active: boolean
+  onSelect: (t: ThemeId) => void
+}) {
   return (
     <button
       type="button"
@@ -103,18 +126,19 @@ function ThemeRow({ theme, active, onSelect }: { theme: typeof THEME_DEFS[0]; ac
       style={{
         display: 'flex', alignItems: 'center', gap: 9,
         padding: '6px 8px', borderRadius: 7, width: '100%',
-        border: active ? `1px solid ${theme.dot}44` : '1px solid transparent',
-        background: active ? `${theme.dot}18` : 'transparent',
+        border: active ? `1px solid ${theme.dot}55` : '1px solid transparent',
+        background: active ? `${theme.dot}22` : 'transparent',
         color: active ? 'var(--foreground)' : 'var(--muted-foreground)',
         fontSize: 12, fontWeight: active ? 600 : 400,
         cursor: 'pointer', transition: 'background 0.12s',
+        textAlign: 'left',
       }}
       onMouseEnter={e => { if (!active) e.currentTarget.style.background = 'var(--accent)' }}
       onMouseLeave={e => { if (!active) e.currentTarget.style.background = 'transparent' }}
     >
       <ThemeDot color={theme.dot} size={11} />
       {theme.label}
-      {active && <span style={{ marginLeft: 'auto', fontSize: 11 }}>✓</span>}
+      {active && <span style={{ marginLeft: 'auto', fontSize: 11, color: 'var(--primary)' }}>✓</span>}
     </button>
   )
 }
