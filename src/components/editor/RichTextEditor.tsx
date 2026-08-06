@@ -58,12 +58,51 @@ const HIGHLIGHT_COLORS = [
   { label: 'None',    value: '',                        dot: '' },
 ]
 
-const FONT_FAMILIES = [
-  { label: 'Default',    value: '' },
-  { label: 'Sans-serif', value: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' },
-  { label: 'Serif',      value: 'Georgia, "Times New Roman", serif' },
-  { label: 'Mono',       value: '"JetBrains Mono", "Fira Code", monospace' },
+type FontEntry = { label: string; value: string; preview?: string }
+type FontGroup = { group: string; fonts: FontEntry[] }
+
+const FONT_GROUPS: FontGroup[] = [
+  {
+    group: 'System',
+    fonts: [
+      { label: 'Default',    value: '',                                                          preview: 'Aa' },
+      { label: 'Inter',      value: '"Inter", sans-serif',                                       preview: 'Aa' },
+      { label: 'Nunito',     value: '"Nunito", sans-serif',                                      preview: 'Aa' },
+      { label: 'Poppins',    value: '"Poppins", sans-serif',                                     preview: 'Aa' },
+      { label: 'DM Sans',    value: '"DM Sans", sans-serif',                                     preview: 'Aa' },
+    ],
+  },
+  {
+    group: 'Serif',
+    fonts: [
+      { label: 'Georgia',           value: 'Georgia, serif',                                    preview: 'Aa' },
+      { label: 'Merriweather',      value: '"Merriweather", serif',                             preview: 'Aa' },
+      { label: 'Playfair Display',  value: '"Playfair Display", serif',                         preview: 'Aa' },
+      { label: 'Lora',              value: '"Lora", serif',                                     preview: 'Aa' },
+    ],
+  },
+  {
+    group: 'Monospace',
+    fonts: [
+      { label: 'JetBrains Mono', value: '"JetBrains Mono", monospace',                         preview: 'Aa' },
+      { label: 'Fira Code',      value: '"Fira Code", monospace',                              preview: 'Aa' },
+      { label: 'Source Code Pro',value: '"Source Code Pro", monospace',                        preview: 'Aa' },
+    ],
+  },
+  {
+    group: 'Handwritten',
+    fonts: [
+      { label: 'Caveat',               value: '"Caveat", cursive',                             preview: 'Aa' },
+      { label: 'Indie Flower',         value: '"Indie Flower", cursive',                       preview: 'Aa' },
+      { label: 'Kalam',                value: '"Kalam", cursive',                              preview: 'Aa' },
+      { label: 'Patrick Hand',         value: '"Patrick Hand", cursive',                       preview: 'Aa' },
+      { label: 'Architects Daughter',  value: '"Architects Daughter", cursive',                preview: 'Aa' },
+    ],
+  },
 ]
+
+// flat list for label lookup
+const FONT_FAMILIES_FLAT = FONT_GROUPS.flatMap(g => g.fonts)
 
 // ── Slash commands ───────────────────────────────────────────
 const SLASH_COMMANDS = [
@@ -617,43 +656,87 @@ function FontDropdown({ editor, open, setOpen, ref }: {
   editor: ReturnType<typeof useEditor>; open: boolean; setOpen: (v: boolean) => void; ref: React.RefObject<HTMLDivElement>
 }) {
   if (!editor) return null
-  const currentFont = editor.getAttributes('textStyle').fontFamily ?? ''
-  const currentLabel = FONT_FAMILIES.find(f => f.value === currentFont)?.label ?? 'Default'
+  const currentFont  = editor.getAttributes('textStyle').fontFamily ?? ''
+  const currentEntry = FONT_FAMILIES_FLAT.find(f => f.value === currentFont)
+  const currentLabel = currentEntry?.label ?? 'Font'
+
+  const GROUP_ICONS: Record<string, string> = {
+    System: '🔡', Serif: '📖', Monospace: '💻', Handwritten: '✍️',
+  }
 
   return (
     <div ref={ref} style={{ position: 'relative' }}>
       <button
         type="button"
         onClick={() => setOpen(!open)}
+        title="Font family"
         style={{
           display: 'flex', alignItems: 'center', gap: 4,
           padding: '4px 8px', borderRadius: 6, border: '1px solid #2a2a3e',
           backgroundColor: 'transparent', color: '#a0a0b8', fontSize: 12,
-          cursor: 'pointer', minWidth: 70, whiteSpace: 'nowrap',
+          cursor: 'pointer', minWidth: 76, whiteSpace: 'nowrap',
+          fontFamily: currentFont || 'inherit',
         }}
       >
-        {currentLabel} <ChevronDown size={11} />
+        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 72 }}>{currentLabel}</span>
+        <ChevronDown size={11} style={{ flexShrink: 0 }} />
       </button>
+
       {open && (
         <div style={{
           position: 'absolute', top: '100%', left: 0, zIndex: 200, marginTop: 4,
-          backgroundColor: '#12121a', border: '1px solid #2a2a3e',
-          borderRadius: 10, padding: 4, minWidth: 160,
-          boxShadow: '0 8px 28px rgba(0,0,0,0.5)',
+          backgroundColor: '#0e0e18', border: '1px solid #2a2a3e',
+          borderRadius: 12, padding: 6, width: 220,
+          boxShadow: '0 12px 36px rgba(0,0,0,0.7)',
+          maxHeight: 420, overflowY: 'auto',
         }}>
-          {FONT_FAMILIES.map(f => (
-            <button key={f.label} type="button" onClick={() => {
-              if (f.value) editor.chain().focus().setFontFamily(f.value).run()
-              else editor.chain().focus().unsetFontFamily().run()
-              setOpen(false)
-            }} style={{
-              width: '100%', padding: '7px 10px', borderRadius: 7, border: 'none',
-              backgroundColor: 'transparent', color: '#e8e8f0', cursor: 'pointer',
-              textAlign: 'left', fontSize: 13, fontFamily: f.value || 'inherit',
-            }}
-              onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'rgba(124,106,255,0.1)')}
-              onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
-            >{f.label}</button>
+          {FONT_GROUPS.map(group => (
+            <div key={group.group}>
+              {/* Group label */}
+              <p style={{
+                fontSize: 10, color: '#3a3a5e', margin: '6px 0 3px 8px',
+                textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 600,
+              }}>
+                {GROUP_ICONS[group.group]} {group.group}
+              </p>
+              {group.fonts.map(f => {
+                const isActive = currentFont === f.value
+                return (
+                  <button
+                    key={f.label}
+                    type="button"
+                    onClick={() => {
+                      if (f.value) editor.chain().focus().setFontFamily(f.value).run()
+                      else editor.chain().focus().unsetFontFamily().run()
+                      setOpen(false)
+                    }}
+                    style={{
+                      width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                      padding: '7px 10px', borderRadius: 8, border: 'none', cursor: 'pointer',
+                      backgroundColor: isActive ? 'rgba(124,106,255,0.15)' : 'transparent',
+                      textAlign: 'left',
+                    }}
+                    onMouseEnter={e => { if (!isActive) e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.05)' }}
+                    onMouseLeave={e => { if (!isActive) e.currentTarget.style.backgroundColor = 'transparent' }}
+                  >
+                    <span style={{
+                      fontSize: 13, color: isActive ? '#a594ff' : '#e8e8f0',
+                      fontFamily: f.value || 'inherit',
+                      fontWeight: isActive ? 600 : 400,
+                    }}>
+                      {f.label}
+                    </span>
+                    {/* Live preview of the font */}
+                    <span style={{
+                      fontSize: 12, color: '#6b6b88',
+                      fontFamily: f.value || 'inherit',
+                    }}>
+                      Aa
+                    </span>
+                  </button>
+                )
+              })}
+            </div>
           ))}
         </div>
       )}
