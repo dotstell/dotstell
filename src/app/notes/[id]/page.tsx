@@ -2,7 +2,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { use } from 'react'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, Tag, X, Maximize2, Minimize2, Layout } from 'lucide-react'
+import { ArrowLeft, Tag, X, Maximize2, Minimize2, Layout, Plus, FileText, ChevronRight } from 'lucide-react'
 import Link from 'next/link'
 import { toast } from 'sonner'
 import { Note } from '@/types'
@@ -26,22 +26,37 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
   const [focusMode, setFocusMode] = useState(false)
   const [showTemplates, setShowTemplates] = useState(isNew)
   const [noteId, setNoteId]       = useState<string | null>(isNew ? null : id)
+  const [subNotes, setSubNotes]   = useState<Note[]>([])
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  // Load existing note
+  // Load existing note + sub-notes
   useEffect(() => {
     if (isNew) return
-    fetch(`/api/notes/${id}`)
-      .then(r => r.ok ? r.json() : null)
-      .then(data => {
-        if (data) {
-          setNote({ ...data, content: data.content || '<p></p>' })
-          setShowTemplates(false)
-        }
-        setLoading(false)
-      })
-      .catch(() => setLoading(false))
+    Promise.all([
+      fetch(`/api/notes/${id}`).then(r => r.ok ? r.json() : null),
+      fetch(`/api/notes?parent_id=${id}`).then(r => r.ok ? r.json() : []),
+    ]).then(([data, subs]) => {
+      if (data) {
+        setNote({ ...data, content: data.content || '<p></p>' })
+        setShowTemplates(false)
+      }
+      setSubNotes(Array.isArray(subs) ? subs : [])
+      setLoading(false)
+    }).catch(() => setLoading(false))
   }, [id, isNew])
+
+  async function createSubNote() {
+    if (!noteId) return
+    const res = await fetch('/api/notes', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title: '', content: '<p></p>', type: 'markdown', tags: [], parent_id: noteId }),
+    })
+    if (res.ok) {
+      const sub = await res.json()
+      router.push(`/notes/${sub.id}`)
+    }
+  }
 
   // Auto-save — debounced 1.5s after last change
   const save = useCallback(async (data: Partial<Note>, currentId: string | null) => {
@@ -127,9 +142,19 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
         backgroundColor: '#0a0a0f', flexShrink: 0,
       }}>
         {!focusMode && (
-          <Link href="/notes" style={{ color: '#6b6b88', display: 'flex', alignItems: 'center', gap: 4, textDecoration: 'none', fontSize: 13, flexShrink: 0 }}>
-            <ArrowLeft size={14} /> Notes
-          </Link>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
+            <Link href="/notes" style={{ color: '#6b6b88', display: 'flex', alignItems: 'center', gap: 4, textDecoration: 'none', fontSize: 13 }}>
+              <ArrowLeft size={14} /> Notes
+            </Link>
+            {note.parent_id && (
+              <>
+                <ChevronRight size={12} color="#3a3a5e" />
+                <Link href={`/notes/${note.parent_id}`} style={{ color: '#6b6b88', textDecoration: 'none', fontSize: 13 }}>
+                  Parent
+                </Link>
+              </>
+            )}
+          </div>
         )}
 
         {/* Title */}
@@ -205,18 +230,74 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
           />
         </div>
 
-        {/* Right panel: links (only when saved) */}
+        {/* Right panel: links + sub-notes (only when saved) */}
         {!focusMode && noteId && (
           <div style={{
             width: 240, flexShrink: 0, borderLeft: '1px solid #2a2a3e',
             padding: 16, overflowY: 'auto', backgroundColor: '#0e0e16',
+            display: 'flex', flexDirection: 'column', gap: 20,
           }}>
             <LinkPanel sourceId={noteId} sourceType="note" />
+
+            {/* Sub-notes */}
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                <span style={{ fontSize: 11, fontWeight: 600, color: '#6b6b88', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Sub-notes</span>
+                <button type="button" onClick={createSubNote} title="New sub-note" style={{
+                  background: 'none', border: 'none', cursor: 'pointer', color: '#6b6b88', padding: 2, borderRadius: 5,
+                }}
+                  onMouseEnter={e => (e.currentTarget.style.color = '#7c6aff')}
+                  onMouseLeave={e => (e.currentTarget.style.color = '#6b6b88')}
+                >
+                  <Plus size={14} />
+                </button>
+              </div>
+              {subNotes.length === 0 ? (
+                <button type="button" onClick={createSubNote} style={{
+                  width: '100%', padding: '8px 10px', borderRadius: 8,
+                  border: '1px dashed #2a2a3e', background: 'none',
+                  color: '#3a3a5e', fontSize: 12, cursor: 'pointer', textAlign: 'center',
+                }}
+                  onMouseEnter={e => (e.currentTarget.style.borderColor = '#7c6aff44')}
+                  onMouseLeave={e => (e.currentTarget.style.borderColor = '#2a2a3e')}
+                >
+                  + Add sub-note
+                </button>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  {subNotes.map(sub => (
+                    <button key={sub.id} type="button" onClick={() => router.push(`/notes/${sub.id}`)} style={{
+                      display: 'flex', alignItems: 'center', gap: 8,
+                      padding: '7px 8px', borderRadius: 7, border: 'none',
+                      background: 'none', cursor: 'pointer', textAlign: 'left', width: '100%',
+                    }}
+                      onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.04)')}
+                      onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
+                    >
+                      <FileText size={12} color="#7c6aff" style={{ flexShrink: 0 }} />
+                      <span style={{ fontSize: 12, color: '#a0a0b8', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
+                        {sub.title || 'Untitled'}
+                      </span>
+                      <ChevronRight size={11} color="#3a3a5e" style={{ flexShrink: 0 }} />
+                    </button>
+                  ))}
+                  <button type="button" onClick={createSubNote} style={{
+                    marginTop: 2, padding: '5px 8px', borderRadius: 7, border: '1px dashed #2a2a3e',
+                    background: 'none', color: '#3a3a5e', fontSize: 11, cursor: 'pointer', textAlign: 'left',
+                  }}
+                    onMouseEnter={e => (e.currentTarget.style.borderColor = '#7c6aff44')}
+                    onMouseLeave={e => (e.currentTarget.style.borderColor = '#2a2a3e')}
+                  >
+                    + Add sub-note
+                  </button>
+                </div>
+              )}
+            </div>
 
             {/* Show templates button */}
             {isNew && !showTemplates && (
               <button type="button" onClick={() => setShowTemplates(true)} style={{
-                display: 'flex', alignItems: 'center', gap: 6, marginTop: 16,
+                display: 'flex', alignItems: 'center', gap: 6,
                 background: 'none', border: '1px solid #2a2a3e', borderRadius: 8,
                 padding: '7px 10px', color: '#6b6b88', fontSize: 12, cursor: 'pointer', width: '100%',
               }}>

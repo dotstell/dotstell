@@ -16,6 +16,7 @@ export interface Note {
   tags: string[]
   linked_items: LinkedItem[]
   person_id?: string | null
+  parent_id?: string | null
   created_at: string
   updated_at: string
 }
