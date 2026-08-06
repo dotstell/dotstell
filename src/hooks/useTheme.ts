@@ -2,25 +2,25 @@
 import { useEffect, useState } from 'react'
 
 export type ThemeId =
-  | 'midnight' | 'slate' | 'forest' | 'sunset' | 'ocean' | 'aurora'
-  | 'light' | 'rose'
+  | 'dracula' | 'one-dark' | 'tokyo-night' | 'nord' | 'solarized-dark' | 'catppuccin'
+  | 'solarized-light' | 'github-light'
 
 export const THEME_DEFS: { id: ThemeId; label: string; dot: string; dark: boolean }[] = [
-  { id: 'midnight', label: 'Midnight', dot: '#7c6aff', dark: true  },
-  { id: 'slate',    label: 'Slate',    dot: '#60a5fa', dark: true  },
-  { id: 'forest',   label: 'Forest',   dot: '#34d399', dark: true  },
-  { id: 'sunset',   label: 'Sunset',   dot: '#fb923c', dark: true  },
-  { id: 'ocean',    label: 'Ocean',    dot: '#22d3ee', dark: true  },
-  { id: 'aurora',   label: 'Aurora',   dot: '#d946ef', dark: true  },
-  { id: 'light',    label: 'Light',    dot: '#6c5ce7', dark: false },
-  { id: 'rose',     label: 'Rosé',     dot: '#e11d48', dark: false },
+  { id: 'dracula',        label: 'Dracula',        dot: '#bd93f9', dark: true  },
+  { id: 'one-dark',       label: 'One Dark',       dot: '#61afef', dark: true  },
+  { id: 'tokyo-night',    label: 'Tokyo Night',    dot: '#7aa2f7', dark: true  },
+  { id: 'nord',           label: 'Nord',           dot: '#88c0d0', dark: true  },
+  { id: 'solarized-dark', label: 'Solarized Dark', dot: '#268bd2', dark: true  },
+  { id: 'catppuccin',     label: 'Catppuccin',     dot: '#cba6f7', dark: true  },
+  { id: 'solarized-light',label: 'Solarized Light',dot: '#268bd2', dark: false },
+  { id: 'github-light',   label: 'GitHub Light',   dot: '#0969da', dark: false },
 ]
 
 const STORAGE_KEY = 'dotstell-theme'
 
 
 export function useTheme() {
-  const [theme, setThemeState] = useState<ThemeId>('midnight')
+  const [theme, setThemeState] = useState<ThemeId>('dracula')
 
   useEffect(() => {
     const saved = localStorage.getItem(STORAGE_KEY) as ThemeId
