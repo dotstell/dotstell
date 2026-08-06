@@ -127,7 +127,7 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
   if (loading) {
     return (
       <AppLayout>
-        <div style={{ padding: 32, color: '#6b6b88', fontSize: 13 }}>Loading...</div>
+        <div style={{ padding: 32, color: 'var(--muted-foreground)', fontSize: 13 }}>Loading...</div>
       </AppLayout>
     )
   }
@@ -138,18 +138,18 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
       {/* Header bar */}
       <div style={{
         display: 'flex', alignItems: 'center', gap: 12,
-        padding: '10px 20px', borderBottom: '1px solid #2a2a3e',
-        backgroundColor: '#0a0a0f', flexShrink: 0,
+        padding: '10px 20px', borderBottom: '1px solid var(--border)',
+        backgroundColor: 'var(--background)', flexShrink: 0,
       }}>
         {!focusMode && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
-            <Link href="/notes" style={{ color: '#6b6b88', display: 'flex', alignItems: 'center', gap: 4, textDecoration: 'none', fontSize: 13 }}>
+            <Link href="/notes" style={{ color: 'var(--muted-foreground)', display: 'flex', alignItems: 'center', gap: 4, textDecoration: 'none', fontSize: 13 }}>
               <ArrowLeft size={14} /> Notes
             </Link>
             {note.parent_id && (
               <>
-                <ChevronRight size={12} color="#3a3a5e" />
-                <Link href={`/notes/${note.parent_id}`} style={{ color: '#6b6b88', textDecoration: 'none', fontSize: 13 }}>
+                <ChevronRight size={12} color="var(--border)" />
+                <Link href={`/notes/${note.parent_id}`} style={{ color: 'var(--muted-foreground)', textDecoration: 'none', fontSize: 13 }}>
                   Parent
                 </Link>
               </>
@@ -164,7 +164,7 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
           placeholder="Untitled note..."
           style={{
             flex: 1, background: 'none', border: 'none', outline: 'none',
-            fontSize: 16, fontWeight: 600, color: '#e8e8f0',
+            fontSize: 16, fontWeight: 600, color: 'var(--foreground)',
             fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
           }}
         />
@@ -174,7 +174,7 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
           {note.tags?.map(tag => (
             <span key={tag} style={{
               display: 'flex', alignItems: 'center', gap: 4,
-              fontSize: 11, color: '#7c6aff', backgroundColor: '#7c6aff22',
+              fontSize: 11, color: 'var(--primary)', backgroundColor: 'var(--primary)22',
               padding: '2px 8px', borderRadius: 99, cursor: 'pointer',
             }} onClick={() => removeTag(tag)}>
               {tag} <X size={9} />
@@ -187,14 +187,14 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
             placeholder="+ tag"
             style={{
               background: 'none', border: 'none', outline: 'none',
-              fontSize: 12, color: '#6b6b88', width: 60,
+              fontSize: 12, color: 'var(--muted-foreground)', width: 60,
             }}
           />
         </div>
 
         {/* Focus mode toggle */}
         <button type="button" onClick={() => setFocusMode(f => !f)} style={{
-          background: 'none', border: 'none', color: '#6b6b88', cursor: 'pointer', padding: 4, borderRadius: 6, flexShrink: 0,
+          background: 'none', border: 'none', color: 'var(--muted-foreground)', cursor: 'pointer', padding: 4, borderRadius: 6, flexShrink: 0,
         }}
           title={focusMode ? 'Exit focus mode' : 'Focus mode (F11)'}
         >
@@ -208,7 +208,7 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
         {/* Template panel (new notes only) */}
         {showTemplates && isNew && (
           <div style={{
-            width: 180, flexShrink: 0, borderRight: '1px solid #2a2a3e',
+            width: 180, flexShrink: 0, borderRight: '1px solid var(--border)',
             padding: 14, overflowY: 'auto', backgroundColor: '#0e0e16',
           }}>
             <NoteTemplates onSelect={tmpl => {
@@ -233,7 +233,7 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
         {/* Right panel: links + sub-notes (only when saved) */}
         {!focusMode && noteId && (
           <div style={{
-            width: 240, flexShrink: 0, borderLeft: '1px solid #2a2a3e',
+            width: 240, flexShrink: 0, borderLeft: '1px solid var(--border)',
             padding: 16, overflowY: 'auto', backgroundColor: '#0e0e16',
             display: 'flex', flexDirection: 'column', gap: 20,
           }}>
@@ -242,12 +242,12 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
             {/* Sub-notes */}
             <div>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-                <span style={{ fontSize: 11, fontWeight: 600, color: '#6b6b88', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Sub-notes</span>
+                <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--muted-foreground)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Sub-notes</span>
                 <button type="button" onClick={createSubNote} title="New sub-note" style={{
-                  background: 'none', border: 'none', cursor: 'pointer', color: '#6b6b88', padding: 2, borderRadius: 5,
+                  background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted-foreground)', padding: 2, borderRadius: 5,
                 }}
-                  onMouseEnter={e => (e.currentTarget.style.color = '#7c6aff')}
-                  onMouseLeave={e => (e.currentTarget.style.color = '#6b6b88')}
+                  onMouseEnter={e => (e.currentTarget.style.color = 'var(--primary)')}
+                  onMouseLeave={e => (e.currentTarget.style.color = 'var(--muted-foreground)')}
                 >
                   <Plus size={14} />
                 </button>
@@ -255,11 +255,11 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
               {subNotes.length === 0 ? (
                 <button type="button" onClick={createSubNote} style={{
                   width: '100%', padding: '8px 10px', borderRadius: 8,
-                  border: '1px dashed #2a2a3e', background: 'none',
-                  color: '#3a3a5e', fontSize: 12, cursor: 'pointer', textAlign: 'center',
+                  border: '1px dashed var(--border)', background: 'none',
+                  color: 'var(--border)', fontSize: 12, cursor: 'pointer', textAlign: 'center',
                 }}
-                  onMouseEnter={e => (e.currentTarget.style.borderColor = '#7c6aff44')}
-                  onMouseLeave={e => (e.currentTarget.style.borderColor = '#2a2a3e')}
+                  onMouseEnter={e => (e.currentTarget.style.borderColor = 'var(--primary)44')}
+                  onMouseLeave={e => (e.currentTarget.style.borderColor = 'var(--border)')}
                 >
                   + Add sub-note
                 </button>
@@ -274,19 +274,19 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
                       onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.04)')}
                       onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
                     >
-                      <FileText size={12} color="#7c6aff" style={{ flexShrink: 0 }} />
-                      <span style={{ fontSize: 12, color: '#a0a0b8', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
+                      <FileText size={12} color="var(--primary)" style={{ flexShrink: 0 }} />
+                      <span style={{ fontSize: 12, color: 'var(--secondary-foreground)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
                         {sub.title || 'Untitled'}
                       </span>
-                      <ChevronRight size={11} color="#3a3a5e" style={{ flexShrink: 0 }} />
+                      <ChevronRight size={11} color="var(--border)" style={{ flexShrink: 0 }} />
                     </button>
                   ))}
                   <button type="button" onClick={createSubNote} style={{
-                    marginTop: 2, padding: '5px 8px', borderRadius: 7, border: '1px dashed #2a2a3e',
-                    background: 'none', color: '#3a3a5e', fontSize: 11, cursor: 'pointer', textAlign: 'left',
+                    marginTop: 2, padding: '5px 8px', borderRadius: 7, border: '1px dashed var(--border)',
+                    background: 'none', color: 'var(--border)', fontSize: 11, cursor: 'pointer', textAlign: 'left',
                   }}
-                    onMouseEnter={e => (e.currentTarget.style.borderColor = '#7c6aff44')}
-                    onMouseLeave={e => (e.currentTarget.style.borderColor = '#2a2a3e')}
+                    onMouseEnter={e => (e.currentTarget.style.borderColor = 'var(--primary)44')}
+                    onMouseLeave={e => (e.currentTarget.style.borderColor = 'var(--border)')}
                   >
                     + Add sub-note
                   </button>
@@ -298,8 +298,8 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
             {isNew && !showTemplates && (
               <button type="button" onClick={() => setShowTemplates(true)} style={{
                 display: 'flex', alignItems: 'center', gap: 6,
-                background: 'none', border: '1px solid #2a2a3e', borderRadius: 8,
-                padding: '7px 10px', color: '#6b6b88', fontSize: 12, cursor: 'pointer', width: '100%',
+                background: 'none', border: '1px solid var(--border)', borderRadius: 8,
+                padding: '7px 10px', color: 'var(--muted-foreground)', fontSize: 12, cursor: 'pointer', width: '100%',
               }}>
                 <Layout size={13} /> Change template
               </button>
@@ -313,7 +313,7 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
   if (focusMode) {
     return (
       <div style={{
-        position: 'fixed', inset: 0, backgroundColor: '#0a0a0f',
+        position: 'fixed', inset: 0, backgroundColor: 'var(--background)',
         zIndex: 100, display: 'flex', flexDirection: 'column',
       }}>
         {editorContent}
@@ -327,7 +327,7 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
         display: 'flex', flexDirection: 'column',
         height: '100vh',
         overflow: 'hidden',
-        backgroundColor: '#0a0a0f',
+        backgroundColor: 'var(--background)',
         marginTop: 0,
       }}>
         {editorContent}

@@ -7,20 +7,18 @@ import { formatRelative } from '@/lib/utils'
 
 const TYPE_ICON  = { plain: AlignLeft, markdown: FileText, checklist: CheckSquare }
 const TYPE_LABEL = { plain: 'Plain', markdown: 'Rich text', checklist: 'List' }
-const TYPE_COLOR = { plain: '#6b6b88', markdown: '#7c6aff', checklist: '#10b981' }
+const TYPE_COLOR = { plain: 'var(--muted-foreground)', markdown: 'var(--primary)', checklist: '#10b981' }
 
-/** Strip all HTML tags and decode basic entities → plain readable text */
 function htmlToText(html: string): string {
   return html
-    .replace(/<(h[1-6])[^>]*>(.*?)<\/\1>/gi, '$2 ')   // headings → text + space
-    .replace(/<li[^>]*>(.*?)<\/li>/gi, '• $1 ')         // list items → bullets
-    .replace(/<br\s*\/?>/gi, ' ')                        // line breaks → space
-    .replace(/<[^>]+>/g, '')                             // strip remaining tags
+    .replace(/<(h[1-6])[^>]*>(.*?)<\/\1>/gi, '$2 ')
+    .replace(/<li[^>]*>(.*?)<\/li>/gi, '• $1 ')
+    .replace(/<br\s*\/?>/gi, ' ')
+    .replace(/<[^>]+>/g, '')
     .replace(/&amp;/g, '&').replace(/&lt;/g, '<')
     .replace(/&gt;/g, '>').replace(/&quot;/g, '"')
     .replace(/&#039;/g, "'").replace(/&nbsp;/g, ' ')
-    .replace(/\s{2,}/g, ' ')                             // collapse whitespace
-    .trim()
+    .replace(/\s{2,}/g, ' ').trim()
 }
 
 interface NoteCardProps {
@@ -47,41 +45,46 @@ export function NoteCard({ note, onClick, onDelete }: NoteCardProps) {
     <div
       onClick={onClick}
       style={{
-        backgroundColor: '#12121a', border: '1px solid #2a2a3e',
+        backgroundColor: 'var(--card)', border: '1px solid var(--border)',
         borderRadius: 10, padding: '14px', cursor: 'pointer',
         transition: 'border-color 0.15s, background 0.15s',
         display: 'flex', flexDirection: 'column', gap: 8,
       }}
-      onMouseEnter={e => { e.currentTarget.style.borderColor = '#7c6aff44'; e.currentTarget.style.backgroundColor = '#13131e' }}
-      onMouseLeave={e => { e.currentTarget.style.borderColor = '#2a2a3e'; e.currentTarget.style.backgroundColor = '#12121a' }}
+      onMouseEnter={e => {
+        e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--primary) 30%, transparent)'
+        e.currentTarget.style.backgroundColor = 'var(--accent)'
+      }}
+      onMouseLeave={e => {
+        e.currentTarget.style.borderColor = 'var(--border)'
+        e.currentTarget.style.backgroundColor = 'var(--card)'
+      }}
       className="group"
     >
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 7, minWidth: 0 }}>
           <div style={{ width: 22, height: 22, borderRadius: 6, backgroundColor: color + '22', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-            <Icon size={12} color={color} />
+            <Icon size={12} style={{ color }} />
           </div>
-          <span style={{ fontSize: 13, fontWeight: 600, color: '#e8e8f0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--foreground)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {note.title || 'Untitled'}
           </span>
         </div>
         <Button
           variant="ghost" size="icon"
           className="opacity-0 group-hover:opacity-100 h-6 w-6 flex-shrink-0"
-          style={{ color: '#6b6b88' }}
+          style={{ color: 'var(--muted-foreground)' }}
           onClick={e => { e.stopPropagation(); onDelete(note.id) }}
-          onMouseEnter={e => { e.currentTarget.style.color = '#ef4444' }}
-          onMouseLeave={e => { e.currentTarget.style.color = '#6b6b88' }}
+          onMouseEnter={e => { e.currentTarget.style.color = 'var(--destructive)' }}
+          onMouseLeave={e => { e.currentTarget.style.color = 'var(--muted-foreground)' }}
         >
           <Trash2 size={12} />
         </Button>
       </div>
 
-      {/* Preview — clean readable text, no HTML */}
       {preview && (
         <p style={{
-          fontSize: 12, color: '#6b6b88', lineHeight: 1.55, margin: 0,
+          fontSize: 12, color: 'var(--muted-foreground)', lineHeight: 1.55, margin: 0,
           display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden',
         } as React.CSSProperties}>
           {preview}
@@ -98,15 +101,15 @@ export function NoteCard({ note, onClick, onDelete }: NoteCardProps) {
             <Badge key={tag} variant="secondary" className="text-xs">{tag}</Badge>
           ))}
           {note.tags.length > 2 && (
-            <span style={{ fontSize: 10, color: '#6b6b88' }}>+{note.tags.length - 2}</span>
+            <span style={{ fontSize: 10, color: 'var(--muted-foreground)' }}>+{note.tags.length - 2}</span>
           )}
           {(note.sub_notes_count ?? 0) > 0 && (
-            <span style={{ display: 'flex', alignItems: 'center', gap: 3, fontSize: 10, color: '#6b6b88', backgroundColor: '#1e1e2e', padding: '1px 6px', borderRadius: 99 }}>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 3, fontSize: 10, color: 'var(--muted-foreground)', backgroundColor: 'var(--muted)', padding: '1px 6px', borderRadius: 99 }}>
               <GitBranch size={9} /> {note.sub_notes_count}
             </span>
           )}
         </div>
-        <span style={{ fontSize: 11, color: '#6b6b88', flexShrink: 0 }}>{formatRelative(note.updated_at)}</span>
+        <span style={{ fontSize: 11, color: 'var(--muted-foreground)', flexShrink: 0 }}>{formatRelative(note.updated_at)}</span>
       </div>
     </div>
   )

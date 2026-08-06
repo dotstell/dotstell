@@ -27,7 +27,7 @@ export function ThemePicker({ current, onSelect, collapsed }: Props) {
           onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.05)' }}
           onMouseLeave={e => { e.currentTarget.style.background = 'none' }}
         >
-          <ThemeDot color={THEME_DEFS.find(t => t.id === current)?.dot ?? '#7c6aff'} size={14} />
+          <ThemeDot color={THEME_DEFS.find(t => t.id === current)?.dot ?? 'var(--primary)'} size={14} />
         </button>
         {open && (
           <Popover current={current} onSelect={t => { onSelect(t); setOpen(false) }} onClose={() => setOpen(false)} collapsed />
@@ -51,7 +51,7 @@ export function ThemePicker({ current, onSelect, collapsed }: Props) {
         onMouseEnter={e => { e.currentTarget.style.background = 'var(--sidebar-hover-bg)'; e.currentTarget.style.color = 'var(--sidebar-hover-fg)' }}
         onMouseLeave={e => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = 'var(--sidebar-muted)' }}
       >
-        <ThemeDot color={THEME_DEFS.find(t => t.id === current)?.dot ?? '#7c6aff'} size={12} />
+        <ThemeDot color={THEME_DEFS.find(t => t.id === current)?.dot ?? 'var(--primary)'} size={12} />
         <span>{THEME_DEFS.find(t => t.id === current)?.label ?? 'Theme'}</span>
         <span style={{ marginLeft: 'auto', fontSize: 10, opacity: 0.5 }}>▾</span>
       </button>

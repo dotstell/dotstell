@@ -5,7 +5,7 @@ import { formatRelative } from '@/lib/utils'
 
 const TYPE_ICON  = { plain: AlignLeft, markdown: FileText, checklist: CheckSquare }
 const TYPE_LABEL = { plain: 'Plain', markdown: 'Rich text', checklist: 'List' }
-const TYPE_COLOR = { plain: '#6b6b88', markdown: '#7c6aff', checklist: '#10b981' }
+const TYPE_COLOR = { plain: 'var(--muted-foreground)', markdown: 'var(--primary)', checklist: '#10b981' }
 
 function htmlToText(html: string): string {
   return html
@@ -39,7 +39,7 @@ export function NoteRow({ note, onClick, onDelete }: NoteRowProps) {
         backgroundColor: 'transparent',
       }}
       onMouseEnter={e => {
-        e.currentTarget.style.backgroundColor = '#12121a'
+        e.currentTarget.style.backgroundColor = 'var(--card)'
         const btn = e.currentTarget.querySelector<HTMLElement>('.delete-btn')
         if (btn) btn.style.opacity = '1'
       }}
@@ -49,64 +49,55 @@ export function NoteRow({ note, onClick, onDelete }: NoteRowProps) {
         if (btn) btn.style.opacity = '0'
       }}
     >
-      {/* Icon */}
-      <div style={{
-        width: 30, height: 30, borderRadius: 8, flexShrink: 0,
-        backgroundColor: color + '18', display: 'flex', alignItems: 'center', justifyContent: 'center',
-      }}>
-        <Icon size={14} color={color} />
+      <div style={{ width: 30, height: 30, borderRadius: 8, flexShrink: 0, backgroundColor: color + '18', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <Icon size={14} style={{ color }} />
       </div>
 
-      {/* Title + preview */}
       <div style={{ flex: 1, minWidth: 0 }}>
-        <p style={{ margin: 0, fontSize: 14, fontWeight: 500, color: '#e8e8f0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+        <p style={{ margin: 0, fontSize: 14, fontWeight: 500, color: 'var(--foreground)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {note.title || 'Untitled'}
         </p>
         {preview && (
-          <p style={{ margin: 0, fontSize: 12, color: '#6b6b88', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          <p style={{ margin: 0, fontSize: 12, color: 'var(--muted-foreground)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {preview}
           </p>
         )}
       </div>
 
-      {/* Tags + sub-note count */}
       <div style={{ display: 'flex', gap: 4, flexShrink: 0, alignItems: 'center' }}>
         {note.tags?.slice(0, 3).map(tag => (
-          <span key={tag} style={{ fontSize: 10, color: '#7c6aff', backgroundColor: '#7c6aff18', padding: '2px 7px', borderRadius: 99 }}>
+          <span key={tag} style={{ fontSize: 10, color: 'var(--primary)', backgroundColor: 'color-mix(in srgb, var(--primary) 12%, transparent)', padding: '2px 7px', borderRadius: 99 }}>
             {tag}
           </span>
         ))}
         {(note.tags?.length ?? 0) > 3 && (
-          <span style={{ fontSize: 10, color: '#6b6b88' }}>+{note.tags.length - 3}</span>
+          <span style={{ fontSize: 10, color: 'var(--muted-foreground)' }}>+{note.tags.length - 3}</span>
         )}
         {(note.sub_notes_count ?? 0) > 0 && (
-          <span style={{ display: 'flex', alignItems: 'center', gap: 3, fontSize: 10, color: '#6b6b88', backgroundColor: '#1e1e2e', padding: '2px 7px', borderRadius: 99 }}>
+          <span style={{ display: 'flex', alignItems: 'center', gap: 3, fontSize: 10, color: 'var(--muted-foreground)', backgroundColor: 'var(--muted)', padding: '2px 7px', borderRadius: 99 }}>
             <GitBranch size={9} /> {note.sub_notes_count}
           </span>
         )}
       </div>
 
-      {/* Type badge */}
       <span style={{ fontSize: 10, color, backgroundColor: color + '18', padding: '2px 8px', borderRadius: 99, flexShrink: 0 }}>
         {TYPE_LABEL[note.type]}
       </span>
 
-      {/* Date */}
-      <span style={{ fontSize: 11, color: '#6b6b88', flexShrink: 0, minWidth: 72, textAlign: 'right' }}>
+      <span style={{ fontSize: 11, color: 'var(--muted-foreground)', flexShrink: 0, minWidth: 72, textAlign: 'right' }}>
         {formatRelative(note.updated_at)}
       </span>
 
-      {/* Delete */}
       <button
         type="button"
         className="delete-btn"
         onClick={e => { e.stopPropagation(); onDelete(note.id) }}
         style={{
           opacity: 0, transition: 'opacity 0.15s', background: 'none', border: 'none',
-          cursor: 'pointer', color: '#6b6b88', padding: '2px', borderRadius: 5, flexShrink: 0,
+          cursor: 'pointer', color: 'var(--muted-foreground)', padding: '2px', borderRadius: 5, flexShrink: 0,
         }}
-        onMouseEnter={e => (e.currentTarget.style.color = '#ef4444')}
-        onMouseLeave={e => (e.currentTarget.style.color = '#6b6b88')}
+        onMouseEnter={e => (e.currentTarget.style.color = 'var(--destructive)')}
+        onMouseLeave={e => (e.currentTarget.style.color = 'var(--muted-foreground)')}
       >
         <Trash2 size={13} />
       </button>

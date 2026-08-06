@@ -14,13 +14,13 @@ import { useTaskReminders } from '@/hooks/useTaskReminders'
 import { PageContainer } from '@/components/layout/PageContainer'
 
 const PRIORITY_COLOR: Record<string, string> = { low: '#10b981', medium: '#f59e0b', high: '#ef4444' }
-const STATUS_COLOR:   Record<string, string> = { todo: '#6b6b88', in_progress: '#7c6aff', done: '#10b981' }
+const STATUS_COLOR:   Record<string, string> = { todo: 'var(--muted-foreground)', in_progress: 'var(--primary)', done: '#10b981' }
 const STATUS_ICON = {
-  todo:        <Circle      size={12} color="#6b6b88" />,
-  in_progress: <Timer       size={12} color="#7c6aff" />,
+  todo:        <Circle      size={12} color="var(--muted-foreground)" />,
+  in_progress: <Timer       size={12} color="var(--primary)" />,
   done:        <CheckCircle2 size={12} color="#10b981" />,
 }
-const NOTE_TYPE_COLOR: Record<string, string> = { markdown: '#7c6aff', plain: '#6b6b88', checklist: '#10b981' }
+const NOTE_TYPE_COLOR: Record<string, string> = { markdown: 'var(--primary)', plain: 'var(--muted-foreground)', checklist: '#10b981' }
 const NOTE_TYPE_LABEL: Record<string, string> = { markdown: 'Rich text', plain: 'Plain', checklist: 'Checklist' }
 
 // ── Tiny Sparkline (SVG) ─────────────────────────────────────
@@ -73,7 +73,7 @@ function buildActivity(
       action: 'edited note',
       href: `/notes/${n.id}`,
       time: n.updated_at,
-      color: '#7c6aff',
+      color: 'var(--primary)',
     })),
     ...bookmarks.slice(0, 4).map(b => ({
       id: b.id, type: 'bookmark' as const,
@@ -146,7 +146,7 @@ export default function DashboardPage() {
   const STATS = [
     {
       label: 'Notes',     count: notes.length,      icon: FileText,  href: '/notes',
-      color: '#7c6aff',   spark: buildSparkline(notes),
+      color: 'var(--primary)',   spark: buildSparkline(notes),
     },
     {
       label: 'People',    count: people.length,     icon: Users,     href: '/people',
@@ -158,7 +158,7 @@ export default function DashboardPage() {
     },
     {
       label: 'Open tasks',count: openTasks.length,  icon: CheckSquare, href: '/tasks',
-      color: overdueTasks.length > 0 ? '#ef4444' : '#a594ff',
+      color: overdueTasks.length > 0 ? '#ef4444' : 'var(--primary)',
       spark: buildSparkline(openTasks),
     },
   ]
@@ -169,8 +169,8 @@ export default function DashboardPage() {
 
         {/* ── Greeting ── */}
         <div style={{ marginBottom: 24 }}>
-          <h1 style={{ fontSize: 22, fontWeight: 700, color: '#e8e8f0', margin: 0 }}>{greeting} 👋</h1>
-          <p style={{ fontSize: 13, color: '#6b6b88', marginTop: 4 }}>
+          <h1 style={{ fontSize: 22, fontWeight: 700, color: 'var(--foreground)', margin: 0 }}>{greeting} 👋</h1>
+          <p style={{ fontSize: 13, color: 'var(--muted-foreground)', marginTop: 4 }}>
             {loading ? 'Loading your knowledge…' :
               `${openTasks.length} open task${openTasks.length !== 1 ? 's' : ''}${overdueTasks.length > 0 ? ` · ${overdueTasks.length} overdue` : ' · all on track'} · ${notes.length} notes · ${bookmarks.length} bookmarks`}
           </p>
@@ -199,13 +199,13 @@ export default function DashboardPage() {
           {STATS.map(({ label, count, icon: Icon, href, color, spark }) => (
             <Link key={label} href={href} style={{ textDecoration: 'none' }}>
               <div style={{
-                backgroundColor: '#12121a', border: '1px solid #2a2a3e',
+                backgroundColor: 'var(--card)', border: '1px solid var(--border)',
                 borderRadius: 12, padding: '16px 18px', cursor: 'pointer',
                 transition: 'border-color 0.15s, background 0.15s',
                 display: 'flex', flexDirection: 'column', gap: 12,
               }}
                 onMouseEnter={e => { e.currentTarget.style.borderColor = color + '55'; e.currentTarget.style.backgroundColor = '#14141f' }}
-                onMouseLeave={e => { e.currentTarget.style.borderColor = '#2a2a3e'; e.currentTarget.style.backgroundColor = '#12121a' }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.backgroundColor = 'var(--card)' }}
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                   <div style={{ width: 34, height: 34, borderRadius: 9, backgroundColor: color + '18', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -214,10 +214,10 @@ export default function DashboardPage() {
                   <Sparkline data={spark} color={color} />
                 </div>
                 <div>
-                  <p style={{ fontSize: 26, fontWeight: 800, color: '#e8e8f0', margin: 0, lineHeight: 1 }}>
+                  <p style={{ fontSize: 26, fontWeight: 800, color: 'var(--foreground)', margin: 0, lineHeight: 1 }}>
                     {loading ? '—' : count}
                   </p>
-                  <p style={{ fontSize: 12, color: '#6b6b88', margin: '4px 0 0' }}>{label}</p>
+                  <p style={{ fontSize: 12, color: 'var(--muted-foreground)', margin: '4px 0 0' }}>{label}</p>
                 </div>
               </div>
             </Link>
@@ -227,23 +227,23 @@ export default function DashboardPage() {
         {/* ── Task progress bar ── */}
         {!loading && tasks.length > 0 && (
           <div style={{
-            backgroundColor: '#12121a', border: '1px solid #2a2a3e',
+            backgroundColor: 'var(--card)', border: '1px solid var(--border)',
             borderRadius: 12, padding: '14px 20px', marginBottom: 24,
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <TrendingUp size={14} color="#7c6aff" />
-                <span style={{ fontSize: 13, fontWeight: 600, color: '#e8e8f0' }}>Task progress</span>
+                <TrendingUp size={14} color="var(--primary)" />
+                <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--foreground)' }}>Task progress</span>
               </div>
-              <span style={{ fontSize: 12, color: '#6b6b88' }}>{doneTasks.length}/{tasks.length} done · {progress}%</span>
+              <span style={{ fontSize: 12, color: 'var(--muted-foreground)' }}>{doneTasks.length}/{tasks.length} done · {progress}%</span>
             </div>
-            <div style={{ height: 5, backgroundColor: '#1e1e2e', borderRadius: 99, overflow: 'hidden' }}>
-              <div style={{ height: '100%', width: `${progress}%`, background: 'linear-gradient(90deg, #7c6aff, #10b981)', borderRadius: 99, transition: 'width 0.8s ease' }} />
+            <div style={{ height: 5, backgroundColor: 'var(--secondary)', borderRadius: 99, overflow: 'hidden' }}>
+              <div style={{ height: '100%', width: `${progress}%`, background: 'linear-gradient(90deg, var(--primary), #10b981)', borderRadius: 99, transition: 'width 0.8s ease' }} />
             </div>
             <div style={{ display: 'flex', gap: 20, marginTop: 10 }}>
               {[
-                { label: `${tasks.filter(t => t.status === 'todo').length} to do`,      color: '#6b6b88' },
-                { label: `${inProgress.length} in progress`,                             color: '#7c6aff' },
+                { label: `${tasks.filter(t => t.status === 'todo').length} to do`,      color: 'var(--muted-foreground)' },
+                { label: `${inProgress.length} in progress`,                             color: 'var(--primary)' },
                 { label: `${doneTasks.length} done`,                                     color: '#10b981' },
                 { label: `${overdueTasks.length} overdue`,                               color: '#ef4444' },
               ].map(({ label, color }) => (
@@ -259,7 +259,7 @@ export default function DashboardPage() {
           {/* Recent Notes */}
           <Panel
             title="Recent Notes"
-            icon={<FileText size={13} color="#7c6aff" />}
+            icon={<FileText size={13} color="var(--primary)" />}
             href="/notes"
             action="New note"
             actionHref="/notes/new"
@@ -271,7 +271,7 @@ export default function DashboardPage() {
                   onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.03)')}
                   onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
                 >
-                  <div style={{ width: 7, height: 7, borderRadius: '50%', backgroundColor: NOTE_TYPE_COLOR[note.type] ?? '#7c6aff', flexShrink: 0 }} />
+                  <div style={{ width: 7, height: 7, borderRadius: '50%', backgroundColor: NOTE_TYPE_COLOR[note.type] ?? 'var(--primary)', flexShrink: 0 }} />
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <p style={rowTitleStyle}>{note.title || 'Untitled'}</p>
                     <p style={rowSubStyle}>{NOTE_TYPE_LABEL[note.type] ?? note.type}</p>
@@ -284,7 +284,7 @@ export default function DashboardPage() {
           {/* Open Tasks */}
           <Panel
             title="Open Tasks"
-            icon={<CheckSquare size={13} color="#a594ff" />}
+            icon={<CheckSquare size={13} color="var(--primary)" />}
             href="/tasks"
             action="New task"
             actionHref="/tasks"
@@ -299,7 +299,7 @@ export default function DashboardPage() {
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <p style={rowTitleStyle}>{task.title}</p>
                       {task.due_date && (
-                        <p style={{ ...rowSubStyle, color: overdue ? '#ef4444' : '#6b6b88' }}>
+                        <p style={{ ...rowSubStyle, color: overdue ? '#ef4444' : 'var(--muted-foreground)' }}>
                           {overdue ? '⚠ ' : ''}Due {formatDate(task.due_date)}
                         </p>
                       )}
@@ -344,13 +344,13 @@ export default function DashboardPage() {
 
         {/* ── Activity feed ── */}
         {!loading && activity.length > 0 && (
-          <div style={{ backgroundColor: '#12121a', border: '1px solid #2a2a3e', borderRadius: 12, overflow: 'hidden', marginBottom: 24 }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', borderBottom: '1px solid #1e1e2e' }}>
+          <div style={{ backgroundColor: 'var(--card)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden', marginBottom: 24 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', borderBottom: '1px solid var(--secondary)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <Activity size={14} color="#6b6b88" />
-                <span style={{ fontSize: 13, fontWeight: 600, color: '#e8e8f0' }}>Recent activity</span>
+                <Activity size={14} color="var(--muted-foreground)" />
+                <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--foreground)' }}>Recent activity</span>
               </div>
-              <span style={{ fontSize: 11, color: '#3a3a5e' }}>Last 7 days</span>
+              <span style={{ fontSize: 11, color: 'var(--border)' }}>Last 7 days</span>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', padding: '8px' }}>
               {activity.map((item, idx) => (
@@ -387,25 +387,25 @@ export default function DashboardPage() {
 
         {/* ── Quick actions ── */}
         <div>
-          <p style={{ fontSize: 10, color: '#3a3a5e', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', margin: '0 0 10px', display: 'flex', alignItems: 'center', gap: 6 }}>
-            <Zap size={11} color="#3a3a5e" /> Quick actions
+          <p style={{ fontSize: 10, color: 'var(--border)', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', margin: '0 0 10px', display: 'flex', alignItems: 'center', gap: 6 }}>
+            <Zap size={11} color="var(--border)" /> Quick actions
           </p>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
             {[
-              { href: '/notes/new', icon: <FileText    size={13} />, label: 'New note',     color: '#7c6aff' },
+              { href: '/notes/new', icon: <FileText    size={13} />, label: 'New note',     color: 'var(--primary)' },
               { href: '/people',    icon: <Users        size={13} />, label: 'Add person',   color: '#10b981' },
-              { href: '/tasks',     icon: <CheckSquare  size={13} />, label: 'New task',     color: '#a594ff' },
+              { href: '/tasks',     icon: <CheckSquare  size={13} />, label: 'New task',     color: 'var(--primary)' },
               { href: '/bookmarks', icon: <Bookmark     size={13} />, label: 'Save bookmark',color: '#f59e0b' },
               { href: '/graph',     icon: <Activity     size={13} />, label: 'View graph',   color: '#22d3ee' },
             ].map(({ href, icon, label, color }) => (
               <Link key={href} href={href} style={{
                 display: 'flex', alignItems: 'center', gap: 7,
                 padding: '7px 14px', borderRadius: 8, textDecoration: 'none',
-                backgroundColor: '#12121a', border: '1px solid #2a2a3e',
-                fontSize: 12, color: '#a0a0b8', transition: 'all 0.15s',
+                backgroundColor: 'var(--card)', border: '1px solid var(--border)',
+                fontSize: 12, color: 'var(--secondary-foreground)', transition: 'all 0.15s',
               }}
                 onMouseEnter={e => { e.currentTarget.style.borderColor = color + '55'; e.currentTarget.style.color = color; e.currentTarget.style.backgroundColor = color + '0d' }}
-                onMouseLeave={e => { e.currentTarget.style.borderColor = '#2a2a3e'; e.currentTarget.style.color = '#a0a0b8'; e.currentTarget.style.backgroundColor = '#12121a' }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--secondary-foreground)'; e.currentTarget.style.backgroundColor = 'var(--card)' }}
               >
                 {icon} {label}
               </Link>
@@ -423,22 +423,22 @@ function Panel({ title, icon, href, action, actionHref, children }: {
   title: string; icon: React.ReactNode; href: string; action: string; actionHref: string; children: React.ReactNode
 }) {
   return (
-    <div style={{ backgroundColor: '#12121a', border: '1px solid #2a2a3e', borderRadius: 12, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 14px', borderBottom: '1px solid #1e1e2e', flexShrink: 0 }}>
+    <div style={{ backgroundColor: 'var(--card)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 14px', borderBottom: '1px solid var(--secondary)', flexShrink: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
           {icon}
-          <span style={{ fontSize: 13, fontWeight: 600, color: '#e8e8f0' }}>{title}</span>
+          <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--foreground)' }}>{title}</span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <Link href={actionHref} style={{ fontSize: 11, color: '#3a3a5e', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 3 }}
-            onMouseEnter={e => (e.currentTarget.style.color = '#7c6aff')}
-            onMouseLeave={e => (e.currentTarget.style.color = '#3a3a5e')}
+          <Link href={actionHref} style={{ fontSize: 11, color: 'var(--border)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 3 }}
+            onMouseEnter={e => (e.currentTarget.style.color = 'var(--primary)')}
+            onMouseLeave={e => (e.currentTarget.style.color = 'var(--border)')}
           >
             <Plus size={11} />
           </Link>
-          <Link href={href} style={{ fontSize: 11, color: '#3a3a5e', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 3 }}
-            onMouseEnter={e => (e.currentTarget.style.color = '#7c6aff')}
-            onMouseLeave={e => (e.currentTarget.style.color = '#3a3a5e')}
+          <Link href={href} style={{ fontSize: 11, color: 'var(--border)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 3 }}
+            onMouseEnter={e => (e.currentTarget.style.color = 'var(--primary)')}
+            onMouseLeave={e => (e.currentTarget.style.color = 'var(--border)')}
           >
             All <ArrowRight size={10} />
           </Link>
@@ -456,8 +456,8 @@ function PanelLoading() {
     <div style={{ padding: '12px 10px' }}>
       {[1, 2, 3].map(i => (
         <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 10 }}>
-          <div style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: '#1e1e2e' }} />
-          <div style={{ height: 11, borderRadius: 4, backgroundColor: '#1e1e2e', flex: 1, opacity: 1 - i * 0.2 }} />
+          <div style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: 'var(--secondary)' }} />
+          <div style={{ height: 11, borderRadius: 4, backgroundColor: 'var(--secondary)', flex: 1, opacity: 1 - i * 0.2 }} />
         </div>
       ))}
     </div>
@@ -468,7 +468,7 @@ function PanelEmpty({ icon, text }: { icon: string; text: string }) {
   return (
     <div style={{ padding: '24px 10px', textAlign: 'center' }}>
       <p style={{ fontSize: 20, margin: '0 0 4px' }}>{icon}</p>
-      <p style={{ fontSize: 12, color: '#3a3a5e', margin: 0 }}>{text}</p>
+      <p style={{ fontSize: 12, color: 'var(--border)', margin: 0 }}>{text}</p>
     </div>
   )
 }
@@ -484,7 +484,7 @@ const rowTitleStyle: React.CSSProperties = {
   overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
 }
 const rowSubStyle: React.CSSProperties = {
-  fontSize: 10, color: '#6b6b88', margin: '1px 0 0',
+  fontSize: 10, color: 'var(--muted-foreground)', margin: '1px 0 0',
 }
 const rowTimeStyle: React.CSSProperties = {
   fontSize: 10, color: '#4a4a6a', flexShrink: 0, marginLeft: 4,

@@ -115,8 +115,8 @@ export default function NotesPage() {
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
           <div>
-            <h1 style={{ fontSize: 20, fontWeight: 700, color: '#e8e8f0', margin: 0 }}>Notes</h1>
-            <p style={{ fontSize: 13, color: '#6b6b88', margin: '2px 0 0' }}>
+            <h1 style={{ fontSize: 20, fontWeight: 700, color: 'var(--foreground)', margin: 0 }}>Notes</h1>
+            <p style={{ fontSize: 13, color: 'var(--muted-foreground)', margin: '2px 0 0' }}>
               {sorted.length} {sorted.length === 1 ? 'note' : 'notes'}
             </p>
           </div>
@@ -130,7 +130,7 @@ export default function NotesPage() {
 
           {/* Search */}
           <div style={{ position: 'relative' }}>
-            <Search size={13} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: '#6b6b88', pointerEvents: 'none' }} />
+            <Search size={13} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--muted-foreground)', pointerEvents: 'none' }} />
             <Input placeholder="Search notes…" value={search} onChange={e => setSearch(e.target.value)} style={{ maxWidth: 220, paddingLeft: 30 }} />
           </div>
 
@@ -139,8 +139,8 @@ export default function NotesPage() {
             {TYPE_FILTERS.map(({ value, label }) => (
               <button key={value} type="button" onClick={() => setTypeFilter(value)} style={{
                 padding: '5px 12px', borderRadius: 20, border: 'none', fontSize: 12, cursor: 'pointer', transition: 'all 0.15s',
-                backgroundColor: typeFilter === value ? '#7c6aff' : '#1e1e2e',
-                color: typeFilter === value ? 'white' : '#6b6b88',
+                backgroundColor: typeFilter === value ? 'var(--primary)' : 'var(--secondary)',
+                color: typeFilter === value ? 'white' : 'var(--muted-foreground)',
                 fontWeight: typeFilter === value ? 600 : 400,
               }}>
                 {label}
@@ -154,9 +154,9 @@ export default function NotesPage() {
           <button type="button" onClick={() => setGroupMode(m => m === 'tag' ? 'none' : 'tag')} style={{
             display: 'flex', alignItems: 'center', gap: 6,
             padding: '5px 12px', borderRadius: 8, border: '1px solid',
-            borderColor: groupMode === 'tag' ? '#7c6aff' : '#2a2a3e',
+            borderColor: groupMode === 'tag' ? 'var(--primary)' : 'var(--border)',
             backgroundColor: groupMode === 'tag' ? 'rgba(124,106,255,0.12)' : 'transparent',
-            color: groupMode === 'tag' ? '#7c6aff' : '#6b6b88',
+            color: groupMode === 'tag' ? 'var(--primary)' : 'var(--muted-foreground)',
             fontSize: 12, cursor: 'pointer', transition: 'all 0.15s',
           }}>
             <Tag size={13} />
@@ -167,15 +167,15 @@ export default function NotesPage() {
           <div ref={sortRef} style={{ position: 'relative' }}>
             <button type="button" onClick={() => setSortOpen(o => !o)} style={{
               display: 'flex', alignItems: 'center', gap: 6,
-              padding: '5px 12px', borderRadius: 8, border: '1px solid #2a2a3e',
-              backgroundColor: 'transparent', color: '#6b6b88', fontSize: 12, cursor: 'pointer',
+              padding: '5px 12px', borderRadius: 8, border: '1px solid var(--border)',
+              backgroundColor: 'transparent', color: 'var(--muted-foreground)', fontSize: 12, cursor: 'pointer',
             }}>
               <ArrowDownUp size={13} /> {sortLabel} <ChevronDown size={11} />
             </button>
             {sortOpen && (
               <div style={{
                 position: 'absolute', top: '100%', right: 0, zIndex: 50, marginTop: 4,
-                backgroundColor: '#12121a', border: '1px solid #2a2a3e',
+                backgroundColor: 'var(--card)', border: '1px solid var(--border)',
                 borderRadius: 10, padding: 4, minWidth: 150,
                 boxShadow: '0 8px 28px rgba(0,0,0,0.5)',
               }}>
@@ -183,7 +183,7 @@ export default function NotesPage() {
                   <button key={opt.value} type="button" onClick={() => { setSortMode(opt.value); setSortOpen(false) }} style={{
                     width: '100%', padding: '7px 12px', borderRadius: 7, border: 'none', textAlign: 'left',
                     backgroundColor: sortMode === opt.value ? 'rgba(124,106,255,0.12)' : 'transparent',
-                    color: sortMode === opt.value ? '#7c6aff' : '#a0a0b8',
+                    color: sortMode === opt.value ? 'var(--primary)' : 'var(--secondary-foreground)',
                     fontSize: 13, cursor: 'pointer', fontWeight: sortMode === opt.value ? 600 : 400,
                   }}
                     onMouseEnter={e => { if (sortMode !== opt.value) e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.04)' }}
@@ -195,13 +195,13 @@ export default function NotesPage() {
           </div>
 
           {/* View toggle */}
-          <div style={{ display: 'flex', borderRadius: 8, border: '1px solid #2a2a3e', overflow: 'hidden' }}>
+          <div style={{ display: 'flex', borderRadius: 8, border: '1px solid var(--border)', overflow: 'hidden' }}>
             {(['grid', 'list'] as ViewMode[]).map(v => (
               <button key={v} type="button" onClick={() => setView(v)} title={`${v} view`} style={{
                 width: 32, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center',
                 border: 'none', cursor: 'pointer', transition: 'all 0.15s',
                 backgroundColor: view === v ? 'rgba(124,106,255,0.2)' : 'transparent',
-                color: view === v ? '#7c6aff' : '#6b6b88',
+                color: view === v ? 'var(--primary)' : 'var(--muted-foreground)',
               }}>
                 {v === 'grid' ? <LayoutGrid size={14} /> : <List size={14} />}
               </button>
@@ -211,7 +211,7 @@ export default function NotesPage() {
 
         {/* Content */}
         {loading ? (
-          <p style={{ color: '#6b6b88', fontSize: 13 }}>Loading…</p>
+          <p style={{ color: 'var(--muted-foreground)', fontSize: 13 }}>Loading…</p>
         ) : sorted.length === 0 ? (
           <EmptyState
             icon="📑"
@@ -232,15 +232,15 @@ export default function NotesPage() {
                     padding: '6px 2px', marginBottom: 8, textAlign: 'left',
                   }}>
                     {collapsed[group.key]
-                      ? <ChevronRight size={14} color="#6b6b88" />
-                      : <ChevronDown  size={14} color="#6b6b88" />}
+                      ? <ChevronRight size={14} color="var(--muted-foreground)" />
+                      : <ChevronDown  size={14} color="var(--muted-foreground)" />}
                     {group.key === '__untagged'
-                      ? <FolderOpen size={13} color="#6b6b88" />
-                      : <Tag size={12} color="#7c6aff" />}
-                    <span style={{ fontSize: 13, fontWeight: 600, color: group.key === '__untagged' ? '#6b6b88' : '#a594ff' }}>
+                      ? <FolderOpen size={13} color="var(--muted-foreground)" />
+                      : <Tag size={12} color="var(--primary)" />}
+                    <span style={{ fontSize: 13, fontWeight: 600, color: group.key === '__untagged' ? 'var(--muted-foreground)' : 'var(--primary)' }}>
                       {group.label}
                     </span>
-                    <span style={{ fontSize: 11, color: '#6b6b88', backgroundColor: '#1e1e2e', padding: '1px 7px', borderRadius: 99, fontWeight: 600 }}>
+                    <span style={{ fontSize: 11, color: 'var(--muted-foreground)', backgroundColor: 'var(--secondary)', padding: '1px 7px', borderRadius: 99, fontWeight: 600 }}>
                       {group.notes.length}
                     </span>
                   </button>

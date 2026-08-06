@@ -29,7 +29,7 @@ interface GLink {
 }
 
 const TYPE_COLOR: Record<string, string> = {
-  note: '#7c6aff', person: '#10b981', bookmark: '#f59e0b', task: '#ef4444',
+  note: 'var(--primary)', person: '#10b981', bookmark: '#f59e0b', task: '#ef4444',
 }
 const TYPE_EMOJI: Record<string, string> = {
   note: '📑', person: '👤', bookmark: '🔖', task: '✅',
@@ -43,7 +43,7 @@ const TYPE_HREF: Record<string, (id: string) => string> = {
 
 // ── Custom Node ──────────────────────────────────────────────
 function GraphNode({ data }: { data: { label: string; type: string; selected: boolean } }) {
-  const color = TYPE_COLOR[data.type] ?? '#7c6aff'
+  const color = TYPE_COLOR[data.type] ?? 'var(--primary)'
   return (
     <div style={{
       backgroundColor: data.selected ? color + '30' : color + '18',
@@ -58,7 +58,7 @@ function GraphNode({ data }: { data: { label: string; type: string; selected: bo
         <span style={{ fontSize: 10, color: color, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
           {TYPE_EMOJI[data.type]} {data.type}
         </span>
-        <span style={{ fontSize: 12, fontWeight: 600, color: '#e8e8f0', lineHeight: 1.3 }}>
+        <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--foreground)', lineHeight: 1.3 }}>
           {data.label || 'Untitled'}
         </span>
       </div>
@@ -72,19 +72,19 @@ function DeletableEdge({ id, sourceX, sourceY, targetX, targetY, sourcePosition,
   const [edgePath, labelX, labelY] = getBezierPath({ sourceX, sourceY, sourcePosition, targetX, targetY, targetPosition })
   return (
     <>
-      <BaseEdge id={id} path={edgePath} style={{ stroke: '#3a3a5e', strokeWidth: 1.5 }} markerEnd={`url(#arrow-${id})`} />
+      <BaseEdge id={id} path={edgePath} style={{ stroke: 'var(--border)', strokeWidth: 1.5 }} markerEnd={`url(#arrow-${id})`} />
       <foreignObject width={20} height={20} x={labelX - 10} y={labelY - 10} style={{ cursor: 'pointer', overflow: 'visible' }}>
         <div
           onClick={() => data?.onDelete(id)}
           title="Remove link"
           style={{
             width: 20, height: 20, borderRadius: '50%',
-            backgroundColor: '#1e1e2e', border: '1px solid #3a3a5e',
+            backgroundColor: 'var(--secondary)', border: '1px solid var(--border)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             cursor: 'pointer', opacity: 0.7,
           }}
           onMouseEnter={e => { e.currentTarget.style.opacity = '1'; e.currentTarget.style.borderColor = '#ef4444' }}
-          onMouseLeave={e => { e.currentTarget.style.opacity = '0.7'; e.currentTarget.style.borderColor = '#3a3a5e' }}
+          onMouseLeave={e => { e.currentTarget.style.opacity = '0.7'; e.currentTarget.style.borderColor = 'var(--border)' }}
         >
           <X size={10} color="#ef4444" />
         </div>
@@ -189,8 +189,8 @@ export default function GraphPage() {
           target: l.target_id,
           type: 'deletable',
           animated: true,
-          style: { stroke: '#3a3a5e', strokeWidth: 1.5 },
-          markerEnd: { type: MarkerType.ArrowClosed, color: '#3a3a5e', width: 16, height: 16 },
+          style: { stroke: 'var(--border)', strokeWidth: 1.5 },
+          markerEnd: { type: MarkerType.ArrowClosed, color: 'var(--border)', width: 16, height: 16 },
           data: { onDelete: handleDeleteEdge },
         }))
     )
@@ -265,13 +265,13 @@ export default function GraphPage() {
         <div style={{ padding: '20px 24px 0', flexShrink: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
             <div>
-              <h1 style={{ fontSize: 18, fontWeight: 700, color: '#e8e8f0', margin: 0 }}>Knowledge Graph</h1>
-              <p style={{ fontSize: 12, color: '#6b6b88', marginTop: 2 }}>
+              <h1 style={{ fontSize: 18, fontWeight: 700, color: 'var(--foreground)', margin: 0 }}>Knowledge Graph</h1>
+              <p style={{ fontSize: 12, color: 'var(--muted-foreground)', marginTop: 2 }}>
                 Drag from a node handle to another to create a link · Click a node to inspect it
               </p>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              <span style={{ fontSize: 12, color: '#6b6b88' }}>
+              <span style={{ fontSize: 12, color: 'var(--muted-foreground)' }}>
                 {nodes.length} nodes · {edges.length} links
               </span>
               <button
@@ -283,12 +283,12 @@ export default function GraphPage() {
                   setTimeout(() => setItems(prev => [...prev]), 0)
                 }}
                 style={{
-                  fontSize: 11, color: '#6b6b88', background: 'none',
-                  border: '1px solid #2a2a3e', borderRadius: 6,
+                  fontSize: 11, color: 'var(--muted-foreground)', background: 'none',
+                  border: '1px solid var(--border)', borderRadius: 6,
                   padding: '3px 10px', cursor: 'pointer',
                 }}
-                onMouseEnter={e => { e.currentTarget.style.color = '#e8e8f0'; e.currentTarget.style.borderColor = '#3a3a5e' }}
-                onMouseLeave={e => { e.currentTarget.style.color = '#6b6b88'; e.currentTarget.style.borderColor = '#2a2a3e' }}
+                onMouseEnter={e => { e.currentTarget.style.color = 'var(--foreground)'; e.currentTarget.style.borderColor = 'var(--border)' }}
+                onMouseLeave={e => { e.currentTarget.style.color = 'var(--muted-foreground)'; e.currentTarget.style.borderColor = 'var(--border)' }}
               >
                 Reset layout
               </button>
@@ -305,8 +305,8 @@ export default function GraphPage() {
                   display: 'flex', alignItems: 'center', gap: 5,
                   padding: '5px 12px', borderRadius: 20, border: 'none', cursor: 'pointer',
                   fontSize: 12, fontWeight: filter === type ? 600 : 400,
-                  backgroundColor: filter === type ? '#7c6aff' : '#1e1e2e',
-                  color: filter === type ? '#fff' : '#6b6b88',
+                  backgroundColor: filter === type ? 'var(--primary)' : 'var(--secondary)',
+                  color: filter === type ? '#fff' : 'var(--muted-foreground)',
                   transition: 'all 0.15s',
                 }}
               >
@@ -325,8 +325,8 @@ export default function GraphPage() {
               { key: 'Click node', desc: 'Inspect & navigate' },
               { key: 'Click × on edge', desc: 'Remove link' },
             ].map(({ key, desc }) => (
-              <span key={key} style={{ fontSize: 11, color: '#3a3a5e' }}>
-                <kbd style={{ backgroundColor: '#1e1e2e', border: '1px solid #2a2a3e', padding: '1px 6px', borderRadius: 4, color: '#6b6b88', fontSize: 10 }}>{key}</kbd>
+              <span key={key} style={{ fontSize: 11, color: 'var(--border)' }}>
+                <kbd style={{ backgroundColor: 'var(--secondary)', border: '1px solid var(--border)', padding: '1px 6px', borderRadius: 4, color: 'var(--muted-foreground)', fontSize: 10 }}>{key}</kbd>
                 {' '}{desc}
               </span>
             ))}
@@ -337,12 +337,12 @@ export default function GraphPage() {
         <div style={{ flex: 1, minHeight: 0, display: 'flex' }}>
           <div style={{ flex: 1, minWidth: 0 }}>
             {loading ? (
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#6b6b88' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--muted-foreground)' }}>
                 Loading graph...
               </div>
             ) : nodes.length === 0 ? (
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: 8 }}>
-                <p style={{ color: '#6b6b88' }}>No items yet — add notes, people, tasks or bookmarks</p>
+                <p style={{ color: 'var(--muted-foreground)' }}>No items yet — add notes, people, tasks or bookmarks</p>
               </div>
             ) : (
               <ReactFlow
@@ -360,12 +360,12 @@ export default function GraphPage() {
                 proOptions={{ hideAttribution: true }}
                 deleteKeyCode={null}
               >
-                <Background variant={BackgroundVariant.Dots} gap={20} size={1} color="#2a2a3e" />
-                <Controls style={{ backgroundColor: '#12121a', border: '1px solid #2a2a3e' }} />
+                <Background variant={BackgroundVariant.Dots} gap={20} size={1} color="var(--border)" />
+                <Controls style={{ backgroundColor: 'var(--card)', border: '1px solid var(--border)' }} />
                 <MiniMap
-                  nodeColor={node => TYPE_COLOR[(node.data as { type: string }).type] ?? '#7c6aff'}
+                  nodeColor={node => TYPE_COLOR[(node.data as { type: string }).type] ?? 'var(--primary)'}
                   maskColor="rgba(10,10,15,0.85)"
-                  style={{ backgroundColor: '#12121a', border: '1px solid #2a2a3e' }}
+                  style={{ backgroundColor: 'var(--card)', border: '1px solid var(--border)' }}
                 />
               </ReactFlow>
             )}
@@ -375,46 +375,46 @@ export default function GraphPage() {
           {selected && (
             <div style={{
               width: 280, flexShrink: 0,
-              backgroundColor: '#12121a',
-              borderLeft: '1px solid #2a2a3e',
+              backgroundColor: 'var(--card)',
+              borderLeft: '1px solid var(--border)',
               display: 'flex', flexDirection: 'column',
               overflow: 'hidden',
             }}>
               {/* Panel header */}
-              <div style={{ padding: '14px 16px', borderBottom: '1px solid #2a2a3e', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 }}>
+              <div style={{ padding: '14px 16px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 }}>
                 <div style={{ minWidth: 0 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-                    <div style={{ width: 24, height: 24, borderRadius: 6, backgroundColor: (TYPE_COLOR[selected.type] ?? '#7c6aff') + '22', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      {(() => { const Icon = TYPE_ICON[selected.type] ?? FileText; return <Icon size={13} color={TYPE_COLOR[selected.type] ?? '#7c6aff'} /> })()}
+                    <div style={{ width: 24, height: 24, borderRadius: 6, backgroundColor: (TYPE_COLOR[selected.type] ?? 'var(--primary)') + '22', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      {(() => { const Icon = TYPE_ICON[selected.type] ?? FileText; return <Icon size={13} color={TYPE_COLOR[selected.type] ?? 'var(--primary)'} /> })()}
                     </div>
-                    <span style={{ fontSize: 10, color: TYPE_COLOR[selected.type] ?? '#7c6aff', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                    <span style={{ fontSize: 10, color: TYPE_COLOR[selected.type] ?? 'var(--primary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
                       {selected.type}
                     </span>
                   </div>
-                  <p style={{ fontSize: 14, fontWeight: 600, color: '#e8e8f0', margin: 0, wordBreak: 'break-word' }}>{selected.title || 'Untitled'}</p>
+                  <p style={{ fontSize: 14, fontWeight: 600, color: 'var(--foreground)', margin: 0, wordBreak: 'break-word' }}>{selected.title || 'Untitled'}</p>
                   {selected.tags && selected.tags.length > 0 && (
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 6 }}>
                       {selected.tags.map(tag => (
-                        <span key={tag} style={{ fontSize: 10, backgroundColor: '#1e1e2e', color: '#6b6b88', padding: '1px 7px', borderRadius: 99 }}>{tag}</span>
+                        <span key={tag} style={{ fontSize: 10, backgroundColor: 'var(--secondary)', color: 'var(--muted-foreground)', padding: '1px 7px', borderRadius: 99 }}>{tag}</span>
                       ))}
                     </div>
                   )}
                 </div>
-                <button type="button" onClick={() => setSelected(null)} style={{ background: 'none', border: 'none', color: '#6b6b88', cursor: 'pointer', padding: 4, flexShrink: 0 }}>
+                <button type="button" onClick={() => setSelected(null)} style={{ background: 'none', border: 'none', color: 'var(--muted-foreground)', cursor: 'pointer', padding: 4, flexShrink: 0 }}>
                   <X size={14} />
                 </button>
               </div>
 
               {/* Open button */}
-              <div style={{ padding: '10px 16px', borderBottom: '1px solid #2a2a3e' }}>
+              <div style={{ padding: '10px 16px', borderBottom: '1px solid var(--border)' }}>
                 <a
                   href={TYPE_HREF[selected.type]?.(selected.id) ?? '/'}
                   style={{
                     display: 'flex', alignItems: 'center', gap: 6, justifyContent: 'center',
                     padding: '7px 12px', borderRadius: 8,
-                    backgroundColor: (TYPE_COLOR[selected.type] ?? '#7c6aff') + '22',
-                    border: `1px solid ${(TYPE_COLOR[selected.type] ?? '#7c6aff')}44`,
-                    color: TYPE_COLOR[selected.type] ?? '#7c6aff',
+                    backgroundColor: (TYPE_COLOR[selected.type] ?? 'var(--primary)') + '22',
+                    border: `1px solid ${(TYPE_COLOR[selected.type] ?? 'var(--primary)')}44`,
+                    color: TYPE_COLOR[selected.type] ?? 'var(--primary)',
                     textDecoration: 'none', fontSize: 13, fontWeight: 500,
                   }}
                 >
@@ -425,21 +425,21 @@ export default function GraphPage() {
               {/* Connections */}
               <div style={{ flex: 1, overflowY: 'auto', padding: '12px 16px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 }}>
-                  <Link2 size={13} color="#6b6b88" />
-                  <span style={{ fontSize: 11, fontWeight: 600, color: '#6b6b88', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+                  <Link2 size={13} color="var(--muted-foreground)" />
+                  <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--muted-foreground)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
                     Connections ({selectedLinks.outgoing.length + selectedLinks.incoming.length})
                   </span>
                 </div>
 
                 {selectedLinks.outgoing.length === 0 && selectedLinks.incoming.length === 0 && (
-                  <p style={{ fontSize: 12, color: '#3a3a5e', fontStyle: 'italic' }}>
+                  <p style={{ fontSize: 12, color: 'var(--border)', fontStyle: 'italic' }}>
                     No connections yet. Drag from the bottom handle to another node to create one.
                   </p>
                 )}
 
                 {selectedLinks.outgoing.length > 0 && (
                   <>
-                    <p style={{ fontSize: 10, color: '#3a3a5e', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 6px' }}>Links to</p>
+                    <p style={{ fontSize: 10, color: 'var(--border)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 6px' }}>Links to</p>
                     {selectedLinks.outgoing.map(({ id, other }) => other && (
                       <ConnectionItem key={id} item={other} onDelete={() => handleDeleteEdge(id)} />
                     ))}
@@ -448,7 +448,7 @@ export default function GraphPage() {
 
                 {selectedLinks.incoming.length > 0 && (
                   <>
-                    <p style={{ fontSize: 10, color: '#3a3a5e', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', margin: '12px 0 6px' }}>Linked from</p>
+                    <p style={{ fontSize: 10, color: 'var(--border)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', margin: '12px 0 6px' }}>Linked from</p>
                     {selectedLinks.incoming.map(({ id, other }) => other && (
                       <ConnectionItem key={id} item={other} onDelete={() => handleDeleteEdge(id)} />
                     ))}
@@ -465,20 +465,20 @@ export default function GraphPage() {
 
 function ConnectionItem({ item, onDelete }: { item: GraphItem; onDelete: () => void }) {
   const Icon  = TYPE_ICON[item.type] ?? FileText
-  const color = TYPE_COLOR[item.type] ?? '#7c6aff'
+  const color = TYPE_COLOR[item.type] ?? 'var(--primary)'
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 0', borderBottom: '1px solid #1e1e2e' }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 0', borderBottom: '1px solid var(--secondary)' }}>
       <div style={{ width: 24, height: 24, borderRadius: 6, backgroundColor: color + '20', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
         <Icon size={12} color={color} />
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
-        <p style={{ fontSize: 12, color: '#e8e8f0', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.title || 'Untitled'}</p>
-        <p style={{ fontSize: 10, color: '#6b6b88', margin: 0, textTransform: 'capitalize' }}>{item.type}</p>
+        <p style={{ fontSize: 12, color: 'var(--foreground)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.title || 'Untitled'}</p>
+        <p style={{ fontSize: 10, color: 'var(--muted-foreground)', margin: 0, textTransform: 'capitalize' }}>{item.type}</p>
       </div>
-      <button type="button" onClick={onDelete} style={{ background: 'none', border: 'none', color: '#6b6b88', cursor: 'pointer', padding: 3, flexShrink: 0, borderRadius: 4 }}
+      <button type="button" onClick={onDelete} style={{ background: 'none', border: 'none', color: 'var(--muted-foreground)', cursor: 'pointer', padding: 3, flexShrink: 0, borderRadius: 4 }}
         title="Remove link"
         onMouseEnter={e => { e.currentTarget.style.color = '#ef4444' }}
-        onMouseLeave={e => { e.currentTarget.style.color = '#6b6b88' }}
+        onMouseLeave={e => { e.currentTarget.style.color = 'var(--muted-foreground)' }}
       >
         <Trash2 size={12} />
       </button>

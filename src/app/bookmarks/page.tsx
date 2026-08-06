@@ -24,7 +24,7 @@ async function fetchMeta(url: string) {
 }
 
 // ── Domain colour map for visual variety ────────────────────
-const DOMAIN_COLORS = ['#7c6aff', '#10b981', '#f59e0b', '#ef4444', '#06b6d4', '#8b5cf6', '#ec4899', '#14b8a6']
+const DOMAIN_COLORS = ['var(--primary)', '#10b981', '#f59e0b', '#ef4444', '#06b6d4', '#8b5cf6', '#ec4899', '#14b8a6']
 function domainColor(hostname: string) {
   let hash = 0
   for (let i = 0; i < hostname.length; i++) hash = hostname.charCodeAt(i) + ((hash << 5) - hash)
@@ -405,20 +405,20 @@ export default function BookmarksPage() {
             display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}>
             <div style={{
-              backgroundColor: '#12121a', border: '1px solid #2a2a3e',
+              backgroundColor: 'var(--card)', border: '1px solid var(--border)',
               borderRadius: 16, padding: '32px 40px', minWidth: 320, textAlign: 'center',
               boxShadow: '0 24px 64px rgba(0,0,0,0.6)',
             }}>
               <div style={{ fontSize: 36, marginBottom: 16 }}>🗑️</div>
-              <h3 style={{ fontSize: 16, fontWeight: 700, color: '#e8e8f0', margin: '0 0 6px' }}>
+              <h3 style={{ fontSize: 16, fontWeight: 700, color: 'var(--foreground)', margin: '0 0 6px' }}>
                 Deleting bookmarks...
               </h3>
-              <p style={{ fontSize: 13, color: '#6b6b88', margin: '0 0 20px' }}>
+              <p style={{ fontSize: 13, color: 'var(--muted-foreground)', margin: '0 0 20px' }}>
                 {deleteProgress.done} of {deleteProgress.total} deleted
               </p>
 
               {/* Progress bar */}
-              <div style={{ height: 6, backgroundColor: '#1e1e2e', borderRadius: 99, overflow: 'hidden', marginBottom: 10 }}>
+              <div style={{ height: 6, backgroundColor: 'var(--secondary)', borderRadius: 99, overflow: 'hidden', marginBottom: 10 }}>
                 <div style={{
                   height: '100%', borderRadius: 99,
                   backgroundColor: '#ef4444',
@@ -426,7 +426,7 @@ export default function BookmarksPage() {
                   transition: 'width 0.3s ease',
                 }} />
               </div>
-              <p style={{ fontSize: 12, color: '#3a3a5e', margin: 0 }}>
+              <p style={{ fontSize: 12, color: 'var(--border)', margin: 0 }}>
                 {Math.round((deleteProgress.done / deleteProgress.total) * 100)}% complete
               </p>
             </div>
@@ -438,13 +438,13 @@ export default function BookmarksPage() {
           <div style={{
             position: 'fixed', inset: 0, zIndex: 500,
             backgroundColor: 'rgba(124,106,255,0.15)',
-            border: '3px dashed #7c6aff',
+            border: '3px dashed var(--primary)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             pointerEvents: 'none',
           }}>
             <div style={{ textAlign: 'center' }}>
               <div style={{ fontSize: 48, marginBottom: 12 }}>🔗</div>
-              <p style={{ fontSize: 20, fontWeight: 700, color: '#7c6aff' }}>Drop to save bookmark</p>
+              <p style={{ fontSize: 20, fontWeight: 700, color: 'var(--primary)' }}>Drop to save bookmark</p>
             </div>
           </div>
         )}
@@ -460,7 +460,7 @@ export default function BookmarksPage() {
               <Button
                 variant="outline" size="sm"
                 onClick={() => { setSelectMode(s => !s); setSelected(new Set()) }}
-                style={selectMode ? { borderColor: '#7c6aff', color: '#7c6aff', backgroundColor: '#7c6aff11' } : {}}
+                style={selectMode ? { borderColor: 'var(--primary)', color: 'var(--primary)', backgroundColor: 'var(--primary)11' } : {}}
               >
                 <CheckSquare size={14} /> {selectMode ? 'Cancel' : 'Select'}
               </Button>
@@ -480,20 +480,20 @@ export default function BookmarksPage() {
           <div style={{
             display: 'flex', alignItems: 'center', gap: 10,
             padding: '10px 14px', marginBottom: 14,
-            backgroundColor: '#1a1a28', border: '1px solid #3a3a5e',
+            backgroundColor: 'var(--muted)', border: '1px solid var(--border)',
             borderRadius: 10,
           }}>
             {/* Select all / none toggle */}
             <button type="button" onClick={selected.size === displayed.length ? selectNone : selectAll} style={{
               display: 'flex', alignItems: 'center', gap: 6,
               background: 'none', border: 'none', cursor: 'pointer',
-              color: '#a0a0b8', fontSize: 13,
+              color: 'var(--secondary-foreground)', fontSize: 13,
             }}>
               {selected.size === displayed.length
-                ? <CheckSquare size={15} color="#7c6aff" />
+                ? <CheckSquare size={15} color="var(--primary)" />
                 : selected.size > 0
-                  ? <CheckSquare size={15} color="#6b6b88" />
-                  : <Square size={15} color="#6b6b88" />}
+                  ? <CheckSquare size={15} color="var(--muted-foreground)" />
+                  : <Square size={15} color="var(--muted-foreground)" />}
               {selected.size === displayed.length ? 'Deselect all' : 'Select all'}
             </button>
 
@@ -501,14 +501,14 @@ export default function BookmarksPage() {
             {selected.size > 0 && (
               <span style={{
                 fontSize: 12, fontWeight: 600,
-                color: '#7c6aff', backgroundColor: '#7c6aff22',
+                color: 'var(--primary)', backgroundColor: 'var(--primary)22',
                 padding: '2px 10px', borderRadius: 99,
               }}>
                 {selected.size} of {displayed.length} selected
               </span>
             )}
             {selected.size === 0 && (
-              <span style={{ fontSize: 12, color: '#3a3a5e' }}>Click cards to select</span>
+              <span style={{ fontSize: 12, color: 'var(--border)' }}>Click cards to select</span>
             )}
 
             <div style={{ flex: 1 }} />
@@ -543,12 +543,12 @@ export default function BookmarksPage() {
                 style={{
                   display: 'flex', alignItems: 'center', gap: 6,
                   padding: '6px 14px', borderRadius: 8,
-                  backgroundColor: 'transparent', border: '1px solid #2a2a3e',
-                  color: '#6b6b88', fontSize: 13, cursor: 'pointer',
+                  backgroundColor: 'transparent', border: '1px solid var(--border)',
+                  color: 'var(--muted-foreground)', fontSize: 13, cursor: 'pointer',
                   transition: 'all 0.15s',
                 }}
                 onMouseEnter={e => { e.currentTarget.style.borderColor = '#ef444444'; e.currentTarget.style.color = '#ef4444' }}
-                onMouseLeave={e => { e.currentTarget.style.borderColor = '#2a2a3e'; e.currentTarget.style.color = '#6b6b88' }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--muted-foreground)' }}
               >
                 <Trash2 size={14} /> Delete all {displayed.length}
               </button>
@@ -572,12 +572,12 @@ export default function BookmarksPage() {
                       ✓ {importResult.imported} new bookmark{importResult.imported !== 1 ? 's' : ''} imported
                     </span>
                   ) : (
-                    <span style={{ fontSize: 13, color: '#7c6aff', fontWeight: 600 }}>
+                    <span style={{ fontSize: 13, color: 'var(--primary)', fontWeight: 600 }}>
                       ℹ No new bookmarks to import
                     </span>
                   )}
                   {importResult.duplicates > 0 && (
-                    <span style={{ fontSize: 13, color: '#6b6b88' }}>
+                    <span style={{ fontSize: 13, color: 'var(--muted-foreground)' }}>
                       · {importResult.duplicates} already in your library
                     </span>
                   )}
@@ -595,7 +595,7 @@ export default function BookmarksPage() {
                 </div>
 
                 {/* Debug: counts */}
-                <div style={{ fontSize: 11, color: '#3a3a5e', marginBottom: importResult.skipped_invalid > 0 ? 6 : 0 }}>
+                <div style={{ fontSize: 11, color: 'var(--border)', marginBottom: importResult.skipped_invalid > 0 ? 6 : 0 }}>
                   {importResult.total_in_file} links in file
                   {importResult.in_file_duplicates > 0 && ` · ${importResult.in_file_duplicates} duplicate URLs within file (merged tags)`}
                   {` · ${importResult.existing_in_db} already in your library`}
@@ -604,11 +604,11 @@ export default function BookmarksPage() {
                 {/* Skip reasons */}
                 {importResult.skipped_invalid > 0 && Object.keys(importResult.skip_reasons).length > 0 && (
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
-                    <span style={{ fontSize: 11, color: '#6b6b88' }}>Skipped:</span>
+                    <span style={{ fontSize: 11, color: 'var(--muted-foreground)' }}>Skipped:</span>
                     {Object.entries(importResult.skip_reasons).map(([reason, count]) => (
                       <span key={reason} style={{
-                        fontSize: 11, color: '#6b6b88',
-                        backgroundColor: '#1e1e2e', border: '1px solid #2a2a3e',
+                        fontSize: 11, color: 'var(--muted-foreground)',
+                        backgroundColor: 'var(--secondary)', border: '1px solid var(--border)',
                         padding: '1px 8px', borderRadius: 99,
                       }}>
                         {reason}: {count}
@@ -619,8 +619,8 @@ export default function BookmarksPage() {
 
                 {/* Force re-import option when 0 imported but there were duplicates */}
                 {importResult.imported === 0 && importResult.duplicates > 0 && lastImportHtml && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, paddingTop: 6, borderTop: '1px solid #2a2a3e' }}>
-                    <span style={{ fontSize: 12, color: '#6b6b88' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, paddingTop: 6, borderTop: '1px solid var(--border)' }}>
+                    <span style={{ fontSize: 12, color: 'var(--muted-foreground)' }}>
                       Expected new bookmarks but got none?
                     </span>
                     <button
@@ -628,8 +628,8 @@ export default function BookmarksPage() {
                       onClick={() => runImport(lastImportHtml, true)}
                       disabled={importing}
                       style={{
-                        fontSize: 12, color: '#7c6aff', fontWeight: 600,
-                        background: 'none', border: '1px solid #7c6aff44',
+                        fontSize: 12, color: 'var(--primary)', fontWeight: 600,
+                        background: 'none', border: '1px solid var(--primary)44',
                         borderRadius: 6, padding: '3px 10px', cursor: 'pointer',
                       }}
                     >
@@ -638,7 +638,7 @@ export default function BookmarksPage() {
                   </div>
                 )}
               </div>
-              <button type="button" onClick={() => setImportResult(null)} style={{ background: 'none', border: 'none', color: '#6b6b88', cursor: 'pointer', flexShrink: 0 }}>
+              <button type="button" onClick={() => setImportResult(null)} style={{ background: 'none', border: 'none', color: 'var(--muted-foreground)', cursor: 'pointer', flexShrink: 0 }}>
                 <X size={14} />
               </button>
             </div>
@@ -649,12 +649,12 @@ export default function BookmarksPage() {
         <form onSubmit={handleQuickCapture} style={{ marginBottom: 12 }}>
           <div style={{
             display: 'flex', alignItems: 'center', gap: 0,
-            backgroundColor: '#12121a',
-            border: dragging ? '2px solid #7c6aff' : '2px solid #3a3a5e',
+            backgroundColor: 'var(--card)',
+            border: dragging ? '2px solid var(--primary)' : '2px solid var(--border)',
             borderRadius: 12, overflow: 'hidden',
             transition: 'border-color 0.15s',
           }}>
-            <div style={{ padding: '0 14px', color: '#6b6b88', flexShrink: 0 }}>
+            <div style={{ padding: '0 14px', color: 'var(--muted-foreground)', flexShrink: 0 }}>
               <Link2 size={16} />
             </div>
             <input
@@ -664,27 +664,27 @@ export default function BookmarksPage() {
               placeholder="Paste a URL and press Enter to save instantly..."
               style={{
                 flex: 1, padding: '14px 0', background: 'none', border: 'none',
-                outline: 'none', fontSize: 14, color: '#e8e8f0',
+                outline: 'none', fontSize: 14, color: 'var(--foreground)',
                 fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
               }}
-              onFocus={e => { e.currentTarget.closest('div')!.style.borderColor = '#7c6aff' }}
-              onBlur={e => { e.currentTarget.closest('div')!.style.borderColor = dragging ? '#7c6aff' : '#3a3a5e' }}
+              onFocus={e => { e.currentTarget.closest('div')!.style.borderColor = 'var(--primary)' }}
+              onBlur={e => { e.currentTarget.closest('div')!.style.borderColor = dragging ? 'var(--primary)' : 'var(--border)' }}
             />
             {captureFetching ? (
-              <div style={{ padding: '0 16px', color: '#6b6b88', fontSize: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
-                <div style={{ width: 14, height: 14, border: '2px solid #3a3a5e', borderTopColor: '#7c6aff', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />
+              <div style={{ padding: '0 16px', color: 'var(--muted-foreground)', fontSize: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
+                <div style={{ width: 14, height: 14, border: '2px solid var(--border)', borderTopColor: 'var(--primary)', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />
                 Fetching...
               </div>
             ) : captureUrl ? (
               <button type="submit" style={{
-                padding: '10px 18px', backgroundColor: '#7c6aff', border: 'none',
+                padding: '10px 18px', backgroundColor: 'var(--primary)', border: 'none',
                 color: 'white', fontSize: 13, fontWeight: 600, cursor: 'pointer',
                 borderRadius: '0 10px 10px 0',
               }}>
                 Save ↵
               </button>
             ) : (
-              <div style={{ padding: '0 16px', display: 'flex', alignItems: 'center', gap: 6, color: '#3a3a5e', fontSize: 12 }}>
+              <div style={{ padding: '0 16px', display: 'flex', alignItems: 'center', gap: 6, color: 'var(--border)', fontSize: 12 }}>
                 <span>or</span>
               </div>
             )}
@@ -704,7 +704,7 @@ export default function BookmarksPage() {
           return (
             <div style={{ marginBottom: 20 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
-                <span style={{ fontSize: 11, fontWeight: 600, color: '#3a3a5e', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+                <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--border)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
                   Recently visited
                 </span>
               </div>
@@ -722,7 +722,7 @@ export default function BookmarksPage() {
                       style={{
                         display: 'flex', alignItems: 'center', gap: 8,
                         padding: '7px 12px', borderRadius: 20, textDecoration: 'none',
-                        backgroundColor: '#12121a', border: `1px solid ${color}33`,
+                        backgroundColor: 'var(--card)', border: `1px solid ${color}33`,
                         maxWidth: 220, transition: 'border-color 0.15s',
                       }}
                       onMouseEnter={e => (e.currentTarget.style.borderColor = color + '88')}
@@ -736,10 +736,10 @@ export default function BookmarksPage() {
                           <span style={{ fontSize: 8, color: 'white', fontWeight: 700 }}>{hostname.charAt(0).toUpperCase()}</span>
                         </div>
                       )}
-                      <span style={{ fontSize: 12, color: '#e8e8f0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      <span style={{ fontSize: 12, color: 'var(--foreground)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                         {bm.title}
                       </span>
-                      <span style={{ fontSize: 10, color: '#3a3a5e', flexShrink: 0 }}>{formatRelative(bm.last_visited_at!)}</span>
+                      <span style={{ fontSize: 10, color: 'var(--border)', flexShrink: 0 }}>{formatRelative(bm.last_visited_at!)}</span>
                     </a>
                   )
                 })}
@@ -751,7 +751,7 @@ export default function BookmarksPage() {
         {/* Search + filters + view toggle */}
         <div style={{ display: 'flex', gap: 10, marginBottom: 14, flexWrap: 'wrap', alignItems: 'center' }}>
           <div style={{ position: 'relative', flex: '0 0 260px' }}>
-            <Search size={14} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: '#6b6b88' }} />
+            <Search size={14} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--muted-foreground)' }} />
             <Input placeholder="Search bookmarks..." value={search} onChange={e => setSearch(e.target.value)} style={{ paddingLeft: 32 }} />
           </div>
 
@@ -783,21 +783,21 @@ export default function BookmarksPage() {
                     display: 'flex', alignItems: 'center', gap: 4,
                     padding: '4px 10px', borderRadius: 20, fontSize: 12,
                     cursor: 'pointer', transition: 'all 0.15s',
-                    border: active ? '1px solid #7c6aff' : '1px solid #2a2a3e',
-                    backgroundColor: active ? '#7c6aff22' : 'transparent',
-                    color: active ? '#7c6aff' : '#6b6b88',
+                    border: active ? '1px solid var(--primary)' : '1px solid var(--border)',
+                    backgroundColor: active ? 'var(--primary)22' : 'transparent',
+                    color: active ? 'var(--primary)' : 'var(--muted-foreground)',
                     fontWeight: active ? 600 : 400,
                   }}
                   onMouseEnter={e => {
                     if (!active) {
-                      e.currentTarget.style.borderColor = '#7c6aff55'
-                      e.currentTarget.style.color = '#e8e8f0'
+                      e.currentTarget.style.borderColor = 'var(--primary)55'
+                      e.currentTarget.style.color = 'var(--foreground)'
                     }
                   }}
                   onMouseLeave={e => {
                     if (!active) {
-                      e.currentTarget.style.borderColor = '#2a2a3e'
-                      e.currentTarget.style.color = '#6b6b88'
+                      e.currentTarget.style.borderColor = 'var(--border)'
+                      e.currentTarget.style.color = 'var(--muted-foreground)'
                     }
                   }}
                 >
@@ -815,12 +815,12 @@ export default function BookmarksPage() {
                   display: 'flex', alignItems: 'center', gap: 4,
                   padding: '4px 10px', borderRadius: 20, fontSize: 12,
                   cursor: 'pointer', transition: 'all 0.15s',
-                  border: '1px dashed #3a3a5e',
+                  border: '1px dashed var(--border)',
                   backgroundColor: 'transparent',
-                  color: '#6b6b88',
+                  color: 'var(--muted-foreground)',
                 }}
-                onMouseEnter={e => { e.currentTarget.style.borderColor = '#7c6aff55'; e.currentTarget.style.color = '#7c6aff' }}
-                onMouseLeave={e => { e.currentTarget.style.borderColor = '#3a3a5e'; e.currentTarget.style.color = '#6b6b88' }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--primary)55'; e.currentTarget.style.color = 'var(--primary)' }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--muted-foreground)' }}
               >
                 {showAllTags
                   ? <><ChevronRight size={10} style={{ rotate: '270deg' }} /> Show less</>
@@ -832,14 +832,14 @@ export default function BookmarksPage() {
 
           {/* View toggle + count */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
-            <span style={{ fontSize: 12, color: '#6b6b88' }}>{displayed.length} saved</span>
-            <div style={{ display: 'flex', gap: 2, backgroundColor: '#1e1e2e', borderRadius: 8, padding: 3 }}>
+            <span style={{ fontSize: 12, color: 'var(--muted-foreground)' }}>{displayed.length} saved</span>
+            <div style={{ display: 'flex', gap: 2, backgroundColor: 'var(--secondary)', borderRadius: 8, padding: 3 }}>
               {([['list', LayoutList, 'List'], ['collections', Layers, 'Collections']] as const).map(([mode, Icon, label]) => (
                 <button key={mode} type="button" onClick={() => setAndPersistViewMode(mode)} style={{
                   display: 'flex', alignItems: 'center', gap: 5,
                   padding: '5px 10px', borderRadius: 6, border: 'none', cursor: 'pointer',
-                  backgroundColor: viewMode === mode ? '#7c6aff' : 'transparent',
-                  color: viewMode === mode ? 'white' : '#6b6b88',
+                  backgroundColor: viewMode === mode ? 'var(--primary)' : 'transparent',
+                  color: viewMode === mode ? 'white' : 'var(--muted-foreground)',
                   fontSize: 12, fontWeight: viewMode === mode ? 600 : 400,
                   transition: 'all 0.15s',
                 }}>
@@ -852,7 +852,7 @@ export default function BookmarksPage() {
 
         {/* Content */}
         {loading ? (
-          <p style={{ color: '#6b6b88', fontSize: 13 }}>Loading...</p>
+          <p style={{ color: 'var(--muted-foreground)', fontSize: 13 }}>Loading...</p>
         ) : displayed.length === 0 ? (
           search || tagFilter ? (
             <EmptyState icon="🔖" title="No results" description="Try a different search or tag." />
@@ -897,7 +897,7 @@ export default function BookmarksPage() {
         <DialogContent className="max-w-xl">
           <DialogHeader>
             <DialogTitle style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <Settings2 size={16} color="#7c6aff" /> Manage Tags
+              <Settings2 size={16} color="var(--primary)" /> Manage Tags
             </DialogTitle>
           </DialogHeader>
 
@@ -933,22 +933,22 @@ export default function BookmarksPage() {
 
             return (
               <>
-                <div style={{ fontSize: 13, color: '#6b6b88', marginBottom: 10 }}>
+                <div style={{ fontSize: 13, color: 'var(--muted-foreground)', marginBottom: 10 }}>
                   {tagMeta.size} tags across {bookmarks.length} bookmarks
                 </div>
 
                 {/* Search + Sort */}
                 <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
                   <div style={{ position: 'relative', flex: 1 }}>
-                    <Search size={13} style={{ position: 'absolute', left: 9, top: '50%', transform: 'translateY(-50%)', color: '#6b6b88' }} />
+                    <Search size={13} style={{ position: 'absolute', left: 9, top: '50%', transform: 'translateY(-50%)', color: 'var(--muted-foreground)' }} />
                     <input
                       value={tagSearch}
                       onChange={e => setTagSearch(e.target.value)}
                       placeholder="Search tags..."
                       style={{
                         width: '100%', padding: '7px 10px 7px 28px', borderRadius: 8,
-                        border: '1px solid #2a2a3e', backgroundColor: '#1a1a28',
-                        color: '#e8e8f0', fontSize: 13, outline: 'none',
+                        border: '1px solid var(--border)', backgroundColor: 'var(--muted)',
+                        color: 'var(--foreground)', fontSize: 13, outline: 'none',
                       }}
                     />
                   </div>
@@ -956,8 +956,8 @@ export default function BookmarksPage() {
                     value={tagSort}
                     onChange={e => setTagSort(e.target.value as typeof tagSort)}
                     style={{
-                      padding: '7px 10px', borderRadius: 8, border: '1px solid #2a2a3e',
-                      backgroundColor: '#1a1a28', color: '#a0a0b8', fontSize: 12, cursor: 'pointer',
+                      padding: '7px 10px', borderRadius: 8, border: '1px solid var(--border)',
+                      backgroundColor: 'var(--muted)', color: 'var(--secondary-foreground)', fontSize: 12, cursor: 'pointer',
                     }}
                   >
                     <option value="count-desc">Most used</option>
@@ -974,9 +974,9 @@ export default function BookmarksPage() {
                     <div key={tag} style={{
                       display: 'flex', alignItems: 'center', gap: 10,
                       padding: '7px 10px', borderRadius: 8,
-                      backgroundColor: '#1a1a28', border: '1px solid #2a2a3e',
+                      backgroundColor: 'var(--muted)', border: '1px solid var(--border)',
                     }}>
-                      <Tag size={12} color="#6b6b88" style={{ flexShrink: 0 }} />
+                      <Tag size={12} color="var(--muted-foreground)" style={{ flexShrink: 0 }} />
 
                       {renamingTag === tag ? (
                         <input
@@ -989,20 +989,20 @@ export default function BookmarksPage() {
                           }}
                           style={{
                             flex: 1, background: 'none', border: 'none',
-                            borderBottom: '1px solid #7c6aff', outline: 'none',
-                            color: '#e8e8f0', fontSize: 13, padding: '0 4px',
+                            borderBottom: '1px solid var(--primary)', outline: 'none',
+                            color: 'var(--foreground)', fontSize: 13, padding: '0 4px',
                           }}
                         />
                       ) : (
-                        <span style={{ flex: 1, fontSize: 13, color: '#e8e8f0', textTransform: 'capitalize' }}>{tag}</span>
+                        <span style={{ flex: 1, fontSize: 13, color: 'var(--foreground)', textTransform: 'capitalize' }}>{tag}</span>
                       )}
 
                       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 2, flexShrink: 0 }}>
-                        <span style={{ fontSize: 11, color: '#6b6b88', backgroundColor: '#2a2a3e', padding: '1px 8px', borderRadius: 99 }}>
+                        <span style={{ fontSize: 11, color: 'var(--muted-foreground)', backgroundColor: 'var(--border)', padding: '1px 8px', borderRadius: 99 }}>
                           {meta.count}
                         </span>
                         {tagSort === 'recent' && (
-                          <span style={{ fontSize: 10, color: '#3a3a5e' }}>
+                          <span style={{ fontSize: 10, color: 'var(--border)' }}>
                             {formatRelative(meta.latestSaved)}
                           </span>
                         )}
@@ -1011,11 +1011,11 @@ export default function BookmarksPage() {
                       {renamingTag === tag ? (
                         <>
                           <button type="button" onClick={() => renameTag(tag, renameValue)} disabled={tagWorking}
-                            style={{ fontSize: 11, color: '#7c6aff', background: 'none', border: '1px solid #7c6aff44', borderRadius: 5, padding: '2px 8px', cursor: 'pointer' }}>
+                            style={{ fontSize: 11, color: 'var(--primary)', background: 'none', border: '1px solid var(--primary)44', borderRadius: 5, padding: '2px 8px', cursor: 'pointer' }}>
                             Save
                           </button>
                           <button type="button" onClick={() => setRenamingTag(null)}
-                            style={{ fontSize: 11, color: '#6b6b88', background: 'none', border: '1px solid #2a2a3e', borderRadius: 5, padding: '2px 8px', cursor: 'pointer' }}>
+                            style={{ fontSize: 11, color: 'var(--muted-foreground)', background: 'none', border: '1px solid var(--border)', borderRadius: 5, padding: '2px 8px', cursor: 'pointer' }}>
                             Cancel
                           </button>
                         </>
@@ -1024,24 +1024,24 @@ export default function BookmarksPage() {
                           <button type="button"
                             onClick={() => { setRenamingTag(tag); setRenameValue(tag) }}
                             title="Rename tag"
-                            style={{ background: 'none', border: 'none', color: '#6b6b88', cursor: 'pointer', padding: 3, borderRadius: 4, display: 'flex', alignItems: 'center' }}
-                            onMouseEnter={e => (e.currentTarget.style.color = '#e8e8f0')}
-                            onMouseLeave={e => (e.currentTarget.style.color = '#6b6b88')}
+                            style={{ background: 'none', border: 'none', color: 'var(--muted-foreground)', cursor: 'pointer', padding: 3, borderRadius: 4, display: 'flex', alignItems: 'center' }}
+                            onMouseEnter={e => (e.currentTarget.style.color = 'var(--foreground)')}
+                            onMouseLeave={e => (e.currentTarget.style.color = 'var(--muted-foreground)')}
                           ><Pencil size={13} /></button>
                           <button type="button"
                             onClick={() => deleteTag(tag)}
                             title="Remove tag from all bookmarks"
                             disabled={tagWorking}
-                            style={{ background: 'none', border: 'none', color: '#6b6b88', cursor: 'pointer', padding: 3, borderRadius: 4, display: 'flex', alignItems: 'center' }}
+                            style={{ background: 'none', border: 'none', color: 'var(--muted-foreground)', cursor: 'pointer', padding: 3, borderRadius: 4, display: 'flex', alignItems: 'center' }}
                             onMouseEnter={e => (e.currentTarget.style.color = '#ef4444')}
-                            onMouseLeave={e => (e.currentTarget.style.color = '#6b6b88')}
+                            onMouseLeave={e => (e.currentTarget.style.color = 'var(--muted-foreground)')}
                           ><Trash2 size={13} /></button>
                         </>
                       )}
                     </div>
                   ))}
                   {sortedTags.length === 0 && (
-                    <p style={{ fontSize: 13, color: '#3a3a5e', textAlign: 'center', padding: '20px 0' }}>No tags match</p>
+                    <p style={{ fontSize: 13, color: 'var(--border)', textAlign: 'center', padding: '20px 0' }}>No tags match</p>
                   )}
                 </div>
               </>
@@ -1078,11 +1078,11 @@ export default function BookmarksPage() {
               <>
                 {/* Stats */}
                 <div style={{ display: 'flex', gap: 16, marginBottom: 12 }}>
-                  <span style={{ fontSize: 13, color: '#a0a0b8' }}>
-                    <strong style={{ color: '#e8e8f0' }}>{previewData.length}</strong> collections ·{' '}
-                    <strong style={{ color: '#e8e8f0' }}>{totalBookmarks}</strong> bookmarks in file
+                  <span style={{ fontSize: 13, color: 'var(--secondary-foreground)' }}>
+                    <strong style={{ color: 'var(--foreground)' }}>{previewData.length}</strong> collections ·{' '}
+                    <strong style={{ color: 'var(--foreground)' }}>{totalBookmarks}</strong> bookmarks in file
                   </span>
-                  <span style={{ fontSize: 13, color: '#7c6aff', marginLeft: 'auto' }}>
+                  <span style={{ fontSize: 13, color: 'var(--primary)', marginLeft: 'auto' }}>
                     {selectedFolders.size} selected · {selectedBookmarks} bookmarks
                   </span>
                 </div>
@@ -1090,15 +1090,15 @@ export default function BookmarksPage() {
                 {/* Search + Sort toolbar */}
                 <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
                   <div style={{ position: 'relative', flex: 1 }}>
-                    <Search size={13} style={{ position: 'absolute', left: 9, top: '50%', transform: 'translateY(-50%)', color: '#6b6b88' }} />
+                    <Search size={13} style={{ position: 'absolute', left: 9, top: '50%', transform: 'translateY(-50%)', color: 'var(--muted-foreground)' }} />
                     <input
                       value={folderSearch}
                       onChange={e => setFolderSearch(e.target.value)}
                       placeholder="Search collections..."
                       style={{
                         width: '100%', padding: '6px 10px 6px 28px', borderRadius: 8,
-                        border: '1px solid #2a2a3e', backgroundColor: '#1a1a28',
-                        color: '#e8e8f0', fontSize: 13, outline: 'none',
+                        border: '1px solid var(--border)', backgroundColor: 'var(--muted)',
+                        color: 'var(--foreground)', fontSize: 13, outline: 'none',
                       }}
                     />
                   </div>
@@ -1106,8 +1106,8 @@ export default function BookmarksPage() {
                     value={folderSort}
                     onChange={e => setFolderSort(e.target.value as typeof folderSort)}
                     style={{
-                      padding: '6px 10px', borderRadius: 8, border: '1px solid #2a2a3e',
-                      backgroundColor: '#1a1a28', color: '#a0a0b8', fontSize: 12, cursor: 'pointer',
+                      padding: '6px 10px', borderRadius: 8, border: '1px solid var(--border)',
+                      backgroundColor: 'var(--muted)', color: 'var(--secondary-foreground)', fontSize: 12, cursor: 'pointer',
                     }}
                   >
                     <option value="count-desc">Most bookmarks</option>
@@ -1120,14 +1120,14 @@ export default function BookmarksPage() {
                 {/* Select all / none */}
                 <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
                   <button type="button" onClick={() => setSelectedFolders(new Set(previewData.map(f => f.folder)))} style={{
-                    fontSize: 12, color: '#7c6aff', background: 'none',
-                    border: '1px solid #7c6aff44', borderRadius: 6, padding: '3px 10px', cursor: 'pointer',
+                    fontSize: 12, color: 'var(--primary)', background: 'none',
+                    border: '1px solid var(--primary)44', borderRadius: 6, padding: '3px 10px', cursor: 'pointer',
                   }}>Select all</button>
                   <button type="button" onClick={() => setSelectedFolders(new Set())} style={{
-                    fontSize: 12, color: '#6b6b88', background: 'none',
-                    border: '1px solid #2a2a3e', borderRadius: 6, padding: '3px 10px', cursor: 'pointer',
+                    fontSize: 12, color: 'var(--muted-foreground)', background: 'none',
+                    border: '1px solid var(--border)', borderRadius: 6, padding: '3px 10px', cursor: 'pointer',
                   }}>Deselect all</button>
-                  <span style={{ fontSize: 12, color: '#3a3a5e', marginLeft: 4, alignSelf: 'center' }}>
+                  <span style={{ fontSize: 12, color: 'var(--border)', marginLeft: 4, alignSelf: 'center' }}>
                     {sorted.length !== previewData.length && `Showing ${sorted.length} of ${previewData.length}`}
                   </span>
                 </div>
@@ -1159,20 +1159,20 @@ export default function BookmarksPage() {
                         {/* Checkbox */}
                         <div style={{
                           width: 16, height: 16, borderRadius: 4, flexShrink: 0,
-                          border: checked ? '2px solid #7c6aff' : '2px solid #3a3a5e',
-                          backgroundColor: checked ? '#7c6aff' : 'transparent',
+                          border: checked ? '2px solid var(--primary)' : '2px solid var(--border)',
+                          backgroundColor: checked ? 'var(--primary)' : 'transparent',
                           display: 'flex', alignItems: 'center', justifyContent: 'center',
                           transition: 'all 0.1s',
                         }}>
                           {checked && <span style={{ color: 'white', fontSize: 10, fontWeight: 700 }}>✓</span>}
                         </div>
-                        <span style={{ fontSize: 13, color: checked ? '#e8e8f0' : '#a0a0b8', flex: 1, textTransform: 'capitalize' }}>
+                        <span style={{ fontSize: 13, color: checked ? 'var(--foreground)' : 'var(--secondary-foreground)', flex: 1, textTransform: 'capitalize' }}>
                           {folder}
                         </span>
                         <span style={{
                           fontSize: 11, fontWeight: 600,
-                          color: checked ? '#7c6aff' : '#6b6b88',
-                          backgroundColor: checked ? '#7c6aff22' : '#1e1e2e',
+                          color: checked ? 'var(--primary)' : 'var(--muted-foreground)',
+                          backgroundColor: checked ? 'var(--primary)22' : 'var(--secondary)',
                           padding: '1px 8px', borderRadius: 99,
                         }}>
                           {count}
@@ -1181,7 +1181,7 @@ export default function BookmarksPage() {
                     )
                   })}
                   {sorted.length === 0 && (
-                    <p style={{ fontSize: 13, color: '#3a3a5e', textAlign: 'center', padding: '20px 0' }}>No collections match</p>
+                    <p style={{ fontSize: 13, color: 'var(--border)', textAlign: 'center', padding: '20px 0' }}>No collections match</p>
                   )}
                 </div>
               </>
@@ -1213,9 +1213,9 @@ export default function BookmarksPage() {
             </DialogTitle>
           </DialogHeader>
           <div style={{ padding: '4px 0 16px' }}>
-            <p style={{ fontSize: 14, color: '#a0a0b8', lineHeight: 1.6 }}>
+            <p style={{ fontSize: 14, color: 'var(--secondary-foreground)', lineHeight: 1.6 }}>
               You are about to permanently delete{' '}
-              <strong style={{ color: '#e8e8f0' }}>{confirmTarget?.label}</strong>.
+              <strong style={{ color: 'var(--foreground)' }}>{confirmTarget?.label}</strong>.
               This cannot be undone.
             </p>
           </div>
@@ -1284,23 +1284,23 @@ function BookmarkCard({ bookmark: bm, onEdit, onDelete, onTagClick, selectMode, 
     <div
       style={{
         display: 'flex', alignItems: 'flex-start', gap: 12,
-        backgroundColor: isSelected ? 'rgba(124,106,255,0.06)' : '#12121a',
-        border: isSelected ? '1px solid #7c6aff55' : '1px solid #2a2a3e',
+        backgroundColor: isSelected ? 'rgba(124,106,255,0.06)' : 'var(--card)',
+        border: isSelected ? '1px solid var(--primary)55' : '1px solid var(--border)',
         borderRadius: 10, padding: '12px 14px',
         transition: 'border-color 0.15s, background 0.15s',
         cursor: selectMode ? 'pointer' : 'default',
       }}
       onClick={selectMode ? onToggleSelect : undefined}
-      onMouseEnter={e => { if (!selectMode) e.currentTarget.style.borderColor = '#3a3a5e' }}
-      onMouseLeave={e => { if (!selectMode) e.currentTarget.style.borderColor = isSelected ? '#7c6aff55' : '#2a2a3e' }}
+      onMouseEnter={e => { if (!selectMode) e.currentTarget.style.borderColor = 'var(--border)' }}
+      onMouseLeave={e => { if (!selectMode) e.currentTarget.style.borderColor = isSelected ? 'var(--primary)55' : 'var(--border)' }}
       className="group"
     >
       {/* Checkbox (select mode) */}
       {selectMode && (
         <div style={{ paddingTop: 6, flexShrink: 0 }}>
           {isSelected
-            ? <CheckSquare size={17} color="#7c6aff" />
-            : <Square size={17} color="#3a3a5e" />}
+            ? <CheckSquare size={17} color="var(--primary)" />
+            : <Square size={17} color="var(--border)" />}
         </div>
       )}
 
@@ -1328,11 +1328,11 @@ function BookmarkCard({ bookmark: bm, onEdit, onDelete, onTagClick, selectMode, 
               onClick={() => onVisit?.(bm.id)}
               style={{
                 display: 'inline-flex', alignItems: 'center', gap: 5,
-                fontSize: 14, fontWeight: 600, color: '#e8e8f0',
+                fontSize: 14, fontWeight: 600, color: 'var(--foreground)',
                 textDecoration: 'none', maxWidth: '100%',
               }}
-              onMouseEnter={e => (e.currentTarget.style.color = '#7c6aff')}
-              onMouseLeave={e => (e.currentTarget.style.color = '#e8e8f0')}
+              onMouseEnter={e => (e.currentTarget.style.color = 'var(--primary)')}
+              onMouseLeave={e => (e.currentTarget.style.color = 'var(--foreground)')}
             >
               <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{bm.title}</span>
               <ExternalLink size={11} style={{ flexShrink: 0, opacity: 0.5 }} />
@@ -1347,11 +1347,11 @@ function BookmarkCard({ bookmark: bm, onEdit, onDelete, onTagClick, selectMode, 
                 {hostname}
               </span>
               {bm.reading_time && (
-                <span style={{ fontSize: 11, color: '#6b6b88', display: 'flex', alignItems: 'center', gap: 3 }}>
+                <span style={{ fontSize: 11, color: 'var(--muted-foreground)', display: 'flex', alignItems: 'center', gap: 3 }}>
                   <Clock size={10} /> {bm.reading_time} min read
                 </span>
               )}
-              <span style={{ fontSize: 11, color: '#3a3a5e' }}>{formatRelative(bm.created_at)}</span>
+              <span style={{ fontSize: 11, color: 'var(--border)' }}>{formatRelative(bm.created_at)}</span>
             </div>
           </div>
 
@@ -1361,28 +1361,28 @@ function BookmarkCard({ bookmark: bm, onEdit, onDelete, onTagClick, selectMode, 
               title="Edit"
               style={{
                 width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                background: 'none', border: '1px solid #2a2a3e', borderRadius: 6,
-                color: '#6b6b88', cursor: 'pointer', transition: 'all 0.15s',
+                background: 'none', border: '1px solid var(--border)', borderRadius: 6,
+                color: 'var(--muted-foreground)', cursor: 'pointer', transition: 'all 0.15s',
               }}
-              onMouseEnter={e => { e.currentTarget.style.color = '#e8e8f0'; e.currentTarget.style.borderColor = '#3a3a5e'; e.currentTarget.style.backgroundColor = '#1e1e2e' }}
-              onMouseLeave={e => { e.currentTarget.style.color = '#6b6b88'; e.currentTarget.style.borderColor = '#2a2a3e'; e.currentTarget.style.backgroundColor = 'transparent' }}
+              onMouseEnter={e => { e.currentTarget.style.color = 'var(--foreground)'; e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.backgroundColor = 'var(--secondary)' }}
+              onMouseLeave={e => { e.currentTarget.style.color = 'var(--muted-foreground)'; e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.backgroundColor = 'transparent' }}
             ><Pencil size={12} /></button>
             <button type="button" onClick={onDelete}
               title="Delete"
               style={{
                 width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                background: 'none', border: '1px solid #2a2a3e', borderRadius: 6,
-                color: '#6b6b88', cursor: 'pointer', transition: 'all 0.15s',
+                background: 'none', border: '1px solid var(--border)', borderRadius: 6,
+                color: 'var(--muted-foreground)', cursor: 'pointer', transition: 'all 0.15s',
               }}
               onMouseEnter={e => { e.currentTarget.style.color = '#ef4444'; e.currentTarget.style.borderColor = '#ef444433'; e.currentTarget.style.backgroundColor = '#ef444411' }}
-              onMouseLeave={e => { e.currentTarget.style.color = '#6b6b88'; e.currentTarget.style.borderColor = '#2a2a3e'; e.currentTarget.style.backgroundColor = 'transparent' }}
+              onMouseLeave={e => { e.currentTarget.style.color = 'var(--muted-foreground)'; e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.backgroundColor = 'transparent' }}
             ><Trash2 size={12} /></button>
           </div>
         </div>
 
         {/* Description */}
         {bm.description && (
-          <p style={{ fontSize: 12, color: '#6b6b88', margin: '5px 0 0', lineHeight: 1.5, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' } as React.CSSProperties}>
+          <p style={{ fontSize: 12, color: 'var(--muted-foreground)', margin: '5px 0 0', lineHeight: 1.5, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' } as React.CSSProperties}>
             {bm.description}
           </p>
         )}
@@ -1393,11 +1393,11 @@ function BookmarkCard({ bookmark: bm, onEdit, onDelete, onTagClick, selectMode, 
             {bm.tags.map(tag => (
               <button key={tag} type="button" onClick={() => onTagClick(tag)} style={{
                 display: 'flex', alignItems: 'center', gap: 3,
-                fontSize: 11, color: '#6b6b88', backgroundColor: '#1e1e2e',
-                border: '1px solid #2a2a3e', padding: '1px 8px', borderRadius: 99, cursor: 'pointer',
+                fontSize: 11, color: 'var(--muted-foreground)', backgroundColor: 'var(--secondary)',
+                border: '1px solid var(--border)', padding: '1px 8px', borderRadius: 99, cursor: 'pointer',
               }}
-                onMouseEnter={e => { e.currentTarget.style.color = '#7c6aff'; e.currentTarget.style.borderColor = '#7c6aff55' }}
-                onMouseLeave={e => { e.currentTarget.style.color = '#6b6b88'; e.currentTarget.style.borderColor = '#2a2a3e' }}
+                onMouseEnter={e => { e.currentTarget.style.color = 'var(--primary)'; e.currentTarget.style.borderColor = 'var(--primary)55' }}
+                onMouseLeave={e => { e.currentTarget.style.color = 'var(--muted-foreground)'; e.currentTarget.style.borderColor = 'var(--border)' }}
               >
                 <Tag size={9} /> {tag}
               </button>
@@ -1449,10 +1449,10 @@ function CollectionsView({ bookmarks, allTags, onEdit, onDelete, onTagClick, sel
       {groups.map(({ tag, items }) => {
         const isCollapsed = collapsed.has(tag)
         const label = tag === '__untagged__' ? 'Uncategorised' : tag
-        const color = tag === '__untagged__' ? '#6b6b88' : domainColor(tag)
+        const color = tag === '__untagged__' ? 'var(--muted-foreground)' : domainColor(tag)
 
         return (
-          <div key={tag} style={{ backgroundColor: '#12121a', border: `1px solid ${isCollapsed ? '#2a2a3e' : color + '33'}`, borderRadius: 12, overflow: 'hidden', transition: 'border-color 0.2s' }}>
+          <div key={tag} style={{ backgroundColor: 'var(--card)', border: `1px solid ${isCollapsed ? 'var(--border)' : color + '33'}`, borderRadius: 12, overflow: 'hidden', transition: 'border-color 0.2s' }}>
             {/* Group header */}
             <div style={{
               display: 'flex', alignItems: 'center', gap: 8,
@@ -1468,13 +1468,13 @@ function CollectionsView({ bookmarks, allTags, onEdit, onDelete, onTagClick, sel
                 {/* Chevron — the main expand/collapse indicator */}
                 <div style={{
                   width: 28, height: 28, borderRadius: 8, flexShrink: 0,
-                  backgroundColor: isCollapsed ? '#1e1e2e' : color + '22',
-                  border: `1px solid ${isCollapsed ? '#2a2a3e' : color + '44'}`,
+                  backgroundColor: isCollapsed ? 'var(--secondary)' : color + '22',
+                  border: `1px solid ${isCollapsed ? 'var(--border)' : color + '44'}`,
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   transition: 'all 0.2s',
                 }}>
                   {isCollapsed
-                    ? <ChevronRight size={15} color="#6b6b88" />
+                    ? <ChevronRight size={15} color="var(--muted-foreground)" />
                     : <ChevronDown size={15} color={color} />
                   }
                 </div>
@@ -1489,17 +1489,17 @@ function CollectionsView({ bookmarks, allTags, onEdit, onDelete, onTagClick, sel
                 </div>
 
                 {/* Label */}
-                <span style={{ fontSize: 14, fontWeight: 600, color: '#e8e8f0', textTransform: tag === '__untagged__' ? 'none' : 'capitalize', flex: 1 }}>
+                <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--foreground)', textTransform: tag === '__untagged__' ? 'none' : 'capitalize', flex: 1 }}>
                   {label}
                 </span>
 
                 {/* Count badge */}
                 <span style={{
                   fontSize: 12, fontWeight: 600,
-                  color: isCollapsed ? '#6b6b88' : color,
-                  backgroundColor: isCollapsed ? '#1e1e2e' : color + '22',
+                  color: isCollapsed ? 'var(--muted-foreground)' : color,
+                  backgroundColor: isCollapsed ? 'var(--secondary)' : color + '22',
                   padding: '3px 10px', borderRadius: 99,
-                  border: `1px solid ${isCollapsed ? '#2a2a3e' : color + '33'}`,
+                  border: `1px solid ${isCollapsed ? 'var(--border)' : color + '33'}`,
                   transition: 'all 0.2s',
                 }}>
                   {items.length}
@@ -1509,8 +1509,8 @@ function CollectionsView({ bookmarks, allTags, onEdit, onDelete, onTagClick, sel
               {/* Group actions */}
               {selectMode && onSelectGroup && (
                 <button type="button" onClick={() => onSelectGroup(items.map(i => i.id))} style={{
-                  fontSize: 11, color: '#7c6aff', background: 'none',
-                  border: '1px solid #7c6aff44', borderRadius: 6,
+                  fontSize: 11, color: 'var(--primary)', background: 'none',
+                  border: '1px solid var(--primary)44', borderRadius: 6,
                   padding: '3px 8px', cursor: 'pointer',
                 }}>
                   {items.every(i => selected?.has(i.id)) ? 'Deselect' : 'Select all'}
@@ -1522,11 +1522,11 @@ function CollectionsView({ bookmarks, allTags, onEdit, onDelete, onTagClick, sel
                   title={`Delete all in ${label}`}
                   style={{
                     width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    background: 'none', border: '1px solid #2a2a3e', borderRadius: 6,
-                    color: '#6b6b88', cursor: 'pointer',
+                    background: 'none', border: '1px solid var(--border)', borderRadius: 6,
+                    color: 'var(--muted-foreground)', cursor: 'pointer',
                   }}
                   onMouseEnter={e => { e.currentTarget.style.color = '#ef4444'; e.currentTarget.style.borderColor = '#ef444433' }}
-                  onMouseLeave={e => { e.currentTarget.style.color = '#6b6b88'; e.currentTarget.style.borderColor = '#2a2a3e' }}
+                  onMouseLeave={e => { e.currentTarget.style.color = 'var(--muted-foreground)'; e.currentTarget.style.borderColor = 'var(--border)' }}
                 >
                   <Trash2 size={12} />
                 </button>
@@ -1566,13 +1566,13 @@ function DropZoneStrip({ dragging, hasBookmarks }: { dragging: boolean; hasBookm
     <div style={{
       display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
       padding: '10px 16px', marginBottom: 16,
-      border: dragging ? '2px dashed #7c6aff' : '1.5px dashed #2a2a3e',
+      border: dragging ? '2px dashed var(--primary)' : '1.5px dashed var(--border)',
       borderRadius: 10,
       backgroundColor: dragging ? 'rgba(124,106,255,0.08)' : 'transparent',
       transition: 'all 0.2s ease',
     }}>
       <span style={{ fontSize: 18 }}>{dragging ? '🎯' : '🔗'}</span>
-      <span style={{ fontSize: 13, color: dragging ? '#7c6aff' : '#3a3a5e', fontWeight: dragging ? 600 : 400, transition: 'color 0.2s' }}>
+      <span style={{ fontSize: 13, color: dragging ? 'var(--primary)' : 'var(--border)', fontWeight: dragging ? 600 : 400, transition: 'color 0.2s' }}>
         {dragging ? 'Release to save this link' : 'Drag any link from your browser and drop it here'}
       </span>
     </div>
@@ -1585,7 +1585,7 @@ function BigDropZone({ dragging, onClickImport }: { dragging: boolean; onClickIm
     <div style={{
       display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
       padding: '60px 24px', gap: 16,
-      border: dragging ? '2.5px dashed #7c6aff' : '2px dashed #2a2a3e',
+      border: dragging ? '2.5px dashed var(--primary)' : '2px dashed var(--border)',
       borderRadius: 16,
       backgroundColor: dragging ? 'rgba(124,106,255,0.08)' : 'rgba(124,106,255,0.02)',
       transition: 'all 0.2s ease',
@@ -1596,11 +1596,11 @@ function BigDropZone({ dragging, onClickImport }: { dragging: boolean; onClickIm
       </div>
 
       <div style={{ textAlign: 'center' }}>
-        <p style={{ fontSize: 18, fontWeight: 700, color: dragging ? '#7c6aff' : '#e8e8f0', margin: '0 0 8px', transition: 'color 0.2s' }}>
+        <p style={{ fontSize: 18, fontWeight: 700, color: dragging ? 'var(--primary)' : 'var(--foreground)', margin: '0 0 8px', transition: 'color 0.2s' }}>
           {dragging ? 'Release to save this link' : 'Drop a link anywhere on this page'}
         </p>
         {!dragging && (
-          <p style={{ fontSize: 13, color: '#6b6b88', margin: 0, lineHeight: 1.6 }}>
+          <p style={{ fontSize: 13, color: 'var(--muted-foreground)', margin: 0, lineHeight: 1.6 }}>
             Drag any URL from your browser address bar, a tab, or a webpage
           </p>
         )}
@@ -1609,32 +1609,32 @@ function BigDropZone({ dragging, onClickImport }: { dragging: boolean; onClickIm
       {!dragging && (
         <>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', maxWidth: 320 }}>
-            <div style={{ flex: 1, height: 1, backgroundColor: '#2a2a3e' }} />
-            <span style={{ fontSize: 12, color: '#3a3a5e' }}>or</span>
-            <div style={{ flex: 1, height: 1, backgroundColor: '#2a2a3e' }} />
+            <div style={{ flex: 1, height: 1, backgroundColor: 'var(--border)' }} />
+            <span style={{ fontSize: 12, color: 'var(--border)' }}>or</span>
+            <div style={{ flex: 1, height: 1, backgroundColor: 'var(--border)' }} />
           </div>
 
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', justifyContent: 'center' }}>
             <div style={{
               display: 'flex', alignItems: 'center', gap: 8,
               padding: '10px 16px', borderRadius: 10,
-              backgroundColor: '#12121a', border: '1px solid #2a2a3e',
-              fontSize: 13, color: '#a0a0b8',
+              backgroundColor: 'var(--card)', border: '1px solid var(--border)',
+              fontSize: 13, color: 'var(--secondary-foreground)',
             }}>
               <span>📋</span>
               <span>Paste a URL above and press{' '}
-                <kbd style={{ backgroundColor: '#1e1e2e', border: '1px solid #2a2a3e', borderRadius: 4, padding: '1px 6px', fontSize: 11, color: '#7c6aff' }}>Enter</kbd>
+                <kbd style={{ backgroundColor: 'var(--secondary)', border: '1px solid var(--border)', borderRadius: 4, padding: '1px 6px', fontSize: 11, color: 'var(--primary)' }}>Enter</kbd>
               </span>
             </div>
             <button type="button" onClick={onClickImport} style={{
               display: 'flex', alignItems: 'center', gap: 8,
               padding: '10px 16px', borderRadius: 10,
-              backgroundColor: '#12121a', border: '1px solid #2a2a3e',
-              fontSize: 13, color: '#a0a0b8', cursor: 'pointer',
+              backgroundColor: 'var(--card)', border: '1px solid var(--border)',
+              fontSize: 13, color: 'var(--secondary-foreground)', cursor: 'pointer',
               transition: 'border-color 0.15s, color 0.15s',
             }}
-              onMouseEnter={e => { e.currentTarget.style.borderColor = '#7c6aff44'; e.currentTarget.style.color = '#e8e8f0' }}
-              onMouseLeave={e => { e.currentTarget.style.borderColor = '#2a2a3e'; e.currentTarget.style.color = '#a0a0b8' }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--primary)44'; e.currentTarget.style.color = 'var(--foreground)' }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--secondary-foreground)' }}
             >
               <span>📂</span>
               <span>Import from Chrome / Firefox / Edge</span>
