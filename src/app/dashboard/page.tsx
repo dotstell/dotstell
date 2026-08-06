@@ -111,6 +111,14 @@ export default function DashboardPage() {
   const [bookmarks, setBookmarks] = useState<BookmarkType[]>([])
   const [people,    setPeople]    = useState<{ id: string; created_at: string }[]>([])
   const [loading,   setLoading]   = useState(true)
+  const [isMobile,  setIsMobile]  = useState(false)
+
+  useEffect(() => {
+    function check() { setIsMobile(window.innerWidth < 768) }
+    check()
+    window.addEventListener('resize', check)
+    return () => window.removeEventListener('resize', check)
+  }, [])
 
   useTaskReminders()
 
@@ -168,7 +176,7 @@ export default function DashboardPage() {
       <PageContainer>
 
         {/* ── Greeting ── */}
-        <div style={{ marginBottom: 24 }}>
+        <div style={{ marginBottom: 24, paddingTop: isMobile ? 8 : 0 }}>
           <h1 style={{ fontSize: 22, fontWeight: 700, color: 'var(--foreground)', margin: 0 }}>{greeting} 👋</h1>
           <p style={{ fontSize: 13, color: 'var(--muted-foreground)', marginTop: 4 }}>
             {loading ? 'Loading your knowledge…' :
@@ -195,7 +203,7 @@ export default function DashboardPage() {
         )}
 
         {/* ── Stat cards with sparklines ── */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 12, marginBottom: 24 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2,1fr)' : 'repeat(4,1fr)', gap: 12, marginBottom: 24 }}>
           {STATS.map(({ label, count, icon: Icon, href, color, spark }) => (
             <Link key={label} href={href} style={{ textDecoration: 'none' }}>
               <div style={{
@@ -240,7 +248,7 @@ export default function DashboardPage() {
             <div style={{ height: 5, backgroundColor: 'var(--secondary)', borderRadius: 99, overflow: 'hidden' }}>
               <div style={{ height: '100%', width: `${progress}%`, background: 'linear-gradient(90deg, var(--primary), #10b981)', borderRadius: 99, transition: 'width 0.8s ease' }} />
             </div>
-            <div style={{ display: 'flex', gap: 20, marginTop: 10 }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: isMobile ? 10 : 20, marginTop: 10 }}>
               {[
                 { label: `${tasks.filter(t => t.status === 'todo').length} to do`,      color: 'var(--muted-foreground)' },
                 { label: `${inProgress.length} in progress`,                             color: 'var(--primary)' },
@@ -254,7 +262,7 @@ export default function DashboardPage() {
         )}
 
         {/* ── 3-column: Recent Notes / Open Tasks / Recent Bookmarks ── */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 14, marginBottom: 24 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr 1fr', gap: 14, marginBottom: 24 }}>
 
           {/* Recent Notes */}
           <Panel
@@ -352,7 +360,7 @@ export default function DashboardPage() {
               </div>
               <span style={{ fontSize: 11, color: 'var(--border)' }}>Last 7 days</span>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', padding: '8px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3,1fr)', padding: '8px' }}>
               {activity.map((item, idx) => (
                 <Link key={`${item.id}-${idx}`} href={item.href} style={{
                   display: 'flex', alignItems: 'center', gap: 10,
