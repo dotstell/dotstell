@@ -41,12 +41,17 @@ export default function LandingPage() {
         </div>
 
         {/* Feature cards */}
-        <div className="grid grid-cols-3 gap-4 text-left">
+        <div className="grid grid-cols-2 gap-4 text-left">
           {[
             {
               icon: '📑',
               title: 'Smart Notes',
               desc: 'Plain, Markdown and Checklist notes — all in one place, always searchable',
+            },
+            {
+              icon: '🔖',
+              title: 'Smart Bookmarks',
+              desc: 'Save any URL — title, description and favicon fetched automatically and linked to your graph',
             },
             {
               icon: '🌐',
