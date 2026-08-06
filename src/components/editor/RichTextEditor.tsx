@@ -20,16 +20,18 @@ import { Superscript } from '@tiptap/extension-superscript'
 import { Subscript } from '@tiptap/extension-subscript'
 import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight'
 import { createLowlight, common } from 'lowlight'
-import { useEffect, useCallback, useState, useRef } from 'react'
+import { useEffect, useState, useRef, useCallback } from 'react'
 import {
   Bold, Italic, Strikethrough, Code, Underline as UnderlineIcon,
-  Heading1, Heading2, Heading3,
   List, ListOrdered, CheckSquare, Quote, Minus, Table as TableIcon,
   Link as LinkIcon, Highlighter, Undo, Redo, Maximize2, Minimize2,
   ChevronDown, AlignLeft, AlignCenter, AlignRight, AlignJustify,
   Superscript as SuperscriptIcon, Subscript as SubscriptIcon,
-  Image as ImageIcon, Type, Palette, RotateCcw,
+  Image as ImageIcon, Type, RotateCcw, FileCode2, Eye,
 } from 'lucide-react'
+// markdown ↔ HTML conversion (source mode)
+import TurndownService from 'turndown'
+import { marked } from 'marked'
 
 const lowlight = createLowlight(common)
 
@@ -145,6 +147,29 @@ interface RichTextEditorProps {
   focusMode?: boolean
 }
 
+// ── Markdown converters (singleton) ─────────────────────────
+const td = new TurndownService({
+  headingStyle: 'atx',
+  codeBlockStyle: 'fenced',
+  bulletListMarker: '-',
+})
+td.addRule('strikethrough', {
+  filter: ['del', 's'],
+  replacement: (c) => `~~${c}~~`,
+})
+td.addRule('highlight', {
+  filter: (node) => node.nodeName === 'MARK',
+  replacement: (c) => `==${c}==`,
+})
+
+function htmlToMarkdown(html: string): string {
+  return td.turndown(html)
+}
+
+async function markdownToHtml(md: string): Promise<string> {
+  return await marked(md, { breaks: true, gfm: true }) as string
+}
+
 export function RichTextEditor({
   content, onChange, placeholder = 'Start writing… (type / for commands)',
   autoSaveStatus, onFocusMode, focusMode,
@@ -159,6 +184,9 @@ export function RichTextEditor({
   const [fontMenuOpen,    setFontMenuOpen]    = useState(false)
   const [imageDialogOpen, setImageDialogOpen] = useState(false)
   const [imageUrl,        setImageUrl]        = useState('')
+  // Source mode (raw markdown)
+  const [sourceMode,      setSourceMode]      = useState(false)
+  const [markdownSource,  setMarkdownSource]  = useState('')
   const colorRef  = useRef<HTMLDivElement>(null)
   const hlRef     = useRef<HTMLDivElement>(null)
   const fontRef   = useRef<HTMLDivElement>(null)
@@ -271,6 +299,29 @@ export function RichTextEditor({
     setImageUrl('')
   }
 
+  // Toggle between WYSIWYG and raw markdown source
+  const toggleSourceMode = useCallback(async () => {
+    if (!editor) return
+    if (!sourceMode) {
+      // entering source mode: convert current HTML → markdown
+      setMarkdownSource(htmlToMarkdown(editor.getHTML()))
+      setSourceMode(true)
+    } else {
+      // leaving source mode: convert markdown → HTML, push back into editor
+      const html = await markdownToHtml(markdownSource)
+      editor.commands.setContent(html)
+      onChange(html)
+      setSourceMode(false)
+    }
+  }, [editor, sourceMode, markdownSource, onChange])
+
+  // In source mode, update markdown on textarea change and propagate HTML
+  const handleSourceChange = useCallback(async (md: string) => {
+    setMarkdownSource(md)
+    const html = await markdownToHtml(md)
+    onChange(html)
+  }, [onChange])
+
   const stats = editor ? {
     words:    editor.storage.characterCount?.words() ?? 0,
     chars:    editor.storage.characterCount?.characters() ?? 0,
@@ -282,7 +333,7 @@ export function RichTextEditor({
   if (!editor) return null
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, position: 'relative' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, position: 'relative', overflow: 'hidden' }}>
 
       {/* ── Toolbar ── */}
       <div style={{
@@ -290,6 +341,9 @@ export function RichTextEditor({
         padding: '5px 10px', borderBottom: '1px solid #2a2a3e',
         backgroundColor: '#0e0e18', position: 'sticky', top: 0, zIndex: 20,
         rowGap: 4,
+        opacity: sourceMode ? 0.35 : 1,
+        pointerEvents: sourceMode ? 'none' : 'auto',
+        transition: 'opacity 0.2s',
       }}>
 
         {/* Undo / Redo */}
@@ -419,8 +473,12 @@ export function RichTextEditor({
           <ToolBtn onClick={() => setImageDialogOpen(true)} title="Image"><ImageIcon size={14} /></ToolBtn>
         </ToolbarGroup>
 
-        {/* Spacer + focus mode */}
+        {/* Spacer */}
         <div style={{ flex: 1 }} />
+
+        {/* placeholder so layout stays correct — actual toggle rendered outside */}
+        <div style={{ width: 90 }} />
+
         {onFocusMode && (
           <ToolBtn onClick={() => onFocusMode(!focusMode)} title={focusMode ? 'Exit focus mode' : 'Focus mode'}>
             {focusMode ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
@@ -428,9 +486,77 @@ export function RichTextEditor({
         )}
       </div>
 
+      {/* Source mode toggle — always interactive, floats over the dimmed toolbar */}
+      <div style={{
+        position: 'absolute', top: 5, right: onFocusMode ? 40 : 8, zIndex: 30,
+        pointerEvents: 'auto',
+      }}>
+        <button
+          type="button"
+          title={sourceMode ? 'Switch to rich text' : 'Switch to Markdown source'}
+          onClick={toggleSourceMode}
+          style={{
+            display: 'flex', alignItems: 'center', gap: 5,
+            padding: '4px 10px', borderRadius: 6, border: '1px solid',
+            borderColor: sourceMode ? '#7c6aff' : '#2a2a3e',
+            backgroundColor: sourceMode ? 'rgba(124,106,255,0.2)' : '#0e0e18',
+            color: sourceMode ? '#a594ff' : '#6b6b88',
+            fontSize: 11, fontWeight: 600, cursor: 'pointer', transition: 'all 0.15s',
+          }}
+        >
+          {sourceMode ? <Eye size={12} /> : <FileCode2 size={12} />}
+          {sourceMode ? 'Rich text' : 'Markdown'}
+        </button>
+      </div>
+
       {/* ── Editor area ── */}
       <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', position: 'relative', minHeight: 0 }} onKeyDown={handleKeyDown}>
-        <EditorContent editor={editor} style={{ height: '100%' }} />
+
+        {/* Source mode — raw markdown textarea */}
+        {sourceMode ? (
+          <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+            {/* Markdown cheatsheet bar */}
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap',
+              padding: '6px 16px', borderBottom: '1px solid #1e1e2e',
+              backgroundColor: '#0a0a12',
+            }}>
+              {[
+                ['# H1', '# '],['## H2', '## '],['**bold**', '**'],
+                ['_italic_', '_'],['~~strike~~', '~~'],['`code`', '`'],
+                ['- list', '- '],['1. list', '1. '],['> quote', '> '],
+                ['```code block', '```\n'],['==highlight==', '=='],
+              ].map(([label]) => (
+                <span key={label} style={{
+                  fontSize: 11, color: '#4a4a6a', fontFamily: '"JetBrains Mono", monospace',
+                  backgroundColor: '#13131f', padding: '2px 6px', borderRadius: 4,
+                  cursor: 'default', userSelect: 'none',
+                }}>
+                  {label}
+                </span>
+              ))}
+              <span style={{ fontSize: 11, color: '#3a3a5e', marginLeft: 'auto' }}>
+                Markdown source — click "Rich text" to preview
+              </span>
+            </div>
+            <textarea
+              value={markdownSource}
+              onChange={e => handleSourceChange(e.target.value)}
+              spellCheck={false}
+              placeholder={'# Your heading\n\nStart writing markdown here...\n\n- **bold** text\n- _italic_ text\n- `inline code`\n\n> A beautiful quote\n\n```js\nconsole.log("hello")\n```'}
+              style={{
+                flex: 1, padding: '24px 28px',
+                background: '#0a0a0f', color: '#d4d4e8',
+                border: 'none', outline: 'none', resize: 'none',
+                fontFamily: '"JetBrains Mono", "Fira Code", monospace',
+                fontSize: 14, lineHeight: 1.8,
+                caretColor: '#7c6aff',
+              }}
+            />
+          </div>
+        ) : (
+          <EditorContent editor={editor} style={{ height: '100%' }} />
+        )}
 
         {/* ── Slash command menu ── */}
         {slashOpen && flatFiltered.length > 0 && (
