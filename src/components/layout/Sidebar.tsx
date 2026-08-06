@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import {
@@ -8,6 +8,8 @@ import {
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { DotstellLogo, ConstellationIcon } from '@/components/brand/DotstellLogo'
+import { ThemePicker } from '@/components/ui/ThemePicker'
+import { useTheme, type ThemeId } from '@/hooks/useTheme'
 
 const NAV_ITEMS = [
   { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
@@ -29,6 +31,7 @@ export function Sidebar({ onOpenPalette }: { onOpenPalette?: () => void }) {
   const router    = useRouter()
   const [collapsed, setCollapsed] = useState(false)
   const [tooltip, setTooltip]     = useState<TooltipState | null>(null)
+  const { theme, setTheme } = useTheme()
 
   useEffect(() => {
     setCollapsed(localStorage.getItem('sidebar-collapsed') === 'true')
@@ -62,8 +65,8 @@ export function Sidebar({ onOpenPalette }: { onOpenPalette?: () => void }) {
       <aside style={{
         position: 'fixed', left: 0, top: 0, height: '100vh', zIndex: 40,
         width: sidebarWidth,
-        backgroundColor: '#12121a',
-        borderRight: '1px solid #2a2a3e',
+        backgroundColor: 'var(--sidebar-bg)',
+        borderRight: '1px solid var(--sidebar-border)',
         transition: 'width 0.22s cubic-bezier(0.4,0,0.2,1)',
         overflow: 'hidden',
         display: 'flex', flexDirection: 'column',
@@ -72,7 +75,7 @@ export function Sidebar({ onOpenPalette }: { onOpenPalette?: () => void }) {
         {/* ── Logo ── */}
         <div style={{
           height: 64, flexShrink: 0,
-          borderBottom: '1px solid #2a2a3e',
+          borderBottom: '1px solid var(--sidebar-border)',
           display: 'flex', alignItems: 'center',
           padding: '0 14px',
           justifyContent: collapsed ? 'center' : 'space-between',
@@ -95,8 +98,10 @@ export function Sidebar({ onOpenPalette }: { onOpenPalette?: () => void }) {
                 onClick={toggle}
                 style={{
                   width: 26, height: 26, borderRadius: 7,
-                  border: '1px solid #2a2a3e', backgroundColor: '#1a1a28',
-                  color: '#6b6b88', display: 'flex', alignItems: 'center',
+                  border: '1px solid var(--sidebar-border)',
+                  backgroundColor: 'var(--muted)',
+                  color: 'var(--sidebar-muted)',
+                  display: 'flex', alignItems: 'center',
                   justifyContent: 'center', cursor: 'pointer', flexShrink: 0,
                 }}
               >
@@ -125,13 +130,19 @@ export function Sidebar({ onOpenPalette }: { onOpenPalette?: () => void }) {
               style={{
                 display: 'flex', alignItems: 'center', gap: 8,
                 padding: '7px 10px', borderRadius: 8, width: '100%',
-                border: '1px solid #2a2a3e', backgroundColor: '#1a1a28',
-                color: '#6b6b88', fontSize: 13, cursor: 'pointer',
+                border: '1px solid var(--sidebar-border)',
+                backgroundColor: 'var(--sidebar-search-bg)',
+                color: 'var(--sidebar-muted)', fontSize: 13, cursor: 'pointer',
               }}
             >
               <Search size={14} />
               <span>Search...</span>
-              <kbd style={{ marginLeft: 'auto', fontSize: 10, backgroundColor: '#2a2a3e', color: '#6b6b88', padding: '2px 5px', borderRadius: 4 }}>⌘K</kbd>
+              <kbd style={{
+                marginLeft: 'auto', fontSize: 10,
+                backgroundColor: 'var(--muted)',
+                color: 'var(--sidebar-muted)',
+                padding: '2px 5px', borderRadius: 4,
+              }}>⌘K</kbd>
             </button>
           )}
         </div>
@@ -139,7 +150,7 @@ export function Sidebar({ onOpenPalette }: { onOpenPalette?: () => void }) {
         {/* ── Section label ── */}
         {!collapsed && (
           <div style={{ padding: '8px 16px 2px' }}>
-            <span style={{ fontSize: 10, fontWeight: 600, color: '#3a3a5e', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Menu</span>
+            <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--sidebar-section-fg)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Menu</span>
           </div>
         )}
 
@@ -165,17 +176,17 @@ export function Sidebar({ onOpenPalette }: { onOpenPalette?: () => void }) {
               <Link key={href} href={href} style={{
                 display: 'flex', alignItems: 'center', gap: 10,
                 padding: '9px 12px', borderRadius: 8,
-                backgroundColor: active ? 'rgba(124,106,255,0.12)' : 'transparent',
-                color: active ? '#7c6aff' : '#6b6b88',
+                backgroundColor: active ? 'var(--sidebar-active-bg)' : 'transparent',
+                color: active ? 'var(--sidebar-active-fg)' : 'var(--sidebar-muted)',
                 fontSize: 13, fontWeight: active ? 600 : 400,
                 textDecoration: 'none', transition: 'background 0.15s, color 0.15s',
               }}
-                onMouseEnter={e => { if (!active) { e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.04)'; e.currentTarget.style.color = '#e8e8f0' } }}
-                onMouseLeave={e => { if (!active) { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = '#6b6b88' } }}
+                onMouseEnter={e => { if (!active) { e.currentTarget.style.backgroundColor = 'var(--sidebar-hover-bg)'; e.currentTarget.style.color = 'var(--sidebar-hover-fg)' } }}
+                onMouseLeave={e => { if (!active) { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = 'var(--sidebar-muted)' } }}
               >
                 <Icon size={17} style={{ flexShrink: 0 }} />
                 <span>{label}</span>
-                {active && <div style={{ marginLeft: 'auto', width: 3, height: 18, borderRadius: 2, backgroundColor: '#7c6aff' }} />}
+                {active && <div style={{ marginLeft: 'auto', width: 3, height: 18, borderRadius: 2, backgroundColor: 'var(--primary)' }} />}
               </Link>
             )
           })}
@@ -196,8 +207,20 @@ export function Sidebar({ onOpenPalette }: { onOpenPalette?: () => void }) {
           </div>
         )}
 
+        {/* ── Theme picker ── */}
+        <div style={{
+          padding: collapsed ? '6px 12px' : '4px 8px',
+          borderTop: '1px solid var(--sidebar-border)',
+          flexShrink: 0,
+        }}
+          onMouseEnter={collapsed ? e => showTip(e as React.MouseEvent<HTMLElement>, 'Change theme') : undefined}
+          onMouseLeave={collapsed ? hideTip : undefined}
+        >
+          <ThemePicker current={theme} onSelect={setTheme} collapsed={collapsed} />
+        </div>
+
         {/* ── Sign out ── */}
-        <div style={{ padding: collapsed ? '6px 12px' : '8px', borderTop: '1px solid #2a2a3e', flexShrink: 0 }}>
+        <div style={{ padding: collapsed ? '6px 12px' : '8px', borderTop: '1px solid var(--sidebar-border)', flexShrink: 0 }}>
           {collapsed ? (
             <SidebarIconBtn
               as="button"
@@ -214,11 +237,11 @@ export function Sidebar({ onOpenPalette }: { onOpenPalette?: () => void }) {
               display: 'flex', alignItems: 'center', gap: 10,
               padding: '9px 12px', width: '100%', borderRadius: 8,
               border: 'none', backgroundColor: 'transparent',
-              color: '#6b6b88', fontSize: 13, cursor: 'pointer',
+              color: 'var(--sidebar-muted)', fontSize: 13, cursor: 'pointer',
               transition: 'background 0.15s, color 0.15s',
             }}
-              onMouseEnter={e => { e.currentTarget.style.color = '#ef4444'; e.currentTarget.style.backgroundColor = 'rgba(239,68,68,0.08)' }}
-              onMouseLeave={e => { e.currentTarget.style.color = '#6b6b88'; e.currentTarget.style.backgroundColor = 'transparent' }}
+              onMouseEnter={e => { e.currentTarget.style.color = 'var(--destructive)'; e.currentTarget.style.backgroundColor = 'rgba(239,68,68,0.08)' }}
+              onMouseLeave={e => { e.currentTarget.style.color = 'var(--sidebar-muted)'; e.currentTarget.style.backgroundColor = 'transparent' }}
             >
               <LogOut size={16} />
               <span>Sign out</span>
@@ -227,18 +250,17 @@ export function Sidebar({ onOpenPalette }: { onOpenPalette?: () => void }) {
         </div>
       </aside>
 
-      {/* ── Tooltip — always positioned next to the hovered element ── */}
+      {/* ── Tooltip ── */}
       {collapsed && tooltip && (
         <div style={{
           position: 'fixed',
           left: 72,
           top: tooltip.top,
           transform: 'translateY(-50%)',
-          backgroundColor: '#1e1e2e',
-          border: '1px solid #3a3a5e',
-          color: '#e8e8f0',
-          fontSize: 12,
-          fontWeight: 500,
+          backgroundColor: 'var(--popover)',
+          border: '1px solid var(--border)',
+          color: 'var(--foreground)',
+          fontSize: 12, fontWeight: 500,
           padding: '5px 12px',
           borderRadius: 7,
           zIndex: 200,
@@ -247,15 +269,12 @@ export function Sidebar({ onOpenPalette }: { onOpenPalette?: () => void }) {
           boxShadow: '0 4px 16px rgba(0,0,0,0.5)',
         }}>
           {tooltip.label}
-          {/* Arrow */}
           <div style={{
-            position: 'absolute',
-            left: -5,
-            top: '50%',
+            position: 'absolute', left: -5, top: '50%',
             transform: 'translateY(-50%)',
             width: 8, height: 8,
-            backgroundColor: '#1e1e2e',
-            border: '1px solid #3a3a5e',
+            backgroundColor: 'var(--popover)',
+            border: '1px solid var(--border)',
             borderRight: 'none', borderTop: 'none',
             rotate: '45deg',
           }} />
@@ -265,7 +284,6 @@ export function Sidebar({ onOpenPalette }: { onOpenPalette?: () => void }) {
   )
 }
 
-// ── Reusable icon button for collapsed sidebar ──
 interface IconBtnProps {
   as: 'link' | 'button'
   href?: string
@@ -283,16 +301,16 @@ function SidebarIconBtn({ as, href, active, danger, children, onMouseEnter, onMo
     width: '100%', height: 40, borderRadius: 8,
     display: 'flex', alignItems: 'center', justifyContent: 'center',
     cursor: 'pointer', transition: 'background 0.15s, color 0.15s',
-    backgroundColor: active ? 'rgba(124,106,255,0.15)' : 'transparent',
-    border: active ? '1px solid rgba(124,106,255,0.25)' : '1px solid transparent',
-    color: active ? '#7c6aff' : '#6b6b88',
+    backgroundColor: active ? 'var(--sidebar-active-bg)' : 'transparent',
+    border: active ? '1px solid color-mix(in srgb, var(--primary) 25%, transparent)' : '1px solid transparent',
+    color: active ? 'var(--sidebar-active-fg)' : 'var(--sidebar-muted)',
     textDecoration: 'none',
   }
 
   function handleEnter(e: React.MouseEvent<HTMLElement>) {
     if (!active) {
-      e.currentTarget.style.backgroundColor = danger ? 'rgba(239,68,68,0.08)' : 'rgba(255,255,255,0.05)'
-      e.currentTarget.style.color = danger ? '#ef4444' : '#e8e8f0'
+      e.currentTarget.style.backgroundColor = danger ? 'rgba(239,68,68,0.08)' : 'var(--sidebar-hover-bg)'
+      e.currentTarget.style.color = danger ? 'var(--destructive)' : 'var(--sidebar-hover-fg)'
     }
     onMouseEnter(e)
   }
@@ -300,7 +318,7 @@ function SidebarIconBtn({ as, href, active, danger, children, onMouseEnter, onMo
   function handleLeave(e: React.MouseEvent<HTMLElement>) {
     if (!active) {
       e.currentTarget.style.backgroundColor = 'transparent'
-      e.currentTarget.style.color = '#6b6b88'
+      e.currentTarget.style.color = 'var(--sidebar-muted)'
     }
     onMouseLeave()
   }
