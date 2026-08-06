@@ -4,8 +4,8 @@ import { Sidebar } from './Sidebar'
 import { CommandPalette } from '@/components/command/CommandPalette'
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
-  const [collapsed, setCollapsed]         = useState(false)
-  const [paletteOpen, setPaletteOpen]     = useState(false)
+  const [collapsed, setCollapsed]     = useState(false)
+  const [paletteOpen, setPaletteOpen] = useState(false)
 
   useEffect(() => {
     const sync = () => setCollapsed(localStorage.getItem('sidebar-collapsed') === 'true')
@@ -26,10 +26,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   }, [])
 
   return (
-    <div style={{
-      display: 'flex', minHeight: '100vh',
-      backgroundColor: '#0a0a0f',
-    }}>
+    <div style={{ display: 'flex', minHeight: '100vh', backgroundColor: 'var(--background)' }}>
       <Sidebar onOpenPalette={() => setPaletteOpen(true)} />
       <main style={{
         flex: 1,
@@ -37,6 +34,8 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         transition: 'margin-left 0.22s cubic-bezier(0.4,0,0.2,1)',
         minWidth: 0,
         overflowX: 'hidden',
+        backgroundColor: 'var(--background)',
+        color: 'var(--foreground)',
       }}>
         {children}
       </main>

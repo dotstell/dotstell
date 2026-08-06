@@ -97,15 +97,15 @@ export function NoteEditor({ note, onChange }: NoteEditorProps) {
             rows={10}
           />
           <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 4 }}>
-            <AtSign size={11} color="#6b6b88" />
-            <span style={{ fontSize: 11, color: '#6b6b88' }}>Type @ to mention a person</span>
+            <AtSign size={11} color="var(--muted-foreground)" />
+            <span style={{ fontSize: 11, color: 'var(--muted-foreground)' }}>Type @ to mention a person</span>
           </div>
 
           {/* @mention dropdown */}
           {mentionActive && suggestions.length > 0 && (
             <div style={{
               position: 'absolute', bottom: '100%', left: 0, right: 0, zIndex: 50,
-              backgroundColor: '#12121a', border: '1px solid #2a2a3e',
+              backgroundColor: 'var(--card)', border: '1px solid var(--border)',
               borderRadius: 8, overflow: 'hidden', marginBottom: 4,
               boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
             }}>
@@ -118,15 +118,15 @@ export function NoteEditor({ note, onChange }: NoteEditorProps) {
                     width: '100%', display: 'flex', alignItems: 'center', gap: 10,
                     padding: '8px 12px', border: 'none', cursor: 'pointer', textAlign: 'left',
                     backgroundColor: i === selectedIdx ? 'rgba(124,106,255,0.12)' : 'transparent',
-                    color: '#e8e8f0',
+                    color: 'var(--foreground)',
                   }}
                 >
                   <div style={{ width: 26, height: 26, borderRadius: '50%', backgroundColor: '#10b98122', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, color: '#10b981', fontWeight: 700, flexShrink: 0 }}>
                     {s.name.charAt(0).toUpperCase()}
                   </div>
                   <div>
-                    <p style={{ fontSize: 13, color: '#e8e8f0', margin: 0 }}>{s.name}</p>
-                    {s.role && <p style={{ fontSize: 11, color: '#6b6b88', margin: 0 }}>{s.role}</p>}
+                    <p style={{ fontSize: 13, color: 'var(--foreground)', margin: 0 }}>{s.name}</p>
+                    {s.role && <p style={{ fontSize: 11, color: 'var(--muted-foreground)', margin: 0 }}>{s.role}</p>}
                   </div>
                 </button>
               ))}
@@ -202,7 +202,7 @@ export function NoteEditor({ note, onChange }: NoteEditorProps) {
 
       {/* Knowledge links — only shown when editing an existing note */}
       {noteId && (
-        <div style={{ borderTop: '1px solid #2a2a3e', paddingTop: 12 }}>
+        <div style={{ borderTop: '1px solid var(--border)', paddingTop: 12 }}>
           <LinkPanel sourceId={noteId} sourceType="note" />
         </div>
       )}

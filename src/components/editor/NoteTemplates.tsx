@@ -115,7 +115,7 @@ interface NoteTemplatesProps {
 export function NoteTemplates({ onSelect }: NoteTemplatesProps) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-      <p style={{ fontSize: 11, color: '#3a3a5e', margin: '0 0 8px', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 600 }}>
+      <p style={{ fontSize: 11, color: 'var(--border)', margin: '0 0 8px', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 600 }}>
         Templates
       </p>
       {NOTE_TEMPLATES.map(t => (
@@ -126,14 +126,14 @@ export function NoteTemplates({ onSelect }: NoteTemplatesProps) {
           style={{
             display: 'flex', alignItems: 'center', gap: 10,
             padding: '8px 12px', borderRadius: 8,
-            border: '1px solid #2a2a3e', backgroundColor: 'transparent',
+            border: '1px solid var(--border)', backgroundColor: 'transparent',
             cursor: 'pointer', textAlign: 'left', transition: 'all 0.15s',
           }}
-          onMouseEnter={e => { e.currentTarget.style.backgroundColor = 'rgba(124,106,255,0.08)'; e.currentTarget.style.borderColor = '#7c6aff44' }}
-          onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.borderColor = '#2a2a3e' }}
+          onMouseEnter={e => { e.currentTarget.style.backgroundColor = 'rgba(124,106,255,0.08)'; e.currentTarget.style.borderColor = 'var(--primary)44' }}
+          onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.borderColor = 'var(--border)' }}
         >
           <span style={{ fontSize: 20, flexShrink: 0 }}>{t.icon}</span>
-          <span style={{ fontSize: 13, color: '#e8e8f0' }}>{t.label}</span>
+          <span style={{ fontSize: 13, color: 'var(--foreground)' }}>{t.label}</span>
         </button>
       ))}
     </div>

@@ -21,7 +21,7 @@ const TYPE_ICON: Record<string, React.ElementType> = {
   note: FileText, person: Users, bookmark: Bookmark, task: CheckSquare,
 }
 const TYPE_COLOR: Record<string, string> = {
-  note: '#7c6aff', person: '#10b981', bookmark: '#f59e0b', task: '#ef4444',
+  note: 'var(--primary)', person: '#10b981', bookmark: '#f59e0b', task: '#ef4444',
 }
 const TYPE_HREF: Record<string, (id: string) => string> = {
   note: () => '/notes', person: (id) => `/people/${id}`, bookmark: () => '/bookmarks', task: () => '/tasks',
@@ -120,8 +120,8 @@ export function LinkPanel({ sourceId, sourceType }: LinkPanelProps) {
     <div style={{ marginTop: 16 }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <Link2 size={13} color="#6b6b88" />
-          <span style={{ fontSize: 12, fontWeight: 600, color: '#6b6b88', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+          <Link2 size={13} color="var(--muted-foreground)" />
+          <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--muted-foreground)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
             Linked items {links.length > 0 && `(${links.length})`}
           </span>
         </div>
@@ -131,8 +131,8 @@ export function LinkPanel({ sourceId, sourceType }: LinkPanelProps) {
           style={{
             display: 'flex', alignItems: 'center', gap: 5,
             padding: '4px 10px', borderRadius: 6,
-            border: '1px solid #2a2a3e', backgroundColor: 'transparent',
-            color: '#7c6aff', fontSize: 12, cursor: 'pointer',
+            border: '1px solid var(--border)', backgroundColor: 'transparent',
+            color: 'var(--primary)', fontSize: 12, cursor: 'pointer',
           }}
         >
           <Plus size={12} /> Link item
@@ -144,7 +144,7 @@ export function LinkPanel({ sourceId, sourceType }: LinkPanelProps) {
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 10 }}>
           {links.map(link => {
             const Icon = TYPE_ICON[link.type] ?? FileText
-            const color = TYPE_COLOR[link.type] ?? '#7c6aff'
+            const color = TYPE_COLOR[link.type] ?? 'var(--primary)'
             return (
               <div key={link.id} style={{
                 display: 'flex', alignItems: 'center', gap: 6,
@@ -183,23 +183,23 @@ export function LinkPanel({ sourceId, sourceType }: LinkPanelProps) {
             placeholder="Search notes, people, tasks, bookmarks..."
             style={{
               width: '100%', padding: '8px 12px', borderRadius: 8,
-              border: '1px solid #3a3a5e', backgroundColor: '#1a1a28',
-              color: '#e8e8f0', fontSize: 13, outline: 'none',
+              border: '1px solid var(--border)', backgroundColor: 'var(--muted)',
+              color: 'var(--foreground)', fontSize: 13, outline: 'none',
               fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
             }}
           />
           {(results.length > 0 || loading) && (
             <div style={{
               position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 50,
-              backgroundColor: '#12121a', border: '1px solid #2a2a3e',
+              backgroundColor: 'var(--card)', border: '1px solid var(--border)',
               borderRadius: 8, marginTop: 4,
               boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
               overflow: 'hidden',
             }}>
-              {loading && <div style={{ padding: '10px 12px', fontSize: 13, color: '#6b6b88' }}>Searching...</div>}
+              {loading && <div style={{ padding: '10px 12px', fontSize: 13, color: 'var(--muted-foreground)' }}>Searching...</div>}
               {results.map(r => {
                 const Icon = TYPE_ICON[r._type] ?? FileText
-                const color = TYPE_COLOR[r._type] ?? '#7c6aff'
+                const color = TYPE_COLOR[r._type] ?? 'var(--primary)'
                 const alreadyLinked = links.some(l => l.id === r.id)
                 return (
                   <button
@@ -220,10 +220,10 @@ export function LinkPanel({ sourceId, sourceType }: LinkPanelProps) {
                       <Icon size={13} color={color} />
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <p style={{ fontSize: 13, color: alreadyLinked ? '#6b6b88' : '#e8e8f0', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r._label}</p>
-                      <p style={{ fontSize: 11, color: '#6b6b88', margin: 0, textTransform: 'capitalize' }}>{r._type}</p>
+                      <p style={{ fontSize: 13, color: alreadyLinked ? 'var(--muted-foreground)' : 'var(--foreground)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r._label}</p>
+                      <p style={{ fontSize: 11, color: 'var(--muted-foreground)', margin: 0, textTransform: 'capitalize' }}>{r._type}</p>
                     </div>
-                    {alreadyLinked && <span style={{ fontSize: 11, color: '#6b6b88' }}>Linked</span>}
+                    {alreadyLinked && <span style={{ fontSize: 11, color: 'var(--muted-foreground)' }}>Linked</span>}
                   </button>
                 )
               })}
@@ -233,7 +233,7 @@ export function LinkPanel({ sourceId, sourceType }: LinkPanelProps) {
       )}
 
       {links.length === 0 && !searching && (
-        <p style={{ fontSize: 12, color: '#3a3a5e', fontStyle: 'italic' }}>No linked items yet. Click &quot;Link item&quot; to connect this to a note, person, task or bookmark.</p>
+        <p style={{ fontSize: 12, color: 'var(--border)', fontStyle: 'italic' }}>No linked items yet. Click &quot;Link item&quot; to connect this to a note, person, task or bookmark.</p>
       )}
     </div>
   )

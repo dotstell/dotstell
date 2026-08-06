@@ -38,7 +38,7 @@ const lowlight = createLowlight(common)
 // ── Colour palettes ─────────────────────────────────────────
 const TEXT_COLORS = [
   { label: 'Default',    value: '' },
-  { label: 'Purple',     value: '#a594ff' },
+  { label: 'Purple',     value: 'var(--primary)' },
   { label: 'Blue',       value: '#60a5fa' },
   { label: 'Cyan',       value: '#22d3ee' },
   { label: 'Green',      value: '#34d399' },
@@ -51,7 +51,7 @@ const TEXT_COLORS = [
 
 const HIGHLIGHT_COLORS = [
   { label: 'Yellow',  value: 'rgba(251,191,36,0.3)',   dot: '#fbbf24' },
-  { label: 'Purple',  value: 'rgba(124,106,255,0.3)',  dot: '#7c6aff' },
+  { label: 'Purple',  value: 'rgba(124,106,255,0.3)',  dot: 'var(--primary)' },
   { label: 'Blue',    value: 'rgba(96,165,250,0.3)',   dot: '#60a5fa' },
   { label: 'Green',   value: 'rgba(52,211,153,0.3)',   dot: '#34d399' },
   { label: 'Pink',    value: 'rgba(244,114,182,0.3)',  dot: '#f472b6' },
@@ -338,7 +338,7 @@ export function RichTextEditor({
       {/* ── Toolbar ── */}
       <div style={{
         display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap',
-        padding: '5px 10px', borderBottom: '1px solid #2a2a3e',
+        padding: '5px 10px', borderBottom: '1px solid var(--border)',
         backgroundColor: '#0e0e18', position: 'sticky', top: 0, zIndex: 20,
         rowGap: 4,
         opacity: sourceMode ? 0.35 : 1,
@@ -386,8 +386,8 @@ export function RichTextEditor({
             onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.06)')}
             onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
           >
-            <Type size={13} color={activeColor || '#a0a0b8'} />
-            <div style={{ width: 14, height: 3, borderRadius: 2, backgroundColor: activeColor || '#a0a0b8' }} />
+            <Type size={13} color={activeColor || 'var(--secondary-foreground)'} />
+            <div style={{ width: 14, height: 3, borderRadius: 2, backgroundColor: activeColor || 'var(--secondary-foreground)' }} />
           </button>
           {colorPickerOpen && (
             <ColorPicker
@@ -417,8 +417,8 @@ export function RichTextEditor({
             onMouseEnter={e => { if (!editor.isActive('highlight')) e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.06)' }}
             onMouseLeave={e => { if (!editor.isActive('highlight')) e.currentTarget.style.backgroundColor = 'transparent' }}
           >
-            <Highlighter size={13} color={editor.isActive('highlight') ? '#7c6aff' : '#a0a0b8'} />
-            <div style={{ width: 14, height: 3, borderRadius: 2, backgroundColor: editor.getAttributes('highlight').color || (editor.isActive('highlight') ? '#fbbf24' : '#a0a0b8') }} />
+            <Highlighter size={13} color={editor.isActive('highlight') ? 'var(--primary)' : 'var(--secondary-foreground)'} />
+            <div style={{ width: 14, height: 3, borderRadius: 2, backgroundColor: editor.getAttributes('highlight').color || (editor.isActive('highlight') ? '#fbbf24' : 'var(--secondary-foreground)') }} />
           </button>
           {hlPickerOpen && (
             <HighlightPicker
@@ -498,9 +498,9 @@ export function RichTextEditor({
           style={{
             display: 'flex', alignItems: 'center', gap: 5,
             padding: '4px 10px', borderRadius: 6, border: '1px solid',
-            borderColor: sourceMode ? '#7c6aff' : '#2a2a3e',
+            borderColor: sourceMode ? 'var(--primary)' : 'var(--border)',
             backgroundColor: sourceMode ? 'rgba(124,106,255,0.2)' : '#0e0e18',
-            color: sourceMode ? '#a594ff' : '#6b6b88',
+            color: sourceMode ? 'var(--primary)' : 'var(--muted-foreground)',
             fontSize: 11, fontWeight: 600, cursor: 'pointer', transition: 'all 0.15s',
           }}
         >
@@ -518,7 +518,7 @@ export function RichTextEditor({
             {/* Markdown cheatsheet bar */}
             <div style={{
               display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap',
-              padding: '6px 16px', borderBottom: '1px solid #1e1e2e',
+              padding: '6px 16px', borderBottom: '1px solid var(--secondary)',
               backgroundColor: '#0a0a12',
             }}>
               {[
@@ -535,7 +535,7 @@ export function RichTextEditor({
                   {label}
                 </span>
               ))}
-              <span style={{ fontSize: 11, color: '#3a3a5e', marginLeft: 'auto' }}>
+              <span style={{ fontSize: 11, color: 'var(--border)', marginLeft: 'auto' }}>
                 Markdown source — click "Rich text" to preview
               </span>
             </div>
@@ -546,11 +546,11 @@ export function RichTextEditor({
               placeholder={'# Your heading\n\nStart writing markdown here...\n\n- **bold** text\n- _italic_ text\n- `inline code`\n\n> A beautiful quote\n\n```js\nconsole.log("hello")\n```'}
               style={{
                 flex: 1, padding: '24px 28px',
-                background: '#0a0a0f', color: '#d4d4e8',
+                background: 'var(--background)', color: '#d4d4e8',
                 border: 'none', outline: 'none', resize: 'none',
                 fontFamily: '"JetBrains Mono", "Fira Code", monospace',
                 fontSize: 14, lineHeight: 1.8,
-                caretColor: '#7c6aff',
+                caretColor: 'var(--primary)',
               }}
             />
           </div>
@@ -562,12 +562,12 @@ export function RichTextEditor({
         {slashOpen && flatFiltered.length > 0 && (
           <div style={{
             position: 'absolute', left: 20, top: 60, zIndex: 100,
-            backgroundColor: '#12121a', border: '1px solid #3a3a5e',
+            backgroundColor: 'var(--card)', border: '1px solid var(--border)',
             borderRadius: 12, padding: 6, width: 260,
             boxShadow: '0 12px 40px rgba(0,0,0,0.6)',
             maxHeight: 360, overflowY: 'auto',
           }}>
-            <p style={{ fontSize: 10, color: '#3a3a5e', padding: '4px 8px 6px', margin: 0, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Blocks</p>
+            <p style={{ fontSize: 10, color: 'var(--border)', padding: '4px 8px 6px', margin: 0, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Blocks</p>
             {flatFiltered.map((cmd, i) => (
               <button
                 key={cmd.label}
@@ -583,15 +583,15 @@ export function RichTextEditor({
               >
                 <div style={{
                   width: 30, height: 30, borderRadius: 7,
-                  backgroundColor: i === slashIdx ? 'rgba(124,106,255,0.2)' : '#1e1e2e',
+                  backgroundColor: i === slashIdx ? 'rgba(124,106,255,0.2)' : 'var(--secondary)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  flexShrink: 0, fontSize: 13, fontWeight: 700, color: '#7c6aff',
+                  flexShrink: 0, fontSize: 13, fontWeight: 700, color: 'var(--primary)',
                 }}>
                   {cmd.icon}
                 </div>
                 <div>
-                  <p style={{ fontSize: 13, color: '#e8e8f0', margin: 0 }}>{cmd.label}</p>
-                  <p style={{ fontSize: 11, color: '#6b6b88', margin: 0 }}>{cmd.desc}</p>
+                  <p style={{ fontSize: 13, color: 'var(--foreground)', margin: 0 }}>{cmd.label}</p>
+                  <p style={{ fontSize: 11, color: 'var(--muted-foreground)', margin: 0 }}>{cmd.desc}</p>
                 </div>
               </button>
             ))}
@@ -639,22 +639,22 @@ export function RichTextEditor({
       {/* ── Footer: stats + autosave ── */}
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '5px 14px', borderTop: '1px solid #1e1e2e',
+        padding: '5px 14px', borderTop: '1px solid var(--secondary)',
         backgroundColor: '#0a0a12', flexShrink: 0,
       }}>
         <div style={{ display: 'flex', gap: 16 }}>
           {stats && (
             <>
-              <span style={{ fontSize: 11, color: '#3a3a5e' }}>{stats.words} words</span>
-              <span style={{ fontSize: 11, color: '#3a3a5e' }}>{stats.chars} chars</span>
-              <span style={{ fontSize: 11, color: '#3a3a5e' }}>~{stats.readTime} min read</span>
+              <span style={{ fontSize: 11, color: 'var(--border)' }}>{stats.words} words</span>
+              <span style={{ fontSize: 11, color: 'var(--border)' }}>{stats.chars} chars</span>
+              <span style={{ fontSize: 11, color: 'var(--border)' }}>~{stats.readTime} min read</span>
             </>
           )}
         </div>
         {autoSaveStatus && (
           <span style={{
             fontSize: 11,
-            color: autoSaveStatus === 'saved' ? '#10b981' : autoSaveStatus === 'saving' ? '#7c6aff' : '#6b6b88',
+            color: autoSaveStatus === 'saved' ? '#10b981' : autoSaveStatus === 'saving' ? 'var(--primary)' : 'var(--muted-foreground)',
           }}>
             {autoSaveStatus === 'saved' ? '✓ Saved' : autoSaveStatus === 'saving' ? '⟳ Saving…' : '● Unsaved'}
           </span>
@@ -667,16 +667,16 @@ export function RichTextEditor({
 // ── Shared dialog styles ─────────────────────────────────────
 const inputStyle: React.CSSProperties = {
   width: '100%', padding: '8px 10px', borderRadius: 7,
-  border: '1px solid #3a3a5e', backgroundColor: '#1a1a28',
-  color: '#e8e8f0', fontSize: 13, outline: 'none', marginBottom: 10,
+  border: '1px solid var(--border)', backgroundColor: 'var(--muted)',
+  color: 'var(--foreground)', fontSize: 13, outline: 'none', marginBottom: 10,
 }
 const primaryBtnStyle: React.CSSProperties = {
-  flex: 1, padding: '7px', borderRadius: 7, backgroundColor: '#7c6aff',
+  flex: 1, padding: '7px', borderRadius: 7, backgroundColor: 'var(--primary)',
   border: 'none', color: 'white', fontSize: 13, cursor: 'pointer',
 }
 const secondaryBtnStyle: React.CSSProperties = {
-  flex: 1, padding: '7px', borderRadius: 7, backgroundColor: '#1e1e2e',
-  border: '1px solid #2a2a3e', color: '#a0a0b8', fontSize: 13, cursor: 'pointer',
+  flex: 1, padding: '7px', borderRadius: 7, backgroundColor: 'var(--secondary)',
+  border: '1px solid var(--border)', color: 'var(--secondary-foreground)', fontSize: 13, cursor: 'pointer',
 }
 const dangerBtnStyle: React.CSSProperties = {
   flex: 1, padding: '7px', borderRadius: 7, backgroundColor: 'rgba(239,68,68,0.15)',
@@ -689,7 +689,7 @@ function ToolbarGroup({ children }: { children: React.ReactNode }) {
 }
 
 function Divider() {
-  return <div style={{ width: 1, height: 20, backgroundColor: '#2a2a3e', margin: '0 4px', flexShrink: 0 }} />
+  return <div style={{ width: 1, height: 20, backgroundColor: 'var(--border)', margin: '0 4px', flexShrink: 0 }} />
 }
 
 function ToolBtn({ onClick, active, disabled, title, children }: {
@@ -702,7 +702,7 @@ function ToolBtn({ onClick, active, disabled, title, children }: {
         width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center',
         borderRadius: 6, border: 'none', cursor: disabled ? 'not-allowed' : 'pointer',
         backgroundColor: active ? 'rgba(124,106,255,0.2)' : 'transparent',
-        color: active ? '#7c6aff' : disabled ? '#3a3a5e' : '#a0a0b8',
+        color: active ? 'var(--primary)' : disabled ? 'var(--border)' : 'var(--secondary-foreground)',
         transition: 'all 0.1s', flexShrink: 0,
       }}
       onMouseEnter={e => { if (!active && !disabled) e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.06)' }}
@@ -717,11 +717,11 @@ function FloatingDialog({ title, children, onClose }: { title: string; children:
   return (
     <div style={{
       position: 'absolute', left: '50%', top: 50, transform: 'translateX(-50%)', zIndex: 200,
-      backgroundColor: '#12121a', border: '1px solid #3a3a5e',
+      backgroundColor: 'var(--card)', border: '1px solid var(--border)',
       borderRadius: 12, padding: 18, width: 340,
       boxShadow: '0 12px 40px rgba(0,0,0,0.7)',
     }}>
-      <p style={{ fontSize: 12, color: '#a0a0b8', margin: '0 0 10px', fontWeight: 600 }}>{title}</p>
+      <p style={{ fontSize: 12, color: 'var(--secondary-foreground)', margin: '0 0 10px', fontWeight: 600 }}>{title}</p>
       {children}
     </div>
   )
@@ -743,8 +743,8 @@ function HeadingDropdown({ editor }: { editor: ReturnType<typeof useEditor> }) {
         onClick={() => setOpen(o => !o)}
         style={{
           display: 'flex', alignItems: 'center', gap: 4,
-          padding: '4px 8px', borderRadius: 6, border: '1px solid #2a2a3e',
-          backgroundColor: 'transparent', color: '#a0a0b8', fontSize: 12,
+          padding: '4px 8px', borderRadius: 6, border: '1px solid var(--border)',
+          backgroundColor: 'transparent', color: 'var(--secondary-foreground)', fontSize: 12,
           cursor: 'pointer', minWidth: 82, whiteSpace: 'nowrap',
         }}
       >
@@ -753,7 +753,7 @@ function HeadingDropdown({ editor }: { editor: ReturnType<typeof useEditor> }) {
       {open && (
         <div style={{
           position: 'absolute', top: '100%', left: 0, zIndex: 200, marginTop: 4,
-          backgroundColor: '#12121a', border: '1px solid #2a2a3e',
+          backgroundColor: 'var(--card)', border: '1px solid var(--border)',
           borderRadius: 10, padding: 4, minWidth: 140,
           boxShadow: '0 8px 28px rgba(0,0,0,0.5)',
         }}>
@@ -765,7 +765,7 @@ function HeadingDropdown({ editor }: { editor: ReturnType<typeof useEditor> }) {
           ].map(item => (
             <button key={item.label} type="button" onClick={() => { item.action(); setOpen(false) }} style={{
               width: '100%', padding: '7px 10px', borderRadius: 7, border: 'none',
-              backgroundColor: 'transparent', color: '#e8e8f0', cursor: 'pointer',
+              backgroundColor: 'transparent', color: 'var(--foreground)', cursor: 'pointer',
               textAlign: 'left', fontSize: item.fs, fontWeight: item.fw,
             }}
               onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'rgba(124,106,255,0.1)')}
@@ -798,8 +798,8 @@ function FontDropdown({ editor, open, setOpen, ref }: {
         title="Font family"
         style={{
           display: 'flex', alignItems: 'center', gap: 4,
-          padding: '4px 8px', borderRadius: 6, border: '1px solid #2a2a3e',
-          backgroundColor: 'transparent', color: '#a0a0b8', fontSize: 12,
+          padding: '4px 8px', borderRadius: 6, border: '1px solid var(--border)',
+          backgroundColor: 'transparent', color: 'var(--secondary-foreground)', fontSize: 12,
           cursor: 'pointer', minWidth: 76, whiteSpace: 'nowrap',
           fontFamily: currentFont || 'inherit',
         }}
@@ -811,7 +811,7 @@ function FontDropdown({ editor, open, setOpen, ref }: {
       {open && (
         <div style={{
           position: 'absolute', top: '100%', left: 0, zIndex: 200, marginTop: 4,
-          backgroundColor: '#0e0e18', border: '1px solid #2a2a3e',
+          backgroundColor: '#0e0e18', border: '1px solid var(--border)',
           borderRadius: 12, padding: 6, width: 220,
           boxShadow: '0 12px 36px rgba(0,0,0,0.7)',
           maxHeight: 420, overflowY: 'auto',
@@ -820,7 +820,7 @@ function FontDropdown({ editor, open, setOpen, ref }: {
             <div key={group.group}>
               {/* Group label */}
               <p style={{
-                fontSize: 10, color: '#3a3a5e', margin: '6px 0 3px 8px',
+                fontSize: 10, color: 'var(--border)', margin: '6px 0 3px 8px',
                 textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 600,
               }}>
                 {GROUP_ICONS[group.group]} {group.group}
@@ -846,7 +846,7 @@ function FontDropdown({ editor, open, setOpen, ref }: {
                     onMouseLeave={e => { if (!isActive) e.currentTarget.style.backgroundColor = 'transparent' }}
                   >
                     <span style={{
-                      fontSize: 13, color: isActive ? '#a594ff' : '#e8e8f0',
+                      fontSize: 13, color: isActive ? 'var(--primary)' : 'var(--foreground)',
                       fontFamily: f.value || 'inherit',
                       fontWeight: isActive ? 600 : 400,
                     }}>
@@ -854,7 +854,7 @@ function FontDropdown({ editor, open, setOpen, ref }: {
                     </span>
                     {/* Live preview of the font */}
                     <span style={{
-                      fontSize: 12, color: '#6b6b88',
+                      fontSize: 12, color: 'var(--muted-foreground)',
                       fontFamily: f.value || 'inherit',
                     }}>
                       Aa
@@ -879,11 +879,11 @@ function ColorPicker({ colors, activeValue, onSelect, onReset }: {
   return (
     <div style={{
       position: 'absolute', top: '100%', left: 0, zIndex: 200, marginTop: 4,
-      backgroundColor: '#12121a', border: '1px solid #2a2a3e',
+      backgroundColor: 'var(--card)', border: '1px solid var(--border)',
       borderRadius: 10, padding: 10, width: 200,
       boxShadow: '0 8px 28px rgba(0,0,0,0.6)',
     }}>
-      <p style={{ fontSize: 10, color: '#3a3a5e', margin: '0 0 8px', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Text color</p>
+      <p style={{ fontSize: 10, color: 'var(--border)', margin: '0 0 8px', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Text color</p>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 5 }}>
         {colors.map(c => (
           <button
@@ -892,18 +892,18 @@ function ColorPicker({ colors, activeValue, onSelect, onReset }: {
             title={c.label}
             onClick={() => onSelect(c.value)}
             style={{
-              width: 28, height: 28, borderRadius: 6, border: activeValue === c.value ? '2px solid #7c6aff' : '2px solid transparent',
-              backgroundColor: c.value || '#3a3a5e',
+              width: 28, height: 28, borderRadius: 6, border: activeValue === c.value ? '2px solid var(--primary)' : '2px solid transparent',
+              backgroundColor: c.value || 'var(--border)',
               cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}
           >
-            {!c.value && <span style={{ fontSize: 10, color: '#a0a0b8' }}>A</span>}
+            {!c.value && <span style={{ fontSize: 10, color: 'var(--secondary-foreground)' }}>A</span>}
           </button>
         ))}
       </div>
       <button type="button" onClick={onReset} style={{
         marginTop: 8, width: '100%', padding: '5px', borderRadius: 6,
-        backgroundColor: '#1a1a28', border: '1px solid #2a2a3e', color: '#6b6b88',
+        backgroundColor: 'var(--muted)', border: '1px solid var(--border)', color: 'var(--muted-foreground)',
         fontSize: 11, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4,
       }}>
         <RotateCcw size={10} /> Reset color
@@ -920,11 +920,11 @@ function HighlightPicker({ colors, editor, onSelect }: {
   return (
     <div style={{
       position: 'absolute', top: '100%', left: 0, zIndex: 200, marginTop: 4,
-      backgroundColor: '#12121a', border: '1px solid #2a2a3e',
+      backgroundColor: 'var(--card)', border: '1px solid var(--border)',
       borderRadius: 10, padding: 10, width: 200,
       boxShadow: '0 8px 28px rgba(0,0,0,0.6)',
     }}>
-      <p style={{ fontSize: 10, color: '#3a3a5e', margin: '0 0 8px', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Highlight color</p>
+      <p style={{ fontSize: 10, color: 'var(--border)', margin: '0 0 8px', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Highlight color</p>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 5 }}>
         {colors.map(c => {
           const isActive = c.value ? editor.isActive('highlight', { color: c.value }) : false
@@ -935,15 +935,15 @@ function HighlightPicker({ colors, editor, onSelect }: {
               title={c.label}
               onClick={() => onSelect(c.value)}
               style={{
-                height: 28, borderRadius: 6, border: isActive ? '2px solid #7c6aff' : '2px solid transparent',
-                backgroundColor: c.value || '#1e1e2e',
-                cursor: 'pointer', fontSize: 11, color: '#e8e8f0',
+                height: 28, borderRadius: 6, border: isActive ? '2px solid var(--primary)' : '2px solid transparent',
+                backgroundColor: c.value || 'var(--secondary)',
+                cursor: 'pointer', fontSize: 11, color: 'var(--foreground)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4,
                 padding: '0 6px',
               }}
             >
               {c.dot ? <span style={{ width: 10, height: 10, borderRadius: 3, backgroundColor: c.dot, display: 'inline-block', flexShrink: 0 }} /> : null}
-              {!c.value ? <span style={{ fontSize: 10, color: '#6b6b88' }}>None</span> : null}
+              {!c.value ? <span style={{ fontSize: 10, color: 'var(--muted-foreground)' }}>None</span> : null}
             </button>
           )
         })}
