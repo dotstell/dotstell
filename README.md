@@ -1,104 +1,79 @@
 <div align="center">
 
-<img src="public/logo-full.svg" alt="Dotstell" width="420" />
+<br/>
+
+<img src="public/logo-full.svg" alt="Dotstell" width="400" />
+
+<br/>
+<br/>
 
 ### Your knowledge is scattered. Dotstell connects it.
 
-**Notes · People · Tasks · Bookmarks — all linked in one living knowledge graph**
+**Notes · People · Tasks · Bookmarks · Wikilinks — all linked in one living knowledge graph**
 
-[![Open Source](https://img.shields.io/badge/Open%20Source-MIT-7c6aff?style=flat-square)](LICENSE)
-[![Next.js](https://img.shields.io/badge/Next.js-15-black?style=flat-square&logo=next.js)](https://nextjs.org)
-[![Supabase](https://img.shields.io/badge/Supabase-Postgres-3ECF8E?style=flat-square&logo=supabase)](https://supabase.com)
+<br/>
+
+[![License: AGPL-3.0](https://img.shields.io/badge/License-AGPL--3.0-7c6aff?style=flat-square)](LICENSE)
+[![Next.js](https://img.shields.io/badge/Next.js-16-black?style=flat-square&logo=next.js)](https://nextjs.org)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?style=flat-square&logo=typescript)](https://typescriptlang.org)
+[![Supabase](https://img.shields.io/badge/Supabase-Postgres-3ECF8E?style=flat-square&logo=supabase)](https://supabase.com)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind-v4-38bdf8?style=flat-square&logo=tailwindcss)](https://tailwindcss.com)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen?style=flat-square)](CONTRIBUTING.md)
+
+<br/>
+
+[Website](https://dotstell.com) · [Live App](https://app.dotstell.com) · [Report a bug](https://github.com/dotstell/dotstell/issues) · [Request a feature](https://github.com/dotstell/dotstell/issues)
 
 </div>
 
 ---
 
-## Why Dotstell?
+## What is Dotstell?
 
-You already use Notion, Obsidian, Todoist, Raindrop, or some combination of all of them.
+Dotstell is an open source personal knowledge graph — a single place to write notes, track people, manage tasks, save bookmarks, and connect all of them together through a visual graph.
 
-**So why build another one?**
+Most productivity tools are built around **capture**. Dotstell is built around **connection**.
 
-Because none of them answer the question that actually matters:
+The question it answers that other tools don't:
 
-> *"What do I know about this person, this project, this decision — right now, in context?"*
-
-Notion is a database. Obsidian is a vault. Todoist is a list.
-**Dotstell is a graph.** Every note, person, task, and bookmark is a node. Every connection between them is an edge. The result is a living map of your thinking — not just a place to dump information.
+> *"What do I know about this person, this project, this decision — right now, in full context?"*
 
 ---
 
-## The insight that drives this
+## Features
 
-Most productivity tools are built around **capture**.
-Dotstell is built around **connection**.
-
-Capture is easy. Everyone has solved capture.
-
-The hard part is surfacing the right context at the right moment:
-- The task you're working on relates to a decision made last week
-- That decision came from a conversation with a person
-- That person has three notes attached to them you've already forgotten about
-
-**Dotstell makes those connections visible, navigable, and useful.**
-
----
-
-## Who is it for?
-
-Anyone who thinks for a living and feels like their knowledge is leaking:
-
-- 👩‍💻 **Engineers & developers** — link tickets, decisions, and technical notes
-- 👔 **Managers** — track 1-on-1s, team context, and follow-ups in one place
-- 🎓 **Students & researchers** — connect ideas across sources and people
-- 🚀 **Founders & PMs** — never lose context on a conversation, decision, or customer
-- 🧠 **Anyone building a second brain** — who finds existing tools too rigid or too complex
-
----
-
-## What's in the MVP
-
-| Feature | What it does |
-|---|---|
-| 📑 **Notes** | Plain text, Markdown, and Checklist — all in one place |
-| 👥 **People & 1-on-1s** | Add contacts, attach notes directly to people |
-| ✅ **Tasks** | Kanban board + list view with priorities and due dates |
-| 🔖 **Bookmarks** | Save and tag links with full context |
-| 🌐 **Knowledge Graph** | Visual map of everything, connected |
-| 🔍 **Search** | Instant search across all item types |
-| 🔗 **Knowledge Linking** | Connect any note to any person, task or bookmark |
-| 🔐 **Auth** | Secure login via Supabase |
-
----
-
-## The Ecosystem Vision
-
-Dotstell is not just an app. It's the beginning of an **open source ecosystem** built on a shared knowledge graph.
-
-The notes app is the first building block. Every future app plugs into the same graph underneath:
-
-| App | Status | Description |
+| | Feature | Description |
 |---|---|---|
-| 📑 **Notes** | ✅ Live | The foundation — all note types in one place |
-| 👥 **People** | ✅ Live | Relationships, contacts & 1-on-1 notes |
-| ✅ **Tasks** | ✅ Live | Priorities, due dates, kanban |
-| 🔖 **Bookmarks** | ✅ Live | Save links with context |
-| 🌐 **Graph** | ✅ Live | Visual knowledge map |
-| 🤖 **AI Layer** | 🔜 Planned | Auto-tagging, summarisation, semantic search |
-| 🌐 **Browser Extension** | 🔜 Planned | One-click capture from the web |
-| 💬 **Integrations** | 🔜 Planned | Slack, Teams, Email |
-| 📱 **Mobile** | 🔜 Planned | Capture on the go |
+| 📑 | **Rich Text Notes** | Write in rich text with slash commands, tables, code blocks and checklists |
+| ⬡ | **Wikilinks & Backlinks** | Type `[[` in any note to link it to another — backlinks update automatically |
+| 👥 | **People & 1-on-1s** | Track contacts, attach notes, tasks and context directly to people |
+| 🔖 | **Smart Bookmarks** | Save any URL — title, description and favicon fetched automatically |
+| ✅ | **Tasks & Priorities** | Kanban board + list view with priorities, due dates and overdue alerts |
+| 🌐 | **Knowledge Graph** | Visual map of everything — wikilinks and manual connections appear as live edges |
+| 🔍 | **Universal Search** | Ctrl+K command palette across all notes, people, tasks and bookmarks |
+| 🔗 | **Manual Linking** | Connect any entity to any other — note → person, bookmark → task, etc. |
+| 🏠 | **Dashboard** | Unified home screen: overdue alerts, task progress, recent notes and bookmarks |
+
+---
+
+## Screenshots
+
+> Coming soon — app is in active development.
 
 ---
 
 ## Getting Started
 
-### 1. Clone the repo
+### Prerequisites
+
+- Node.js 18+
+- pnpm (`npm install -g pnpm`)
+- A free [Supabase](https://supabase.com) account
+
+### 1. Clone
 
 ```bash
-git clone https://github.com/R-OSS-CSDD/dotstell.git
+git clone https://github.com/dotstell/dotstell.git
 cd dotstell
 ```
 
@@ -110,8 +85,17 @@ pnpm install
 
 ### 3. Set up Supabase
 
-1. Create a free project at [supabase.com](https://supabase.com)
-2. Go to **SQL Editor** and run [`supabase/schema.sql`](./supabase/schema.sql)
+1. Create a new project at [supabase.com](https://supabase.com)
+2. Go to **SQL Editor** and run the migrations in order:
+
+```bash
+supabase/migrations/
+├── 001_initial_schema.sql
+├── 002_knowledge_links.sql
+├── 003_bookmarks.sql
+└── 004_notes_hierarchy.sql
+```
+
 3. Copy your project URL and anon key from **Settings → API**
 
 ### 4. Configure environment
@@ -120,12 +104,14 @@ pnpm install
 cp .env.local.example .env.local
 ```
 
+Edit `.env.local`:
+
 ```env
 NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
 ```
 
-> **Corporate network?** Add `NODE_TLS_REJECT_UNAUTHORIZED=0` to your `.env.local` if you're behind a corporate SSL proxy.
+> **Behind a corporate SSL proxy?** Add `NODE_TLS_REJECT_UNAUTHORIZED=0` to your `.env.local`. Do **not** set this in production.
 
 ### 5. Run
 
@@ -133,7 +119,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
 pnpm dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) — create an account and start connecting your knowledge.
+Open [http://localhost:3000](http://localhost:3000), create an account and start connecting your knowledge.
 
 ---
 
@@ -141,13 +127,14 @@ Open [http://localhost:3000](http://localhost:3000) — create an account and st
 
 | Layer | Technology |
 |---|---|
-| Framework | Next.js 15 (App Router) |
-| Language | TypeScript |
+| Framework | Next.js 16 (App Router, React 19) |
+| Language | TypeScript 5 |
 | Styling | Tailwind CSS v4 |
-| Database | Supabase (Postgres + RLS + pgvector ready) |
+| Database | Supabase (PostgreSQL + Row Level Security) |
 | Auth | Supabase Auth |
-| Graph | React Flow |
-| Markdown | @uiw/react-md-editor |
+| Rich Text Editor | Tiptap v3 |
+| Graph Visualisation | React Flow v11 |
+| Icons | Lucide React |
 
 ---
 
@@ -155,37 +142,81 @@ Open [http://localhost:3000](http://localhost:3000) — create an account and st
 
 ```
 src/
-├── app/                  # Pages & API routes
-│   ├── api/              # REST API (notes, people, bookmarks, tasks, links)
-│   ├── auth/             # Login & register
+├── app/
+│   ├── api/              # REST API routes
+│   │   ├── notes/        # Notes CRUD + wikilinks + backlinks
+│   │   ├── people/       # People CRUD
+│   │   ├── bookmarks/    # Bookmarks CRUD
+│   │   ├── tasks/        # Tasks CRUD
+│   │   ├── links/        # Knowledge links (manual + wikilink edges)
+│   │   └── search/       # Universal search
+│   ├── auth/             # Login & register pages
 │   ├── dashboard/        # Home dashboard
-│   ├── notes/            # Notes
-│   ├── people/           # People & 1-on-1 notes
-│   ├── bookmarks/        # Bookmarks
-│   ├── tasks/            # Tasks (kanban + list)
+│   ├── notes/            # Notes list + editor
+│   ├── people/           # People list + detail
+│   ├── bookmarks/        # Bookmarks + collections
+│   ├── tasks/            # Kanban + list view
 │   ├── graph/            # Knowledge graph
-│   └── search/           # Global search
+│   └── search/           # Global search page
 ├── components/
+│   ├── editor/           # Tiptap rich text editor + WikiLinkExtension
 │   ├── layout/           # Sidebar, AppLayout, PageHeader
-│   ├── notes/            # NoteCard, NoteEditor
-│   └── ui/               # Design system components
-├── lib/supabase/         # Supabase client, server, proxy
+│   ├── links/            # LinkPanel (manual knowledge linking)
+│   ├── notes/            # NoteCard, BacklinksPanel
+│   └── ui/               # Design system (ThemePicker, buttons, etc.)
+├── hooks/                # useTheme, useDebounce, etc.
+├── lib/
+│   ├── supabase/         # Supabase client + server helpers
+│   └── tiptap/           # WikiLinkExtension node
 └── types/                # Shared TypeScript types
 supabase/
-└── schema.sql            # Full DB schema with RLS policies
+└── migrations/           # SQL migrations with RLS policies
 ```
+
+---
+
+## Roadmap
+
+| Feature | Status |
+|---|---|
+| Notes, People, Tasks, Bookmarks | ✅ Live |
+| Wikilinks + Backlinks | ✅ Live |
+| Knowledge Graph | ✅ Live |
+| AI layer (auto-tagging, semantic search) | 🔜 Planned |
+| Desktop app | 🔜 Planned |
+| Browser extension | 🔜 Planned |
+| Slack / Teams integrations | 🔜 Planned |
+| Mobile app | 🔜 Planned |
 
 ---
 
 ## Contributing
 
-This is being built in the open and contributions are genuinely welcome — features, fixes, design, docs, or just opening an issue with your ideas.
+Contributions are welcome and genuinely appreciated.
 
-**Please open an issue before a large PR** so we can align on approach first.
+- **Bug reports & feature requests** — open an [issue](https://github.com/dotstell/dotstell/issues)
+- **Code contributions** — please open an issue first for anything significant so we can align on approach
+- **Docs, design, tests** — always welcome without prior discussion
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for full guidelines.
+
+---
+
+## Self-Hosting
+
+Dotstell is designed to be self-hostable. You need:
+
+- A Node.js server (or Vercel / any Next.js host)
+- A Supabase project (or self-hosted Supabase)
+
+Full self-hosting guide coming soon. In the meantime the Getting Started steps above cover a local setup.
 
 ---
 
 ## License
 
-Not yet licensed — observing before going fully public.
-Once public: **MIT** — free to use, modify, and build on.
+[GNU Affero General Public License v3.0](LICENSE) — AGPL-3.0
+
+This means you can use, modify and distribute Dotstell freely, including self-hosting it. If you run a modified version as a network service, you must make the modified source available to users of that service.
+
+© 2026 Shihab Uddin
