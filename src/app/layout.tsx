@@ -13,15 +13,15 @@ export const metadata: Metadata = {
 
 // Applied before first paint — prevents flash of wrong theme
 const noFlashScript = `(function(){
-  var valid = ['dracula','one-dark','tokyo-night','nord','solarized-dark','catppuccin','solarized-light','github-light'];
+  var valid = ['dotstell','dracula','one-dark','tokyo-night','nord','solarized-dark','catppuccin','solarized-light','github-light'];
   var t = localStorage.getItem('dotstell-theme');
-  if (!t || valid.indexOf(t) === -1) { t = 'dracula'; localStorage.setItem('dotstell-theme', t); }
+  if (!t || valid.indexOf(t) === -1) { t = 'dotstell'; localStorage.setItem('dotstell-theme', t); }
   document.documentElement.setAttribute('data-theme', t);
 })()`
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" data-theme="dracula" suppressHydrationWarning>
+    <html lang="en" data-theme="dotstell" suppressHydrationWarning>
       <head>
         <meta name="color-scheme" content="dark light" />
         {/* No-flash theme script — must run before any paint */}

@@ -45,11 +45,13 @@ export default function BookmarksPage() {
   const [captureUrl,    setCaptureUrl]    = useState('')
   const [captureFetching, setCaptureFetching] = useState(false)
 
-  // View mode — default collections, persisted in localStorage
-  const [viewMode, setViewMode] = useState<'list' | 'collections'>(() => {
-    if (typeof window === 'undefined') return 'collections'
-    return (localStorage.getItem('bookmarks-view') as 'list' | 'collections') ?? 'collections'
-  })
+  // View mode — SSR-safe: start with default, sync from localStorage after mount
+  const [viewMode, setViewMode] = useState<'list' | 'collections'>('collections')
+
+  useEffect(() => {
+    const stored = localStorage.getItem('bookmarks-view') as 'list' | 'collections' | null
+    if (stored === 'list' || stored === 'collections') setViewMode(stored)
+  }, [])
 
   function setAndPersistViewMode(mode: 'list' | 'collections') {
     setViewMode(mode)

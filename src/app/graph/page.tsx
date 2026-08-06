@@ -1,11 +1,11 @@
 'use client'
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import ReactFlow, {
-  Node, Edge, Background, Controls, MiniMap,
+  Node, Background, Controls, MiniMap,
   useNodesState, useEdgesState, BackgroundVariant,
-  MarkerType, Connection, addEdge, NodeTypes,
+  MarkerType, Connection, NodeTypes,
   Handle, Position, EdgeTypes, EdgeProps,
-  getBezierPath, BaseEdge,
+  getBezierPath, BaseEdge, useReactFlow, ReactFlowProvider,
 } from 'reactflow'
 import 'reactflow/dist/style.css'
 import { X, ExternalLink, Link2, Trash2, FileText, Users, Bookmark, CheckSquare } from 'lucide-react'
@@ -98,12 +98,20 @@ const EDGE_TYPES: EdgeTypes = { deletable: DeletableEdge }
 
 // ── Main page ────────────────────────────────────────────────
 export default function GraphPage() {
+  return (
+    <ReactFlowProvider>
+      <GraphPageInner />
+    </ReactFlowProvider>
+  )
+}
+
+function GraphPageInner() {
+  const { fitView } = useReactFlow()
   const [items,   setItems]   = useState<GraphItem[]>([])
   const [links,   setLinks]   = useState<GLink[]>([])
   const [loading, setLoading] = useState(true)
   const [filter,  setFilter]  = useState('all')
   const [selected, setSelected] = useState<GraphItem | null>(null)
-  const [connecting, setConnecting] = useState(false)
 
   const STORAGE_KEY = 'dotstell-graph-positions'
 
@@ -156,7 +164,7 @@ export default function GraphPage() {
 
   useEffect(() => { fetchData() }, [fetchData])
 
-  // Effect 1: Build nodes ONLY when items or filter changes (preserves positions after that)
+  // Effect 1: Build nodes ONLY when items or filter changes, then fit viewport
   useEffect(() => {
     const filtered = filter === 'all' ? items : items.filter(i => i.type === filter)
     const cols = 5, xGap = 230, yGap = 130
@@ -165,7 +173,6 @@ export default function GraphPage() {
 
     const savedPos = loadSavedPositions()
     setNodes(prev => {
-      // Priority: 1) saved localStorage position, 2) current in-memory position, 3) grid fallback
       const memMap = new Map(prev.map(n => [n.id, n.position]))
       return sorted.map((item, idx) => ({
         id: item.id,
@@ -174,7 +181,9 @@ export default function GraphPage() {
         data: { label: item.title, type: item.type, selected: false },
       }))
     })
-  }, [items, filter, setNodes])
+    // Re-fit after nodes rebuild — setTimeout gives ReactFlow time to render new nodes
+    setTimeout(() => fitView({ padding: 0.15, duration: 400 }), 80)
+  }, [items, filter, setNodes, fitView])
 
   // Effect 2: Update edges independently — never touches node positions
   useEffect(() => {
@@ -356,7 +365,7 @@ export default function GraphPage() {
                 onNodeClick={handleNodeClick}
                 onPaneClick={() => setSelected(null)}
                 fitView
-                fitViewOptions={{ padding: 0.2 }}
+                fitViewOptions={{ padding: 0.15 }}
                 proOptions={{ hideAttribution: true }}
                 deleteKeyCode={null}
               >

@@ -32,6 +32,18 @@ export function Sidebar({ onOpenPalette }: { onOpenPalette?: () => void }) {
   const [collapsed, setCollapsed] = useState(false)
   const [tooltip, setTooltip]     = useState<TooltipState | null>(null)
   const { theme, setTheme } = useTheme()
+  const [isDesktop, setIsDesktop] = useState(false)
+  const [appVersion, setAppVersion] = useState<string | null>(null)
+
+  useEffect(() => {
+    const desktop = typeof window !== 'undefined' && '__TAURI__' in window
+    setIsDesktop(desktop)
+    if (desktop) {
+      import('@tauri-apps/api/core').then(({ invoke }) =>
+        invoke<string>('app_version').then(setAppVersion).catch(() => null)
+      )
+    }
+  }, [])
 
   useEffect(() => {
     setCollapsed(localStorage.getItem('sidebar-collapsed') === 'true')
@@ -248,6 +260,33 @@ export function Sidebar({ onOpenPalette }: { onOpenPalette?: () => void }) {
             </button>
           )}
         </div>
+        {/* ── Desktop badge ── */}
+        {isDesktop && !collapsed && (
+          <div style={{
+            padding: '6px 14px 10px',
+            display: 'flex', alignItems: 'center', gap: 6,
+            flexShrink: 0,
+          }}>
+            <ConstellationIcon size={12} />
+            <span style={{
+              fontSize: 10, color: 'var(--sidebar-muted)', letterSpacing: '0.04em',
+              fontWeight: 500,
+            }}>
+              Desktop{appVersion ? ` v${appVersion}` : ''}
+            </span>
+          </div>
+        )}
+        {isDesktop && collapsed && (
+          <div style={{
+            padding: '6px 12px 10px',
+            display: 'flex', justifyContent: 'center', flexShrink: 0,
+          }}
+            onMouseEnter={e => showTip(e as React.MouseEvent<HTMLElement>, `Desktop app${appVersion ? ` v${appVersion}` : ''}`)}
+            onMouseLeave={hideTip}
+          >
+            <ConstellationIcon size={14} />
+          </div>
+        )}
       </aside>
 
       {/* ── Tooltip ── */}

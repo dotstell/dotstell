@@ -27,11 +27,12 @@ import {
   Link as LinkIcon, Highlighter, Undo, Redo, Maximize2, Minimize2,
   ChevronDown, AlignLeft, AlignCenter, AlignRight, AlignJustify,
   Superscript as SuperscriptIcon, Subscript as SubscriptIcon,
-  Image as ImageIcon, Type, RotateCcw, FileCode2, Eye,
+  Image as ImageIcon, Type, RotateCcw, FileCode2, Eye, FileText,
 } from 'lucide-react'
 // markdown ↔ HTML conversion (source mode)
 import TurndownService from 'turndown'
 import { marked } from 'marked'
+import { WikiLinkExtension } from '@/lib/tiptap/WikiLinkExtension'
 
 const lowlight = createLowlight(common)
 
@@ -136,6 +137,11 @@ function promptImage(editor: ReturnType<typeof useEditor>) {
   if (url && editor) editor.chain().focus().setImage({ src: url }).run()
 }
 
+interface NoteSearchResult {
+  id: string
+  title: string
+}
+
 interface RichTextEditorProps {
   content: string
   onChange: (html: string) => void
@@ -145,6 +151,8 @@ interface RichTextEditorProps {
   readingTime?: number
   onFocusMode?: (active: boolean) => void
   focusMode?: boolean
+  /** Called after every save with the list of [[wikilink]] target note IDs found in the content */
+  onWikiLinksChange?: (targetNoteIds: string[]) => void
 }
 
 // ── Markdown converters (singleton) ─────────────────────────
@@ -170,9 +178,21 @@ async function markdownToHtml(md: string): Promise<string> {
   return await marked(md, { breaks: true, gfm: true }) as string
 }
 
+// Extract wikilink noteIds directly from the Tiptap document JSON (reliable, no HTML parsing)
+function extractWikiLinkIdsFromDoc(editor: ReturnType<typeof useEditor>): string[] {
+  if (!editor) return []
+  const ids: string[] = []
+  editor.state.doc.descendants(node => {
+    if (node.type.name === 'wikiLink' && node.attrs.noteId) {
+      ids.push(node.attrs.noteId)
+    }
+  })
+  return [...new Set(ids)]
+}
+
 export function RichTextEditor({
   content, onChange, placeholder = 'Start writing… (type / for commands)',
-  autoSaveStatus, onFocusMode, focusMode,
+  autoSaveStatus, onFocusMode, focusMode, onWikiLinksChange,
 }: RichTextEditorProps) {
   const [slashOpen,       setSlashOpen]       = useState(false)
   const [slashFilter,     setSlashFilter]     = useState('')
@@ -187,6 +207,15 @@ export function RichTextEditor({
   // Source mode (raw markdown)
   const [sourceMode,      setSourceMode]      = useState(false)
   const [markdownSource,  setMarkdownSource]  = useState('')
+  // Wikilink [[...]] picker
+  const [wikiOpen,        setWikiOpen]        = useState(false)
+  const [wikiQuery,       setWikiQuery]       = useState('')
+  const [wikiResults,     setWikiResults]     = useState<NoteSearchResult[]>([])
+  const [wikiIdx,         setWikiIdx]         = useState(0)
+  const wikiSearchTimer    = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const wikiListRef        = useRef<HTMLDivElement>(null)
+  const onWikiLinksChangeRef = useRef(onWikiLinksChange)
+  useEffect(() => { onWikiLinksChangeRef.current = onWikiLinksChange }, [onWikiLinksChange])
   const colorRef  = useRef<HTMLDivElement>(null)
   const hlRef     = useRef<HTMLDivElement>(null)
   const fontRef   = useRef<HTMLDivElement>(null)
@@ -214,19 +243,43 @@ export function RichTextEditor({
       Subscript,
       FontFamily,
       CodeBlockLowlight.configure({ lowlight }),
+      WikiLinkExtension,
     ],
     content,
     editorProps: {
       attributes: { class: 'tiptap-editor' },
     },
     onUpdate: ({ editor }) => {
-      onChange(editor.getHTML())
+      const html = editor.getHTML()
+      onChange(html)
 
-      // Slash command detection
+      // Notify parent of current wikilink targets (read from doc, not HTML)
+      onWikiLinksChangeRef.current?.(extractWikiLinkIdsFromDoc(editor))
+
       const { selection } = editor.state
       const { $from } = selection
       const lineText = $from.parent.textContent.slice(0, selection.from - $from.start())
 
+      // Wikilink detection — [[ triggers note search
+      const wikiMatch = lineText.match(/\[\[([^\][]*)$/)
+      if (wikiMatch) {
+        const q = wikiMatch[1]
+        setWikiQuery(q)
+        setWikiOpen(true)
+        setWikiIdx(0)
+        if (wikiSearchTimer.current) clearTimeout(wikiSearchTimer.current)
+        wikiSearchTimer.current = setTimeout(() => {
+          fetch(`/api/notes?q=${encodeURIComponent(q)}&root_only=true`)
+            .then(r => r.ok ? r.json() : [])
+            .then(data => setWikiResults(Array.isArray(data) ? data.slice(0, 8) : []))
+            .catch(() => setWikiResults([]))
+        }, 120)
+        setSlashOpen(false)
+        return
+      }
+      setWikiOpen(false)
+
+      // Slash command detection
       if (lineText.endsWith('/') || (lineText.includes('/') && !lineText.includes(' '))) {
         setSlashFilter(lineText.split('/').pop() ?? '')
         setSlashOpen(true)
@@ -236,6 +289,13 @@ export function RichTextEditor({
       }
     },
   })
+
+  // Auto-scroll wiki dropdown to active item
+  useEffect(() => {
+    if (!wikiOpen || !wikiListRef.current) return
+    const active = wikiListRef.current.querySelector<HTMLElement>(`[data-wiki-idx="${wikiIdx}"]`)
+    active?.scrollIntoView({ block: 'nearest' })
+  }, [wikiIdx, wikiOpen])
 
   // Close floating menus on outside click
   useEffect(() => {
@@ -276,7 +336,40 @@ export function RichTextEditor({
     setSlashOpen(false)
   }
 
+  function applyWikiLink(note: NoteSearchResult) {
+    if (!editor) return
+    const { from } = editor.state.selection
+    const deleteCount = wikiQuery.length + 2 // +2 for "[["
+    editor
+      .chain()
+      .focus()
+      .deleteRange({ from: from - deleteCount, to: from })
+      .run()
+    editor
+      .chain()
+      .focus()
+      .insertContent([
+        { type: 'wikiLink', attrs: { noteId: note.id, noteTitle: note.title || 'Untitled' } },
+        { type: 'text', text: ' ' },
+      ])
+      .run()
+    // Fire immediately — onUpdate fires async and the autosave debounce may beat it
+    setTimeout(() => {
+      onWikiLinksChangeRef.current?.(extractWikiLinkIdsFromDoc(editor))
+    }, 0)
+    setWikiOpen(false)
+    setWikiQuery('')
+    setWikiResults([])
+  }
+
   function handleKeyDown(e: React.KeyboardEvent) {
+    if (wikiOpen) {
+      if (e.key === 'ArrowDown')  { e.preventDefault(); setWikiIdx(i => Math.min(i + 1, wikiResults.length - 1)) }
+      if (e.key === 'ArrowUp')    { e.preventDefault(); setWikiIdx(i => Math.max(i - 1, 0)) }
+      if (e.key === 'Enter')      { e.preventDefault(); if (wikiResults[wikiIdx]) applyWikiLink(wikiResults[wikiIdx]) }
+      if (e.key === 'Escape')     { setWikiOpen(false) }
+      return
+    }
     if (!slashOpen) return
     if (e.key === 'ArrowDown')  { e.preventDefault(); setSlashIdx(i => Math.min(i + 1, flatFiltered.length - 1)) }
     if (e.key === 'ArrowUp')    { e.preventDefault(); setSlashIdx(i => Math.max(i - 1, 0)) }
@@ -558,6 +651,56 @@ export function RichTextEditor({
           <EditorContent editor={editor} style={{ height: '100%' }} />
         )}
 
+        {/* ── Wikilink picker [[ ── */}
+        {wikiOpen && (
+          <div
+            ref={wikiListRef}
+            style={{
+              position: 'absolute', left: 20, top: 60, zIndex: 100,
+              backgroundColor: 'var(--card)', border: '1px solid var(--border)',
+              borderRadius: 12, padding: 6, width: 280,
+              boxShadow: '0 12px 40px rgba(0,0,0,0.6)',
+              maxHeight: 300, overflowY: 'auto',
+            }}
+          >
+            <p style={{ fontSize: 10, color: 'var(--muted-foreground)', padding: '4px 8px 6px', margin: 0, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+              Link to note
+            </p>
+            {wikiResults.length === 0 ? (
+              <p style={{ fontSize: 12, color: 'var(--muted-foreground)', padding: '8px 10px', margin: 0 }}>
+                {wikiQuery.length < 1 ? 'Start typing a note name…' : 'No notes found'}
+              </p>
+            ) : (
+              wikiResults.map((note, i) => (
+                <button
+                  key={note.id}
+                  type="button"
+                  data-wiki-idx={i}
+                  onMouseDown={e => { e.preventDefault(); applyWikiLink(note) }}
+                  style={{
+                    width: '100%', display: 'flex', alignItems: 'center', gap: 10,
+                    padding: '7px 10px', borderRadius: 8, border: 'none', cursor: 'pointer',
+                    backgroundColor: i === wikiIdx ? 'color-mix(in srgb, var(--primary) 15%, transparent)' : 'transparent',
+                    textAlign: 'left',
+                  }}
+                  onMouseEnter={() => setWikiIdx(i)}
+                >
+                  <div style={{
+                    width: 28, height: 28, borderRadius: 7, flexShrink: 0,
+                    backgroundColor: i === wikiIdx ? 'color-mix(in srgb, var(--primary) 20%, transparent)' : 'var(--secondary)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  }}>
+                    <FileText size={13} color="var(--primary)" />
+                  </div>
+                  <span style={{ fontSize: 13, color: 'var(--foreground)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {note.title || 'Untitled'}
+                  </span>
+                </button>
+              ))
+            )}
+          </div>
+        )}
+
         {/* ── Slash command menu ── */}
         {slashOpen && flatFiltered.length > 0 && (
           <div style={{
@@ -779,7 +922,7 @@ function HeadingDropdown({ editor }: { editor: ReturnType<typeof useEditor> }) {
 }
 
 function FontDropdown({ editor, open, setOpen, ref }: {
-  editor: ReturnType<typeof useEditor>; open: boolean; setOpen: (v: boolean) => void; ref: React.RefObject<HTMLDivElement>
+  editor: ReturnType<typeof useEditor>; open: boolean; setOpen: (v: boolean) => void; ref: React.RefObject<HTMLDivElement | null>
 }) {
   if (!editor) return null
   const currentFont  = editor.getAttributes('textStyle').fontFamily ?? ''

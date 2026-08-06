@@ -208,6 +208,31 @@
   text-decoration-color: var(--primary);
 }
 
+/* ── Wikilinks [[note name]] ──────────────────────────────── */
+.tiptap-editor a[data-wikilink] {
+  display: inline-flex; align-items: center; gap: 3px;
+  color: var(--primary);
+  background: color-mix(in srgb, var(--primary) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--primary) 25%, transparent);
+  border-radius: 5px;
+  padding: 1px 7px 1px 5px;
+  text-decoration: none;
+  font-size: 0.92em;
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s;
+  font-weight: 500;
+}
+.tiptap-editor a[data-wikilink]::before {
+  content: '⬡';
+  font-size: 9px;
+  opacity: 0.7;
+  margin-right: 1px;
+}
+.tiptap-editor a[data-wikilink]:hover {
+  background: color-mix(in srgb, var(--primary) 20%, transparent);
+  border-color: color-mix(in srgb, var(--primary) 50%, transparent);
+}
+
 /* ── Table ────────────────────────────────────────────────── */
 .tiptap-editor table {
   border-collapse: collapse; width: 100%;
