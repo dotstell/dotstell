@@ -46,7 +46,7 @@ export default function LandingPage() {
             {
               icon: '📑',
               title: 'Smart Notes',
-              desc: 'Plain, Markdown and Checklist notes — all in one place, always searchable',
+              desc: 'Rich text editor with slash commands, tables, code blocks and [[wikilinks]] — all searchable',
             },
             {
               icon: '🔖',
