@@ -70,9 +70,7 @@
       "deb": {
         "depends": []
       },
-      "rpm": {
-        "license": "AGPL-3.0"
-      },
+      "rpm": {},
       "appimage": {
         "bundleMediaFramework": true
       }
