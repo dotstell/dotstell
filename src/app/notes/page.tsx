@@ -66,6 +66,7 @@ export default function NotesPage() {
     const params = new URLSearchParams()
     if (typeFilter !== 'all') params.set('type', typeFilter)
     if (search) params.set('q', search)
+    params.set('root_only', 'true')   // never show sub-notes as top-level cards
     const res = await fetch(`/api/notes?${params}`)
     const data = await res.json()
     setNotes(Array.isArray(data) ? data : [])
