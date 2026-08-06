@@ -9,7 +9,7 @@
     "lint": "eslint",
     "tauri": "tauri",
     "desktop:dev": "cross-env NODE_OPTIONS=--use-openssl-ca tauri dev",
-    "desktop:build": "cross-env NODE_OPTIONS=--use-openssl-ca TAURI_BUILD=1 tauri build"
+    "desktop:build": "cross-env NODE_OPTIONS=--use-openssl-ca tauri build"
   },
   "dependencies": {
     "@radix-ui/react-avatar": "^1.2.2",
