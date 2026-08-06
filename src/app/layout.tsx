@@ -11,13 +11,11 @@ export const metadata: Metadata = {
   },
 }
 
-const VALID_THEMES = ['dracula','one-dark','tokyo-night','nord','solarized-dark','catppuccin','solarized-light','github-light']
-
 // Applied before first paint — prevents flash of wrong theme
 const noFlashScript = `(function(){
+  var valid = ['dracula','one-dark','tokyo-night','nord','solarized-dark','catppuccin','solarized-light','github-light'];
   var t = localStorage.getItem('dotstell-theme');
-  var valid = ${JSON.stringify(VALID_THEMES)};
-  if (!t || valid.indexOf(t) === -1) t = 'dracula';
+  if (!t || valid.indexOf(t) === -1) { t = 'dracula'; localStorage.setItem('dotstell-theme', t); }
   document.documentElement.setAttribute('data-theme', t);
 })()`
 
