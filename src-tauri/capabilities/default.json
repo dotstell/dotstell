@@ -1,0 +1,14 @@
+{
+  "$schema": "../node_modules/@tauri-apps/cli/schema/acl/capabilities.json",
+  "identifier": "default",
+  "description": "Default capabilities for Dotstell desktop",
+  "windows": ["main"],
+  "permissions": [
+    "core:default",
+    "shell:allow-open",
+    "dialog:default",
+    "notification:default",
+    "process:allow-exit",
+    "process:allow-restart"
+  ]
+}
