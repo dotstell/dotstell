@@ -41,7 +41,7 @@ export default function LandingPage() {
         </div>
 
         {/* Feature cards */}
-        <div className="grid grid-cols-2 gap-4 text-left">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-left">
           {[
             {
               icon: '📑',
