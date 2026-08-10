@@ -127,8 +127,8 @@ export function NotesSidePane({ width = 220, activeNoteId }: Props) {
         onContextMenu={e => onContextMenu(e, note.id, 'note')}
         title={note.title || 'Untitled'}
         style={{
-          display: 'flex', alignItems: 'center', gap: 6,
-          width: '100%', padding: '5px 8px', borderRadius: 6,
+          display: 'flex', alignItems: 'center', gap: 8,
+          width: '100%', padding: '6px 10px', borderRadius: 7,
           border: 'none', cursor: 'pointer', textAlign: 'left',
           background: isActive
             ? 'color-mix(in srgb, var(--primary) 14%, transparent)'
@@ -140,11 +140,11 @@ export function NotesSidePane({ width = 220, activeNoteId }: Props) {
         onMouseLeave={e => { if (!isActive) (e.currentTarget as HTMLElement).style.background = 'transparent' }}
       >
         <FileText
-          size={11}
+          size={13}
           style={{ color: isActive ? 'var(--primary)' : 'var(--muted-foreground)', flexShrink: 0 }}
         />
         <span style={{
-          fontSize: 12,
+          fontSize: 13,
           color: isActive ? 'var(--primary)' : 'var(--foreground)',
           fontWeight: isActive ? 600 : 400,
           overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1,
@@ -160,24 +160,24 @@ export function NotesSidePane({ width = 220, activeNoteId }: Props) {
   }) {
     const open = sectionOpen[sKey] ?? true
     return (
-      <div style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '4px 4px 2px', userSelect: 'none' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '6px 4px 3px', userSelect: 'none' }}>
         <button type="button" onClick={() => toggleSection(sKey)} style={{
-          display: 'flex', alignItems: 'center', gap: 5, flex: 1,
+          display: 'flex', alignItems: 'center', gap: 6, flex: 1,
           background: 'none', border: 'none', cursor: 'pointer',
-          padding: '2px 4px', borderRadius: 5, textAlign: 'left',
+          padding: '3px 6px', borderRadius: 6, textAlign: 'left',
         }}
           onMouseEnter={e => (e.currentTarget.style.background = 'var(--accent)')}
           onMouseLeave={e => (e.currentTarget.style.background = 'none')}
         >
           {open
-            ? <ChevronDown size={11} color="var(--muted-foreground)" />
-            : <ChevronRight size={11} color="var(--muted-foreground)" />}
-          {Icon && <Icon size={11} color="var(--muted-foreground)" />}
-          <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--muted-foreground)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
+            ? <ChevronDown size={13} color="var(--muted-foreground)" />
+            : <ChevronRight size={13} color="var(--muted-foreground)" />}
+          {Icon && <Icon size={13} color="var(--muted-foreground)" />}
+          <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--muted-foreground)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
             {label}
           </span>
           {count !== undefined && (
-            <span style={{ fontSize: 10, color: 'var(--muted-foreground)', backgroundColor: 'var(--secondary)', padding: '0px 5px', borderRadius: 99, fontWeight: 600 }}>
+            <span style={{ fontSize: 10, color: 'var(--muted-foreground)', backgroundColor: 'var(--secondary)', padding: '1px 6px', borderRadius: 99, fontWeight: 700 }}>
               {count}
             </span>
           )}
@@ -185,13 +185,13 @@ export function NotesSidePane({ width = 220, activeNoteId }: Props) {
         {onAdd && (
           <button type="button" onClick={onAdd} title="Add" style={{
             background: 'none', border: 'none', cursor: 'pointer',
-            color: 'var(--muted-foreground)', padding: '2px 4px', borderRadius: 4,
+            color: 'var(--muted-foreground)', padding: '3px 5px', borderRadius: 5,
             display: 'flex', alignItems: 'center',
           }}
-            onMouseEnter={e => (e.currentTarget.style.color = 'var(--foreground)')}
-            onMouseLeave={e => (e.currentTarget.style.color = 'var(--muted-foreground)')}
+            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = 'var(--primary)'; (e.currentTarget as HTMLElement).style.background = 'var(--accent)' }}
+            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = 'var(--muted-foreground)'; (e.currentTarget as HTMLElement).style.background = 'none' }}
           >
-            <Plus size={12} />
+            <Plus size={13} />
           </button>
         )}
       </div>
@@ -211,38 +211,39 @@ export function NotesSidePane({ width = 220, activeNoteId }: Props) {
     }}>
       {/* Header */}
       <div style={{
-        padding: '12px 10px 8px',
+        padding: '14px 12px 10px',
         borderBottom: '1px solid var(--border)',
-        display: 'flex',
-        alignItems: 'center',
-        gap: 6,
+        display: 'flex', alignItems: 'center', gap: 8,
       }}>
-        <StickyNote size={14} color="var(--primary)" />
-        <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--foreground)', flex: 1 }}>Notes</span>
+        <StickyNote size={16} color="var(--primary)" />
+        <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--foreground)', flex: 1 }}>Notes</span>
         <button
           type="button"
           title="New note"
           onClick={() => createNote()}
           style={{
-            background: 'var(--primary)', border: 'none', borderRadius: 6,
-            width: 22, height: 22, display: 'flex', alignItems: 'center', justifyContent: 'center',
+            background: 'var(--primary)', border: 'none', borderRadius: 7,
+            width: 26, height: 26, display: 'flex', alignItems: 'center', justifyContent: 'center',
             cursor: 'pointer', flexShrink: 0,
+            transition: 'opacity 0.12s',
           }}
+          onMouseEnter={e => (e.currentTarget.style.opacity = '0.85')}
+          onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
         >
-          <Plus size={12} color="white" />
+          <Plus size={14} color="white" />
         </button>
       </div>
 
       {/* Search */}
       <div style={{ padding: '8px 10px', position: 'relative' }}>
-        <Search size={12} style={{ position: 'absolute', left: 18, top: '50%', transform: 'translateY(-50%)', color: 'var(--muted-foreground)', pointerEvents: 'none' }} />
+        <Search size={13} style={{ position: 'absolute', left: 18, top: '50%', transform: 'translateY(-50%)', color: 'var(--muted-foreground)', pointerEvents: 'none' }} />
         <input
           value={search}
           onChange={e => setSearch(e.target.value)}
           placeholder="Search notes…"
           style={{
             width: '100%', background: 'var(--secondary)', border: '1px solid var(--border)',
-            borderRadius: 7, padding: '5px 8px 5px 26px', fontSize: 12,
+            borderRadius: 8, padding: '7px 10px 7px 30px', fontSize: 13,
             color: 'var(--foreground)', outline: 'none', boxSizing: 'border-box',
           }}
         />
@@ -252,7 +253,7 @@ export function NotesSidePane({ width = 220, activeNoteId }: Props) {
             background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted-foreground)',
             display: 'flex', alignItems: 'center',
           }}>
-            <X size={11} />
+            <X size={12} />
           </button>
         )}
       </div>
@@ -350,9 +351,9 @@ export function NotesSidePane({ width = 220, activeNoteId }: Props) {
                       onContextMenu={e => onContextMenu(e, nb.id, 'notebook')}
                     >
                       {isOpen
-                        ? <ChevronDown size={11} color="var(--muted-foreground)" />
-                        : <ChevronRight size={11} color="var(--muted-foreground)" />}
-                      <span style={{ fontSize: 13 }}>{nb.icon ?? '📓'}</span>
+                        ? <ChevronDown size={13} color="var(--muted-foreground)" />
+                        : <ChevronRight size={13} color="var(--muted-foreground)" />}
+                      <span style={{ fontSize: 15 }}>{nb.icon ?? '📓'}</span>
                       {renameTarget?.id === nb.id && renameTarget.type === 'notebook' ? (
                         <input
                           autoFocus
@@ -372,7 +373,7 @@ export function NotesSidePane({ width = 220, activeNoteId }: Props) {
                         />
                       ) : (
                         <span style={{
-                          fontSize: 12, color: 'var(--foreground)', flex: 1,
+                          fontSize: 13, color: 'var(--foreground)', flex: 1,
                           overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                         }}>
                           {nb.name}

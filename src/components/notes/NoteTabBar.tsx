@@ -1,4 +1,5 @@
 'use client'
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { X, FileText, Plus, PanelLeftClose, PanelLeftOpen } from 'lucide-react'
 import { useNoteTabs } from '@/hooks/useNoteTabs'
@@ -12,6 +13,7 @@ interface Props {
 export function NoteTabBar({ currentId, paneOpen, onTogglePane }: Props) {
   const router = useRouter()
   const { tabs, activeId, closeTab } = useNoteTabs(currentId)
+  const [hoveredTab, setHoveredTab] = useState<string | null>(null)
 
   const effectiveActive = activeId ?? currentId
 
@@ -25,171 +27,141 @@ export function NoteTabBar({ currentId, paneOpen, onTogglePane }: Props) {
   return (
     <div style={{
       display: 'flex',
-      alignItems: 'center',
+      alignItems: 'stretch',
       borderBottom: '1px solid var(--border)',
       backgroundColor: 'var(--card)',
       flexShrink: 0,
-      minHeight: 38,
+      height: 44,
     }}>
-      {/* Side pane toggle — integrated into tab bar */}
+      {/* Panel toggle */}
       <button
         type="button"
-        title={paneOpen ? 'Hide notes panel' : 'Show notes panel'}
+        title={paneOpen ? 'Hide panel  [⌘\\]' : 'Show panel  [⌘\\]'}
         onClick={onTogglePane}
         style={{
-          width: 38,
-          height: 38,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          border: 'none',
-          borderRight: '1px solid var(--border)',
-          background: 'transparent',
-          cursor: 'pointer',
-          color: 'var(--muted-foreground)',
-          flexShrink: 0,
+          width: 44, flexShrink: 0,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          border: 'none', borderRight: '1px solid var(--border)',
+          background: 'transparent', cursor: 'pointer',
+          color: paneOpen ? 'var(--foreground)' : 'var(--muted-foreground)',
           transition: 'color 0.12s, background 0.12s',
         }}
-        onMouseEnter={e => {
-          (e.currentTarget as HTMLElement).style.color = 'var(--foreground)'
-          ;(e.currentTarget as HTMLElement).style.background = 'var(--accent)'
-        }}
-        onMouseLeave={e => {
-          (e.currentTarget as HTMLElement).style.color = 'var(--muted-foreground)'
-          ;(e.currentTarget as HTMLElement).style.background = 'transparent'
-        }}
+        onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'var(--accent)' }}
+        onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'transparent' }}
       >
-        {paneOpen ? <PanelLeftClose size={14} /> : <PanelLeftOpen size={14} />}
+        {paneOpen ? <PanelLeftClose size={16} /> : <PanelLeftOpen size={16} />}
       </button>
 
-      {/* Tabs — scrollable area */}
+      {/* Tabs scrollable area */}
       <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        flex: 1,
-        overflowX: 'auto',
+        display: 'flex', alignItems: 'stretch',
+        flex: 1, overflowX: 'auto', minWidth: 0,
         scrollbarWidth: 'none',
-        minWidth: 0,
       }}>
         {tabs.length === 0 && (
-          <span style={{
-            fontSize: 12,
-            color: 'var(--muted-foreground)',
-            padding: '0 14px',
-            userSelect: 'none',
-            opacity: 0.6,
+          <div style={{
+            display: 'flex', alignItems: 'center',
+            padding: '0 16px',
+            fontSize: 13, color: 'var(--muted-foreground)',
+            opacity: 0.5, userSelect: 'none',
           }}>
-            No open notes
-          </span>
+            Open a note to start a tab
+          </div>
         )}
 
         {tabs.map(tab => {
-          const isActive = tab.id === effectiveActive
+          const isActive  = tab.id === effectiveActive
+          const isHovered = hoveredTab === tab.id
           return (
-            <button
+            <div
               key={tab.id}
-              type="button"
-              onClick={() => router.push(`/notes/${tab.id}`)}
-              title={tab.title || 'Untitled'}
+              onMouseEnter={() => setHoveredTab(tab.id)}
+              onMouseLeave={() => setHoveredTab(null)}
               style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 6,
-                padding: '0 10px 0 12px',
-                height: 38,
-                border: 'none',
+                display: 'flex', alignItems: 'center', gap: 6,
+                padding: '0 8px 0 14px',
                 borderRight: '1px solid var(--border)',
-                background: isActive ? 'var(--background)' : 'transparent',
-                borderBottom: isActive ? '2px solid var(--primary)' : '2px solid transparent',
-                cursor: 'pointer',
-                flexShrink: 0,
-                maxWidth: 180,
-                minWidth: 80,
+                background: isActive
+                  ? 'var(--background)'
+                  : isHovered ? 'var(--accent)' : 'transparent',
+                borderBottom: isActive
+                  ? '2px solid var(--primary)'
+                  : '2px solid transparent',
+                cursor: 'pointer', flexShrink: 0,
+                maxWidth: 200, minWidth: 100,
                 transition: 'background 0.1s',
-                position: 'relative',
-                top: 1,
+                position: 'relative', top: 1,
               }}
-              onMouseEnter={e => { if (!isActive) (e.currentTarget as HTMLElement).style.background = 'var(--accent)' }}
-              onMouseLeave={e => { if (!isActive) (e.currentTarget as HTMLElement).style.background = 'transparent' }}
+              onClick={() => router.push(`/notes/${tab.id}`)}
             >
               <FileText
-                size={11}
-                style={{ color: isActive ? 'var(--primary)' : 'var(--muted-foreground)', flexShrink: 0 }}
+                size={13}
+                style={{
+                  color: isActive ? 'var(--primary)' : 'var(--muted-foreground)',
+                  flexShrink: 0,
+                }}
               />
               <span style={{
-                fontSize: 12,
+                fontSize: 13,
                 color: isActive ? 'var(--foreground)' : 'var(--muted-foreground)',
                 fontWeight: isActive ? 600 : 400,
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap',
+                overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                 flex: 1,
               }}>
                 {tab.title || 'Untitled'}
               </span>
-              <span
+
+              {/* Close — always reserve space, only show on hover or active */}
+              <div
                 role="button"
                 onClick={e => handleClose(e, tab.id)}
-                title="Close tab"
+                title="Close"
                 style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  width: 16,
-                  height: 16,
-                  borderRadius: 4,
-                  flexShrink: 0,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  width: 18, height: 18, borderRadius: 4, flexShrink: 0,
                   color: 'var(--muted-foreground)',
-                  opacity: isActive ? 0.7 : 0,
-                  transition: 'opacity 0.1s, background 0.1s',
+                  visibility: (isActive || isHovered) ? 'visible' : 'hidden',
+                  transition: 'background 0.1s',
                 }}
                 onMouseEnter={e => {
-                  (e.currentTarget as HTMLElement).style.background = 'var(--border)'
-                  ;(e.currentTarget as HTMLElement).style.opacity = '1'
+                  (e.currentTarget as HTMLElement).style.background = 'color-mix(in srgb, var(--foreground) 15%, transparent)'
                   ;(e.currentTarget as HTMLElement).style.color = 'var(--foreground)'
                 }}
                 onMouseLeave={e => {
                   (e.currentTarget as HTMLElement).style.background = 'transparent'
-                  ;(e.currentTarget as HTMLElement).style.opacity = isActive ? '0.7' : '0'
                   ;(e.currentTarget as HTMLElement).style.color = 'var(--muted-foreground)'
                 }}
               >
-                <X size={10} />
-              </span>
-            </button>
+                <X size={11} />
+              </div>
+            </div>
           )
         })}
       </div>
 
-      {/* New note button — always at the right */}
+      {/* New note */}
       <button
         type="button"
-        title="New note (Ctrl+Alt+N)"
+        title="New note"
         onClick={() => router.push('/notes/new')}
         style={{
-          width: 38,
-          height: 38,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          border: 'none',
-          borderLeft: '1px solid var(--border)',
-          background: 'transparent',
-          cursor: 'pointer',
+          width: 44, flexShrink: 0,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          border: 'none', borderLeft: '1px solid var(--border)',
+          background: 'transparent', cursor: 'pointer',
           color: 'var(--muted-foreground)',
-          flexShrink: 0,
           transition: 'color 0.12s, background 0.12s',
         }}
         onMouseEnter={e => {
           (e.currentTarget as HTMLElement).style.color = 'var(--primary)'
-          ;(e.currentTarget as HTMLElement).style.background = 'color-mix(in srgb, var(--primary) 8%, transparent)'
+          ;(e.currentTarget as HTMLElement).style.background = 'color-mix(in srgb, var(--primary) 10%, transparent)'
         }}
         onMouseLeave={e => {
           (e.currentTarget as HTMLElement).style.color = 'var(--muted-foreground)'
           ;(e.currentTarget as HTMLElement).style.background = 'transparent'
         }}
       >
-        <Plus size={15} />
+        <Plus size={17} />
       </button>
     </div>
   )
