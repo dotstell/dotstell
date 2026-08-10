@@ -11,15 +11,17 @@ interface Props {
   collapsed?: boolean
 }
 
+const POPOVER_HEIGHT = 320
+
 export function ThemePicker({ current, onSelect, collapsed }: Props) {
   const [open, setOpen] = useState(false)
-  const btnRef      = useRef<HTMLButtonElement>(null)
-  const popoverRef  = useRef<HTMLDivElement>(null)
-  const [popoverPos, setPopoverPos] = useState({ top: 0, left: 0 })
+  const btnRef     = useRef<HTMLButtonElement>(null)
+  const popoverRef = useRef<HTMLDivElement>(null)
+  const [pos, setPos] = useState({ top: 0, left: 0, width: 210 })
 
   const currentDef = THEME_DEFS.find(t => t.id === current)!
 
-  // Close on outside click — must check BOTH the trigger button and the portal div
+  // Close on outside click — check both trigger and portal div
   useEffect(() => {
     if (!open) return
     function handler(e: MouseEvent) {
@@ -32,30 +34,115 @@ export function ThemePicker({ current, onSelect, collapsed }: Props) {
     return () => document.removeEventListener('mousedown', handler)
   }, [open])
 
-  // Close when sidebar expands (collapsed prop changes)
+  // Close when sidebar collapses/expands
   useEffect(() => { setOpen(false) }, [collapsed])
 
-  if (collapsed) {
-    function handleClick() {
-      if (btnRef.current) {
-        const r = btnRef.current.getBoundingClientRect()
-        const POPOVER_HEIGHT = 320
-        const spaceBelow = window.innerHeight - r.top
-        const top = spaceBelow >= POPOVER_HEIGHT
-          ? r.top
-          : Math.max(8, window.innerHeight - POPOVER_HEIGHT - 8)
-        setPopoverPos({ top, left: r.right + 8 })
-      }
-      setOpen(o => !o)
-    }
+  function handleOpen() {
+    if (!btnRef.current) { setOpen(o => !o); return }
+    const r = btnRef.current.getBoundingClientRect()
 
+    if (collapsed) {
+      // Position to the right of the icon button
+      const spaceBelow = window.innerHeight - r.top
+      const top = spaceBelow >= POPOVER_HEIGHT
+        ? r.top
+        : Math.max(8, window.innerHeight - POPOVER_HEIGHT - 8)
+      setPos({ top, left: r.right + 8, width: 210 })
+    } else {
+      // Position above the trigger (sidebar is overflow:hidden so inline dropdown gets clipped)
+      const spaceAbove = r.top
+      const top = spaceAbove >= POPOVER_HEIGHT
+        ? r.top - POPOVER_HEIGHT
+        : Math.max(8, r.bottom + 4)
+      setPos({ top, left: r.left, width: Math.max(200, r.width) })
+    }
+    setOpen(o => !o)
+  }
+
+  const brand  = THEME_DEFS.filter(t => t.brand)
+  const darks  = THEME_DEFS.filter(t => t.dark && !t.brand)
+  const lights = THEME_DEFS.filter(t => !t.dark && !t.brand)
+
+  const portal = open && typeof document !== 'undefined' && createPortal(
+    <div
+      ref={popoverRef}
+      style={{
+        position: 'fixed',
+        top: pos.top,
+        left: pos.left,
+        zIndex: 9999,
+        width: pos.width,
+        backgroundColor: 'var(--popover)',
+        border: '1px solid var(--border)',
+        borderRadius: 12,
+        boxShadow: '0 8px 32px rgba(0,0,0,0.45)',
+        padding: '8px 6px',
+        maxHeight: 'calc(100vh - 24px)',
+        overflowY: 'auto',
+      }}
+    >
+      {collapsed ? (
+        <>
+          {/* Arrow pointing left toward sidebar */}
+          <div style={{
+            position: 'absolute', left: -5, top: 20,
+            width: 8, height: 8,
+            backgroundColor: 'var(--popover)',
+            border: '1px solid var(--border)',
+            borderRight: 'none', borderTop: 'none',
+            rotate: '45deg',
+          }} />
+          <p style={{
+            fontSize: 10, fontWeight: 700, color: 'var(--muted-foreground)',
+            textTransform: 'uppercase', letterSpacing: '0.1em',
+            margin: '0 0 6px 6px',
+          }}>Theme</p>
+          {THEME_DEFS.map(t => (
+            <ThemeRow
+              key={t.id}
+              def={t}
+              active={t.id === current}
+              onSelect={id => { onSelect(id); setOpen(false) }}
+            />
+          ))}
+        </>
+      ) : (
+        <>
+          <p style={{
+            fontSize: 10, fontWeight: 700, color: 'var(--muted-foreground)',
+            textTransform: 'uppercase', letterSpacing: '0.1em',
+            margin: '0 0 6px 6px',
+          }}>Theme</p>
+          {brand.map(t => (
+            <ThemeRow key={t.id} def={t} active={t.id === current}
+              onSelect={id => { onSelect(id); setOpen(false) }} />
+          ))}
+          <Divider />
+          <GroupLabel>Dark</GroupLabel>
+          {darks.map(t => (
+            <ThemeRow key={t.id} def={t} active={t.id === current}
+              onSelect={id => { onSelect(id); setOpen(false) }} />
+          ))}
+          <Divider />
+          <GroupLabel>Light</GroupLabel>
+          {lights.map(t => (
+            <ThemeRow key={t.id} def={t} active={t.id === current}
+              onSelect={id => { onSelect(id); setOpen(false) }} />
+          ))}
+        </>
+      )}
+    </div>,
+    document.body
+  )
+
+  if (collapsed) {
     return (
       <>
         <button
           ref={btnRef}
           type="button"
           title="Change theme"
-          onClick={handleClick}
+          onClick={handleOpen}
           style={{
             width: '100%', height: 40, display: 'flex', alignItems: 'center',
             justifyContent: 'center', background: open ? 'var(--sidebar-hover-bg)' : 'none',
@@ -65,65 +152,17 @@ export function ThemePicker({ current, onSelect, collapsed }: Props) {
         >
           <ColorDot color={currentDef.dot} active brand={currentDef.brand} />
         </button>
-
-        {open && typeof document !== 'undefined' && createPortal(
-          <div
-            ref={popoverRef}
-            style={{
-              position: 'fixed',
-              top: popoverPos.top,
-              left: popoverPos.left,
-              zIndex: 9999,
-              width: 210,
-              backgroundColor: 'var(--popover)',
-              border: '1px solid var(--border)',
-              borderRadius: 12,
-              boxShadow: '0 8px 32px rgba(0,0,0,0.45)',
-              padding: '8px 6px',
-              maxHeight: 'calc(100vh - 24px)',
-              overflowY: 'auto',
-            }}
-          >
-            {/* Arrow */}
-            <div style={{
-              position: 'absolute', left: -5, top: 20,
-              width: 8, height: 8,
-              backgroundColor: 'var(--popover)',
-              border: '1px solid var(--border)',
-              borderRight: 'none', borderTop: 'none',
-              rotate: '45deg',
-            }} />
-
-            <p style={{
-              fontSize: 10, fontWeight: 700, color: 'var(--muted-foreground)',
-              textTransform: 'uppercase', letterSpacing: '0.1em',
-              margin: '0 0 6px 6px',
-            }}>Theme</p>
-
-            {THEME_DEFS.map(t => (
-              <ThemeRow
-                key={t.id}
-                def={t}
-                active={t.id === current}
-                onSelect={id => { onSelect(id); setOpen(false) }}
-              />
-            ))}
-          </div>,
-          document.body
-        )}
+        {portal}
       </>
     )
   }
 
-  const brand  = THEME_DEFS.filter(t => t.brand)
-  const darks  = THEME_DEFS.filter(t => t.dark && !t.brand)
-  const lights = THEME_DEFS.filter(t => !t.dark && !t.brand)
-
   return (
     <div style={{ padding: '4px 8px 4px' }}>
       <button
+        ref={btnRef}
         type="button"
-        onClick={() => setOpen(o => !o)}
+        onClick={handleOpen}
         style={{
           display: 'flex', alignItems: 'center', gap: 6,
           width: '100%', background: 'none', border: 'none',
@@ -159,24 +198,7 @@ export function ThemePicker({ current, onSelect, collapsed }: Props) {
           }}
         />
       </button>
-
-      {open && (
-        <div style={{ marginTop: 4 }}>
-          {brand.map(t => (
-            <ThemeRow key={t.id} def={t} active={t.id === current} onSelect={onSelect} />
-          ))}
-          <Divider />
-          <GroupLabel>Dark</GroupLabel>
-          {darks.map(t => (
-            <ThemeRow key={t.id} def={t} active={t.id === current} onSelect={onSelect} />
-          ))}
-          <Divider />
-          <GroupLabel>Light</GroupLabel>
-          {lights.map(t => (
-            <ThemeRow key={t.id} def={t} active={t.id === current} onSelect={onSelect} />
-          ))}
-        </div>
-      )}
+      {portal}
     </div>
   )
 }
