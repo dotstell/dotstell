@@ -13,17 +13,20 @@ interface Props {
 
 export function ThemePicker({ current, onSelect, collapsed }: Props) {
   const [open, setOpen] = useState(false)
-  const btnRef = useRef<HTMLButtonElement>(null)
+  const btnRef      = useRef<HTMLButtonElement>(null)
+  const popoverRef  = useRef<HTMLDivElement>(null)
   const [popoverPos, setPopoverPos] = useState({ top: 0, left: 0 })
 
   const currentDef = THEME_DEFS.find(t => t.id === current)!
 
-  // Close on outside click
+  // Close on outside click — must check BOTH the trigger button and the portal div
   useEffect(() => {
     if (!open) return
     function handler(e: MouseEvent) {
       const target = e.target as Node
-      if (!btnRef.current?.contains(target)) setOpen(false)
+      if (btnRef.current?.contains(target)) return
+      if (popoverRef.current?.contains(target)) return
+      setOpen(false)
     }
     document.addEventListener('mousedown', handler)
     return () => document.removeEventListener('mousedown', handler)
@@ -65,7 +68,7 @@ export function ThemePicker({ current, onSelect, collapsed }: Props) {
 
         {open && typeof document !== 'undefined' && createPortal(
           <div
-            onMouseDown={e => e.stopPropagation()}
+            ref={popoverRef}
             style={{
               position: 'fixed',
               top: popoverPos.top,
