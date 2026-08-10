@@ -43,12 +43,18 @@ export default function NotesPage() {
   const [loading,    setLoading]    = useState(true)
   const [search,     setSearch]     = useState('')
   const [typeFilter, setTypeFilter] = useState<NoteType | 'all'>('all')
-  const [view,       setView]       = useState<ViewMode>(getLS('notes-view', 'grid'))
-  const [groupMode,  setGroupMode]  = useState<GroupMode>(getLS('notes-group', 'none'))
-  const [sortMode,   setSortMode]   = useState<SortMode>(getLS('notes-sort', 'updated'))
+  const [view,       setView]       = useState<ViewMode>('grid')
+  const [groupMode,  setGroupMode]  = useState<GroupMode>('none')
+  const [sortMode,   setSortMode]   = useState<SortMode>('updated')
   const [collapsed,  setCollapsed]  = useState<Record<string, boolean>>({})
   const [sortOpen,   setSortOpen]   = useState(false)
   const sortRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    setView(getLS('notes-view', 'grid'))
+    setGroupMode(getLS('notes-group', 'none'))
+    setSortMode(getLS('notes-sort', 'updated'))
+  }, [])
 
   useEffect(() => { localStorage.setItem('notes-view',  view)      }, [view])
   useEffect(() => { localStorage.setItem('notes-group', groupMode)  }, [groupMode])
