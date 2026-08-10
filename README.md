@@ -22,7 +22,7 @@
 
 <br/>
 
-[Website](https://dotstell.com) · [Live App](https://app.dotstell.com) · [Report a bug](https://github.com/dotstell/dotstell/issues) · [Request a feature](https://github.com/dotstell/dotstell/issues)
+[Website](https://dotstell.com) · [Live App](https://dotstell.app) · [Report a bug](https://github.com/dotstell/dotstell/issues) · [Request a feature](https://github.com/dotstell/dotstell/issues)
 
 </div>
 
