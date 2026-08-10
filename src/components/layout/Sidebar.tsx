@@ -36,6 +36,7 @@ export function Sidebar({ onOpenPalette }: { onOpenPalette?: () => void }) {
   const [appVersion, setAppVersion] = useState<string | null>(null)
   const [isMobile, setIsMobile] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
+  const isMac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform)
 
   useEffect(() => {
     const desktop = typeof window !== 'undefined' && '__TAURI__' in window
@@ -286,7 +287,7 @@ export function Sidebar({ onOpenPalette }: { onOpenPalette?: () => void }) {
             <SidebarIconBtn
               as="button"
               label="Search"
-              onMouseEnter={e => showTip(e, 'Search  Ctrl+K')}
+              onMouseEnter={e => showTip(e, isMac ? 'Search  ⌘K' : 'Search  Ctrl+K')}
               onMouseLeave={hideTip}
               onClick={onOpenPalette}
             >
@@ -311,7 +312,7 @@ export function Sidebar({ onOpenPalette }: { onOpenPalette?: () => void }) {
                 backgroundColor: 'var(--muted)',
                 color: 'var(--sidebar-muted)',
                 padding: '2px 5px', borderRadius: 4,
-              }}>Ctrl+K</kbd>
+              }}>{isMac ? '⌘K' : 'Ctrl+K'}</kbd>
             </button>
           )}
         </div>
