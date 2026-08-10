@@ -22,8 +22,7 @@
         "fullscreen": false,
         "center": true,
         "decorations": true,
-        "transparent": false,
-        "titleBarStyle": "Overlay"
+        "transparent": false
       }
     ],
     "security": {
@@ -66,6 +65,9 @@
       "timestampUrl": "",
       "wix": {
         "language": "en-US"
+      },
+      "nsis": {
+        "installerIcon": "icons/icon.ico"
       }
     },
     "linux": {
@@ -79,9 +81,6 @@
     }
   },
   "plugins": {
-    "updater": {
-      "active": false
-    },
     "shell": {
       "open": true
     }
