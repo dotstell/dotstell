@@ -286,7 +286,7 @@ export function Sidebar({ onOpenPalette }: { onOpenPalette?: () => void }) {
             <SidebarIconBtn
               as="button"
               label="Search"
-              onMouseEnter={e => showTip(e, 'Search  ⌘K')}
+              onMouseEnter={e => showTip(e, 'Search  Ctrl+K')}
               onMouseLeave={hideTip}
               onClick={onOpenPalette}
             >
@@ -311,7 +311,7 @@ export function Sidebar({ onOpenPalette }: { onOpenPalette?: () => void }) {
                 backgroundColor: 'var(--muted)',
                 color: 'var(--sidebar-muted)',
                 padding: '2px 5px', borderRadius: 4,
-              }}>⌘K</kbd>
+              }}>Ctrl+K</kbd>
             </button>
           )}
         </div>
