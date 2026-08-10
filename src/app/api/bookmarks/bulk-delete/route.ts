@@ -10,6 +10,9 @@ export async function POST(req: NextRequest) {
   if (!Array.isArray(ids) || ids.length === 0) {
     return NextResponse.json({ error: 'No ids provided' }, { status: 400 })
   }
+  if (ids.length > 1000) {
+    return NextResponse.json({ error: 'Too many ids (max 1000)' }, { status: 400 })
+  }
 
   const { error, count } = await supabase
     .from('bookmarks')

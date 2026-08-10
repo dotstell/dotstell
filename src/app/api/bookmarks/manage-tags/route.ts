@@ -9,6 +9,12 @@ export async function PATCH(req: NextRequest) {
 
   const { oldTag, newTag } = await req.json()
   if (!oldTag || !newTag) return NextResponse.json({ error: 'Missing oldTag or newTag' }, { status: 400 })
+  if (typeof oldTag !== 'string' || typeof newTag !== 'string') {
+    return NextResponse.json({ error: 'Tags must be strings' }, { status: 400 })
+  }
+  if (oldTag.length > 100 || newTag.length > 100) {
+    return NextResponse.json({ error: 'Tag name too long (max 100 chars)' }, { status: 400 })
+  }
 
   // Fetch all bookmarks that have the old tag
   const { data: bookmarks, error } = await supabase

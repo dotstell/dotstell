@@ -8,7 +8,10 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const body = await req.json()
-  const { data, error } = await supabase.from('bookmarks').update(body).eq('id', id).eq('user_id', user.id).select().single()
+  const allowed: Record<string, unknown> = {}
+  const fields = ['title','url','description','favicon_url','reading_time','hostname','tags','last_visited_at','visit_count'] as const
+  for (const f of fields) if (f in body) allowed[f] = body[f]
+  const { data, error } = await supabase.from('bookmarks').update(allowed).eq('id', id).eq('user_id', user.id).select().single()
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json(data)
 }

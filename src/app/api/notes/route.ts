@@ -50,7 +50,16 @@ export async function POST(req: NextRequest) {
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const body = await req.json()
-  const { data, error } = await supabase.from('notes').insert({ ...body, user_id: user.id }).select().single()
+  const { data, error } = await supabase.from('notes').insert({
+    user_id:         user.id,
+    title:           body.title,
+    content:         body.content,
+    type:            body.type,
+    checklist_items: body.checklist_items,
+    tags:            body.tags,
+    person_id:       body.person_id,
+    parent_id:       body.parent_id,
+  }).select().single()
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json(data, { status: 201 })
 }
