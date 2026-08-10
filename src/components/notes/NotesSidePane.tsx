@@ -7,6 +7,7 @@ import {
 } from 'lucide-react'
 import { Note } from '@/types'
 import { useNotebooks, notebookTag, NOTEBOOK_TAG_PREFIX } from '@/hooks/useNotebooks'
+import { useNoteTabs } from '@/hooks/useNoteTabs'
 
 interface Props {
   width?: number
@@ -27,6 +28,7 @@ export function NotesSidePane({ width = 220, activeNoteId }: Props) {
   const [search,  setSearch]  = useState('')
   const [loading, setLoading] = useState(true)
   const { notebooks, createNotebook, deleteNotebook, renameNotebook } = useNotebooks()
+  const { openTab } = useNoteTabs()
 
   const [sectionOpen, setSectionOpen] = useState<Record<string, boolean>>({
     all: true, notebooks: true, tags: false,
@@ -84,9 +86,19 @@ export function NotesSidePane({ width = 220, activeNoteId }: Props) {
   // ── Handlers ─────────────────────────────────────────────────
   function openNote(id: string) { router.push(`/notes/${id}`) }
 
-  function createNote(notebookName?: string) {
-    if (notebookName) sessionStorage.setItem('dotstell:new-note-notebook', notebookName)
-    router.push('/notes/new')
+  async function createNote(notebookName?: string) {
+    const tags = notebookName ? [notebookTag(notebookName)] : []
+    const res = await fetch('/api/notes', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title: '', content: '<p></p>', type: 'markdown', tags }),
+    })
+    if (res.ok) {
+      const note = await res.json()
+      openTab(note.id, 'Untitled')
+      fetchNotes()
+      router.push(`/notes/${note.id}`)
+    }
   }
 
   function toggleSection(key: string) {

@@ -1,7 +1,7 @@
 'use client'
 import { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { X, Plus, SidebarClose, SidebarOpen, FileText, SquarePen } from 'lucide-react'
+import { X, Plus, SidebarClose, SidebarOpen, FileText } from 'lucide-react'
 import { useNoteTabs } from '@/hooks/useNoteTabs'
 
 interface Props {
@@ -195,7 +195,7 @@ export function NoteTabBar({ currentId, paneOpen, onTogglePane }: Props) {
 
       {/* New note — creates immediately, no template modal */}
       <IconBtn title="New note" onClick={handleNewNote} borderLeft primary disabled={creating}>
-        {creating ? <Plus size={15} style={{ opacity: 0.4 }} /> : <SquarePen size={15} />}
+        <Plus size={15} style={{ opacity: creating ? 0.4 : 1 }} />
       </IconBtn>
 
       {/* Right-click context menu */}
