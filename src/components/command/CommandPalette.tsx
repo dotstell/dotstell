@@ -82,10 +82,11 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
     if (r._type === 'bookmark') {
       onClose()
       if (pathname === '/bookmarks') {
-        // Already on bookmarks — dispatch event so the page reacts without full navigation
         window.dispatchEvent(new CustomEvent('dotstell:bookmark-search', { detail: r._label }))
       } else {
-        router.push(`/bookmarks?q=${encodeURIComponent(r._label)}`)
+        // Pass search via sessionStorage — keeps the URL clean and out of browser history
+        sessionStorage.setItem('dotstell:bookmark-search', r._label)
+        router.push('/bookmarks')
       }
       return
     }
