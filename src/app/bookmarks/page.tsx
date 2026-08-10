@@ -1,5 +1,6 @@
 'use client'
 import { useState, useEffect, useCallback, useRef } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { Plus, ExternalLink, Trash2, Search, Upload, X, Clock, Tag, Link2, LayoutList, Layers, Pencil, CheckSquare, Square, AlertTriangle, ChevronDown, ChevronRight, Settings2, ArrowUpDown } from 'lucide-react'
 import { toast } from 'sonner'
 import { Bookmark } from '@/types'
@@ -32,9 +33,10 @@ function domainColor(hostname: string) {
 }
 
 export default function BookmarksPage() {
+  const searchParams = useSearchParams()
   const [bookmarks,   setBookmarks]   = useState<Bookmark[]>([])
   const [loading,     setLoading]     = useState(true)
-  const [search,      setSearch]      = useState('')
+  const [search,      setSearch]      = useState(searchParams.get('q') ?? '')
   const [tagFilter,   setTagFilter]   = useState<string | null>(null)
   const [dialogOpen,  setDialogOpen]  = useState(false)
   const [editing,     setEditing]     = useState<Partial<Bookmark>>({ title: '', url: '', description: '', tags: [] })
