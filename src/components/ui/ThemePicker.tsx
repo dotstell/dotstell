@@ -36,7 +36,12 @@ export function ThemePicker({ current, onSelect, collapsed }: Props) {
     function handleClick() {
       if (btnRef.current) {
         const r = btnRef.current.getBoundingClientRect()
-        setPopoverPos({ top: r.top, left: r.right + 8 })
+        const POPOVER_HEIGHT = 320
+        const spaceBelow = window.innerHeight - r.top
+        const top = spaceBelow >= POPOVER_HEIGHT
+          ? r.top
+          : Math.max(8, window.innerHeight - POPOVER_HEIGHT - 8)
+        setPopoverPos({ top, left: r.right + 8 })
       }
       setOpen(o => !o)
     }
@@ -66,12 +71,14 @@ export function ThemePicker({ current, onSelect, collapsed }: Props) {
               top: popoverPos.top,
               left: popoverPos.left,
               zIndex: 9999,
-              width: 200,
+              width: 210,
               backgroundColor: 'var(--popover)',
               border: '1px solid var(--border)',
               borderRadius: 12,
               boxShadow: '0 8px 32px rgba(0,0,0,0.45)',
               padding: '8px 6px',
+              maxHeight: 'calc(100vh - 24px)',
+              overflowY: 'auto',
             }}
           >
             {/* Arrow */}
