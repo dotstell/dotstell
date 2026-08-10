@@ -36,12 +36,13 @@ export function Sidebar({ onOpenPalette }: { onOpenPalette?: () => void }) {
   const [appVersion, setAppVersion] = useState<string | null>(null)
   const [isMobile, setIsMobile] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
-  const isMac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform)
+  const [isMac, setIsMac] = useState(false)
 
   useEffect(() => {
-    // Read persisted state after mount to avoid SSR hydration mismatch
+    // All client-only state set here to avoid SSR hydration mismatches
     setCollapsed(localStorage.getItem('sidebar-collapsed') === 'true')
     setIsMobile(window.innerWidth < 768)
+    setIsMac(/Mac|iPhone|iPad/.test(navigator.platform))
 
     const desktop = '__TAURI__' in window
     setIsDesktop(desktop)
