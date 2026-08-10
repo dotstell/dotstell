@@ -77,8 +77,8 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
     const dest =
       r._type === 'note'     ? `/notes/${r.id}` :
       r._type === 'person'   ? `/people/${r.id}` :
-      r._type === 'bookmark' ? `/bookmarks` :
-      r._type === 'task'     ? `/tasks` :
+      r._type === 'bookmark' ? `/bookmarks?q=${encodeURIComponent(r._label)}` :
+      r._type === 'task'     ? `/tasks?q=${encodeURIComponent(r._label)}` :
       `/dashboard`
     navigate(dest)
   }

@@ -35,6 +35,12 @@ export default function BookmarksPage() {
   const [bookmarks,   setBookmarks]   = useState<Bookmark[]>([])
   const [loading,     setLoading]     = useState(true)
   const [search,      setSearch]      = useState('')
+
+  // Pre-fill search from ?q= URL param (e.g. when navigating from Ctrl+K)
+  useEffect(() => {
+    const q = new URLSearchParams(window.location.search).get('q')
+    if (q) setSearch(q)
+  }, [])
   const [tagFilter,   setTagFilter]   = useState<string | null>(null)
   const [dialogOpen,  setDialogOpen]  = useState(false)
   const [editing,     setEditing]     = useState<Partial<Bookmark>>({ title: '', url: '', description: '', tags: [] })
