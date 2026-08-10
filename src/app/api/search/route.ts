@@ -12,7 +12,7 @@ export async function GET(req: NextRequest) {
   const [notes, people, bookmarks, tasks] = await Promise.all([
     supabase.from('notes').select('id,title,type,updated_at').eq('user_id', user.id).ilike('title', `%${q}%`).limit(5),
     supabase.from('people').select('id,name,role').eq('user_id', user.id).ilike('name', `%${q}%`).limit(5),
-    supabase.from('bookmarks').select('id,title,url').eq('user_id', user.id).or(`title.ilike.%${q}%,url.ilike.%${q}%`).limit(5),
+    supabase.from('bookmarks').select('id,title,url,description').eq('user_id', user.id).or(`title.ilike.%${q}%,url.ilike.%${q}%,description.ilike.%${q}%`).limit(5),
     supabase.from('tasks').select('id,title,status,priority').eq('user_id', user.id).ilike('title', `%${q}%`).limit(5),
   ])
 
