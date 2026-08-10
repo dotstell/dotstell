@@ -131,7 +131,9 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
   // Ctrl+N → new note
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
-      if ((e.ctrlKey || e.metaKey) && (e.key === 'n' || e.key === 'N')) {
+      // Ctrl+N works in desktop app; Alt+N is the browser-safe alternative
+      const isNewNote = ((e.ctrlKey || e.metaKey) && e.key === 'n') || (e.altKey && e.key === 'n')
+      if (isNewNote) {
         e.preventDefault()
         fetch('/api/notes', {
           method: 'POST',

@@ -82,7 +82,9 @@ export function NotesSidePane({ width = 220, activeNoteId }: Props) {
   const notebookNotesMap: Record<string, Note[]> = {}
   for (const nb of notebooks) {
     const tag = notebookTag(nb.name)
-    notebookNotesMap[nb.id] = filteredNotes.filter(n => n.tags?.includes(tag))
+    notebookNotesMap[nb.id] = filteredNotes
+      .filter(n => n.tags?.includes(tag))
+      .sort((a, b) => (pinnedIds.has(b.id) ? 1 : 0) - (pinnedIds.has(a.id) ? 1 : 0))
   }
   const notebookIds       = new Set(notebooks.flatMap(nb => notebookNotesMap[nb.id]?.map(n => n.id) ?? []))
   const unnotebookedNotes = filteredNotes
