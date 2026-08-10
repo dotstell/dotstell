@@ -19,8 +19,11 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const body = await req.json()
-  const { data, error } = await supabase.from('people').update(body).eq('id', id).eq('user_id', user.id).select().single()
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  const allowed: Record<string, unknown> = {}
+  const fields = ['name','role','company','email','phone','tags','notes','avatar_url'] as const
+  for (const f of fields) if (f in body) allowed[f] = body[f]
+  const { data, error } = await supabase.from('people').update(allowed).eq('id', id).eq('user_id', user.id).select().single()
+  if (error) return NextResponse.json({ error: 'An unexpected error occurred.' }, { status: 500 })
   return NextResponse.json(data)
 }
 
@@ -31,6 +34,6 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const { error } = await supabase.from('people').delete().eq('id', id).eq('user_id', user.id)
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return NextResponse.json({ error: 'An unexpected error occurred.' }, { status: 500 })
   return new NextResponse(null, { status: 204 })
 }

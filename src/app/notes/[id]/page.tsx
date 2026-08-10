@@ -4,7 +4,7 @@ import { use } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   X, Maximize2, Minimize2, Plus, FileText,
-  ChevronRight, ArrowLeft, LayoutTemplate,
+  ChevronRight, ArrowLeft, LayoutTemplate, Download,
 } from 'lucide-react'
 import Link from 'next/link'
 import { Note } from '@/types'
@@ -39,6 +39,13 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
   const [subNotes, setSubNotes]       = useState<Note[]>([])
   const saveTimer   = useRef<ReturnType<typeof setTimeout> | null>(null)
   const wikiLinkIds = useRef<string[]>([])
+
+  // Word count derived from content
+  const wordCount = (() => {
+    const text = (note.content ?? '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()
+    return text ? text.split(' ').length : 0
+  })()
+  const readMins = Math.max(1, Math.round(wordCount / 200))
 
   const { openTab, updateTitle } = useNoteTabs(noteId ?? undefined)
 
@@ -121,6 +128,46 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
     } catch { setSaveStatus('unsaved') }
   }, [syncWikiLinks, openTab, updateTitle])
 
+  // Ctrl+N → new note
+  useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'n') {
+        e.preventDefault()
+        fetch('/api/notes', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ title: '', content: '<p></p>', type: 'markdown', tags: [] }),
+        }).then(r => r.ok ? r.json() : null).then(n => {
+          if (n) { openTab(n.id, 'Untitled'); router.push(`/notes/${n.id}`) }
+        })
+      }
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [openTab, router])
+
+  function exportMarkdown() {
+    const text = (note.content ?? '')
+      .replace(/<h1[^>]*>(.*?)<\/h1>/gi, '# $1\n')
+      .replace(/<h2[^>]*>(.*?)<\/h2>/gi, '## $1\n')
+      .replace(/<h3[^>]*>(.*?)<\/h3>/gi, '### $1\n')
+      .replace(/<strong[^>]*>(.*?)<\/strong>/gi, '**$1**')
+      .replace(/<em[^>]*>(.*?)<\/em>/gi, '*$1*')
+      .replace(/<code[^>]*>(.*?)<\/code>/gi, '`$1`')
+      .replace(/<li[^>]*>(.*?)<\/li>/gi, '- $1\n')
+      .replace(/<br\s*\/?>/gi, '\n')
+      .replace(/<p[^>]*>(.*?)<\/p>/gi, '$1\n\n')
+      .replace(/<[^>]+>/g, '')
+      .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'")
+      .trim()
+    const title = note.title || 'untitled'
+    const blob  = new Blob([`# ${title}\n\n${text}`], { type: 'text/markdown' })
+    const url   = URL.createObjectURL(blob)
+    const a     = document.createElement('a')
+    a.href = url; a.download = `${title.replace(/[^a-z0-9]/gi, '-').toLowerCase()}.md`
+    a.click(); URL.revokeObjectURL(url)
+  }
+
   function scheduleAutoSave(updates: Partial<Note>) {
     setSaveStatus('unsaved')
     if (saveTimer.current) clearTimeout(saveTimer.current)
@@ -194,6 +241,26 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
               }} />
               {saveStatus === 'saving' ? 'Saving…' : saveStatus === 'saved' ? 'Saved' : 'Unsaved changes'}
             </div>
+          )}
+
+          {/* Export */}
+          {noteId && (
+            <button
+              type="button"
+              title="Export as Markdown"
+              onClick={exportMarkdown}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 5,
+                padding: '5px 10px', borderRadius: 7,
+                border: '1px solid var(--border)', background: 'none',
+                color: 'var(--muted-foreground)', fontSize: 12, cursor: 'pointer',
+                transition: 'all 0.12s',
+              }}
+              onMouseEnter={e => { e.currentTarget.style.background = 'var(--accent)'; e.currentTarget.style.color = 'var(--foreground)' }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = 'var(--muted-foreground)' }}
+            >
+              <Download size={13} /> Export
+            </button>
           )}
 
           {/* Templates */}
@@ -288,6 +355,25 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
           }}
         />
       </div>
+
+      {/* ── Word count bar ── */}
+      {noteId && (
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 12,
+          padding: '3px 20px',
+          borderBottom: '1px solid var(--border)',
+          backgroundColor: 'var(--background)',
+          flexShrink: 0,
+        }}>
+          <span style={{ fontSize: 11, color: 'var(--muted-foreground)' }}>
+            {wordCount.toLocaleString()} {wordCount === 1 ? 'word' : 'words'}
+          </span>
+          <span style={{ fontSize: 11, color: 'var(--muted-foreground)', opacity: 0.6 }}>·</span>
+          <span style={{ fontSize: 11, color: 'var(--muted-foreground)' }}>
+            {readMins} min read
+          </span>
+        </div>
+      )}
 
       {/* ── Body: editor + right panel ── */}
       <div style={{ flex: 1, display: 'flex', minHeight: 0 }}>

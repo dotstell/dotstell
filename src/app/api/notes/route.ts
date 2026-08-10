@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { rateLimit } from '@/lib/ratelimit'
 
 export async function GET(req: NextRequest) {
   const supabase = await createClient()
@@ -19,10 +20,13 @@ export async function GET(req: NextRequest) {
   if (person_id) query = query.eq('person_id', person_id)
   if (parent_id) query = query.eq('parent_id', parent_id)
   if (root_only === 'true') query = query.is('parent_id', null)
-  if (q)         query = query.ilike('title', `%${q}%`)
+  if (q) {
+    const safe = q.slice(0, 200)
+    query = query.or(`title.ilike.%${safe}%,content.ilike.%${safe}%`)
+  }
 
   const { data, error } = await query
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return NextResponse.json({ error: 'An unexpected error occurred.' }, { status: 500 })
 
   // Attach sub-note counts when fetching root-level notes
   if (root_only === 'true' && data && data.length > 0) {
@@ -48,6 +52,8 @@ export async function POST(req: NextRequest) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const rl = rateLimit(`notes-post:${user.id}`, 30, 60_000)
+  if (rl) return rl
 
   const body = await req.json()
   const { data, error } = await supabase.from('notes').insert({
@@ -60,6 +66,6 @@ export async function POST(req: NextRequest) {
     person_id:       body.person_id,
     parent_id:       body.parent_id,
   }).select().single()
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return NextResponse.json({ error: 'An unexpected error occurred.' }, { status: 500 })
   return NextResponse.json(data, { status: 201 })
 }

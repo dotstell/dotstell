@@ -3,7 +3,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import {
   Plus, Search, ChevronDown, ChevronRight, FileText, Tag,
-  Pencil, Trash2, BookOpen, FolderPlus, X, StickyNote,
+  Pencil, Trash2, BookOpen, FolderPlus, X, StickyNote, Pin, PinOff,
 } from 'lucide-react'
 import { Note } from '@/types'
 import { useNotebooks, notebookTag, NOTEBOOK_TAG_PREFIX } from '@/hooks/useNotebooks'
@@ -27,7 +27,7 @@ export function NotesSidePane({ width = 220, activeNoteId }: Props) {
   const [notes,   setNotes]   = useState<Note[]>([])
   const [search,  setSearch]  = useState('')
   const [loading, setLoading] = useState(true)
-  const { notebooks, createNotebook, deleteNotebook, renameNotebook } = useNotebooks()
+  const { notebooks, createNotebook, deleteNotebook, renameNotebook, reorderNotebook } = useNotebooks()
   const { openTab } = useNoteTabs()
 
   const [sectionOpen, setSectionOpen] = useState<Record<string, boolean>>({
@@ -38,6 +38,12 @@ export function NotesSidePane({ width = 220, activeNoteId }: Props) {
   const [contextMenu, setContextMenu]         = useState<{ x: number; y: number; id: string; type: 'notebook' | 'note' } | null>(null)
   const [renameTarget, setRenameTarget]       = useState<{ id: string; value: string; type: 'notebook' | 'note' } | null>(null)
   const [hoveredNb, setHoveredNb]             = useState<string | null>(null)
+  const [dragNbId,  setDragNbId]              = useState<string | null>(null)
+  const [dragOverId, setDragOverId]           = useState<string | null>(null)
+  const [pinnedIds, setPinnedIds]             = useState<Set<string>>(() => {
+    if (typeof window === 'undefined') return new Set()
+    try { return new Set(JSON.parse(localStorage.getItem('dotstell-pinned-notes') ?? '[]')) } catch { return new Set() }
+  })
   const newNbRef = useRef<HTMLInputElement>(null)
 
   const fetchNotes = useCallback(async () => {
@@ -75,7 +81,9 @@ export function NotesSidePane({ width = 220, activeNoteId }: Props) {
     notebookNotesMap[nb.id] = filteredNotes.filter(n => n.tags?.includes(tag))
   }
   const notebookIds       = new Set(notebooks.flatMap(nb => notebookNotesMap[nb.id]?.map(n => n.id) ?? []))
-  const unnotebookedNotes = filteredNotes.filter(n => !notebookIds.has(n.id))
+  const unnotebookedNotes = filteredNotes
+    .filter(n => !notebookIds.has(n.id))
+    .sort((a, b) => (pinnedIds.has(b.id) ? 1 : 0) - (pinnedIds.has(a.id) ? 1 : 0))
 
   const tagMap = new Map<string, Note[]>()
   for (const note of filteredNotes) {
@@ -120,6 +128,23 @@ export function NotesSidePane({ width = 220, activeNoteId }: Props) {
     setContextMenu({ x: e.clientX, y: e.clientY, id, type })
   }
 
+  function togglePin(id: string) {
+    setPinnedIds(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id); else next.add(id)
+      try { localStorage.setItem('dotstell-pinned-notes', JSON.stringify([...next])) } catch {}
+      return next
+    })
+  }
+
+  function handleNbDragStart(id: string) { setDragNbId(id) }
+  function handleNbDragOver(e: React.DragEvent, id: string) { e.preventDefault(); setDragOverId(id) }
+  function handleNbDrop(targetId: string) {
+    if (!dragNbId || dragNbId === targetId) { setDragNbId(null); setDragOverId(null); return }
+    reorderNotebook(dragNbId, targetId)
+    setDragNbId(null); setDragOverId(null)
+  }
+
   // ── Sub-components ───────────────────────────────────────────
 
   function NoteItem({ note, indent = 0 }: { note: Note; indent?: number }) {
@@ -154,6 +179,9 @@ export function NotesSidePane({ width = 220, activeNoteId }: Props) {
         }}>
           {note.title || 'Untitled'}
         </span>
+        {pinnedIds.has(note.id) && (
+          <Pin size={10} style={{ flexShrink: 0, opacity: 0.5, color: 'var(--primary)' }} />
+        )}
       </button>
     )
   }
@@ -381,9 +409,20 @@ export function NotesSidePane({ width = 220, activeNoteId }: Props) {
               return (
                 <div key={nb.id}>
                   <div
+                    draggable
+                    onDragStart={() => handleNbDragStart(nb.id)}
+                    onDragOver={e => handleNbDragOver(e, nb.id)}
+                    onDrop={() => handleNbDrop(nb.id)}
+                    onDragEnd={() => { setDragNbId(null); setDragOverId(null) }}
                     onMouseEnter={() => setHoveredNb(nb.id)}
                     onMouseLeave={() => setHoveredNb(null)}
-                    style={{ display: 'flex', alignItems: 'center' }}
+                    style={{
+                      display: 'flex', alignItems: 'center',
+                      opacity: dragNbId === nb.id ? 0.4 : 1,
+                      borderTop: dragOverId === nb.id && dragNbId !== nb.id ? '2px solid var(--primary)' : '2px solid transparent',
+                      transition: 'opacity 0.15s',
+                      cursor: 'grab',
+                    }}
                   >
                     <button
                       type="button"
@@ -573,11 +612,18 @@ export function NotesSidePane({ width = 220, activeNoteId }: Props) {
             </>
           )}
           {contextMenu.type === 'note' && (
-            <CtxItem icon={Trash2} label="Delete note" danger onClick={async () => {
-              await fetch(`/api/notes/${contextMenu.id}`, { method: 'DELETE' })
-              setNotes(prev => prev.filter(n => n.id !== contextMenu.id))
-              setContextMenu(null)
-            }} />
+            <>
+              <CtxItem
+                icon={pinnedIds.has(contextMenu.id) ? PinOff : Pin}
+                label={pinnedIds.has(contextMenu.id) ? 'Unpin note' : 'Pin note'}
+                onClick={() => { togglePin(contextMenu.id); setContextMenu(null) }}
+              />
+              <CtxItem icon={Trash2} label="Delete note" danger onClick={async () => {
+                await fetch(`/api/notes/${contextMenu.id}`, { method: 'DELETE' })
+                setNotes(prev => prev.filter(n => n.id !== contextMenu.id))
+                setContextMenu(null)
+              }} />
+            </>
           )}
         </div>
       )}

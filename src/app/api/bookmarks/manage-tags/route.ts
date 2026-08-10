@@ -23,7 +23,7 @@ export async function PATCH(req: NextRequest) {
     .eq('user_id', user.id)
     .contains('tags', [oldTag])
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return NextResponse.json({ error: 'An unexpected error occurred.' }, { status: 500 })
   if (!bookmarks || bookmarks.length === 0) return NextResponse.json({ updated: 0 })
 
   // Update each bookmark's tags array
@@ -56,7 +56,7 @@ export async function DELETE(req: NextRequest) {
     .eq('user_id', user.id)
     .contains('tags', [tag])
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return NextResponse.json({ error: 'An unexpected error occurred.' }, { status: 500 })
   if (!bookmarks || bookmarks.length === 0) return NextResponse.json({ updated: 0 })
 
   let updated = 0

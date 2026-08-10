@@ -21,7 +21,7 @@ export async function GET(
     .eq('target_type', 'note')
     .eq('label', '__wikilink__')
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return NextResponse.json({ error: 'An unexpected error occurred.' }, { status: 500 })
   if (!links || links.length === 0) return NextResponse.json([])
 
   const targetIds = links.map(l => l.target_id)

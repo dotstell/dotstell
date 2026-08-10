@@ -69,5 +69,18 @@ export function useNotebooks() {
     })
   }, [])
 
-  return { notebooks, createNotebook, deleteNotebook, renameNotebook }
+  const reorderNotebook = useCallback((dragId: string, targetId: string) => {
+    setNotebooks(prev => {
+      const next = [...prev]
+      const from = next.findIndex(n => n.id === dragId)
+      const to   = next.findIndex(n => n.id === targetId)
+      if (from === -1 || to === -1) return prev
+      const [item] = next.splice(from, 1)
+      next.splice(to, 0, item)
+      persist(next)
+      return next
+    })
+  }, [])
+
+  return { notebooks, createNotebook, deleteNotebook, renameNotebook, reorderNotebook }
 }

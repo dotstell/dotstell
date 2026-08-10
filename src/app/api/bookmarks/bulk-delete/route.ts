@@ -20,6 +20,6 @@ export async function POST(req: NextRequest) {
     .eq('user_id', user.id)
     .in('id', ids)
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return NextResponse.json({ error: 'An unexpected error occurred.' }, { status: 500 })
   return NextResponse.json({ deleted: count ?? ids.length })
 }

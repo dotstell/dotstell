@@ -16,7 +16,7 @@ export async function GET(req: NextRequest) {
   if (priority) query = query.eq('priority', priority)
 
   const { data, error } = await query
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return NextResponse.json({ error: 'An unexpected error occurred.' }, { status: 500 })
   return NextResponse.json(data)
 }
 
@@ -26,7 +26,16 @@ export async function POST(req: NextRequest) {
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const body = await req.json()
-  const { data, error } = await supabase.from('tasks').insert({ ...body, user_id: user.id }).select('*, person:people(id,name)').single()
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  const { data, error } = await supabase.from('tasks').insert({
+    user_id:     user.id,
+    title:       body.title,
+    description: body.description,
+    status:      body.status,
+    priority:    body.priority,
+    due_date:    body.due_date,
+    tags:        body.tags,
+    person_id:   body.person_id,
+  }).select('*, person:people(id,name)').single()
+  if (error) return NextResponse.json({ error: 'An unexpected error occurred.' }, { status: 500 })
   return NextResponse.json(data, { status: 201 })
 }

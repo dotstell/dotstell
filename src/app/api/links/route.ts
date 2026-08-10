@@ -15,7 +15,7 @@ export async function GET(req: NextRequest) {
   if (target_id) query = query.eq('target_id', target_id)
 
   const { data, error } = await query
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return NextResponse.json({ error: 'An unexpected error occurred.' }, { status: 500 })
   return NextResponse.json(data)
 }
 
@@ -36,7 +36,7 @@ export async function POST(req: NextRequest) {
     target_type: body.target_type,
     label:       body.label,
   }, { onConflict: 'user_id,source_id,target_id' }).select().single()
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return NextResponse.json({ error: 'An unexpected error occurred.' }, { status: 500 })
   return NextResponse.json(data, { status: 201 })
 }
 
@@ -53,6 +53,6 @@ export async function DELETE(req: NextRequest) {
     .eq('user_id', user.id)
     .eq('source_id', body.source_id)
     .eq('target_id', body.target_id)
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return NextResponse.json({ error: 'An unexpected error occurred.' }, { status: 500 })
   return new NextResponse(null, { status: 204 })
 }
