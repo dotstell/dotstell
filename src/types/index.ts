@@ -1,5 +1,13 @@
 export type NoteType = 'plain' | 'markdown' | 'checklist'
 
+export interface Notebook {
+  id: string
+  name: string
+  color?: string
+  icon?: string
+  note_count?: number
+}
+
 export interface ChecklistItem {
   id: string
   text: string

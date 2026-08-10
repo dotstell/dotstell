@@ -2,34 +2,48 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { use } from 'react'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, X, Maximize2, Minimize2, Layout, Plus, FileText, ChevronRight } from 'lucide-react'
+import { X, Maximize2, Minimize2, Layout, Plus, FileText, ChevronRight, ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
 import { toast } from 'sonner'
 import { Note } from '@/types'
-import { AppLayout } from '@/components/layout/AppLayout'
 import { RichTextEditor } from '@/components/editor/RichTextEditor'
 import { NoteTemplates, NOTE_TEMPLATES } from '@/components/editor/NoteTemplates'
 import { LinkPanel } from '@/components/links/LinkPanel'
 import { BacklinksPanel } from '@/components/notes/BacklinksPanel'
+import { useNoteTabs } from '@/hooks/useNoteTabs'
+import { notebookTag } from '@/hooks/useNotebooks'
 import '@/components/editor/editor.css'
 
 type SaveStatus = 'saved' | 'saving' | 'unsaved' | null
 
 export default function NoteDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params)
-  const router = useRouter()
-  const isNew = id === 'new'
+  const router  = useRouter()
+  const isNew   = id === 'new'
 
-  const [note, setNote]           = useState<Partial<Note>>({ title: '', content: '<p></p>', type: 'markdown', tags: [] })
-  const [loading, setLoading]     = useState(!isNew)
+  const [note, setNote]             = useState<Partial<Note>>({ title: '', content: '<p></p>', type: 'markdown', tags: [] })
+  const [loading, setLoading]       = useState(!isNew)
   const [saveStatus, setSaveStatus] = useState<SaveStatus>(null)
-  const [tagInput, setTagInput]   = useState('')
-  const [focusMode, setFocusMode] = useState(false)
+  const [tagInput, setTagInput]     = useState('')
+  const [focusMode, setFocusMode]   = useState(false)
   const [showTemplates, setShowTemplates] = useState(isNew)
-  const [noteId, setNoteId]       = useState<string | null>(isNew ? null : id)
-  const [subNotes, setSubNotes]   = useState<Note[]>([])
-  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const [noteId, setNoteId]         = useState<string | null>(isNew ? null : id)
+  const [subNotes, setSubNotes]     = useState<Note[]>([])
+  const saveTimer   = useRef<ReturnType<typeof setTimeout> | null>(null)
   const wikiLinkIds = useRef<string[]>([])
+
+  const { openTab, updateTitle } = useNoteTabs(noteId ?? undefined)
+
+  // Pre-populate notebook tag when coming from side pane "new note in notebook"
+  useEffect(() => {
+    if (!isNew) return
+    const nbName = sessionStorage.getItem('dotstell:new-note-notebook')
+    if (nbName) {
+      sessionStorage.removeItem('dotstell:new-note-notebook')
+      const tag = notebookTag(nbName)
+      setNote(prev => ({ ...prev, tags: [...(prev.tags ?? []), tag] }))
+    }
+  }, [isNew])
 
   // Load existing note + sub-notes
   useEffect(() => {
@@ -39,13 +53,16 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
       fetch(`/api/notes?parent_id=${id}`).then(r => r.ok ? r.json() : []),
     ]).then(([data, subs]) => {
       if (data) {
-        setNote({ ...data, content: data.content || '<p></p>' })
+        const content = data.content || '<p></p>'
+        setNote({ ...data, content })
         setShowTemplates(false)
+        // Open in tab strip
+        openTab(data.id, data.title || 'Untitled')
       }
       setSubNotes(Array.isArray(subs) ? subs : [])
       setLoading(false)
     }).catch(() => setLoading(false))
-  }, [id, isNew])
+  }, [id, isNew]) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function createSubNote() {
     if (!noteId) return
@@ -60,7 +77,6 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
     }
   }
 
-  // Auto-save — debounced 1.5s after last change
   const syncWikiLinks = useCallback(async (sourceNoteId: string) => {
     await fetch('/api/wikilinks', {
       method: 'POST',
@@ -81,6 +97,8 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
         if (res.ok) {
           setSaveStatus('saved')
           syncWikiLinks(currentId)
+          // Keep tab title in sync
+          if (data.title !== undefined) updateTitle(currentId, data.title || 'Untitled')
         } else setSaveStatus('unsaved')
       } else {
         const res = await fetch('/api/notes', {
@@ -94,19 +112,19 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
           setSaveStatus('saved')
           window.history.replaceState({}, '', `/notes/${saved.id}`)
           syncWikiLinks(saved.id)
+          // Open in tab strip
+          openTab(saved.id, saved.title || 'Untitled')
         } else setSaveStatus('unsaved')
       }
     } catch {
       setSaveStatus('unsaved')
     }
-  }, [syncWikiLinks])
+  }, [syncWikiLinks, openTab, updateTitle])
 
   function scheduleAutoSave(updates: Partial<Note>) {
     setSaveStatus('unsaved')
     if (saveTimer.current) clearTimeout(saveTimer.current)
-    saveTimer.current = setTimeout(() => {
-      save(updates, noteId)
-    }, 1500)
+    saveTimer.current = setTimeout(() => { save(updates, noteId) }, 1500)
   }
 
   function handleContentChange(html: string) {
@@ -138,9 +156,7 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
 
   if (loading) {
     return (
-      <AppLayout>
-        <div style={{ padding: 32, color: 'var(--muted-foreground)', fontSize: 13 }}>Loading...</div>
-      </AppLayout>
+      <div style={{ padding: 32, color: 'var(--muted-foreground)', fontSize: 13 }}>Loading...</div>
     )
   }
 
@@ -204,12 +220,21 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
           />
         </div>
 
+        {/* Save status */}
+        {saveStatus && (
+          <span style={{
+            fontSize: 11, color: 'var(--muted-foreground)',
+            opacity: saveStatus === 'saved' ? 0.6 : 1,
+            flexShrink: 0,
+          }}>
+            {saveStatus === 'saving' ? 'Saving…' : saveStatus === 'saved' ? 'Saved' : 'Unsaved'}
+          </span>
+        )}
+
         {/* Focus mode toggle */}
         <button type="button" onClick={() => setFocusMode(f => !f)} style={{
           background: 'none', border: 'none', color: 'var(--muted-foreground)', cursor: 'pointer', padding: 4, borderRadius: 6, flexShrink: 0,
-        }}
-          title={focusMode ? 'Exit focus mode' : 'Focus mode (F11)'}
-        >
+        }} title={focusMode ? 'Exit focus mode' : 'Focus mode'}>
           {focusMode ? <Minimize2 size={15} /> : <Maximize2 size={15} />}
         </button>
       </div>
@@ -235,7 +260,7 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
           <RichTextEditor
             content={note.content ?? '<p></p>'}
             onChange={handleContentChange}
-            placeholder="Start writing... (type / for commands, [[ to link a note)"
+            placeholder="Start writing… (type / for commands, [[ to link a note)"
             autoSaveStatus={saveStatus}
             focusMode={focusMode}
             onFocusMode={setFocusMode}
@@ -243,7 +268,7 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
           />
         </div>
 
-        {/* Right panel: links + sub-notes + backlinks (only when saved) */}
+        {/* Right panel: links + sub-notes + backlinks */}
         {!focusMode && noteId && (
           <div style={{
             width: 240, flexShrink: 0, borderLeft: '1px solid var(--border)',
@@ -307,10 +332,8 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
               )}
             </div>
 
-            {/* Backlinks */}
             <BacklinksPanel noteId={noteId} />
 
-            {/* Show templates button */}
             {isNew && !showTemplates && (
               <button type="button" onClick={() => setShowTemplates(true)} style={{
                 display: 'flex', alignItems: 'center', gap: 6,
@@ -338,16 +361,14 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
   }
 
   return (
-    <AppLayout>
-      <div style={{
-        display: 'flex', flexDirection: 'column',
-        height: '100vh',
-        overflow: 'hidden',
-        backgroundColor: 'var(--background)',
-        marginTop: 0,
-      }}>
-        {editorContent}
-      </div>
-    </AppLayout>
+    <div style={{
+      display: 'flex',
+      flexDirection: 'column',
+      height: '100%',
+      overflow: 'hidden',
+      backgroundColor: 'var(--background)',
+    }}>
+      {editorContent}
+    </div>
   )
 }

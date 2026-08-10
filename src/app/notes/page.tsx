@@ -7,13 +7,11 @@ import {
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { Note, NoteType } from '@/types'
-import { AppLayout } from '@/components/layout/AppLayout'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { NoteCard } from '@/components/notes/NoteCard'
 import { NoteRow } from '@/components/notes/NoteRow'
 import { EmptyState } from '@/components/ui/empty-state'
-import { PageContainer } from '@/components/layout/PageContainer'
 
 type ViewMode = 'grid' | 'list'
 type GroupMode = 'none' | 'tag'
@@ -72,7 +70,7 @@ export default function NotesPage() {
     const params = new URLSearchParams()
     if (typeFilter !== 'all') params.set('type', typeFilter)
     if (search) params.set('q', search)
-    params.set('root_only', 'true')   // never show sub-notes as top-level cards
+    params.set('root_only', 'true')
     const res = await fetch(`/api/notes?${params}`)
     const data = await res.json()
     setNotes(Array.isArray(data) ? data : [])
@@ -116,12 +114,12 @@ export default function NotesPage() {
   const sortLabel = SORT_OPTIONS.find(s => s.value === sortMode)?.label ?? 'Sort'
 
   return (
-    <AppLayout>
-      <PageContainer>
+    <div style={{ height: '100%', overflowY: 'auto' }}>
+      <div style={{ padding: '20px 28px 40px', maxWidth: 1200, paddingLeft: 48 }}>
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
           <div>
-            <h1 style={{ fontSize: 20, fontWeight: 700, color: 'var(--foreground)', margin: 0 }}>Notes</h1>
+            <h1 style={{ fontSize: 20, fontWeight: 700, color: 'var(--foreground)', margin: 0 }}>All Notes</h1>
             <p style={{ fontSize: 13, color: 'var(--muted-foreground)', margin: '2px 0 0' }}>
               {sorted.length} {sorted.length === 1 ? 'note' : 'notes'}
             </p>
@@ -133,14 +131,11 @@ export default function NotesPage() {
 
         {/* Controls */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 20, flexWrap: 'wrap' }}>
-
-          {/* Search */}
           <div style={{ position: 'relative' }}>
             <Search size={13} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--muted-foreground)', pointerEvents: 'none' }} />
             <Input placeholder="Search notes…" value={search} onChange={e => setSearch(e.target.value)} style={{ maxWidth: 220, paddingLeft: 30 }} />
           </div>
 
-          {/* Type filters */}
           <div style={{ display: 'flex', gap: 4 }}>
             {TYPE_FILTERS.map(({ value, label }) => (
               <button key={value} type="button" onClick={() => setTypeFilter(value)} style={{
@@ -156,7 +151,6 @@ export default function NotesPage() {
 
           <div style={{ flex: 1 }} />
 
-          {/* Group by tag */}
           <button type="button" onClick={() => setGroupMode(m => m === 'tag' ? 'none' : 'tag')} style={{
             display: 'flex', alignItems: 'center', gap: 6,
             padding: '5px 12px', borderRadius: 8, border: '1px solid',
@@ -169,7 +163,6 @@ export default function NotesPage() {
             {groupMode === 'tag' ? 'Grouped by tag' : 'Group by tag'}
           </button>
 
-          {/* Sort */}
           <div ref={sortRef} style={{ position: 'relative' }}>
             <button type="button" onClick={() => setSortOpen(o => !o)} style={{
               display: 'flex', alignItems: 'center', gap: 6,
@@ -200,7 +193,6 @@ export default function NotesPage() {
             )}
           </div>
 
-          {/* View toggle */}
           <div style={{ display: 'flex', borderRadius: 8, border: '1px solid var(--border)', overflow: 'hidden' }}>
             {(['grid', 'list'] as ViewMode[]).map(v => (
               <button key={v} type="button" onClick={() => setView(v)} title={`${v} view`} style={{
@@ -230,7 +222,6 @@ export default function NotesPage() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: groupMode === 'tag' ? 20 : 0 }}>
             {groups.map(group => (
               <div key={group.key}>
-                {/* Group header */}
                 {groupMode === 'tag' && (
                   <button type="button" onClick={() => setCollapsed(p => ({ ...p, [group.key]: !p[group.key] }))} style={{
                     display: 'flex', alignItems: 'center', gap: 8, width: '100%',
@@ -252,7 +243,6 @@ export default function NotesPage() {
                   </button>
                 )}
 
-                {/* Notes */}
                 {!collapsed[group.key] && (
                   view === 'grid' ? (
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 10 }}>
@@ -272,7 +262,7 @@ export default function NotesPage() {
             ))}
           </div>
         )}
-      </PageContainer>
-    </AppLayout>
+      </div>
+    </div>
   )
 }
