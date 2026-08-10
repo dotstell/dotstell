@@ -29,33 +29,31 @@ interface TooltipState {
 export function Sidebar({ onOpenPalette }: { onOpenPalette?: () => void }) {
   const pathname  = usePathname()
   const router    = useRouter()
-  const [collapsed, setCollapsed] = useState(() =>
-    typeof window !== 'undefined' ? localStorage.getItem('sidebar-collapsed') === 'true' : false
-  )
+  const [collapsed, setCollapsed] = useState(false)
   const [tooltip, setTooltip]     = useState<TooltipState | null>(null)
   const { theme, setTheme } = useTheme()
   const [isDesktop, setIsDesktop] = useState(false)
   const [appVersion, setAppVersion] = useState<string | null>(null)
-  const [isMobile, setIsMobile] = useState(() =>
-    typeof window !== 'undefined' ? window.innerWidth < 768 : false
-  )
+  const [isMobile, setIsMobile] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
   const isMac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform)
 
   useEffect(() => {
-    const desktop = typeof window !== 'undefined' && '__TAURI__' in window
+    // Read persisted state after mount to avoid SSR hydration mismatch
+    setCollapsed(localStorage.getItem('sidebar-collapsed') === 'true')
+    setIsMobile(window.innerWidth < 768)
+
+    const desktop = '__TAURI__' in window
     setIsDesktop(desktop)
     if (desktop) {
       import('@tauri-apps/api/core').then(({ invoke }) =>
         invoke<string>('app_version').then(setAppVersion).catch(() => null)
       )
     }
-  }, [])
 
-  useEffect(() => {
-    function check() { setIsMobile(window.innerWidth < 768) }
-    window.addEventListener('resize', check)
-    return () => window.removeEventListener('resize', check)
+    function onResize() { setIsMobile(window.innerWidth < 768) }
+    window.addEventListener('resize', onResize)
+    return () => window.removeEventListener('resize', onResize)
   }, [])
 
   // Close mobile drawer on route change
