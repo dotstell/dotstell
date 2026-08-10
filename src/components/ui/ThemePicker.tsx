@@ -42,11 +42,12 @@ export function ThemePicker({ current, onSelect, collapsed }: Props) {
     const r = btnRef.current.getBoundingClientRect()
 
     if (collapsed) {
-      const availableH = window.innerHeight - r.top - 16
-      const maxHeight  = Math.min(POPOVER_MAX_H, availableH)
-      const top = r.top + maxHeight > window.innerHeight - 8
-        ? Math.max(8, window.innerHeight - maxHeight - 8)
-        : r.top
+      const spaceBelow = window.innerHeight - r.top - 8
+      const spaceAbove = r.bottom - 8
+      const maxHeight  = Math.min(POPOVER_MAX_H, Math.max(spaceBelow, spaceAbove))
+      const top = spaceBelow >= maxHeight
+        ? r.top
+        : Math.max(8, r.bottom - maxHeight)
       setPos({ top, left: r.right + 8, width: 210, maxHeight })
     } else {
       const spaceAbove = r.top - 8
