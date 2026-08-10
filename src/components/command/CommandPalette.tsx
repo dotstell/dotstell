@@ -72,8 +72,15 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
   function handleSelect(index: number) {
     const item = items[index]
     if (!item) return
-    if ('href' in item) navigate(item.href as string)
-    else navigate((item as SearchResult)._type === 'note' ? `/notes/${(item as SearchResult).id}` : (item as SearchResult)._type === 'person' ? `/people/${(item as SearchResult).id}` : '/')
+    if ('href' in item) { navigate(item.href as string); return }
+    const r = item as SearchResult
+    const dest =
+      r._type === 'note'     ? `/notes/${r.id}` :
+      r._type === 'person'   ? `/people/${r.id}` :
+      r._type === 'bookmark' ? `/bookmarks` :
+      r._type === 'task'     ? `/tasks` :
+      `/dashboard`
+    navigate(dest)
   }
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
