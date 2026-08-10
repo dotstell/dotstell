@@ -66,6 +66,9 @@
       "timestampUrl": "",
       "wix": {
         "language": "en-US"
+      },
+      "nsis": {
+        "installerIcon": "icons/icon.ico"
       }
     },
     "linux": {
