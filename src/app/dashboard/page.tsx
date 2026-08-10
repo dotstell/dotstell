@@ -28,23 +28,39 @@ function Sparkline({ data, color }: { data: number[]; color: string }) {
   if (data.length < 2) return null
   const max = Math.max(...data, 1)
   const w = 64, h = 24
-  const pts = data.map((v, i) => `${(i / (data.length - 1)) * w},${h - (v / max) * (h - 4) - 2}`)
+  const coords = data.map((v, i) => ({
+    x: (i / (data.length - 1)) * w,
+    y: h - (v / max) * (h - 4) - 2,
+  }))
+
+  // Build a smooth cubic Bézier path through all points
+  function smoothPath(pts: { x: number; y: number }[]) {
+    if (pts.length === 0) return ''
+    let d = `M ${pts[0].x},${pts[0].y}`
+    for (let i = 1; i < pts.length; i++) {
+      const prev = pts[i - 1]
+      const curr = pts[i]
+      const cpX = (prev.x + curr.x) / 2
+      d += ` C ${cpX},${prev.y} ${cpX},${curr.y} ${curr.x},${curr.y}`
+    }
+    return d
+  }
+
+  const linePath = smoothPath(coords)
+  const first = coords[0], last = coords[coords.length - 1]
+  const areaPath = `${linePath} L ${last.x},${h} L ${first.x},${h} Z`
+
   return (
     <svg width={w} height={h} style={{ display: 'block', overflow: 'visible' }}>
-      <polyline
-        points={pts.join(' ')}
+      <path d={areaPath} fill={color} opacity={0.1} />
+      <path
+        d={linePath}
         fill="none"
         stroke={color}
-        strokeWidth={1.5}
-        strokeLinejoin="round"
+        strokeWidth={1.75}
         strokeLinecap="round"
-        opacity={0.7}
-      />
-      {/* Filled area under the line */}
-      <polygon
-        points={`0,${h} ${pts.join(' ')} ${w},${h}`}
-        fill={color}
-        opacity={0.08}
+        strokeLinejoin="round"
+        opacity={0.75}
       />
     </svg>
   )
