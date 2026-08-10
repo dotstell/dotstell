@@ -277,7 +277,7 @@ export function NotesSidePane({ width = 220, activeNoteId }: Props) {
         </span>
         <button
           type="button"
-          title="New note"
+          title="New note (Ctrl+N / Alt+N)"
           onClick={() => createNote()}
           style={{
             width: 28, height: 28, flexShrink: 0,

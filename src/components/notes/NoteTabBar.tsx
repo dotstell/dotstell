@@ -194,7 +194,7 @@ export function NoteTabBar({ currentId, paneOpen, onTogglePane }: Props) {
       </div>
 
       {/* New note — creates immediately, no template modal */}
-      <IconBtn title="New note" onClick={handleNewNote} borderLeft primary disabled={creating}>
+      <IconBtn title="New note (Ctrl+N / Alt+N)" onClick={handleNewNote} borderLeft primary disabled={creating}>
         <Plus size={15} style={{ opacity: creating ? 0.4 : 1 }} />
       </IconBtn>
 
