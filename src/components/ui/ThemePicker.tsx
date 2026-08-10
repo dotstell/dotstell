@@ -1,5 +1,6 @@
 'use client'
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { ChevronDown } from 'lucide-react'
 import { THEME_DEFS, type ThemeId } from '@/hooks/useTheme'
 import { ConstellationIcon } from '@/components/brand/DotstellLogo'
@@ -12,35 +13,104 @@ interface Props {
 
 export function ThemePicker({ current, onSelect, collapsed }: Props) {
   const [open, setOpen] = useState(false)
+  const btnRef = useRef<HTMLButtonElement>(null)
+  const [popoverPos, setPopoverPos] = useState({ top: 0, left: 0 })
+
+  const currentDef = THEME_DEFS.find(t => t.id === current)!
+
+  // Close on outside click
+  useEffect(() => {
+    if (!open) return
+    function handler(e: MouseEvent) {
+      const target = e.target as Node
+      if (!btnRef.current?.contains(target)) setOpen(false)
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [open])
+
+  // Close when sidebar expands (collapsed prop changes)
+  useEffect(() => { setOpen(false) }, [collapsed])
 
   if (collapsed) {
-    const idx  = THEME_DEFS.findIndex(t => t.id === current)
-    const next = THEME_DEFS[(idx + 1) % THEME_DEFS.length]
-    const def  = THEME_DEFS.find(t => t.id === current)!
+    function handleClick() {
+      if (btnRef.current) {
+        const r = btnRef.current.getBoundingClientRect()
+        setPopoverPos({ top: r.top, left: r.right + 8 })
+      }
+      setOpen(o => !o)
+    }
+
     return (
-      <button
-        type="button"
-        title={`Theme: ${def.label} — click to cycle`}
-        onClick={() => onSelect(next.id)}
-        style={{
-          width: '100%', height: 40, display: 'flex', alignItems: 'center',
-          justifyContent: 'center', background: 'none', border: 'none',
-          cursor: 'pointer', borderRadius: 8,
-        }}
-      >
-        <ColorDot color={def.dot} active brand={def.brand} />
-      </button>
+      <>
+        <button
+          ref={btnRef}
+          type="button"
+          title="Change theme"
+          onClick={handleClick}
+          style={{
+            width: '100%', height: 40, display: 'flex', alignItems: 'center',
+            justifyContent: 'center', background: open ? 'var(--sidebar-hover-bg)' : 'none',
+            border: 'none', cursor: 'pointer', borderRadius: 8,
+            transition: 'background 0.15s',
+          }}
+        >
+          <ColorDot color={currentDef.dot} active brand={currentDef.brand} />
+        </button>
+
+        {open && typeof document !== 'undefined' && createPortal(
+          <div
+            onMouseDown={e => e.stopPropagation()}
+            style={{
+              position: 'fixed',
+              top: popoverPos.top,
+              left: popoverPos.left,
+              zIndex: 9999,
+              width: 200,
+              backgroundColor: 'var(--popover)',
+              border: '1px solid var(--border)',
+              borderRadius: 12,
+              boxShadow: '0 8px 32px rgba(0,0,0,0.45)',
+              padding: '8px 6px',
+            }}
+          >
+            {/* Arrow */}
+            <div style={{
+              position: 'absolute', left: -5, top: 20,
+              width: 8, height: 8,
+              backgroundColor: 'var(--popover)',
+              border: '1px solid var(--border)',
+              borderRight: 'none', borderTop: 'none',
+              rotate: '45deg',
+            }} />
+
+            <p style={{
+              fontSize: 10, fontWeight: 700, color: 'var(--muted-foreground)',
+              textTransform: 'uppercase', letterSpacing: '0.1em',
+              margin: '0 0 6px 6px',
+            }}>Theme</p>
+
+            {THEME_DEFS.map(t => (
+              <ThemeRow
+                key={t.id}
+                def={t}
+                active={t.id === current}
+                onSelect={id => { onSelect(id); setOpen(false) }}
+              />
+            ))}
+          </div>,
+          document.body
+        )}
+      </>
     )
   }
 
   const brand  = THEME_DEFS.filter(t => t.brand)
   const darks  = THEME_DEFS.filter(t => t.dark && !t.brand)
   const lights = THEME_DEFS.filter(t => !t.dark && !t.brand)
-  const currentDef = THEME_DEFS.find(t => t.id === current)!
 
   return (
     <div style={{ padding: '4px 8px 4px' }}>
-      {/* Toggle row */}
       <button
         type="button"
         onClick={() => setOpen(o => !o)}
@@ -59,7 +129,6 @@ export function ThemePicker({ current, onSelect, collapsed }: Props) {
         }}>
           Theme
         </span>
-        {/* Active theme preview */}
         {!open && (
           <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
             {currentDef.brand
@@ -81,20 +150,16 @@ export function ThemePicker({ current, onSelect, collapsed }: Props) {
         />
       </button>
 
-      {/* Expandable list */}
       {open && (
         <div style={{ marginTop: 4 }}>
-          {/* Brand theme */}
           {brand.map(t => (
             <ThemeRow key={t.id} def={t} active={t.id === current} onSelect={onSelect} />
           ))}
-
           <Divider />
           <GroupLabel>Dark</GroupLabel>
           {darks.map(t => (
             <ThemeRow key={t.id} def={t} active={t.id === current} onSelect={onSelect} />
           ))}
-
           <Divider />
           <GroupLabel>Light</GroupLabel>
           {lights.map(t => (
