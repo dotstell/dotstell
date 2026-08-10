@@ -5,7 +5,7 @@ export type ThemeId =
   | 'dotstell'
   | 'dracula' | 'one-dark' | 'tokyo-night' | 'nord' | 'solarized-dark' | 'catppuccin'
   | 'solarized-light' | 'github-light'
-  | 'plain-light' | 'catppuccin-latte' | 'rose-pine-dawn'
+  | 'plain-light' | 'catppuccin-latte' | 'rose-pine-dawn' | 'gruvbox-light'
 
 export const THEME_DEFS: { id: ThemeId; label: string; dot: string; dark: boolean; brand?: boolean }[] = [
   { id: 'dotstell',          label: 'Dotstell',          dot: '#7c6aff', dark: true,  brand: true },
@@ -20,6 +20,7 @@ export const THEME_DEFS: { id: ThemeId; label: string; dot: string; dark: boolea
   { id: 'github-light',      label: 'GitHub Light',      dot: '#0969da', dark: false },
   { id: 'catppuccin-latte',  label: 'Catppuccin Latte',  dot: '#8839ef', dark: false },
   { id: 'rose-pine-dawn',    label: 'Rosé Pine Dawn',    dot: '#907aa9', dark: false },
+  { id: 'gruvbox-light',     label: 'Gruvbox Light',     dot: '#458588', dark: false },
 ]
 
 const VALID_IDS = THEME_DEFS.map(t => t.id)

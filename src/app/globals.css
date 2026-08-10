@@ -418,6 +418,42 @@
     color-scheme: light;
   }
 
+  /* ── Gruvbox Light ───────────────────────────────── */
+  [data-theme="gruvbox-light"] {
+    --background:           #fbf1c7;
+    --foreground:           #3c3836;
+    --card:                 #f2e5bc;
+    --card-foreground:      #3c3836;
+    --popover:              #f2e5bc;
+    --popover-foreground:   #3c3836;
+    --primary:              #458588;
+    --primary-foreground:   #fbf1c7;
+    --secondary:            #ebdbb2;
+    --secondary-foreground: #504945;
+    --muted:                #ebdbb2;
+    --muted-foreground:     #928374;
+    --accent:               #e5d5a3;
+    --accent-foreground:    #3c3836;
+    --destructive:          #cc241d;
+    --destructive-foreground: #fbf1c7;
+    --border:               #d5c4a1;
+    --input:                #ebdbb2;
+    --ring:                 #458588;
+    --sidebar-bg:           #f2e5bc;
+    --sidebar-border:       #d5c4a1;
+    --sidebar-muted:        #928374;
+    --sidebar-active-bg:    rgba(69,133,136,0.12);
+    --sidebar-active-fg:    #458588;
+    --sidebar-hover-bg:     rgba(60,56,54,0.05);
+    --sidebar-hover-fg:     #3c3836;
+    --sidebar-search-bg:    #ebdbb2;
+    --sidebar-section-fg:   #bdae93;
+    --radius: 0.5rem;
+    --sidebar-width: 240px;
+    --header-height: 56px;
+    color-scheme: light;
+  }
+
   /* ── Base element styles ─────────────────────────── */
   *, *::before, *::after { box-sizing: border-box; }
 
