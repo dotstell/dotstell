@@ -9,6 +9,30 @@ export async function GET(req: NextRequest) {
   const url = new URL(req.url).searchParams.get('url')
   if (!url) return NextResponse.json({ error: 'Missing url' }, { status: 400 })
 
+  // Block non-http(s) schemes and private/internal IP ranges (SSRF protection)
+  try {
+    const parsed = new URL(url)
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+      return NextResponse.json({ error: 'Invalid URL' }, { status: 400 })
+    }
+    const host = parsed.hostname.toLowerCase()
+    const isPrivate =
+      host === 'localhost' ||
+      host === '0.0.0.0' ||
+      /^127\./.test(host) ||
+      /^10\./.test(host) ||
+      /^172\.(1[6-9]|2\d|3[01])\./.test(host) ||
+      /^192\.168\./.test(host) ||
+      /^169\.254\./.test(host) ||   // link-local / AWS metadata
+      /^::1$/.test(host) ||
+      /^fc00:/.test(host) ||
+      host.endsWith('.internal') ||
+      host.endsWith('.local')
+    if (isPrivate) return NextResponse.json({ error: 'Invalid URL' }, { status: 400 })
+  } catch {
+    return NextResponse.json({ error: 'Invalid URL' }, { status: 400 })
+  }
+
   try {
     const res = await fetch(url, {
       headers: {

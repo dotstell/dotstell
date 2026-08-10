@@ -96,9 +96,16 @@ export async function POST(req: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
+  const contentLength = req.headers.get('content-length')
+  if (contentLength && parseInt(contentLength) > 10 * 1024 * 1024) {
+    return NextResponse.json({ error: 'Payload too large (max 10 MB)' }, { status: 413 })
+  }
   const body = await req.json()
   const { html, force, selectedTags } = body as { html: string; force?: boolean; selectedTags?: string[] }
   if (!html) return NextResponse.json({ error: 'Missing html' }, { status: 400 })
+  if (html.length > 10 * 1024 * 1024) {
+    return NextResponse.json({ error: 'HTML payload too large (max 10 MB)' }, { status: 413 })
+  }
 
   const { bookmarks: allParsed, skipped } = parseNetscapeHTML(html)
 

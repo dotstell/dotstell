@@ -10,7 +10,10 @@ export async function GET(req: NextRequest) {
   const q = searchParams.get('q')
 
   let query = supabase.from('bookmarks').select('*').eq('user_id', user.id).order('created_at', { ascending: false })
-  if (q) query = query.or(`title.ilike.%${q}%,url.ilike.%${q}%,description.ilike.%${q}%`)
+  if (q) {
+    const safe = q.slice(0, 200).replace(/%/g, '\\%').replace(/_/g, '\\_')
+    query = query.or(`title.ilike.%${safe}%,url.ilike.%${safe}%,description.ilike.%${safe}%`)
+  }
 
   const { data, error } = await query
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
@@ -23,7 +26,16 @@ export async function POST(req: NextRequest) {
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const body = await req.json()
-  const { data, error } = await supabase.from('bookmarks').insert({ ...body, user_id: user.id }).select().single()
+  const { data, error } = await supabase.from('bookmarks').insert({
+    user_id:      user.id,
+    title:        body.title,
+    url:          body.url,
+    description:  body.description,
+    favicon_url:  body.favicon_url,
+    reading_time: body.reading_time,
+    hostname:     body.hostname,
+    tags:         body.tags,
+  }).select().single()
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json(data, { status: 201 })
 }

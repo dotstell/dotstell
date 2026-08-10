@@ -15,6 +15,11 @@ export async function POST(req: NextRequest) {
   }
 
   if (!sourceNoteId) return NextResponse.json({ error: 'sourceNoteId required' }, { status: 400 })
+  if (!Array.isArray(targetNoteIds)) return NextResponse.json({ error: 'targetNoteIds must be an array' }, { status: 400 })
+  if (targetNoteIds.length > 500) return NextResponse.json({ error: 'Too many targetNoteIds' }, { status: 400 })
+  if (targetNoteIds.some(id => typeof id !== 'string')) {
+    return NextResponse.json({ error: 'targetNoteIds must be strings' }, { status: 400 })
+  }
 
   // Delete existing wikilink edges from this source
   await supabase

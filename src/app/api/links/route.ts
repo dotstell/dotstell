@@ -25,7 +25,17 @@ export async function POST(req: NextRequest) {
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const body = await req.json()
-  const { data, error } = await supabase.from('knowledge_links').upsert({ ...body, user_id: user.id }, { onConflict: 'user_id,source_id,target_id' }).select().single()
+  if (!body.source_id || !body.target_id) {
+    return NextResponse.json({ error: 'source_id and target_id required' }, { status: 400 })
+  }
+  const { data, error } = await supabase.from('knowledge_links').upsert({
+    user_id:     user.id,
+    source_id:   body.source_id,
+    source_type: body.source_type,
+    target_id:   body.target_id,
+    target_type: body.target_type,
+    label:       body.label,
+  }, { onConflict: 'user_id,source_id,target_id' }).select().single()
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json(data, { status: 201 })
 }
@@ -36,7 +46,13 @@ export async function DELETE(req: NextRequest) {
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const body = await req.json()
-  const { error } = await supabase.from('knowledge_links').delete().eq('user_id', user.id).eq('source_id', body.source_id).eq('target_id', body.target_id)
+  if (!body.source_id || !body.target_id) {
+    return NextResponse.json({ error: 'source_id and target_id required' }, { status: 400 })
+  }
+  const { error } = await supabase.from('knowledge_links').delete()
+    .eq('user_id', user.id)
+    .eq('source_id', body.source_id)
+    .eq('target_id', body.target_id)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return new NextResponse(null, { status: 204 })
 }
