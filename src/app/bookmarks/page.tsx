@@ -104,13 +104,11 @@ export default function BookmarksPage() {
   const [deleteProgress, setDeleteProgress] = useState<{ done: number; total: number } | null>(null)
 
   const fetchBookmarks = useCallback(async () => {
-    const params = new URLSearchParams()
-    if (search) params.set('q', search)
-    const res = await fetch(`/api/bookmarks?${params}`)
+    const res = await fetch('/api/bookmarks')
     const data = await res.json()
     setBookmarks(Array.isArray(data) ? data : [])
     setLoading(false)
-  }, [search])
+  }, [])
 
   async function trackVisit(id: string) {
     await fetch('/api/bookmarks/visit', {
@@ -389,7 +387,17 @@ export default function BookmarksPage() {
 
   // All unique tags from all bookmarks
   const allTags = [...new Set(bookmarks.flatMap(b => b.tags))]
-  const displayed = tagFilter ? bookmarks.filter(b => b.tags.includes(tagFilter)) : bookmarks
+
+  const searchLower = search.toLowerCase()
+  const filtered = search
+    ? bookmarks.filter(b =>
+        b.title?.toLowerCase().includes(searchLower) ||
+        b.url?.toLowerCase().includes(searchLower) ||
+        b.description?.toLowerCase().includes(searchLower) ||
+        b.tags.some(t => t.toLowerCase().includes(searchLower))
+      )
+    : bookmarks
+  const displayed = tagFilter ? filtered.filter(b => b.tags.includes(tagFilter)) : filtered
 
   return (
     <AppLayout>
