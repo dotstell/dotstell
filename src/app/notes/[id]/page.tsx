@@ -2,12 +2,14 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { use } from 'react'
 import { useRouter } from 'next/navigation'
-import { X, Maximize2, Minimize2, Layout, Plus, FileText, ChevronRight, ArrowLeft } from 'lucide-react'
+import {
+  X, Maximize2, Minimize2, Plus, FileText,
+  ChevronRight, ArrowLeft, LayoutTemplate,
+} from 'lucide-react'
 import Link from 'next/link'
-import { toast } from 'sonner'
 import { Note } from '@/types'
 import { RichTextEditor } from '@/components/editor/RichTextEditor'
-import { NoteTemplates, NOTE_TEMPLATES } from '@/components/editor/NoteTemplates'
+import { NoteTemplateModal } from '@/components/editor/NoteTemplates'
 import { LinkPanel } from '@/components/links/LinkPanel'
 import { BacklinksPanel } from '@/components/notes/BacklinksPanel'
 import { useNoteTabs } from '@/hooks/useNoteTabs'
@@ -16,25 +18,31 @@ import '@/components/editor/editor.css'
 
 type SaveStatus = 'saved' | 'saving' | 'unsaved' | null
 
+const SAVE_DOT: Record<NonNullable<SaveStatus>, string> = {
+  saved:   '#22c55e',
+  saving:  '#f59e0b',
+  unsaved: '#ef4444',
+}
+
 export default function NoteDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params)
   const router  = useRouter()
   const isNew   = id === 'new'
 
-  const [note, setNote]             = useState<Partial<Note>>({ title: '', content: '<p></p>', type: 'markdown', tags: [] })
-  const [loading, setLoading]       = useState(!isNew)
-  const [saveStatus, setSaveStatus] = useState<SaveStatus>(null)
-  const [tagInput, setTagInput]     = useState('')
-  const [focusMode, setFocusMode]   = useState(false)
+  const [note, setNote]               = useState<Partial<Note>>({ title: '', content: '<p></p>', type: 'markdown', tags: [] })
+  const [loading, setLoading]         = useState(!isNew)
+  const [saveStatus, setSaveStatus]   = useState<SaveStatus>(null)
+  const [tagInput, setTagInput]       = useState('')
+  const [focusMode, setFocusMode]     = useState(false)
   const [showTemplates, setShowTemplates] = useState(isNew)
-  const [noteId, setNoteId]         = useState<string | null>(isNew ? null : id)
-  const [subNotes, setSubNotes]     = useState<Note[]>([])
+  const [noteId, setNoteId]           = useState<string | null>(isNew ? null : id)
+  const [subNotes, setSubNotes]       = useState<Note[]>([])
   const saveTimer   = useRef<ReturnType<typeof setTimeout> | null>(null)
   const wikiLinkIds = useRef<string[]>([])
 
   const { openTab, updateTitle } = useNoteTabs(noteId ?? undefined)
 
-  // Pre-populate notebook tag when coming from side pane "new note in notebook"
+  // Pre-populate notebook tag when coming from side pane
   useEffect(() => {
     if (!isNew) return
     const nbName = sessionStorage.getItem('dotstell:new-note-notebook')
@@ -53,10 +61,8 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
       fetch(`/api/notes?parent_id=${id}`).then(r => r.ok ? r.json() : []),
     ]).then(([data, subs]) => {
       if (data) {
-        const content = data.content || '<p></p>'
-        setNote({ ...data, content })
+        setNote({ ...data, content: data.content || '<p></p>' })
         setShowTemplates(false)
-        // Open in tab strip
         openTab(data.id, data.title || 'Untitled')
       }
       setSubNotes(Array.isArray(subs) ? subs : [])
@@ -71,10 +77,7 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ title: '', content: '<p></p>', type: 'markdown', tags: [], parent_id: noteId }),
     })
-    if (res.ok) {
-      const sub = await res.json()
-      router.push(`/notes/${sub.id}`)
-    }
+    if (res.ok) { const sub = await res.json(); router.push(`/notes/${sub.id}`) }
   }
 
   const syncWikiLinks = useCallback(async (sourceNoteId: string) => {
@@ -97,7 +100,6 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
         if (res.ok) {
           setSaveStatus('saved')
           syncWikiLinks(currentId)
-          // Keep tab title in sync
           if (data.title !== undefined) updateTitle(currentId, data.title || 'Untitled')
         } else setSaveStatus('unsaved')
       } else {
@@ -112,148 +114,182 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
           setSaveStatus('saved')
           window.history.replaceState({}, '', `/notes/${saved.id}`)
           syncWikiLinks(saved.id)
-          // Open in tab strip
           openTab(saved.id, saved.title || 'Untitled')
         } else setSaveStatus('unsaved')
       }
-    } catch {
-      setSaveStatus('unsaved')
-    }
+    } catch { setSaveStatus('unsaved') }
   }, [syncWikiLinks, openTab, updateTitle])
 
   function scheduleAutoSave(updates: Partial<Note>) {
     setSaveStatus('unsaved')
     if (saveTimer.current) clearTimeout(saveTimer.current)
-    saveTimer.current = setTimeout(() => { save(updates, noteId) }, 1500)
+    saveTimer.current = setTimeout(() => save(updates, noteId), 1500)
   }
 
   function handleContentChange(html: string) {
     const updated = { ...note, content: html }
-    setNote(updated)
-    scheduleAutoSave(updated)
+    setNote(updated); scheduleAutoSave(updated)
   }
 
   function handleTitleChange(title: string) {
     const updated = { ...note, title }
-    setNote(updated)
-    scheduleAutoSave(updated)
+    setNote(updated); scheduleAutoSave(updated)
   }
 
   function addTag() {
     const tag = tagInput.trim().toLowerCase()
     if (!tag || note.tags?.includes(tag)) return
     const updated = { ...note, tags: [...(note.tags ?? []), tag] }
-    setNote(updated)
-    scheduleAutoSave(updated)
-    setTagInput('')
+    setNote(updated); scheduleAutoSave(updated); setTagInput('')
   }
 
   function removeTag(tag: string) {
     const updated = { ...note, tags: note.tags?.filter(t => t !== tag) ?? [] }
-    setNote(updated)
-    scheduleAutoSave(updated)
+    setNote(updated); scheduleAutoSave(updated)
   }
 
   if (loading) {
-    return (
-      <div style={{ padding: 32, color: 'var(--muted-foreground)', fontSize: 13 }}>Loading...</div>
-    )
+    return <div style={{ padding: 40, color: 'var(--muted-foreground)', fontSize: 14 }}>Loading…</div>
   }
 
   const editorContent = (
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, overflow: 'hidden' }}>
 
-      {/* Header bar */}
-      <div className="note-header-bar" style={{
-        display: 'flex', alignItems: 'center', gap: 12,
-        padding: '10px 20px', borderBottom: '1px solid var(--border)',
-        backgroundColor: 'var(--background)', flexShrink: 0,
+      {/* ── Header ── */}
+      <div style={{
+        display: 'flex', flexDirection: 'column',
+        padding: '12px 20px 0',
+        borderBottom: '1px solid var(--border)',
+        backgroundColor: 'var(--background)',
+        flexShrink: 0,
+        gap: 8,
       }}>
-        {!focusMode && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
-            <Link href="/notes" style={{ color: 'var(--muted-foreground)', display: 'flex', alignItems: 'center', gap: 4, textDecoration: 'none', fontSize: 13 }}>
-              <ArrowLeft size={14} /> Notes
-            </Link>
-            {note.parent_id && (
-              <>
-                <ChevronRight size={12} color="var(--border)" />
-                <Link href={`/notes/${note.parent_id}`} style={{ color: 'var(--muted-foreground)', textDecoration: 'none', fontSize: 13 }}>
-                  Parent
-                </Link>
-              </>
-            )}
-          </div>
-        )}
+        {/* Row 1: breadcrumb + actions */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          {!focusMode && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 13, color: 'var(--muted-foreground)', flexShrink: 0 }}>
+              <Link href="/notes" style={{ color: 'var(--muted-foreground)', display: 'flex', alignItems: 'center', gap: 4, textDecoration: 'none' }}>
+                <ArrowLeft size={13} /> Notes
+              </Link>
+              {note.parent_id && (
+                <>
+                  <ChevronRight size={11} color="var(--border)" />
+                  <Link href={`/notes/${note.parent_id}`} style={{ color: 'var(--muted-foreground)', textDecoration: 'none' }}>Parent</Link>
+                </>
+              )}
+            </div>
+          )}
 
-        {/* Title */}
+          <div style={{ flex: 1 }} />
+
+          {/* Save indicator */}
+          {saveStatus && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, color: 'var(--muted-foreground)', flexShrink: 0 }}>
+              <span style={{
+                width: 7, height: 7, borderRadius: '50%',
+                backgroundColor: SAVE_DOT[saveStatus],
+                display: 'inline-block',
+                boxShadow: `0 0 5px ${SAVE_DOT[saveStatus]}88`,
+              }} />
+              {saveStatus === 'saving' ? 'Saving…' : saveStatus === 'saved' ? 'Saved' : 'Unsaved changes'}
+            </div>
+          )}
+
+          {/* Templates */}
+          <button
+            type="button"
+            title="Templates"
+            onClick={() => setShowTemplates(true)}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 5,
+              padding: '5px 10px', borderRadius: 7,
+              border: '1px solid var(--border)', background: 'none',
+              color: 'var(--muted-foreground)', fontSize: 12, cursor: 'pointer',
+              transition: 'all 0.12s',
+            }}
+            onMouseEnter={e => { e.currentTarget.style.background = 'var(--accent)'; e.currentTarget.style.color = 'var(--foreground)' }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = 'var(--muted-foreground)' }}
+          >
+            <LayoutTemplate size={13} /> Templates
+          </button>
+
+          {/* Focus mode */}
+          <button
+            type="button"
+            title={focusMode ? 'Exit focus mode' : 'Focus mode'}
+            onClick={() => setFocusMode(f => !f)}
+            style={{
+              display: 'flex', alignItems: 'center',
+              padding: 6, borderRadius: 7,
+              border: '1px solid var(--border)', background: 'none',
+              color: 'var(--muted-foreground)', cursor: 'pointer',
+              transition: 'all 0.12s',
+            }}
+            onMouseEnter={e => { e.currentTarget.style.background = 'var(--accent)'; e.currentTarget.style.color = 'var(--foreground)' }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = 'var(--muted-foreground)' }}
+          >
+            {focusMode ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
+          </button>
+        </div>
+
+        {/* Row 2: title */}
         <input
           value={note.title ?? ''}
           onChange={e => handleTitleChange(e.target.value)}
-          placeholder="Untitled note..."
+          placeholder="Note title…"
           style={{
-            flex: 1, background: 'none', border: 'none', outline: 'none',
-            fontSize: 16, fontWeight: 600, color: 'var(--foreground)',
+            width: '100%', background: 'none', border: 'none', outline: 'none',
+            fontSize: 22, fontWeight: 700, color: 'var(--foreground)',
             fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+            padding: '0 0 10px',
           }}
         />
-
-        {/* Tags */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
-          {note.tags?.map(tag => (
-            <span key={tag} style={{
-              display: 'flex', alignItems: 'center', gap: 4,
-              fontSize: 11, color: 'var(--primary)', backgroundColor: 'var(--primary)22',
-              padding: '2px 8px', borderRadius: 99, cursor: 'pointer',
-            }} onClick={() => removeTag(tag)}>
-              {tag} <X size={9} />
-            </span>
-          ))}
-          <input
-            value={tagInput}
-            onChange={e => setTagInput(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && addTag()}
-            placeholder="+ tag"
-            style={{
-              background: 'none', border: 'none', outline: 'none',
-              fontSize: 12, color: 'var(--muted-foreground)', width: 60,
-            }}
-          />
-        </div>
-
-        {/* Save status */}
-        {saveStatus && (
-          <span style={{
-            fontSize: 11, color: 'var(--muted-foreground)',
-            opacity: saveStatus === 'saved' ? 0.6 : 1,
-            flexShrink: 0,
-          }}>
-            {saveStatus === 'saving' ? 'Saving…' : saveStatus === 'saved' ? 'Saved' : 'Unsaved'}
-          </span>
-        )}
-
-        {/* Focus mode toggle */}
-        <button type="button" onClick={() => setFocusMode(f => !f)} style={{
-          background: 'none', border: 'none', color: 'var(--muted-foreground)', cursor: 'pointer', padding: 4, borderRadius: 6, flexShrink: 0,
-        }} title={focusMode ? 'Exit focus mode' : 'Focus mode'}>
-          {focusMode ? <Minimize2 size={15} /> : <Maximize2 size={15} />}
-        </button>
       </div>
 
-      {/* Body: editor + sidebar */}
-      <div style={{ flex: 1, display: 'flex', minHeight: 0 }}>
+      {/* ── Tags bar ── */}
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap',
+        padding: '8px 20px',
+        borderBottom: '1px solid var(--border)',
+        backgroundColor: 'var(--background)',
+        flexShrink: 0,
+        minHeight: 38,
+      }}>
+        {note.tags?.map(tag => (
+          <button
+            key={tag}
+            type="button"
+            onClick={() => removeTag(tag)}
+            title="Remove tag"
+            style={{
+              display: 'flex', alignItems: 'center', gap: 4,
+              fontSize: 12, color: 'var(--primary)',
+              backgroundColor: 'color-mix(in srgb, var(--primary) 12%, transparent)',
+              border: '1px solid color-mix(in srgb, var(--primary) 25%, transparent)',
+              padding: '2px 8px', borderRadius: 99, cursor: 'pointer',
+              transition: 'all 0.12s',
+            }}
+            onMouseEnter={e => { e.currentTarget.style.backgroundColor = 'color-mix(in srgb, var(--primary) 20%, transparent)' }}
+            onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'color-mix(in srgb, var(--primary) 12%, transparent)' }}
+          >
+            {tag} <X size={9} />
+          </button>
+        ))}
+        <input
+          value={tagInput}
+          onChange={e => setTagInput(e.target.value)}
+          onKeyDown={e => e.key === 'Enter' && addTag()}
+          placeholder={note.tags?.length ? '+ add tag' : '+ add tag…'}
+          style={{
+            background: 'none', border: 'none', outline: 'none',
+            fontSize: 12, color: 'var(--muted-foreground)',
+            width: note.tags?.length ? 80 : 100,
+          }}
+        />
+      </div>
 
-        {/* Template panel (new notes only) */}
-        {showTemplates && isNew && (
-          <div style={{
-            width: 180, flexShrink: 0, borderRight: '1px solid var(--border)',
-            padding: 14, overflowY: 'auto', backgroundColor: 'var(--card)',
-          }}>
-            <NoteTemplates onSelect={tmpl => {
-              setNote(prev => ({ ...prev, title: tmpl.title, content: tmpl.content }))
-              setShowTemplates(false)
-            }} />
-          </div>
-        )}
+      {/* ── Body: editor + right panel ── */}
+      <div style={{ flex: 1, display: 'flex', minHeight: 0 }}>
 
         {/* Editor */}
         <div style={{ flex: 1, minWidth: 0, overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
@@ -268,7 +304,7 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
           />
         </div>
 
-        {/* Right panel: links + sub-notes + backlinks */}
+        {/* Right panel */}
         {!focusMode && noteId && (
           <div style={{
             width: 240, flexShrink: 0, borderLeft: '1px solid var(--border)',
@@ -294,7 +330,7 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
                 <button type="button" onClick={createSubNote} style={{
                   width: '100%', padding: '8px 10px', borderRadius: 8,
                   border: '1px dashed var(--border)', background: 'none',
-                  color: 'var(--border)', fontSize: 12, cursor: 'pointer', textAlign: 'center',
+                  color: 'var(--muted-foreground)', fontSize: 12, cursor: 'pointer', textAlign: 'center',
                 }}
                   onMouseEnter={e => (e.currentTarget.style.borderColor = 'var(--primary)44')}
                   onMouseLeave={e => (e.currentTarget.style.borderColor = 'var(--border)')}
@@ -321,7 +357,7 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
                   ))}
                   <button type="button" onClick={createSubNote} style={{
                     marginTop: 2, padding: '5px 8px', borderRadius: 7, border: '1px dashed var(--border)',
-                    background: 'none', color: 'var(--border)', fontSize: 11, cursor: 'pointer', textAlign: 'left',
+                    background: 'none', color: 'var(--muted-foreground)', fontSize: 11, cursor: 'pointer', textAlign: 'left',
                   }}
                     onMouseEnter={e => (e.currentTarget.style.borderColor = 'var(--primary)44')}
                     onMouseLeave={e => (e.currentTarget.style.borderColor = 'var(--border)')}
@@ -333,41 +369,31 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
             </div>
 
             <BacklinksPanel noteId={noteId} />
-
-            {isNew && !showTemplates && (
-              <button type="button" onClick={() => setShowTemplates(true)} style={{
-                display: 'flex', alignItems: 'center', gap: 6,
-                background: 'none', border: '1px solid var(--border)', borderRadius: 8,
-                padding: '7px 10px', color: 'var(--muted-foreground)', fontSize: 12, cursor: 'pointer', width: '100%',
-              }}>
-                <Layout size={13} /> Change template
-              </button>
-            )}
           </div>
         )}
       </div>
+
+      {/* Template modal */}
+      <NoteTemplateModal
+        open={showTemplates}
+        onClose={() => setShowTemplates(false)}
+        onSelect={tmpl => {
+          setNote(prev => ({ ...prev, title: tmpl.title, content: tmpl.content }))
+        }}
+      />
     </div>
   )
 
   if (focusMode) {
     return (
-      <div style={{
-        position: 'fixed', inset: 0, backgroundColor: 'var(--background)',
-        zIndex: 100, display: 'flex', flexDirection: 'column',
-      }}>
+      <div style={{ position: 'fixed', inset: 0, backgroundColor: 'var(--background)', zIndex: 100, display: 'flex', flexDirection: 'column' }}>
         {editorContent}
       </div>
     )
   }
 
   return (
-    <div style={{
-      display: 'flex',
-      flexDirection: 'column',
-      height: '100%',
-      overflow: 'hidden',
-      backgroundColor: 'var(--background)',
-    }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden', backgroundColor: 'var(--background)' }}>
       {editorContent}
     </div>
   )

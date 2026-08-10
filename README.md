@@ -22,7 +22,7 @@
 
 <br/>
 
-[Website](https://dotstell.com) · [Live App](https://dotstell.app) · [Report a bug](https://github.com/dotstell/dotstell/issues) · [Request a feature](https://github.com/dotstell/dotstell/issues)
+[Website](https://www.dotstell.com) · [Live App](https://dotstell.app) · [Report a bug](https://github.com/dotstell/dotstell/issues) · [Request a feature](https://github.com/dotstell/dotstell/issues)
 
 </div>
 
@@ -58,7 +58,7 @@ The question it answers that other tools don't:
 
 ## Screenshots
 
-Live previews of the app are available on [dotstell.com](https://dotstell.com) — the landing page includes an interactive knowledge graph, dashboard mockup, and feature walkthroughs.
+Live previews of the app are available on [dotstell.com](https://www.dotstell.com) — the landing page includes an interactive knowledge graph, dashboard mockup, and feature walkthroughs.
 
 App screenshots will be added here once the first public release is tagged.
 
