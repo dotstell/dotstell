@@ -48,6 +48,10 @@ export function NotesSidePane({ width = 220, activeNoteId }: Props) {
 
   useEffect(() => { fetchNotes() }, [fetchNotes])
   useEffect(() => { fetchNotes() }, [pathname, fetchNotes])
+  useEffect(() => {
+    window.addEventListener('dotstell:notes-updated', fetchNotes)
+    return () => window.removeEventListener('dotstell:notes-updated', fetchNotes)
+  }, [fetchNotes])
 
   useEffect(() => {
     if (newNotebookMode) setTimeout(() => newNbRef.current?.focus(), 40)
