@@ -115,29 +115,29 @@ export function NotesSidePane({ width = 220, activeNoteId }: Props) {
         onContextMenu={e => onContextMenu(e, note.id, 'note')}
         title={note.title || 'Untitled'}
         style={{
-          display: 'flex', alignItems: 'center', gap: 8,
+          display: 'flex', alignItems: 'center', gap: 7,
           width: '100%', height: ROW_H,
-          paddingLeft: 10 + indent, paddingRight: 8,
-          borderRadius: 8, border: 'none', cursor: 'pointer', textAlign: 'left',
+          paddingLeft: indent > 0 ? indent : 6, paddingRight: 8,
+          border: 'none', cursor: 'pointer', textAlign: 'left',
+          borderRadius: 6,
+          // Left accent bar for active — like VS Code explorer
+          borderLeft: isActive ? '2px solid var(--primary)' : '2px solid transparent',
           backgroundColor: isActive ? 'var(--sidebar-active-bg)' : 'transparent',
           color: isActive ? 'var(--sidebar-active-fg)' : 'var(--sidebar-muted)',
-          transition: 'background 0.12s, color 0.12s',
+          transition: 'background 0.1s, color 0.1s',
           fontWeight: isActive ? 600 : 400,
           boxSizing: 'border-box',
         }}
         onMouseEnter={e => { if (!isActive) { e.currentTarget.style.backgroundColor = 'var(--sidebar-hover-bg)'; e.currentTarget.style.color = 'var(--sidebar-hover-fg)' } }}
         onMouseLeave={e => { if (!isActive) { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = 'var(--sidebar-muted)' } }}
       >
-        <FileText size={ICON_SZ} style={{ flexShrink: 0, opacity: isActive ? 1 : 0.65 }} />
+        <FileText size={13} style={{ flexShrink: 0, opacity: isActive ? 1 : 0.55, color: isActive ? 'var(--primary)' : 'inherit' }} />
         <span style={{
           fontSize: FONT_MD, flex: 1,
           overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
         }}>
           {note.title || 'Untitled'}
         </span>
-        {isActive && (
-          <div style={{ width: 3, height: 18, borderRadius: 2, backgroundColor: 'var(--primary)', flexShrink: 0 }} />
-        )}
       </button>
     )
   }

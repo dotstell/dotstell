@@ -1,7 +1,7 @@
 'use client'
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { X, FileText, Plus, PanelLeftClose, PanelLeftOpen } from 'lucide-react'
+import { X, Plus, PanelLeftClose, PanelLeftOpen, FileText } from 'lucide-react'
 import { useNoteTabs } from '@/hooks/useNoteTabs'
 
 interface Props {
@@ -10,43 +10,72 @@ interface Props {
   onTogglePane: () => void
 }
 
-const TAB_H = 40
+const TAB_H = 38
 
 export function NoteTabBar({ currentId, paneOpen, onTogglePane }: Props) {
   const router = useRouter()
-  const { tabs, activeId, closeTab } = useNoteTabs(currentId)
-  const [hovered, setHovered] = useState<string | null>(null)
-
+  const { tabs, activeId, closeTab, closeOtherTabs, closeAllTabs } = useNoteTabs(currentId)
+  const [hovered,  setHovered]  = useState<string | null>(null)
+  const [ctxMenu,  setCtxMenu]  = useState<{ x: number; y: number; id: string } | null>(null)
+  const scrollRef  = useRef<HTMLDivElement>(null)
   const active = activeId ?? currentId
+
+  // Close context menu on outside click
+  useEffect(() => {
+    if (!ctxMenu) return
+    function close(e: MouseEvent) {
+      if (!(e.target as HTMLElement).closest('[data-ctx-menu]')) setCtxMenu(null)
+    }
+    document.addEventListener('mousedown', close)
+    return () => document.removeEventListener('mousedown', close)
+  }, [ctxMenu])
+
+  // Scroll active tab into view
+  useEffect(() => {
+    if (!active || !scrollRef.current) return
+    const el = scrollRef.current.querySelector(`[data-tab-id="${active}"]`) as HTMLElement
+    el?.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'smooth' })
+  }, [active])
 
   function handleClose(e: React.MouseEvent, id: string) {
     e.stopPropagation()
     const nextId = closeTab(id)
-    router.push(nextId ? `/notes/${nextId}` : '/notes')
+    if (nextId) router.push(`/notes/${nextId}`)
+    else router.push('/notes')
+  }
+
+  // Middle-click to close (like browser tabs / VS Code)
+  function handleMouseDown(e: React.MouseEvent, id: string) {
+    if (e.button === 1) {
+      e.preventDefault()
+      const nextId = closeTab(id)
+      if (nextId) router.push(`/notes/${nextId}`)
+      else router.push('/notes')
+    }
+  }
+
+  function handleContextMenu(e: React.MouseEvent, id: string) {
+    e.preventDefault()
+    setCtxMenu({ x: e.clientX, y: e.clientY, id })
   }
 
   return (
     <div style={{
-      display: 'flex',
-      alignItems: 'stretch',
-      height: TAB_H,
-      flexShrink: 0,
+      display: 'flex', alignItems: 'stretch',
+      height: TAB_H, flexShrink: 0,
       backgroundColor: 'var(--card)',
       borderBottom: '1px solid var(--border)',
+      position: 'relative',
+      userSelect: 'none',
     }}>
 
-      {/* ── Panel toggle ── */}
-      <IconBtn
-        title={paneOpen ? 'Hide notes panel' : 'Show notes panel'}
-        onClick={onTogglePane}
-        active={paneOpen}
-        borderRight
-      >
-        {paneOpen ? <PanelLeftClose size={15} /> : <PanelLeftOpen size={15} />}
+      {/* Panel toggle */}
+      <IconBtn title={paneOpen ? 'Hide panel' : 'Show panel'} onClick={onTogglePane} active={paneOpen} borderRight>
+        {paneOpen ? <PanelLeftClose size={14} /> : <PanelLeftOpen size={14} />}
       </IconBtn>
 
-      {/* ── Tabs ── */}
-      <div style={{
+      {/* Scrollable tabs */}
+      <div ref={scrollRef} style={{
         display: 'flex', alignItems: 'stretch',
         flex: 1, minWidth: 0,
         overflowX: 'auto', overflowY: 'hidden',
@@ -55,11 +84,11 @@ export function NoteTabBar({ currentId, paneOpen, onTogglePane }: Props) {
         {tabs.length === 0 ? (
           <div style={{
             display: 'flex', alignItems: 'center',
-            padding: '0 16px', fontSize: 13,
-            color: 'var(--muted-foreground)', opacity: 0.45,
-            userSelect: 'none', whiteSpace: 'nowrap',
+            padding: '0 16px', fontSize: 12,
+            color: 'var(--muted-foreground)', opacity: 0.4,
+            whiteSpace: 'nowrap',
           }}>
-            Open a note to start a tab
+            Open a note to start
           </div>
         ) : tabs.map(tab => {
           const isActive  = tab.id === active
@@ -68,133 +97,134 @@ export function NoteTabBar({ currentId, paneOpen, onTogglePane }: Props) {
           return (
             <div
               key={tab.id}
+              data-tab-id={tab.id}
               onMouseEnter={() => setHovered(tab.id)}
               onMouseLeave={() => setHovered(null)}
-              onClick={() => router.push(`/notes/${tab.id}`)}
+              onMouseDown={e => handleMouseDown(e, tab.id)}
+              onClick={() => { if (!isActive) router.push(`/notes/${tab.id}`) }}
+              onContextMenu={e => handleContextMenu(e, tab.id)}
               title={tab.title || 'Untitled'}
               style={{
-                display: 'flex', alignItems: 'center', gap: 7,
-                padding: '0 10px 0 13px',
-                minWidth: 110, maxWidth: 190,
-                height: TAB_H,
-                flexShrink: 0,
-                cursor: 'pointer',
-                userSelect: 'none',
-                position: 'relative',
-                // Active tab: white/bg lift, primary bottom border
+                display: 'flex', alignItems: 'center', gap: 6,
+                padding: '0 8px 0 12px',
+                minWidth: 100, maxWidth: 200,
+                height: TAB_H, flexShrink: 0,
+                cursor: 'pointer', position: 'relative',
                 backgroundColor: isActive
                   ? 'var(--background)'
-                  : isHovered ? 'color-mix(in srgb, var(--foreground) 5%, transparent)' : 'transparent',
+                  : isHovered ? 'color-mix(in srgb, var(--foreground) 4%, transparent)' : 'transparent',
                 borderRight: '1px solid var(--border)',
-                borderBottom: isActive
-                  ? `2px solid var(--primary)`
-                  : '2px solid transparent',
-                transition: 'background 0.12s',
+                // Top border indicator — like VS Code, Sublime, Notepad++
+                borderTop: isActive ? '2px solid var(--primary)' : '2px solid transparent',
+                transition: 'background 0.1s',
               }}
             >
-              <FileText
-                size={13}
-                style={{
-                  flexShrink: 0,
-                  color: isActive ? 'var(--primary)' : 'var(--muted-foreground)',
-                  opacity: isActive ? 1 : 0.7,
-                }}
-              />
+              <FileText size={12} style={{
+                flexShrink: 0,
+                color: isActive ? 'var(--primary)' : 'var(--muted-foreground)',
+                opacity: isActive ? 1 : 0.5,
+              }} />
+
               <span style={{
-                flex: 1, minWidth: 0,
-                fontSize: 13,
+                flex: 1, minWidth: 0, fontSize: 12,
                 fontWeight: isActive ? 600 : 400,
                 color: isActive ? 'var(--foreground)' : 'var(--muted-foreground)',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap',
+                overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
               }}>
                 {tab.title || 'Untitled'}
               </span>
 
-              {/* Close button — always reserved, shown on hover/active */}
-              <div
-                onClick={e => handleClose(e, tab.id)}
-                role="button"
-                title="Close tab"
-                style={{
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  width: 18, height: 18, borderRadius: 4,
-                  flexShrink: 0,
-                  visibility: (isActive || isHovered) ? 'visible' : 'hidden',
-                  color: 'var(--muted-foreground)',
-                  transition: 'background 0.1s, color 0.1s',
-                }}
-                onMouseEnter={e => {
-                  const el = e.currentTarget as HTMLElement
-                  el.style.background = 'color-mix(in srgb, var(--destructive) 15%, transparent)'
-                  el.style.color = 'var(--destructive)'
-                }}
-                onMouseLeave={e => {
-                  const el = e.currentTarget as HTMLElement
-                  el.style.background = 'transparent'
-                  el.style.color = 'var(--muted-foreground)'
-                }}
-              >
-                <X size={11} />
-              </div>
+              {/* Modified dot (unsaved) — shown when not hovered/active */}
+              {tab.modified && !(isActive || isHovered) ? (
+                <span style={{
+                  width: 6, height: 6, borderRadius: '50%',
+                  backgroundColor: 'var(--primary)', flexShrink: 0, opacity: 0.8,
+                }} />
+              ) : (
+                <div
+                  onMouseDown={e => e.stopPropagation()}
+                  onClick={e => handleClose(e, tab.id)}
+                  title="Close"
+                  style={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    width: 16, height: 16, borderRadius: 3, flexShrink: 0,
+                    opacity: (isActive || isHovered) ? 1 : 0,
+                    pointerEvents: (isActive || isHovered) ? 'auto' : 'none',
+                    color: 'var(--muted-foreground)',
+                    transition: 'background 0.1s, color 0.1s, opacity 0.1s',
+                  }}
+                  onMouseEnter={e => {
+                    const el = e.currentTarget as HTMLElement
+                    el.style.background = 'color-mix(in srgb, var(--destructive) 18%, transparent)'
+                    el.style.color = 'var(--destructive)'
+                  }}
+                  onMouseLeave={e => {
+                    const el = e.currentTarget as HTMLElement
+                    el.style.background = 'transparent'
+                    el.style.color = 'var(--muted-foreground)'
+                  }}
+                >
+                  <X size={10} />
+                </div>
+              )}
             </div>
           )
         })}
       </div>
 
-      {/* ── New note ── */}
-      <IconBtn
-        title="New note"
-        onClick={() => router.push('/notes/new')}
-        borderLeft
-        primary
-      >
-        <Plus size={16} />
+      {/* New note */}
+      <IconBtn title="New note" onClick={() => router.push('/notes/new')} borderLeft primary>
+        <Plus size={15} />
       </IconBtn>
+
+      {/* Right-click context menu */}
+      {ctxMenu && (
+        <div data-ctx-menu style={{
+          position: 'fixed', top: ctxMenu.y, left: ctxMenu.x,
+          zIndex: 999,
+          backgroundColor: 'var(--card)', border: '1px solid var(--border)',
+          borderRadius: 8, padding: '4px 0', minWidth: 188,
+          boxShadow: '0 8px 32px rgba(0,0,0,0.45)', fontSize: 13,
+        }}>
+          {([
+            { label: 'Close tab',        action: () => { const n = closeTab(ctxMenu.id); router.push(n ? `/notes/${n}` : '/notes') } },
+            { label: 'Close other tabs', action: () => { closeOtherTabs(ctxMenu.id); router.push(`/notes/${ctxMenu.id}`) } },
+            { label: 'Close all tabs',   action: () => { closeAllTabs(); router.push('/notes') } },
+          ] as { label: string; action: () => void }[]).map(({ label, action }) => (
+            <div key={label}
+              onClick={() => { action(); setCtxMenu(null) }}
+              style={{ padding: '7px 14px', cursor: 'pointer', color: 'var(--foreground)', transition: 'background 0.1s' }}
+              onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = 'var(--accent)'}
+              onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'transparent'}
+            >
+              {label}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   )
 }
 
-// ── Shared icon button ────────────────────────────────────────
-function IconBtn({
-  children, title, onClick, active, borderLeft, borderRight, primary,
-}: {
-  children: React.ReactNode
-  title: string
-  onClick: () => void
-  active?: boolean
-  borderLeft?: boolean
-  borderRight?: boolean
-  primary?: boolean
+function IconBtn({ children, title, onClick, active, borderLeft, borderRight, primary }: {
+  children: React.ReactNode; title: string; onClick: () => void
+  active?: boolean; borderLeft?: boolean; borderRight?: boolean; primary?: boolean
 }) {
   const [hov, setHov] = useState(false)
-
   return (
-    <button
-      type="button"
-      title={title}
-      onClick={onClick}
-      onMouseEnter={() => setHov(true)}
-      onMouseLeave={() => setHov(false)}
+    <button type="button" title={title} onClick={onClick}
+      onMouseEnter={() => setHov(true)} onMouseLeave={() => setHov(false)}
       style={{
-        width: 44, flexShrink: 0,
+        width: 40, flexShrink: 0,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         border: 'none',
-        borderLeft: borderLeft ? '1px solid var(--border)' : undefined,
+        borderLeft:  borderLeft  ? '1px solid var(--border)' : undefined,
         borderRight: borderRight ? '1px solid var(--border)' : undefined,
-        cursor: 'pointer',
-        transition: 'background 0.12s, color 0.12s',
+        cursor: 'pointer', transition: 'background 0.1s, color 0.1s',
         backgroundColor: hov
-          ? primary
-            ? 'color-mix(in srgb, var(--primary) 12%, transparent)'
-            : 'color-mix(in srgb, var(--foreground) 6%, transparent)'
-          : active
-            ? 'color-mix(in srgb, var(--primary) 8%, transparent)'
-            : 'transparent',
-        color: hov
-          ? primary ? 'var(--primary)' : 'var(--foreground)'
-          : active ? 'var(--primary)' : 'var(--muted-foreground)',
+          ? primary ? 'color-mix(in srgb, var(--primary) 14%, transparent)' : 'color-mix(in srgb, var(--foreground) 6%, transparent)'
+          : active ? 'color-mix(in srgb, var(--primary) 8%, transparent)' : 'transparent',
+        color: hov ? (primary ? 'var(--primary)' : 'var(--foreground)') : active ? 'var(--primary)' : 'var(--muted-foreground)',
       }}
     >
       {children}
