@@ -11,13 +11,13 @@ interface Props {
   collapsed?: boolean
 }
 
-const POPOVER_HEIGHT = 320
+const POPOVER_MAX_H = 420
 
 export function ThemePicker({ current, onSelect, collapsed }: Props) {
   const [open, setOpen] = useState(false)
   const btnRef     = useRef<HTMLButtonElement>(null)
   const popoverRef = useRef<HTMLDivElement>(null)
-  const [pos, setPos] = useState({ top: 0, left: 0, width: 210 })
+  const [pos, setPos] = useState({ top: 0, left: 0, width: 210, maxHeight: POPOVER_MAX_H })
 
   const currentDef = THEME_DEFS.find(t => t.id === current)!
 
@@ -42,19 +42,20 @@ export function ThemePicker({ current, onSelect, collapsed }: Props) {
     const r = btnRef.current.getBoundingClientRect()
 
     if (collapsed) {
-      // Position to the right of the icon button
-      const spaceBelow = window.innerHeight - r.top
-      const top = spaceBelow >= POPOVER_HEIGHT
-        ? r.top
-        : Math.max(8, window.innerHeight - POPOVER_HEIGHT - 8)
-      setPos({ top, left: r.right + 8, width: 210 })
+      const availableH = window.innerHeight - r.top - 16
+      const maxHeight  = Math.min(POPOVER_MAX_H, availableH)
+      const top = r.top + maxHeight > window.innerHeight - 8
+        ? Math.max(8, window.innerHeight - maxHeight - 8)
+        : r.top
+      setPos({ top, left: r.right + 8, width: 210, maxHeight })
     } else {
-      // Position above the trigger (sidebar is overflow:hidden so inline dropdown gets clipped)
-      const spaceAbove = r.top
-      const top = spaceAbove >= POPOVER_HEIGHT
-        ? r.top - POPOVER_HEIGHT
-        : Math.max(8, r.bottom + 4)
-      setPos({ top, left: r.left, width: Math.max(200, r.width) })
+      const spaceAbove = r.top - 8
+      const spaceBelow = window.innerHeight - r.bottom - 8
+      const maxHeight  = Math.min(POPOVER_MAX_H, Math.max(spaceAbove, spaceBelow))
+      const top = spaceAbove >= maxHeight
+        ? r.top - maxHeight - 4
+        : r.bottom + 4
+      setPos({ top, left: r.left, width: Math.max(200, r.width), maxHeight })
     }
     setOpen(o => !o)
   }
@@ -77,7 +78,7 @@ export function ThemePicker({ current, onSelect, collapsed }: Props) {
         borderRadius: 12,
         boxShadow: '0 8px 32px rgba(0,0,0,0.45)',
         padding: '8px 6px',
-        maxHeight: 'calc(100vh - 24px)',
+        maxHeight: pos.maxHeight,
         overflowY: 'auto',
       }}
     >
@@ -102,7 +103,7 @@ export function ThemePicker({ current, onSelect, collapsed }: Props) {
               key={t.id}
               def={t}
               active={t.id === current}
-              onSelect={id => { onSelect(id); setOpen(false) }}
+              onSelect={id => { onSelect(id) }}
             />
           ))}
         </>
@@ -115,19 +116,19 @@ export function ThemePicker({ current, onSelect, collapsed }: Props) {
           }}>Theme</p>
           {brand.map(t => (
             <ThemeRow key={t.id} def={t} active={t.id === current}
-              onSelect={id => { onSelect(id); setOpen(false) }} />
+              onSelect={id => { onSelect(id) }} />
           ))}
           <Divider />
           <GroupLabel>Dark</GroupLabel>
           {darks.map(t => (
             <ThemeRow key={t.id} def={t} active={t.id === current}
-              onSelect={id => { onSelect(id); setOpen(false) }} />
+              onSelect={id => { onSelect(id) }} />
           ))}
           <Divider />
           <GroupLabel>Light</GroupLabel>
           {lights.map(t => (
             <ThemeRow key={t.id} def={t} active={t.id === current}
-              onSelect={id => { onSelect(id); setOpen(false) }} />
+              onSelect={id => { onSelect(id) }} />
           ))}
         </>
       )}
