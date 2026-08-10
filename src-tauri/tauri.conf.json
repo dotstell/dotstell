@@ -22,8 +22,7 @@
         "fullscreen": false,
         "center": true,
         "decorations": true,
-        "transparent": false,
-        "titleBarStyle": "Overlay"
+        "transparent": false
       }
     ],
     "security": {
