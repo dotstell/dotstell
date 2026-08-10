@@ -29,12 +29,16 @@ interface TooltipState {
 export function Sidebar({ onOpenPalette }: { onOpenPalette?: () => void }) {
   const pathname  = usePathname()
   const router    = useRouter()
-  const [collapsed, setCollapsed] = useState(false)
+  const [collapsed, setCollapsed] = useState(() =>
+    typeof window !== 'undefined' ? localStorage.getItem('sidebar-collapsed') === 'true' : false
+  )
   const [tooltip, setTooltip]     = useState<TooltipState | null>(null)
   const { theme, setTheme } = useTheme()
   const [isDesktop, setIsDesktop] = useState(false)
   const [appVersion, setAppVersion] = useState<string | null>(null)
-  const [isMobile, setIsMobile] = useState(false)
+  const [isMobile, setIsMobile] = useState(() =>
+    typeof window !== 'undefined' ? window.innerWidth < 768 : false
+  )
   const [mobileOpen, setMobileOpen] = useState(false)
   const isMac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform)
 
@@ -49,10 +53,7 @@ export function Sidebar({ onOpenPalette }: { onOpenPalette?: () => void }) {
   }, [])
 
   useEffect(() => {
-    function check() {
-      setIsMobile(window.innerWidth < 768)
-    }
-    check()
+    function check() { setIsMobile(window.innerWidth < 768) }
     window.addEventListener('resize', check)
     return () => window.removeEventListener('resize', check)
   }, [])
@@ -61,10 +62,6 @@ export function Sidebar({ onOpenPalette }: { onOpenPalette?: () => void }) {
   useEffect(() => {
     setMobileOpen(false)
   }, [pathname])
-
-  useEffect(() => {
-    setCollapsed(localStorage.getItem('sidebar-collapsed') === 'true')
-  }, [])
 
   function toggle() {
     const next = !collapsed
@@ -494,29 +491,37 @@ interface IconBtnProps {
 }
 
 function SidebarIconBtn({ as, href, active, danger, children, onMouseEnter, onMouseLeave, onClick }: IconBtnProps) {
+  const [hovered, setHovered] = useState(false)
+
+  const bgColor = active
+    ? 'var(--sidebar-active-bg)'
+    : hovered
+      ? (danger ? 'rgba(239,68,68,0.08)' : 'var(--sidebar-hover-bg)')
+      : 'transparent'
+
+  const fgColor = active
+    ? 'var(--sidebar-active-fg)'
+    : hovered
+      ? (danger ? 'var(--destructive)' : 'var(--sidebar-hover-fg)')
+      : 'var(--sidebar-muted)'
+
   const baseStyle: React.CSSProperties = {
     width: '100%', height: 40, borderRadius: 8,
     display: 'flex', alignItems: 'center', justifyContent: 'center',
     cursor: 'pointer', transition: 'background 0.15s, color 0.15s',
-    backgroundColor: active ? 'var(--sidebar-active-bg)' : 'transparent',
+    backgroundColor: bgColor,
     border: active ? '1px solid color-mix(in srgb, var(--primary) 25%, transparent)' : '1px solid transparent',
-    color: active ? 'var(--sidebar-active-fg)' : 'var(--sidebar-muted)',
+    color: fgColor,
     textDecoration: 'none',
   }
 
   function handleEnter(e: React.MouseEvent<HTMLElement>) {
-    if (!active) {
-      e.currentTarget.style.backgroundColor = danger ? 'rgba(239,68,68,0.08)' : 'var(--sidebar-hover-bg)'
-      e.currentTarget.style.color = danger ? 'var(--destructive)' : 'var(--sidebar-hover-fg)'
-    }
+    setHovered(true)
     onMouseEnter(e)
   }
 
   function handleLeave(e: React.MouseEvent<HTMLElement>) {
-    if (!active) {
-      e.currentTarget.style.backgroundColor = 'transparent'
-      e.currentTarget.style.color = 'var(--sidebar-muted)'
-    }
+    setHovered(false)
     onMouseLeave()
   }
 
