@@ -131,7 +131,7 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
   // Ctrl+N → new note
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
-      if ((e.ctrlKey || e.metaKey) && e.key === 'n') {
+      if ((e.ctrlKey || e.metaKey) && (e.key === 'n' || e.key === 'N')) {
         e.preventDefault()
         fetch('/api/notes', {
           method: 'POST',

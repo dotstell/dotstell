@@ -65,7 +65,11 @@ export function NotesSidePane({ width = 220, activeNoteId }: Props) {
 
   useEffect(() => {
     if (!contextMenu) return
-    function h() { setContextMenu(null) }
+    function h(e: MouseEvent) {
+      const menu = document.querySelector('[data-ctx-note-menu]')
+      if (menu && menu.contains(e.target as Node)) return
+      setContextMenu(null)
+    }
     document.addEventListener('mousedown', h)
     return () => document.removeEventListener('mousedown', h)
   }, [contextMenu])
@@ -589,7 +593,7 @@ export function NotesSidePane({ width = 220, activeNoteId }: Props) {
       {/* ── Context menu ── */}
       {contextMenu && (
         <div
-          onMouseDown={e => e.stopPropagation()}
+          data-ctx-note-menu
           style={{
             position: 'fixed', zIndex: 9999,
             top: contextMenu.y, left: contextMenu.x,
