@@ -1,7 +1,7 @@
 'use client'
 import { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { X, Plus, PanelLeftClose, PanelLeftOpen, FileText } from 'lucide-react'
+import { X, Plus, SidebarClose, SidebarOpen, FileText, SquarePen } from 'lucide-react'
 import { useNoteTabs } from '@/hooks/useNoteTabs'
 
 interface Props {
@@ -14,11 +14,32 @@ const TAB_H = 38
 
 export function NoteTabBar({ currentId, paneOpen, onTogglePane }: Props) {
   const router = useRouter()
-  const { tabs, activeId, closeTab, closeOtherTabs, closeAllTabs } = useNoteTabs(currentId)
-  const [hovered,  setHovered]  = useState<string | null>(null)
-  const [ctxMenu,  setCtxMenu]  = useState<{ x: number; y: number; id: string } | null>(null)
-  const scrollRef  = useRef<HTMLDivElement>(null)
+  const { tabs, activeId, openTab, closeTab, closeOtherTabs, closeAllTabs } = useNoteTabs(currentId)
+  const [hovered,    setHovered]    = useState<string | null>(null)
+  const [ctxMenu,    setCtxMenu]    = useState<{ x: number; y: number; id: string } | null>(null)
+  const [creating,   setCreating]   = useState(false)
+  const scrollRef    = useRef<HTMLDivElement>(null)
   const active = activeId ?? currentId
+
+  // Create a blank note immediately — no template modal detour
+  async function handleNewNote() {
+    if (creating) return
+    setCreating(true)
+    try {
+      const res = await fetch('/api/notes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: '', content: '<p></p>', type: 'markdown', tags: [] }),
+      })
+      if (res.ok) {
+        const note = await res.json()
+        openTab(note.id, 'Untitled')
+        router.push(`/notes/${note.id}`)
+      }
+    } finally {
+      setCreating(false)
+    }
+  }
 
   // Close context menu on outside click
   useEffect(() => {
@@ -71,7 +92,7 @@ export function NoteTabBar({ currentId, paneOpen, onTogglePane }: Props) {
 
       {/* Panel toggle */}
       <IconBtn title={paneOpen ? 'Hide panel' : 'Show panel'} onClick={onTogglePane} active={paneOpen} borderRight>
-        {paneOpen ? <PanelLeftClose size={14} /> : <PanelLeftOpen size={14} />}
+        {paneOpen ? <SidebarClose size={15} /> : <SidebarOpen size={15} />}
       </IconBtn>
 
       {/* Scrollable tabs */}
@@ -172,9 +193,9 @@ export function NoteTabBar({ currentId, paneOpen, onTogglePane }: Props) {
         })}
       </div>
 
-      {/* New note */}
-      <IconBtn title="New note" onClick={() => router.push('/notes/new')} borderLeft primary>
-        <Plus size={15} />
+      {/* New note — creates immediately, no template modal */}
+      <IconBtn title="New note" onClick={handleNewNote} borderLeft primary disabled={creating}>
+        {creating ? <Plus size={15} style={{ opacity: 0.4 }} /> : <SquarePen size={15} />}
       </IconBtn>
 
       {/* Right-click context menu */}
@@ -206,13 +227,13 @@ export function NoteTabBar({ currentId, paneOpen, onTogglePane }: Props) {
   )
 }
 
-function IconBtn({ children, title, onClick, active, borderLeft, borderRight, primary }: {
+function IconBtn({ children, title, onClick, active, borderLeft, borderRight, primary, disabled }: {
   children: React.ReactNode; title: string; onClick: () => void
-  active?: boolean; borderLeft?: boolean; borderRight?: boolean; primary?: boolean
+  active?: boolean; borderLeft?: boolean; borderRight?: boolean; primary?: boolean; disabled?: boolean
 }) {
   const [hov, setHov] = useState(false)
   return (
-    <button type="button" title={title} onClick={onClick}
+    <button type="button" title={title} onClick={onClick} disabled={disabled}
       onMouseEnter={() => setHov(true)} onMouseLeave={() => setHov(false)}
       style={{
         width: 40, flexShrink: 0,
@@ -220,11 +241,15 @@ function IconBtn({ children, title, onClick, active, borderLeft, borderRight, pr
         border: 'none',
         borderLeft:  borderLeft  ? '1px solid var(--border)' : undefined,
         borderRight: borderRight ? '1px solid var(--border)' : undefined,
-        cursor: 'pointer', transition: 'background 0.1s, color 0.1s',
-        backgroundColor: hov
+        cursor: disabled ? 'default' : 'pointer',
+        transition: 'background 0.1s, color 0.1s',
+        opacity: disabled ? 0.5 : 1,
+        backgroundColor: hov && !disabled
           ? primary ? 'color-mix(in srgb, var(--primary) 14%, transparent)' : 'color-mix(in srgb, var(--foreground) 6%, transparent)'
           : active ? 'color-mix(in srgb, var(--primary) 8%, transparent)' : 'transparent',
-        color: hov ? (primary ? 'var(--primary)' : 'var(--foreground)') : active ? 'var(--primary)' : 'var(--muted-foreground)',
+        color: hov && !disabled
+          ? (primary ? 'var(--primary)' : 'var(--foreground)')
+          : active ? 'var(--primary)' : 'var(--muted-foreground)',
       }}
     >
       {children}
