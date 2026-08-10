@@ -1,6 +1,8 @@
 import Link from 'next/link'
 import { DotstellLogo } from '@/components/brand/DotstellLogo'
 
+export const dynamic = 'force-dynamic'
+
 export default function LandingPage() {
   return (
     <main className="min-h-screen bg-[var(--background)] flex flex-col items-center justify-center px-4">
