@@ -10,7 +10,7 @@ export async function GET(req: NextRequest) {
   const q = searchParams.get('q')
 
   let query = supabase.from('bookmarks').select('*').eq('user_id', user.id).order('created_at', { ascending: false })
-  if (q) query = query.or(`title.ilike.%${q}%,url.ilike.%${q}%`)
+  if (q) query = query.or(`title.ilike.%${q}%,url.ilike.%${q}%,description.ilike.%${q}%`)
 
   const { data, error } = await query
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
