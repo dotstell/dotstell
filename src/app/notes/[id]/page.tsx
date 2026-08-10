@@ -142,8 +142,8 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
         })
       }
     }
-    window.addEventListener('keydown', onKeyDown)
-    return () => window.removeEventListener('keydown', onKeyDown)
+    window.addEventListener('keydown', onKeyDown, true)
+    return () => window.removeEventListener('keydown', onKeyDown, true)
   }, [openTab, router])
 
   function exportMarkdown() {

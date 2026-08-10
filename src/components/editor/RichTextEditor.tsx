@@ -428,12 +428,18 @@ export function RichTextEditor({
   return (
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, position: 'relative', overflow: 'hidden' }}>
 
-      {/* ── Toolbar ── */}
+      {/* ── Toolbar wrapper — toggle always clickable, rest dims in source mode ── */}
+      <div style={{
+        display: 'flex', alignItems: 'center',
+        borderBottom: '1px solid var(--border)',
+        backgroundColor: 'var(--card)', position: 'sticky', top: 0, zIndex: 20,
+        flexWrap: 'wrap', rowGap: 0,
+      }}>
+      {/* Dimmed tool area */}
       <div style={{
         display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap',
-        padding: '5px 10px', borderBottom: '1px solid var(--border)',
-        backgroundColor: 'var(--card)', position: 'sticky', top: 0, zIndex: 20,
-        rowGap: 4,
+        padding: '5px 6px 5px 10px',
+        rowGap: 4, flex: 1, minWidth: 0,
         opacity: sourceMode ? 0.35 : 1,
         pointerEvents: sourceMode ? 'none' : 'auto',
         transition: 'opacity 0.2s',
@@ -566,41 +572,34 @@ export function RichTextEditor({
           <ToolBtn onClick={() => setImageDialogOpen(true)} title="Image"><ImageIcon size={14} /></ToolBtn>
         </ToolbarGroup>
 
-        {/* Spacer */}
-        <div style={{ flex: 1 }} />
+      </div>{/* end dimmed area */}
 
-        {/* placeholder so layout stays correct — actual toggle rendered outside */}
-        <div style={{ width: 90 }} />
-
-        {onFocusMode && (
-          <ToolBtn onClick={() => onFocusMode(!focusMode)} title={focusMode ? 'Exit focus mode' : 'Focus mode'}>
-            {focusMode ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
-          </ToolBtn>
-        )}
-      </div>
-
-      {/* Source mode toggle — always interactive, floats over the dimmed toolbar */}
-      <div style={{
-        position: 'absolute', top: 5, right: onFocusMode ? 40 : 8, zIndex: 30,
-        pointerEvents: 'auto',
-      }}>
-        <button
-          type="button"
-          title={sourceMode ? 'Switch to rich text' : 'Switch to Markdown source'}
-          onClick={toggleSourceMode}
-          style={{
-            display: 'flex', alignItems: 'center', gap: 5,
-            padding: '4px 10px', borderRadius: 6, border: '1px solid',
-            borderColor: sourceMode ? 'var(--primary)' : 'var(--border)',
-            backgroundColor: sourceMode ? 'color-mix(in srgb, var(--primary) 20%, transparent)' : 'var(--card)',
-            color: sourceMode ? 'var(--primary)' : 'var(--muted-foreground)',
-            fontSize: 11, fontWeight: 600, cursor: 'pointer', transition: 'all 0.15s',
-          }}
-        >
-          {sourceMode ? <Eye size={12} /> : <FileCode2 size={12} />}
-          {sourceMode ? 'Rich text' : 'Markdown'}
-        </button>
-      </div>
+        {/* Source mode toggle + focus — always clickable, outside dimmed area */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '5px 8px 5px 4px', flexShrink: 0 }}>
+          <button
+            type="button"
+            title={sourceMode ? 'Switch to rich text' : 'Switch to Markdown source'}
+            onClick={toggleSourceMode}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 5,
+              padding: '4px 10px', borderRadius: 6, border: '1px solid',
+              borderColor: sourceMode ? 'var(--primary)' : 'var(--border)',
+              backgroundColor: sourceMode ? 'color-mix(in srgb, var(--primary) 20%, transparent)' : 'transparent',
+              color: sourceMode ? 'var(--primary)' : 'var(--muted-foreground)',
+              fontSize: 11, fontWeight: 600, cursor: 'pointer', transition: 'all 0.15s',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {sourceMode ? <Eye size={12} /> : <FileCode2 size={12} />}
+            {sourceMode ? 'Rich text' : 'Markdown'}
+          </button>
+          {onFocusMode && (
+            <ToolBtn onClick={() => onFocusMode(!focusMode)} title={focusMode ? 'Exit focus mode' : 'Focus mode'}>
+              {focusMode ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
+            </ToolBtn>
+          )}
+        </div>
+      </div>{/* end toolbar wrapper */}
 
       {/* ── Editor area ── */}
       <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', position: 'relative', minHeight: 0 }} onKeyDown={handleKeyDown}>
