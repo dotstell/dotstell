@@ -36,10 +36,19 @@ export default function BookmarksPage() {
   const [loading,     setLoading]     = useState(true)
   const [search,      setSearch]      = useState('')
 
-  // Pre-fill search from ?q= URL param (e.g. when navigating from Ctrl+K)
+  // Pre-fill search from ?q= URL param on first load
   useEffect(() => {
     const q = new URLSearchParams(window.location.search).get('q')
     if (q) setSearch(q)
+  }, [])
+
+  // Re-sync search when Ctrl+K navigates to this page again (custom event)
+  useEffect(() => {
+    function onBookmarkSearch(e: CustomEvent) {
+      setSearch(e.detail ?? '')
+    }
+    window.addEventListener('dotstell:bookmark-search', onBookmarkSearch as EventListener)
+    return () => window.removeEventListener('dotstell:bookmark-search', onBookmarkSearch as EventListener)
   }, [])
   const [tagFilter,   setTagFilter]   = useState<string | null>(null)
   const [dialogOpen,  setDialogOpen]  = useState(false)

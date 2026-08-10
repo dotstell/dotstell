@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, usePathname } from 'next/navigation'
 import { Search, FileText, Users, Bookmark, CheckSquare, Network, LayoutDashboard, ArrowRight } from 'lucide-react'
 import { useDebounce } from '@/hooks/useDebounce'
 
@@ -40,7 +40,8 @@ interface CommandPaletteProps {
 }
 
 export function CommandPalette({ open, onClose }: CommandPaletteProps) {
-  const router = useRouter()
+  const router   = useRouter()
+  const pathname = usePathname()
   const [query, setQuery]       = useState('')
   const [results, setResults]   = useState<SearchResult[]>([])
   const [loading, setLoading]   = useState(false)
@@ -74,13 +75,22 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
     if (!item) return
     if ('href' in item) { navigate(item.href as string); return }
     const r = item as SearchResult
-    const dest =
-      r._type === 'note'     ? `/notes/${r.id}` :
-      r._type === 'person'   ? `/people/${r.id}` :
-      r._type === 'bookmark' ? `/bookmarks?q=${encodeURIComponent(r._label)}` :
-      r._type === 'task'     ? `/tasks?q=${encodeURIComponent(r._label)}` :
-      `/dashboard`
-    navigate(dest)
+
+    if (r._type === 'note')   { navigate(`/notes/${r.id}`);   return }
+    if (r._type === 'person') { navigate(`/people/${r.id}`);  return }
+
+    if (r._type === 'bookmark') {
+      onClose()
+      if (pathname === '/bookmarks') {
+        // Already on bookmarks — dispatch event so the page reacts without full navigation
+        window.dispatchEvent(new CustomEvent('dotstell:bookmark-search', { detail: r._label }))
+      } else {
+        router.push(`/bookmarks?q=${encodeURIComponent(r._label)}`)
+      }
+      return
+    }
+
+    navigate('/dashboard')
   }
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
