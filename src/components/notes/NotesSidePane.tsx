@@ -3,11 +3,11 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import {
   Plus, Search, ChevronDown, ChevronRight, FileText, Tag,
-  MoreHorizontal, Pencil, Trash2, BookOpen, StickyNote,
+  Pencil, Trash2, BookOpen, StickyNote,
   FolderPlus, X,
 } from 'lucide-react'
 import { Note } from '@/types'
-import { useNotebooks, notebookTag, notebookFromTag, NOTEBOOK_TAG_PREFIX } from '@/hooks/useNotebooks'
+import { useNotebooks, notebookTag, NOTEBOOK_TAG_PREFIX } from '@/hooks/useNotebooks'
 
 interface Props {
   width?: number
@@ -32,6 +32,7 @@ export function NotesSidePane({ width = 220, activeNoteId }: Props) {
   const [newNotebookName, setNewNotebookName]   = useState('')
   const [contextMenu, setContextMenu]           = useState<{ x: number; y: number; id: string; type: 'notebook' | 'note' } | null>(null)
   const [renameTarget, setRenameTarget]         = useState<{ id: string; value: string; type: 'notebook' | 'note' } | null>(null)
+  const [hoveredNb, setHoveredNb]               = useState<string | null>(null)
   const newNbRef = useRef<HTMLInputElement>(null)
 
   const fetchNotes = useCallback(async () => {
@@ -334,7 +335,11 @@ export function NotesSidePane({ width = 220, activeNoteId }: Props) {
 
               return (
                 <div key={nb.id}>
-                  <div style={{ display: 'flex', alignItems: 'center' }}>
+                  <div
+                    style={{ display: 'flex', alignItems: 'center' }}
+                    onMouseEnter={() => setHoveredNb(nb.id)}
+                    onMouseLeave={() => setHoveredNb(null)}
+                  >
                     <button type="button" onClick={() => toggleSection(`nb-${nb.id}`)} style={{
                       display: 'flex', alignItems: 'center', gap: 5, flex: 1,
                       background: 'none', border: 'none', cursor: 'pointer',
@@ -381,15 +386,13 @@ export function NotesSidePane({ width = 220, activeNoteId }: Props) {
                         {nbNotes.length}
                       </span>
                     </button>
-                    <button type="button" onClick={() => createNote(nb.name)} title="New note in notebook" style={{
+                    <button type="button" onClick={e => { e.stopPropagation(); createNote(nb.name) }} title="New note in this notebook" style={{
                       background: 'none', border: 'none', cursor: 'pointer',
-                      color: 'var(--muted-foreground)', padding: '2px 4px', borderRadius: 4,
-                      display: 'flex', alignItems: 'center', opacity: 0,
-                    }}
-                      onMouseEnter={e => { (e.currentTarget as HTMLElement).style.opacity = '1' }}
-                      onMouseLeave={e => { (e.currentTarget as HTMLElement).style.opacity = '0' }}
-                      // Always visible on parent hover
-                    >
+                      color: 'var(--primary)', padding: '2px 4px', borderRadius: 4,
+                      display: 'flex', alignItems: 'center',
+                      opacity: hoveredNb === nb.id ? 1 : 0,
+                      transition: 'opacity 0.15s',
+                    }}>
                       <Plus size={11} />
                     </button>
                   </div>
