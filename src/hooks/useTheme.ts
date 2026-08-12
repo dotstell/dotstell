@@ -5,7 +5,7 @@ export type ThemeId =
   | 'dotstell'
   | 'dracula' | 'one-dark' | 'tokyo-night' | 'nord' | 'solarized-dark' | 'catppuccin'
   | 'solarized-light' | 'github-light'
-  | 'plain-light' | 'catppuccin-latte' | 'rose-pine-dawn' | 'gruvbox-light'
+  | 'plain-light' | 'pure-light' | 'catppuccin-latte' | 'rose-pine-dawn' | 'gruvbox-light'
 
 export const THEME_DEFS: { id: ThemeId; label: string; dot: string; dark: boolean; brand?: boolean }[] = [
   { id: 'dotstell',          label: 'Dotstell',          dot: '#7c6aff', dark: true,  brand: true },
@@ -16,6 +16,7 @@ export const THEME_DEFS: { id: ThemeId; label: string; dot: string; dark: boolea
   { id: 'solarized-dark',    label: 'Solarized Dark',    dot: '#268bd2', dark: true  },
   { id: 'catppuccin',        label: 'Catppuccin Mocha',  dot: '#cba6f7', dark: true  },
   { id: 'plain-light',       label: 'Dotstell Light',    dot: '#7c6aff', dark: false },
+  { id: 'pure-light',        label: 'Pure Light',        dot: '#222222', dark: false },
   { id: 'solarized-light',   label: 'Solarized Light',   dot: '#2aa198', dark: false },
   { id: 'github-light',      label: 'GitHub Light',      dot: '#0969da', dark: false },
   { id: 'catppuccin-latte',  label: 'Catppuccin Latte',  dot: '#8839ef', dark: false },

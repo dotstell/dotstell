@@ -346,6 +346,42 @@
     color-scheme: light;
   }
 
+  /* ── Pure Light (zero distraction, neutral minimal) ─ */
+  [data-theme="pure-light"] {
+    --background:           #ffffff;
+    --foreground:           #1a1a1a;
+    --card:                 #f7f7f7;
+    --card-foreground:      #1a1a1a;
+    --popover:              #ffffff;
+    --popover-foreground:   #1a1a1a;
+    --primary:              #222222;
+    --primary-foreground:   #ffffff;
+    --secondary:            #eeeeee;
+    --secondary-foreground: #444444;
+    --muted:                #f0f0f0;
+    --muted-foreground:     #888888;
+    --accent:               #eeeeee;
+    --accent-foreground:    #1a1a1a;
+    --destructive:          #cc0000;
+    --destructive-foreground: #ffffff;
+    --border:               #e2e2e2;
+    --input:                #eeeeee;
+    --ring:                 #444444;
+    --sidebar-bg:           #f7f7f7;
+    --sidebar-border:       #e2e2e2;
+    --sidebar-muted:        #aaaaaa;
+    --sidebar-active-bg:    rgba(0,0,0,0.07);
+    --sidebar-active-fg:    #1a1a1a;
+    --sidebar-hover-bg:     rgba(0,0,0,0.04);
+    --sidebar-hover-fg:     #1a1a1a;
+    --sidebar-search-bg:    #eeeeee;
+    --sidebar-section-fg:   #bbbbbb;
+    --radius: 0.5rem;
+    --sidebar-width: 240px;
+    --header-height: 56px;
+    color-scheme: light;
+  }
+
   /* ── Catppuccin Latte ────────────────────────────── */
   [data-theme="catppuccin-latte"] {
     --background:           #eff1f5;

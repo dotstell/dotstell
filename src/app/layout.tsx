@@ -14,7 +14,7 @@ export const metadata: Metadata = {
 
 // Applied before first paint — prevents flash of wrong theme
 const noFlashScript = `(function(){
-  var valid = ['dotstell','dracula','one-dark','tokyo-night','nord','solarized-dark','catppuccin','solarized-light','github-light','plain-light','catppuccin-latte','rose-pine-dawn','gruvbox-light'];
+  var valid = ['dotstell','dracula','one-dark','tokyo-night','nord','solarized-dark','catppuccin','solarized-light','github-light','plain-light','pure-light','catppuccin-latte','rose-pine-dawn','gruvbox-light'];
   var t = localStorage.getItem('dotstell-theme');
   if (!t || valid.indexOf(t) === -1) { t = 'dotstell'; localStorage.setItem('dotstell-theme', t); }
   document.documentElement.setAttribute('data-theme', t);
