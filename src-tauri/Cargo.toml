@@ -1,6 +1,6 @@
 [package]
 name = "dotstell"
-version = "0.1.0"
+version = "0.2.0"
 description = "Dotstell — your knowledge graph"
 authors = ["Dotstell"]
 edition = "2021"
