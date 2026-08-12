@@ -12,11 +12,13 @@ export const metadata: Metadata = {
   },
 }
 
-// Applied before first paint — prevents flash of wrong theme or black screen
+// Applied before first paint — prevents flash of wrong theme or black screen.
+// Runs in <head> before <body> exists, so we patch <html> only.
+// The CSS rule   html { background-color: var(--background) !important }
+// takes over once globals.css loads, keeping theme-switching dynamic.
 const noFlashScript = `(function(){
   var valid = ['dotstell','dracula','one-dark','tokyo-night','nord','solarized-dark','catppuccin','solarized-light','github-light','plain-light','pure-light','catppuccin-latte','rose-pine-dawn','gruvbox-light'];
   var lightThemes = ['plain-light','pure-light','solarized-light','github-light','catppuccin-latte','rose-pine-dawn','gruvbox-light'];
-  // Exact --background value per theme (must stay in sync with globals.css)
   var bgMap = {
     'dotstell':'#0a0a14','dracula':'#282a36','one-dark':'#282c34',
     'tokyo-night':'#1a1b26','nord':'#2e3440','solarized-dark':'#002b36',
@@ -26,14 +28,16 @@ const noFlashScript = `(function(){
   };
   var t = localStorage.getItem('dotstell-theme');
   if (!t || valid.indexOf(t) === -1) { t = 'dotstell'; localStorage.setItem('dotstell-theme', t); }
-  document.documentElement.setAttribute('data-theme', t);
   var isLight = lightThemes.indexOf(t) !== -1;
-  document.documentElement.style.colorScheme = isLight ? 'light' : 'dark';
-  // Set exact background immediately so the browser never paints a black frame before CSS loads.
-  // CSS in globals.css overrides this with !important once the stylesheet is parsed.
   var bg = bgMap[t] || '#0a0a14';
-  document.documentElement.style.backgroundColor = bg;
-  document.body && (document.body.style.backgroundColor = bg);
+  var html = document.documentElement;
+  html.setAttribute('data-theme', t);
+  html.style.colorScheme = isLight ? 'light' : 'dark';
+  html.style.backgroundColor = bg;
+  // Also inject a <style> block so <body> background is covered before CSS loads
+  var s = document.createElement('style');
+  s.textContent = 'body{background-color:' + bg + ' !important}';
+  document.head.appendChild(s);
 })()`
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

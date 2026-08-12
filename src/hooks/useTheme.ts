@@ -34,8 +34,11 @@ function getStored(): ThemeId {
   return VALID_IDS.includes(v) ? v : DEFAULT
 }
 
+const LIGHT_THEMES: ThemeId[] = ['plain-light','pure-light','solarized-light','github-light','catppuccin-latte','rose-pine-dawn','gruvbox-light']
+
 function apply(id: ThemeId) {
   document.documentElement.setAttribute('data-theme', id)
+  document.documentElement.style.colorScheme = LIGHT_THEMES.includes(id) ? 'light' : 'dark'
 }
 
 export function useTheme() {
