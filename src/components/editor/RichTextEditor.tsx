@@ -145,6 +145,8 @@ interface NoteSearchResult {
 interface RichTextEditorProps {
   content: string
   onChange: (html: string) => void
+  /** Called on every keystroke with the editor's plain text — use for live char/word counts */
+  onTextChange?: (text: string) => void
   placeholder?: string
   autoSaveStatus?: 'saved' | 'saving' | 'unsaved' | null
   onFocusMode?: (active: boolean) => void
@@ -189,7 +191,7 @@ function extractWikiLinkIdsFromDoc(editor: ReturnType<typeof useEditor>): string
 }
 
 export function RichTextEditor({
-  content, onChange, placeholder = 'Start writing… (type / for commands)',
+  content, onChange, onTextChange, placeholder = 'Start writing… (type / for commands)',
   autoSaveStatus, onFocusMode, focusMode, onWikiLinksChange,
 }: RichTextEditorProps) {
   const [slashOpen,       setSlashOpen]       = useState(false)
@@ -212,8 +214,11 @@ export function RichTextEditor({
   const [wikiIdx,         setWikiIdx]         = useState(0)
   const wikiSearchTimer    = useRef<ReturnType<typeof setTimeout> | null>(null)
   const wikiListRef        = useRef<HTMLDivElement>(null)
+  const slashMenuRef       = useRef<HTMLDivElement>(null)
   const onWikiLinksChangeRef = useRef(onWikiLinksChange)
   useEffect(() => { onWikiLinksChangeRef.current = onWikiLinksChange }, [onWikiLinksChange])
+  const onTextChangeRef = useRef(onTextChange)
+  useEffect(() => { onTextChangeRef.current = onTextChange }, [onTextChange])
   const colorRef  = useRef<HTMLDivElement>(null)
   const hlRef     = useRef<HTMLDivElement>(null)
   const fontRef   = useRef<HTMLDivElement>(null)
@@ -250,6 +255,7 @@ export function RichTextEditor({
     onUpdate: ({ editor }) => {
       const html = editor.getHTML()
       onChange(html)
+      onTextChangeRef.current?.(editor.getText())
 
       // Notify parent of current wikilink targets (read from doc, not HTML)
       onWikiLinksChangeRef.current?.(extractWikiLinkIdsFromDoc(editor))
@@ -294,6 +300,12 @@ export function RichTextEditor({
     const active = wikiListRef.current.querySelector<HTMLElement>(`[data-wiki-idx="${wikiIdx}"]`)
     active?.scrollIntoView({ block: 'nearest' })
   }, [wikiIdx, wikiOpen])
+
+  useEffect(() => {
+    if (!slashOpen || !slashMenuRef.current) return
+    const active = slashMenuRef.current.querySelector<HTMLElement>(`[data-slash-idx="${slashIdx}"]`)
+    active?.scrollIntoView({ block: 'nearest' })
+  }, [slashIdx, slashOpen])
 
   // Close floating menus on outside click
   useEffect(() => {
@@ -694,18 +706,21 @@ export function RichTextEditor({
 
         {/* ── Slash command menu ── */}
         {slashOpen && flatFiltered.length > 0 && (
-          <div style={{
-            position: 'absolute', left: 20, top: 60, zIndex: 100,
-            backgroundColor: 'var(--card)', border: '1px solid var(--border)',
-            borderRadius: 12, padding: 6, width: 260,
-            boxShadow: '0 12px 40px rgba(0,0,0,0.6)',
-            maxHeight: 360, overflowY: 'auto',
-          }}>
+          <div
+            ref={slashMenuRef}
+            style={{
+              position: 'absolute', left: 20, top: 60, zIndex: 100,
+              backgroundColor: 'var(--card)', border: '1px solid var(--border)',
+              borderRadius: 12, padding: 6, width: 260,
+              boxShadow: '0 12px 40px rgba(0,0,0,0.6)',
+              maxHeight: 360, overflowY: 'auto',
+            }}>
             <p style={{ fontSize: 10, color: 'var(--border)', padding: '4px 8px 6px', margin: 0, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Blocks</p>
             {flatFiltered.map((cmd, i) => (
               <button
                 key={cmd.label}
                 type="button"
+                data-slash-idx={i}
                 onMouseDown={e => { e.preventDefault(); applySlashCommand(cmd) }}
                 style={{
                   width: '100%', display: 'flex', alignItems: 'center', gap: 10,

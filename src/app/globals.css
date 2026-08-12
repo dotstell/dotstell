@@ -492,21 +492,23 @@
 
   /* ── Base element styles ─────────────────────────── */
   *, *::before, *::after { box-sizing: border-box; }
+}
 
-  html {
-    background-color: var(--background) !important;
-    color: var(--foreground);
-    overflow-x: hidden;
-  }
+/* Outside @layer so these rules have full specificity and override the
+   inline style.backgroundColor set by the no-flash script */
+html {
+  background-color: var(--background);
+  color: var(--foreground);
+  overflow-x: hidden;
+}
 
-  body {
-    background-color: var(--background) !important;
-    color: var(--foreground);
-    min-height: 100vh;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    -webkit-font-smoothing: antialiased;
-    overflow-x: hidden;
-  }
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+  min-height: 100vh;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
 }
 
 /* ── Scrollbars ── */

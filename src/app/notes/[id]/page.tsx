@@ -38,21 +38,14 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
   const [noteId, setNoteId]           = useState<string | null>(isNew ? null : id)
   const [subNotes, setSubNotes]       = useState<Note[]>([])
   const [wikiSyncCount, setWikiSyncCount] = useState(0)
+  // Live plain-text from the editor — updated on every keystroke via onTextChange
+  const [editorText, setEditorText]   = useState('')
   const saveTimer   = useRef<ReturnType<typeof setTimeout> | null>(null)
   const wikiLinkIds = useRef<string[]>([])
 
-  // Word / char count derived from content
-  // Replace block tags with a newline so word-splitting still works across paragraphs;
-  // then strip remaining inline tags. Collapse only newlines/tabs — preserve spaces.
-  const plainText = (note.content ?? '')
-    .replace(/<\/?(p|h[1-6]|li|br|div|blockquote|tr)[^>]*>/gi, '\n')
-    .replace(/<[^>]+>/g, '')
-    .replace(/&nbsp;/g, ' ')
-    .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
-    .replace(/[\t\n\r]+/g, ' ')
-    .trim()
-  const wordCount = plainText ? plainText.split(/\s+/).filter(Boolean).length : 0
-  const charCount = plainText.length
+  // Word / char counts from the editor's own plain text (accurate, includes spaces)
+  const wordCount = editorText ? editorText.split(/\s+/).filter(Boolean).length : 0
+  const charCount = editorText.length
   const readMins  = Math.max(1, Math.round(wordCount / 200))
 
   const { openTab, updateTitle } = useNoteTabs(noteId ?? undefined)
@@ -376,6 +369,7 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
           <RichTextEditor
             content={note.content ?? '<p></p>'}
             onChange={handleContentChange}
+            onTextChange={setEditorText}
             placeholder="Start writing… (type / for commands, [[ to link a note)"
             autoSaveStatus={saveStatus}
             focusMode={focusMode}
