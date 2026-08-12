@@ -1,6 +1,6 @@
 'use client'
-import { useState, useEffect, useCallback, useRef } from 'react'
-import { Plus, Trash2, Calendar, User, Flag } from 'lucide-react'
+import { useState, useEffect, useCallback } from 'react'
+import { Plus, Trash2, Calendar } from 'lucide-react'
 import { toast } from 'sonner'
 import { Task, TaskStatus, TaskPriority } from '@/types'
 import { AppLayout } from '@/components/layout/AppLayout'
@@ -12,17 +12,9 @@ import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { EmptyState } from '@/components/ui/empty-state'
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '@/components/ui/select'
+import { DateTimePicker } from '@/components/ui/date-time-picker'
 import { formatDate, cn } from '@/lib/utils'
 import { PageContainer } from '@/components/layout/PageContainer'
-
-// datetime-local inputs expect local time as "YYYY-MM-DDTHH:mm" — not UTC
-// Date-only strings (YYYY-MM-DD) are UTC midnight per spec — treat as local midnight to avoid day-shift for UTC-negative users
-function toLocalDatetimeInput(iso: string): string {
-  if (/^\d{4}-\d{2}-\d{2}$/.test(iso)) return `${iso}T00:00`
-  const d = new Date(iso)
-  const pad = (n: number) => String(n).padStart(2, '0')
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
-}
 
 const DEFAULT_TASK: Partial<Task> = {
   title: '', description: '', status: 'todo', priority: 'medium', tags: [],
@@ -50,8 +42,6 @@ export default function TasksPage() {
   const [tagInput, setTagInput] = useState('')
   const [saving, setSaving] = useState(false)
   const [viewMode, setViewMode] = useState<'board' | 'list'>('board')
-  const [dueDateFocused, setDueDateFocused] = useState(false)
-  const dueDateRef = useRef<HTMLInputElement>(null)
 
   const fetchTasks = useCallback(async () => {
     const res = await fetch('/api/tasks')
@@ -249,35 +239,10 @@ export default function TasksPage() {
             </div>
             <div>
               <label className="text-xs text-[var(--muted-foreground)] mb-1 block">Due date</label>
-              <div className="flex gap-2 items-center">
-                <Input
-                  ref={dueDateRef}
-                  type="datetime-local"
-                  className="flex-1"
-                  value={editing.due_date ? toLocalDatetimeInput(editing.due_date) : ''}
-                  onChange={e => setEditing(p => ({ ...p, due_date: e.target.value ? new Date(e.target.value).toISOString() : null }))}
-                  onFocus={() => setDueDateFocused(true)}
-                  onBlur={() => setDueDateFocused(false)}
-                />
-                {dueDateFocused && (
-                  <Button
-                    type="button"
-                    variant="default"
-                    size="sm"
-                    className="shrink-0 text-xs"
-                    onMouseDown={e => { e.preventDefault(); dueDateRef.current?.blur() }}
-                  >Confirm</Button>
-                )}
-                {editing.due_date && !dueDateFocused && (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="shrink-0 text-xs"
-                    onClick={() => setEditing(p => ({ ...p, due_date: null }))}
-                  >Clear</Button>
-                )}
-              </div>
+              <DateTimePicker
+                value={editing.due_date ?? null}
+                onChange={iso => setEditing(p => ({ ...p, due_date: iso }))}
+              />
             </div>
             <div>
               <div className="flex flex-wrap gap-1 mb-2">
