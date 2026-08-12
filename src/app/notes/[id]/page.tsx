@@ -42,8 +42,16 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
   const wikiLinkIds = useRef<string[]>([])
 
   // Word / char count derived from content
-  const plainText = (note.content ?? '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()
-  const wordCount = plainText ? plainText.split(' ').length : 0
+  // Replace block tags with a newline so word-splitting still works across paragraphs;
+  // then strip remaining inline tags. Collapse only newlines/tabs — preserve spaces.
+  const plainText = (note.content ?? '')
+    .replace(/<\/?(p|h[1-6]|li|br|div|blockquote|tr)[^>]*>/gi, '\n')
+    .replace(/<[^>]+>/g, '')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+    .replace(/[\t\n\r]+/g, ' ')
+    .trim()
+  const wordCount = plainText ? plainText.split(/\s+/).filter(Boolean).length : 0
   const charCount = plainText.length
   const readMins  = Math.max(1, Math.round(wordCount / 200))
 
@@ -446,7 +454,7 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
       </div>
 
       {/* ── Status bar ── */}
-      {noteId && !focusMode && (
+      {noteId && !focusMode && !loading && (
         <div style={{
           display: 'flex', alignItems: 'center', gap: 0,
           padding: '0 20px',

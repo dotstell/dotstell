@@ -30,14 +30,10 @@ const noFlashScript = `(function(){
   var isLight = lightThemes.indexOf(t) !== -1;
   document.documentElement.style.colorScheme = isLight ? 'light' : 'dark';
   // Set exact background immediately so the browser never paints a black frame before CSS loads.
-  // Then hand control back to CSS after first paint so theme-switching stays dynamic.
+  // CSS in globals.css overrides this with !important once the stylesheet is parsed.
   var bg = bgMap[t] || '#0a0a14';
   document.documentElement.style.backgroundColor = bg;
   document.body && (document.body.style.backgroundColor = bg);
-  requestAnimationFrame(function(){ requestAnimationFrame(function(){
-    document.documentElement.style.backgroundColor = '';
-    document.body && (document.body.style.backgroundColor = '');
-  }); });
 })()`
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
