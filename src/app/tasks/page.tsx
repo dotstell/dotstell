@@ -12,9 +12,16 @@ import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { EmptyState } from '@/components/ui/empty-state'
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '@/components/ui/select'
-import { DateTimePicker } from '@/components/ui/date-time-picker'
 import { formatDate, cn } from '@/lib/utils'
 import { PageContainer } from '@/components/layout/PageContainer'
+
+// Date-only strings (YYYY-MM-DD) are parsed as UTC midnight by spec — return as local midnight to avoid day-shift in UTC-negative zones
+function toLocalDatetimeInput(iso: string): string {
+  if (/^\d{4}-\d{2}-\d{2}$/.test(iso)) return `${iso}T00:00`
+  const d = new Date(iso)
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
+}
 
 const DEFAULT_TASK: Partial<Task> = {
   title: '', description: '', status: 'todo', priority: 'medium', tags: [],
@@ -239,10 +246,23 @@ export default function TasksPage() {
             </div>
             <div>
               <label className="text-xs text-[var(--muted-foreground)] mb-1 block">Due date</label>
-              <DateTimePicker
-                value={editing.due_date ?? null}
-                onChange={iso => setEditing(p => ({ ...p, due_date: iso }))}
-              />
+              <div className="flex gap-2 items-center">
+                <Input
+                  type="datetime-local"
+                  className="flex-1"
+                  value={editing.due_date ? toLocalDatetimeInput(editing.due_date) : ''}
+                  onChange={e => setEditing(p => ({ ...p, due_date: e.target.value ? new Date(e.target.value).toISOString() : null }))}
+                />
+                {editing.due_date && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="shrink-0 text-xs"
+                    onClick={() => setEditing(p => ({ ...p, due_date: null }))}
+                  >Clear</Button>
+                )}
+              </div>
             </div>
             <div>
               <div className="flex flex-wrap gap-1 mb-2">
