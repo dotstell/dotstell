@@ -233,6 +233,18 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
 
           <div style={{ flex: 1 }} />
 
+          {/* Save indicator — dot only in header */}
+          {saveStatus && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, color: 'var(--muted-foreground)', flexShrink: 0 }}>
+              <span style={{
+                width: 7, height: 7, borderRadius: '50%',
+                backgroundColor: SAVE_DOT[saveStatus],
+                display: 'inline-block',
+                boxShadow: `0 0 5px ${SAVE_DOT[saveStatus]}88`,
+              }} />
+              {saveStatus === 'saving' ? 'Saving…' : saveStatus === 'saved' ? 'Saved' : 'Unsaved changes'}
+            </div>
+          )}
 
           {/* Export */}
           {noteId && (
@@ -451,16 +463,12 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
           {saveStatus && (
             <>
               <div style={{ flex: 1 }} />
-              <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                <span style={{
-                  width: 6, height: 6, borderRadius: '50%', display: 'inline-block',
-                  backgroundColor: SAVE_DOT[saveStatus],
-                  boxShadow: `0 0 4px ${SAVE_DOT[saveStatus]}99`,
-                }} />
-                <span style={{ fontSize: 11, color: 'var(--muted-foreground)', fontWeight: 500 }}>
-                  {saveStatus === 'saving' ? 'Saving…' : saveStatus === 'saved' ? 'Saved' : 'Unsaved'}
-                </span>
-              </div>
+              <span style={{
+                fontSize: 11, fontWeight: 600, padding: '0 8px',
+                color: saveStatus === 'saved' ? '#22c55e' : saveStatus === 'saving' ? '#f59e0b' : '#ef4444',
+              }}>
+                {saveStatus === 'saving' ? '… Saving' : saveStatus === 'saved' ? '✓ Saved' : '✗ Unsaved'}
+              </span>
             </>
           )}
         </div>
