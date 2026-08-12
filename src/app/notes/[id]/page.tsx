@@ -41,12 +41,11 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
   const saveTimer   = useRef<ReturnType<typeof setTimeout> | null>(null)
   const wikiLinkIds = useRef<string[]>([])
 
-  // Word count derived from content
-  const wordCount = (() => {
-    const text = (note.content ?? '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()
-    return text ? text.split(' ').length : 0
-  })()
-  const readMins = Math.max(1, Math.round(wordCount / 200))
+  // Word / char count derived from content
+  const plainText = (note.content ?? '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()
+  const wordCount = plainText ? plainText.split(' ').length : 0
+  const charCount = plainText.replace(/ /g, '').length
+  const readMins  = Math.max(1, Math.round(wordCount / 200))
 
   const { openTab, updateTitle } = useNoteTabs(noteId ?? undefined)
 
@@ -234,18 +233,6 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
 
           <div style={{ flex: 1 }} />
 
-          {/* Save indicator */}
-          {saveStatus && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, color: 'var(--muted-foreground)', flexShrink: 0 }}>
-              <span style={{
-                width: 7, height: 7, borderRadius: '50%',
-                backgroundColor: SAVE_DOT[saveStatus],
-                display: 'inline-block',
-                boxShadow: `0 0 5px ${SAVE_DOT[saveStatus]}88`,
-              }} />
-              {saveStatus === 'saving' ? 'Saving…' : saveStatus === 'saved' ? 'Saved' : 'Unsaved changes'}
-            </div>
-          )}
 
           {/* Export */}
           {noteId && (
@@ -360,24 +347,6 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
         />
       </div>
 
-      {/* ── Word count bar ── */}
-      {noteId && (
-        <div style={{
-          display: 'flex', alignItems: 'center', gap: 12,
-          padding: '3px 20px',
-          borderBottom: '1px solid var(--border)',
-          backgroundColor: 'var(--background)',
-          flexShrink: 0,
-        }}>
-          <span style={{ fontSize: 11, color: 'var(--muted-foreground)' }}>
-            {wordCount.toLocaleString()} {wordCount === 1 ? 'word' : 'words'}
-          </span>
-          <span style={{ fontSize: 11, color: 'var(--muted-foreground)', opacity: 0.6 }}>·</span>
-          <span style={{ fontSize: 11, color: 'var(--muted-foreground)' }}>
-            {readMins} min read
-          </span>
-        </div>
-      )}
 
       {/* ── Body: editor + right panel ── */}
       <div style={{ flex: 1, display: 'flex', minHeight: 0 }}>
@@ -464,6 +433,39 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
         )}
       </div>
 
+      {/* ── Status bar ── */}
+      {noteId && !focusMode && (
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 0,
+          padding: '0 20px',
+          height: 28,
+          borderTop: '1px solid var(--border)',
+          backgroundColor: 'color-mix(in srgb, var(--card) 80%, var(--background))',
+          flexShrink: 0,
+        }}>
+          <StatusPill label={`${wordCount.toLocaleString()} ${wordCount === 1 ? 'word' : 'words'}`} />
+          <StatusDivider />
+          <StatusPill label={`${charCount.toLocaleString()} chars`} />
+          <StatusDivider />
+          <StatusPill label={`~${readMins} min read`} />
+          {saveStatus && (
+            <>
+              <div style={{ flex: 1 }} />
+              <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                <span style={{
+                  width: 6, height: 6, borderRadius: '50%', display: 'inline-block',
+                  backgroundColor: SAVE_DOT[saveStatus],
+                  boxShadow: `0 0 4px ${SAVE_DOT[saveStatus]}99`,
+                }} />
+                <span style={{ fontSize: 11, color: 'var(--muted-foreground)', fontWeight: 500 }}>
+                  {saveStatus === 'saving' ? 'Saving…' : saveStatus === 'saved' ? 'Saved' : 'Unsaved'}
+                </span>
+              </div>
+            </>
+          )}
+        </div>
+      )}
+
       {/* Template modal */}
       <NoteTemplateModal
         open={showTemplates}
@@ -487,5 +489,31 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden', backgroundColor: 'var(--background)' }}>
       {editorContent}
     </div>
+  )
+}
+
+function StatusPill({ label }: { label: string }) {
+  return (
+    <span style={{
+      fontSize: 11, fontWeight: 500,
+      color: 'var(--foreground)',
+      opacity: 0.55,
+      padding: '0 8px',
+      letterSpacing: '0.01em',
+      whiteSpace: 'nowrap',
+    }}>
+      {label}
+    </span>
+  )
+}
+
+function StatusDivider() {
+  return (
+    <span style={{
+      width: 1, height: 12,
+      backgroundColor: 'var(--border)',
+      display: 'inline-block',
+      flexShrink: 0,
+    }} />
   )
 }
