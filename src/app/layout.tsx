@@ -16,13 +16,28 @@ export const metadata: Metadata = {
 const noFlashScript = `(function(){
   var valid = ['dotstell','dracula','one-dark','tokyo-night','nord','solarized-dark','catppuccin','solarized-light','github-light','plain-light','pure-light','catppuccin-latte','rose-pine-dawn','gruvbox-light'];
   var lightThemes = ['plain-light','pure-light','solarized-light','github-light','catppuccin-latte','rose-pine-dawn','gruvbox-light'];
+  // Exact --background value per theme (must stay in sync with globals.css)
+  var bgMap = {
+    'dotstell':'#0a0a14','dracula':'#282a36','one-dark':'#282c34',
+    'tokyo-night':'#1a1b26','nord':'#2e3440','solarized-dark':'#002b36',
+    'catppuccin':'#1e1e2e','solarized-light':'#fdf6e3','github-light':'#ffffff',
+    'plain-light':'#faf9ff','pure-light':'#ffffff','catppuccin-latte':'#eff1f5',
+    'rose-pine-dawn':'#faf4ed','gruvbox-light':'#fbf1c7'
+  };
   var t = localStorage.getItem('dotstell-theme');
   if (!t || valid.indexOf(t) === -1) { t = 'dotstell'; localStorage.setItem('dotstell-theme', t); }
   document.documentElement.setAttribute('data-theme', t);
   var isLight = lightThemes.indexOf(t) !== -1;
   document.documentElement.style.colorScheme = isLight ? 'light' : 'dark';
-  // Set background immediately so the browser never paints a black frame before CSS loads
-  document.documentElement.style.backgroundColor = isLight ? '#ffffff' : '#0a0a14';
+  // Set exact background immediately so the browser never paints a black frame before CSS loads.
+  // Then hand control back to CSS after first paint so theme-switching stays dynamic.
+  var bg = bgMap[t] || '#0a0a14';
+  document.documentElement.style.backgroundColor = bg;
+  document.body && (document.body.style.backgroundColor = bg);
+  requestAnimationFrame(function(){ requestAnimationFrame(function(){
+    document.documentElement.style.backgroundColor = '';
+    document.body && (document.body.style.backgroundColor = '');
+  }); });
 })()`
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
