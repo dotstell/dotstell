@@ -14,9 +14,11 @@ interface Props {
   noteId: string
   /** Current note title — used to decide when to re-query unlinked mentions */
   noteTitle?: string
+  /** Increments each time wikilinks are synced after a save — triggers a re-fetch */
+  syncCount?: number
 }
 
-export function BacklinksPanel({ noteId, noteTitle }: Props) {
+export function BacklinksPanel({ noteId, noteTitle, syncCount }: Props) {
   const router = useRouter()
   const [outgoing,  setOutgoing]  = useState<LinkNote[]>([])
   const [incoming,  setIncoming]  = useState<LinkNote[]>([])
@@ -39,7 +41,7 @@ export function BacklinksPanel({ noteId, noteTitle }: Props) {
     }).catch(() => setLoading(false))
   }, [noteId])
 
-  useEffect(() => { load() }, [load])
+  useEffect(() => { load() }, [load, syncCount])
 
   // Re-fetch unlinked mentions when the note's title changes (debounced)
   useEffect(() => {

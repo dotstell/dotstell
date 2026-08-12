@@ -37,6 +37,7 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
   const [showTemplates, setShowTemplates] = useState(isNew)
   const [noteId, setNoteId]           = useState<string | null>(isNew ? null : id)
   const [subNotes, setSubNotes]       = useState<Note[]>([])
+  const [wikiSyncCount, setWikiSyncCount] = useState(0)
   const saveTimer   = useRef<ReturnType<typeof setTimeout> | null>(null)
   const wikiLinkIds = useRef<string[]>([])
 
@@ -93,6 +94,7 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ sourceNoteId, targetNoteIds: wikiLinkIds.current }),
     })
+    setWikiSyncCount(n => n + 1)
   }, [])
 
   const save = useCallback(async (data: Partial<Note>, currentId: string | null) => {
@@ -457,7 +459,7 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
               )}
             </div>
 
-            <BacklinksPanel noteId={noteId} noteTitle={note.title} />
+            <BacklinksPanel noteId={noteId} noteTitle={note.title} syncCount={wikiSyncCount} />
           </div>
         )}
       </div>
