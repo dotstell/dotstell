@@ -63,12 +63,12 @@ export function BacklinksPanel({ noteId, noteTitle, syncCount }: Props) {
       if (!noteRes.ok) throw new Error('fetch failed')
       const sourceNote = await noteRes.json()
 
-      // Append a wikilink node at the end of the content
+      // Append a wikilink as a new paragraph — works regardless of what block type the note ends with
       const wikiLinkHtml = `<a data-wikilink data-note-id="${noteId}" data-note-title="${noteTitle ?? ''}">${'[['}${noteTitle ?? 'Untitled'}${']]'}</a>`
-      const newContent = (sourceNote.content ?? '<p></p>').replace(
-        /<\/p>\s*$/,
-        ` ${wikiLinkHtml}</p>`
-      ) || `<p>${wikiLinkHtml}</p>`
+      const trimmed = (sourceNote.content ?? '').trim()
+      const newContent = trimmed && trimmed !== '<p></p>'
+        ? `${trimmed}<p>${wikiLinkHtml}</p>`
+        : `<p>${wikiLinkHtml}</p>`
 
       // Save updated content
       const patchRes = await fetch(`/api/notes/${sourceId}`, {

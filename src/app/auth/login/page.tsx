@@ -32,7 +32,6 @@ export default function LoginPage() {
           const keysToWipe = [
             'dotstell-note-tabs',
             'dotstell-note-active-tab',
-            'dotstell-onboarding-done',
             'dotstell-notified-tasks',
             'sidebar-collapsed',
           ]

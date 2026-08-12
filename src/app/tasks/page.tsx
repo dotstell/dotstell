@@ -16,7 +16,9 @@ import { formatDate, cn } from '@/lib/utils'
 import { PageContainer } from '@/components/layout/PageContainer'
 
 // datetime-local inputs expect local time as "YYYY-MM-DDTHH:mm" — not UTC
+// Date-only strings (YYYY-MM-DD) are UTC midnight per spec — treat as local midnight to avoid day-shift for UTC-negative users
 function toLocalDatetimeInput(iso: string): string {
+  if (/^\d{4}-\d{2}-\d{2}$/.test(iso)) return `${iso}T00:00`
   const d = new Date(iso)
   const pad = (n: number) => String(n).padStart(2, '0')
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
