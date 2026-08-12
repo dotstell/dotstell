@@ -494,16 +494,16 @@
   *, *::before, *::after { box-sizing: border-box; }
 }
 
-/* Outside @layer + !important so these beat the inline style set by the
-   no-flash script once the stylesheet loads, keeping theme-switching dynamic */
+/* Outside @layer for full specificity — no !important needed since the
+   injected __theme-flash-prevention <style> block is removed after hydration */
 html {
-  background-color: var(--background) !important;
+  background-color: var(--background);
   color: var(--foreground);
   overflow-x: hidden;
 }
 
 body {
-  background-color: var(--background) !important;
+  background-color: var(--background);
   color: var(--foreground);
   min-height: 100vh;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;

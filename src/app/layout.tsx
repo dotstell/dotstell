@@ -12,10 +12,10 @@ export const metadata: Metadata = {
   },
 }
 
-// Applied before first paint — prevents flash of wrong theme or black screen.
-// Runs in <head> before <body> exists, so we patch <html> only.
-// The CSS rule   html { background-color: var(--background) !important }
-// takes over once globals.css loads, keeping theme-switching dynamic.
+// Applied before first paint — sets data-theme and background before CSS variables resolve.
+// Next.js hoists its stylesheet before inline scripts, so we cannot beat the CSS load order.
+// Instead we set the exact background as an inline style on <html> AND inject a <style> for
+// <body>, both using concrete hex values — no var() dependency, no ordering sensitivity.
 const noFlashScript = `(function(){
   var valid = ['dotstell','dracula','one-dark','tokyo-night','nord','solarized-dark','catppuccin','solarized-light','github-light','plain-light','pure-light','catppuccin-latte','rose-pine-dawn','gruvbox-light'];
   var lightThemes = ['plain-light','pure-light','solarized-light','github-light','catppuccin-latte','rose-pine-dawn','gruvbox-light'];
@@ -34,9 +34,9 @@ const noFlashScript = `(function(){
   html.setAttribute('data-theme', t);
   html.style.colorScheme = isLight ? 'light' : 'dark';
   html.style.backgroundColor = bg;
-  // Also inject a <style> block so <body> background is covered before CSS loads
   var s = document.createElement('style');
-  s.textContent = 'body{background-color:' + bg + ' !important}';
+  s.id = '__theme-flash-prevention';
+  s.textContent = 'html,body{background-color:' + bg + '!important}';
   document.head.appendChild(s);
 })()`
 

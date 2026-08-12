@@ -44,11 +44,14 @@ function apply(id: ThemeId) {
 export function useTheme() {
   const [theme, setThemeState] = useState<ThemeId>(DEFAULT)
 
-  // On mount, read localStorage and apply
+  // On mount, read localStorage, apply, and remove the flash-prevention style block
   useEffect(() => {
     const stored = getStored()
     setThemeState(stored)
     apply(stored)
+    // Remove the no-flash <style> injected by the inline script — its !important
+    // would otherwise override CSS variable updates during theme switching
+    document.getElementById('__theme-flash-prevention')?.remove()
   }, [])
 
   const setTheme = useCallback((id: ThemeId) => {
