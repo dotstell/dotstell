@@ -50,6 +50,7 @@ export default function TasksPage() {
   const [tagInput, setTagInput] = useState('')
   const [saving, setSaving] = useState(false)
   const [viewMode, setViewMode] = useState<'board' | 'list'>('board')
+  const [dueDateFocused, setDueDateFocused] = useState(false)
   const dueDateRef = useRef<HTMLInputElement>(null)
 
   const fetchTasks = useCallback(async () => {
@@ -255,15 +256,19 @@ export default function TasksPage() {
                   className="flex-1"
                   value={editing.due_date ? toLocalDatetimeInput(editing.due_date) : ''}
                   onChange={e => setEditing(p => ({ ...p, due_date: e.target.value ? new Date(e.target.value).toISOString() : null }))}
+                  onFocus={() => setDueDateFocused(true)}
+                  onBlur={() => setDueDateFocused(false)}
                 />
-                <Button
-                  type="button"
-                  variant="default"
-                  size="sm"
-                  className="shrink-0 text-xs"
-                  onClick={() => dueDateRef.current?.blur()}
-                >Confirm</Button>
-                {editing.due_date && (
+                {dueDateFocused && (
+                  <Button
+                    type="button"
+                    variant="default"
+                    size="sm"
+                    className="shrink-0 text-xs"
+                    onMouseDown={e => { e.preventDefault(); dueDateRef.current?.blur() }}
+                  >Confirm</Button>
+                )}
+                {editing.due_date && !dueDateFocused && (
                   <Button
                     type="button"
                     variant="outline"
