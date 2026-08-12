@@ -59,6 +59,7 @@
     "@tiptap/starter-kit": "^3.27.3",
     "@types/turndown": "^5.0.6",
     "@uiw/react-md-editor": "^4.1.1",
+    "@vercel/analytics": "^2.0.1",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "date-fns": "^4.4.0",
