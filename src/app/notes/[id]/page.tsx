@@ -44,7 +44,7 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
   // Word / char count derived from content
   const plainText = (note.content ?? '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()
   const wordCount = plainText ? plainText.split(' ').length : 0
-  const charCount = plainText.replace(/ /g, '').length
+  const charCount = plainText.length
   const readMins  = Math.max(1, Math.round(wordCount / 200))
 
   const { openTab, updateTitle } = useNoteTabs(noteId ?? undefined)

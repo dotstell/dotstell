@@ -12,13 +12,17 @@ export const metadata: Metadata = {
   },
 }
 
-// Applied before first paint — prevents flash of wrong theme
+// Applied before first paint — prevents flash of wrong theme or black screen
 const noFlashScript = `(function(){
   var valid = ['dotstell','dracula','one-dark','tokyo-night','nord','solarized-dark','catppuccin','solarized-light','github-light','plain-light','pure-light','catppuccin-latte','rose-pine-dawn','gruvbox-light'];
+  var lightThemes = ['plain-light','pure-light','solarized-light','github-light','catppuccin-latte','rose-pine-dawn','gruvbox-light'];
   var t = localStorage.getItem('dotstell-theme');
   if (!t || valid.indexOf(t) === -1) { t = 'dotstell'; localStorage.setItem('dotstell-theme', t); }
   document.documentElement.setAttribute('data-theme', t);
-  document.documentElement.style.colorScheme = ['plain-light','pure-light','solarized-light','github-light','catppuccin-latte','rose-pine-dawn','gruvbox-light'].indexOf(t) !== -1 ? 'light' : 'dark';
+  var isLight = lightThemes.indexOf(t) !== -1;
+  document.documentElement.style.colorScheme = isLight ? 'light' : 'dark';
+  // Set background immediately so the browser never paints a black frame before CSS loads
+  document.documentElement.style.backgroundColor = isLight ? '#ffffff' : '#0a0a14';
 })()`
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
