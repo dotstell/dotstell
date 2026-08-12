@@ -25,7 +25,9 @@ export const THEME_DEFS: { id: ThemeId; label: string; dot: string; dark: boolea
 ]
 
 const VALID_IDS = THEME_DEFS.map(t => t.id)
+const LIGHT_THEMES: ThemeId[] = ['plain-light','pure-light','solarized-light','github-light','catppuccin-latte','rose-pine-dawn','gruvbox-light']
 const STORAGE_KEY = 'dotstell-theme'
+const COOKIE_NAME = 'dotstell-theme'
 const DEFAULT: ThemeId = 'dotstell'
 
 function getStored(): ThemeId {
@@ -34,7 +36,9 @@ function getStored(): ThemeId {
   return VALID_IDS.includes(v) ? v : DEFAULT
 }
 
-const LIGHT_THEMES: ThemeId[] = ['plain-light','pure-light','solarized-light','github-light','catppuccin-latte','rose-pine-dawn','gruvbox-light']
+function setCookie(id: ThemeId) {
+  document.cookie = `${COOKIE_NAME}=${id};path=/;max-age=31536000;samesite=lax`
+}
 
 function apply(id: ThemeId) {
   document.documentElement.setAttribute('data-theme', id)
@@ -44,20 +48,18 @@ function apply(id: ThemeId) {
 export function useTheme() {
   const [theme, setThemeState] = useState<ThemeId>(DEFAULT)
 
-  // On mount, read localStorage, apply, and remove the flash-prevention style block
   useEffect(() => {
     const stored = getStored()
     setThemeState(stored)
     apply(stored)
-    // Remove the no-flash <style> injected by the inline script — its !important
-    // would otherwise override CSS variable updates during theme switching
-    document.getElementById('__theme-flash-prevention')?.remove()
+    setCookie(stored)
   }, [])
 
   const setTheme = useCallback((id: ThemeId) => {
     apply(id)
     setThemeState(id)
     localStorage.setItem(STORAGE_KEY, id)
+    setCookie(id)
   }, [])
 
   return { theme, setTheme }

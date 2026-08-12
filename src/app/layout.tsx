@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { cookies } from 'next/headers'
 import './globals.css'
 import { Toaster } from 'sonner'
 import { Analytics } from '@vercel/analytics/next'
@@ -12,40 +13,43 @@ export const metadata: Metadata = {
   },
 }
 
-// Applied before first paint — sets data-theme and background before CSS variables resolve.
-// Next.js hoists its stylesheet before inline scripts, so we cannot beat the CSS load order.
-// Instead we set the exact background as an inline style on <html> AND inject a <style> for
-// <body>, both using concrete hex values — no var() dependency, no ordering sensitivity.
-const noFlashScript = `(function(){
-  var valid = ['dotstell','dracula','one-dark','tokyo-night','nord','solarized-dark','catppuccin','solarized-light','github-light','plain-light','pure-light','catppuccin-latte','rose-pine-dawn','gruvbox-light'];
-  var lightThemes = ['plain-light','pure-light','solarized-light','github-light','catppuccin-latte','rose-pine-dawn','gruvbox-light'];
-  var bgMap = {
-    'dotstell':'#0a0a14','dracula':'#282a36','one-dark':'#282c34',
-    'tokyo-night':'#1a1b26','nord':'#2e3440','solarized-dark':'#002b36',
-    'catppuccin':'#1e1e2e','solarized-light':'#fdf6e3','github-light':'#ffffff',
-    'plain-light':'#faf9ff','pure-light':'#ffffff','catppuccin-latte':'#eff1f5',
-    'rose-pine-dawn':'#faf4ed','gruvbox-light':'#fbf1c7'
-  };
-  var t = localStorage.getItem('dotstell-theme');
-  if (!t || valid.indexOf(t) === -1) { t = 'dotstell'; localStorage.setItem('dotstell-theme', t); }
-  var isLight = lightThemes.indexOf(t) !== -1;
-  var bg = bgMap[t] || '#0a0a14';
-  var html = document.documentElement;
-  html.setAttribute('data-theme', t);
-  html.style.colorScheme = isLight ? 'light' : 'dark';
-  html.style.backgroundColor = bg;
-  var s = document.createElement('style');
-  s.id = '__theme-flash-prevention';
-  s.textContent = 'html,body{background-color:' + bg + '!important}';
-  document.head.appendChild(s);
+const VALID_THEMES = ['dotstell','dracula','one-dark','tokyo-night','nord','solarized-dark','catppuccin','solarized-light','github-light','plain-light','pure-light','catppuccin-latte','rose-pine-dawn','gruvbox-light']
+const LIGHT_THEMES = ['plain-light','pure-light','solarized-light','github-light','catppuccin-latte','rose-pine-dawn','gruvbox-light']
+
+// Minimal client script: only sets colorScheme (cannot be done server-side)
+// and syncs cookie from localStorage for first-time visitors who have no cookie yet.
+const syncScript = `(function(){
+  var valid = ${JSON.stringify(VALID_THEMES)};
+  var light = ${JSON.stringify(LIGHT_THEMES)};
+  var t = document.documentElement.getAttribute('data-theme') || 'dotstell';
+  document.documentElement.style.colorScheme = light.indexOf(t) !== -1 ? 'light' : 'dark';
+  var ls = localStorage.getItem('dotstell-theme');
+  if (ls && valid.indexOf(ls) !== -1 && ls !== t) {
+    document.documentElement.setAttribute('data-theme', ls);
+    document.documentElement.style.colorScheme = light.indexOf(ls) !== -1 ? 'light' : 'dark';
+    document.cookie = 'dotstell-theme=' + ls + ';path=/;max-age=31536000;samesite=lax';
+  }
+  if (ls && valid.indexOf(ls) !== -1) {
+    localStorage.setItem('dotstell-theme', ls);
+  }
 })()`
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const cookieStore = await cookies()
+  const rawTheme = cookieStore.get('dotstell-theme')?.value ?? ''
+  const theme = VALID_THEMES.includes(rawTheme) ? rawTheme : 'dotstell'
+  const isLight = LIGHT_THEMES.includes(theme)
+
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html
+      lang="en"
+      data-theme={theme}
+      style={{ colorScheme: isLight ? 'light' : 'dark' }}
+      suppressHydrationWarning
+    >
       <head>
-        {/* No-flash theme script — must be first; sets data-theme, colorScheme, and backgroundColor before any paint */}
-        <script dangerouslySetInnerHTML={{ __html: noFlashScript }} />
+        {/* Sync colorScheme and handle first-visit (no cookie yet) before paint */}
+        <script dangerouslySetInnerHTML={{ __html: syncScript }} />
         {/* Google Fonts — editor font picker */}
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />

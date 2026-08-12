@@ -494,8 +494,7 @@
   *, *::before, *::after { box-sizing: border-box; }
 }
 
-/* Outside @layer for full specificity — no !important needed since the
-   injected __theme-flash-prevention <style> block is removed after hydration */
+/* Outside @layer so these have full specificity over Tailwind's @layer base rules */
 html {
   background-color: var(--background);
   color: var(--foreground);
