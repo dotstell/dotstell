@@ -1,8 +1,10 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import { createClient } from '@/lib/supabase/client'
 
-const STORAGE_KEY = 'dotstell-onboarding-done'
+// Key is scoped per user so different accounts on the same browser each get onboarding
+function storageKey(userId: string) { return `dotstell-onboarding-done:${userId}` }
 
 const STEPS = [
   {
@@ -32,17 +34,23 @@ export function OnboardingFlow() {
   const [visible, setVisible] = useState(false)
   const [step, setStep]       = useState(0)
   const [leaving, setLeaving] = useState(false)
+  const [userId, setUserId]   = useState<string | null>(null)
   const router = useRouter()
 
   useEffect(() => {
     if (typeof window === 'undefined') return
-    if (!localStorage.getItem(STORAGE_KEY)) setVisible(true)
+    const supabase = createClient()
+    supabase.auth.getUser().then(({ data }) => {
+      const uid = data.user?.id ?? null
+      setUserId(uid)
+      if (uid && !localStorage.getItem(storageKey(uid))) setVisible(true)
+    })
   }, [])
 
   function dismiss() {
     setLeaving(true)
     setTimeout(() => {
-      localStorage.setItem(STORAGE_KEY, '1')
+      if (userId) localStorage.setItem(storageKey(userId), '1')
       setVisible(false)
     }, 260)
   }

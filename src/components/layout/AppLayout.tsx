@@ -4,11 +4,33 @@ import { Sidebar } from './Sidebar'
 import { CommandPalette } from '@/components/command/CommandPalette'
 import { OnboardingFlow } from '@/components/onboarding/OnboardingFlow'
 import { TaskReminders } from '@/components/tasks/TaskReminders'
+import { createClient } from '@/lib/supabase/client'
+
+const USER_SCOPED_KEYS = [
+  'dotstell-note-tabs',
+  'dotstell-note-active-tab',
+  'dotstell-notified-tasks',
+  'sidebar-collapsed',
+]
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const [collapsed, setCollapsed]     = useState(false)
   const [paletteOpen, setPaletteOpen] = useState(false)
   const [isMobile, setIsMobile]       = useState(false)
+
+  // Wipe user-scoped localStorage state when a different account is detected
+  useEffect(() => {
+    const supabase = createClient()
+    supabase.auth.getUser().then(({ data }) => {
+      const uid = data.user?.id
+      if (!uid) return
+      const stored = localStorage.getItem('dotstell-user-id')
+      if (stored && stored !== uid) {
+        USER_SCOPED_KEYS.forEach(k => localStorage.removeItem(k))
+      }
+      localStorage.setItem('dotstell-user-id', uid)
+    })
+  }, [])
 
   useEffect(() => {
     function check() { setIsMobile(window.innerWidth < 768) }

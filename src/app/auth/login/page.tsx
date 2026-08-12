@@ -25,6 +25,20 @@ export default function LoginPage() {
         setError(error.message)
         setLoading(false)
       } else {
+        // Clear per-user localStorage state when a different user signs in
+        const incomingId = data.user?.id
+        const storedId   = localStorage.getItem('dotstell-user-id')
+        if (incomingId && storedId && storedId !== incomingId) {
+          const keysToWipe = [
+            'dotstell-note-tabs',
+            'dotstell-note-active-tab',
+            'dotstell-onboarding-done',
+            'dotstell-notified-tasks',
+            'sidebar-collapsed',
+          ]
+          keysToWipe.forEach(k => localStorage.removeItem(k))
+        }
+        if (incomingId) localStorage.setItem('dotstell-user-id', incomingId)
         router.push('/dashboard')
         router.refresh()
       }
