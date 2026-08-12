@@ -238,7 +238,7 @@ export default function TasksPage() {
             </div>
             <div>
               <label className="text-xs text-[var(--muted-foreground)] mb-1 block">Due date</label>
-              <Input type="date" value={editing.due_date ? editing.due_date.slice(0, 10) : ''} onChange={e => setEditing(p => ({ ...p, due_date: e.target.value || null }))} />
+              <Input type="datetime-local" value={editing.due_date ? editing.due_date.slice(0, 16) : ''} onChange={e => setEditing(p => ({ ...p, due_date: e.target.value ? new Date(e.target.value).toISOString() : null }))} />
             </div>
             <div>
               <div className="flex flex-wrap gap-1 mb-2">
