@@ -310,36 +310,36 @@
     color-scheme: light;
   }
 
-  /* ── Plain Light ─────────────────────────────────── */
+  /* ── Plain Light (Dotstell brand light theme) ────── */
   [data-theme="plain-light"] {
-    --background:           #ffffff;
-    --foreground:           #111111;
-    --card:                 #f5f5f5;
-    --card-foreground:      #111111;
-    --popover:              #ffffff;
-    --popover-foreground:   #111111;
+    --background:           #faf9ff;
+    --foreground:           #0f0d1a;
+    --card:                 #f0eeff;
+    --card-foreground:      #0f0d1a;
+    --popover:              #faf9ff;
+    --popover-foreground:   #0f0d1a;
     --primary:              #7c6aff;
     --primary-foreground:   #ffffff;
-    --secondary:            #ebebeb;
-    --secondary-foreground: #444444;
-    --muted:                #f0f0f0;
-    --muted-foreground:     #888888;
-    --accent:               #ebebeb;
-    --accent-foreground:    #111111;
+    --secondary:            #e8e4ff;
+    --secondary-foreground: #3d3560;
+    --muted:                #ede9ff;
+    --muted-foreground:     #7a72a0;
+    --accent:               #e8e4ff;
+    --accent-foreground:    #0f0d1a;
     --destructive:          #e53935;
     --destructive-foreground: #ffffff;
-    --border:               #e0e0e0;
-    --input:                #ebebeb;
+    --border:               #dcd6ff;
+    --input:                #e8e4ff;
     --ring:                 #7c6aff;
-    --sidebar-bg:           #f5f5f5;
-    --sidebar-border:       #e0e0e0;
-    --sidebar-muted:        #aaaaaa;
-    --sidebar-active-bg:    rgba(124,106,255,0.10);
+    --sidebar-bg:           #f0eeff;
+    --sidebar-border:       #dcd6ff;
+    --sidebar-muted:        #9d96c8;
+    --sidebar-active-bg:    rgba(124,106,255,0.13);
     --sidebar-active-fg:    #7c6aff;
-    --sidebar-hover-bg:     rgba(0,0,0,0.04);
-    --sidebar-hover-fg:     #111111;
-    --sidebar-search-bg:    #ebebeb;
-    --sidebar-section-fg:   #bbbbbb;
+    --sidebar-hover-bg:     rgba(124,106,255,0.06);
+    --sidebar-hover-fg:     #0f0d1a;
+    --sidebar-search-bg:    #e8e4ff;
+    --sidebar-section-fg:   #b0aad8;
     --radius: 0.5rem;
     --sidebar-width: 240px;
     --header-height: 56px;
