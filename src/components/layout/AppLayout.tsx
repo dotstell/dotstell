@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react'
 import { Sidebar } from './Sidebar'
 import { CommandPalette } from '@/components/command/CommandPalette'
 import { OnboardingFlow } from '@/components/onboarding/OnboardingFlow'
+import { TaskReminders } from '@/components/tasks/TaskReminders'
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const [collapsed, setCollapsed]     = useState(false)
@@ -52,6 +53,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       </main>
       <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
       <OnboardingFlow />
+      <TaskReminders />
     </div>
   )
 }
