@@ -415,12 +415,6 @@ export function RichTextEditor({
     onChange(html)
   }, [onChange])
 
-  const stats = editor ? {
-    words:    editor.storage.characterCount?.words() ?? 0,
-    chars:    editor.storage.characterCount?.characters() ?? 0,
-    readTime: Math.max(1, Math.round((editor.storage.characterCount?.words() ?? 0) / 200)),
-  } : null
-
   const activeColor = editor?.getAttributes('textStyle')?.color ?? ''
 
   if (!editor) return null
@@ -778,30 +772,6 @@ export function RichTextEditor({
         )}
       </div>
 
-      {/* ── Footer: stats + autosave ── */}
-      <div style={{
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '5px 14px', borderTop: '1px solid var(--secondary)',
-        backgroundColor: 'var(--muted)', flexShrink: 0,
-      }}>
-        <div style={{ display: 'flex', gap: 16 }}>
-          {stats && (
-            <>
-              <span style={{ fontSize: 11, color: 'var(--border)' }}>{stats.words} words</span>
-              <span style={{ fontSize: 11, color: 'var(--border)' }}>{stats.chars} chars</span>
-              <span style={{ fontSize: 11, color: 'var(--border)' }}>~{stats.readTime} min read</span>
-            </>
-          )}
-        </div>
-        {autoSaveStatus && (
-          <span style={{
-            fontSize: 11,
-            color: autoSaveStatus === 'saved' ? '#10b981' : autoSaveStatus === 'saving' ? 'var(--primary)' : 'var(--muted-foreground)',
-          }}>
-            {autoSaveStatus === 'saved' ? '✓ Saved' : autoSaveStatus === 'saving' ? '⟳ Saving…' : '● Unsaved'}
-          </span>
-        )}
-      </div>
     </div>
   )
 }
