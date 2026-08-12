@@ -148,7 +148,6 @@ interface RichTextEditorProps {
   /** Called on every keystroke with the editor's plain text — use for live char/word counts */
   onTextChange?: (text: string) => void
   placeholder?: string
-  autoSaveStatus?: 'saved' | 'saving' | 'unsaved' | null
   onFocusMode?: (active: boolean) => void
   focusMode?: boolean
   /** Called after every save with the list of [[wikilink]] target note IDs found in the content */
@@ -192,7 +191,7 @@ function extractWikiLinkIdsFromDoc(editor: ReturnType<typeof useEditor>): string
 
 export function RichTextEditor({
   content, onChange, onTextChange, placeholder = 'Start writing… (type / for commands)',
-  autoSaveStatus, onFocusMode, focusMode, onWikiLinksChange,
+  onFocusMode, focusMode, onWikiLinksChange,
 }: RichTextEditorProps) {
   const [slashOpen,       setSlashOpen]       = useState(false)
   const [slashFilter,     setSlashFilter]     = useState('')

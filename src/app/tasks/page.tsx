@@ -90,21 +90,30 @@ export default function TasksPage() {
   }
 
   async function updateStatus(task: Task, status: TaskStatus) {
-    const res = await fetch(`/api/tasks/${task.id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status }),
-    })
-    if (res.ok) {
-      setTasks(prev => prev.map(t => t.id === task.id ? { ...t, status } : t))
+    try {
+      const res = await fetch(`/api/tasks/${task.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status }),
+      })
+      if (res.ok) setTasks(prev => prev.map(t => t.id === task.id ? { ...t, status } : t))
+      else toast.error('Failed to update task')
+    } catch {
+      toast.error('Failed to update task')
     }
   }
 
   async function deleteTask(id: string) {
-    const res = await fetch(`/api/tasks/${id}`, { method: 'DELETE' })
-    if (res.ok) {
-      setTasks(prev => prev.filter(t => t.id !== id))
-      toast.success('Task deleted')
+    try {
+      const res = await fetch(`/api/tasks/${id}`, { method: 'DELETE' })
+      if (res.ok) {
+        setTasks(prev => prev.filter(t => t.id !== id))
+        toast.success('Task deleted')
+      } else {
+        toast.error('Failed to delete task')
+      }
+    } catch {
+      toast.error('Failed to delete task')
     }
   }
 

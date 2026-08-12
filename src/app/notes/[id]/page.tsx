@@ -371,7 +371,6 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
             onChange={handleContentChange}
             onTextChange={setEditorText}
             placeholder="Start writing… (type / for commands, [[ to link a note)"
-            autoSaveStatus={saveStatus}
             focusMode={focusMode}
             onFocusMode={setFocusMode}
             onWikiLinksChange={ids => { wikiLinkIds.current = ids }}
