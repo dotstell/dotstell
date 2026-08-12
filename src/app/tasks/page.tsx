@@ -15,23 +15,13 @@ import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '@
 import { formatDate, cn } from '@/lib/utils'
 import { PageContainer } from '@/components/layout/PageContainer'
 
-// Split an ISO/date string into { date: 'YYYY-MM-DD', time: 'HH:mm' } in local time
-function splitDueDate(iso: string): { date: string; time: string } {
-  if (!iso) return { date: '', time: '' }
-  // Date-only — treat as local midnight, no timezone shift
-  if (/^\d{4}-\d{2}-\d{2}$/.test(iso)) return { date: iso, time: '00:00' }
+// datetime-local inputs expect local time as "YYYY-MM-DDTHH:mm" — not UTC
+// Date-only strings (YYYY-MM-DD) are UTC midnight per spec — treat as local midnight to avoid day-shift for UTC-negative users
+function toLocalDatetimeInput(iso: string): string {
+  if (/^\d{4}-\d{2}-\d{2}$/.test(iso)) return `${iso}T00:00`
   const d = new Date(iso)
   const pad = (n: number) => String(n).padStart(2, '0')
-  return {
-    date: `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`,
-    time: `${pad(d.getHours())}:${pad(d.getMinutes())}`,
-  }
-}
-
-// Combine local date + time strings into an ISO string
-function combineDueDate(date: string, time: string): string | null {
-  if (!date) return null
-  return new Date(`${date}T${time || '00:00'}`).toISOString()
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
 }
 
 const DEFAULT_TASK: Partial<Task> = {
@@ -224,7 +214,7 @@ export default function TasksPage() {
       </PageContainer>
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md" onInteractOutside={e => e.preventDefault()}>
           <DialogHeader>
             <DialogTitle>{(editing as Task).id ? 'Edit task' : 'New task'}</DialogTitle>
           </DialogHeader>
@@ -257,25 +247,22 @@ export default function TasksPage() {
             </div>
             <div>
               <label className="text-xs text-[var(--muted-foreground)] mb-1 block">Due date</label>
-              <div className="flex gap-2">
+              <div className="flex gap-2 items-center">
                 <Input
-                  type="date"
+                  type="datetime-local"
                   className="flex-1"
-                  value={editing.due_date ? splitDueDate(editing.due_date).date : ''}
-                  onChange={e => {
-                    const { time } = splitDueDate(editing.due_date ?? '')
-                    setEditing(p => ({ ...p, due_date: combineDueDate(e.target.value, time) }))
-                  }}
+                  value={editing.due_date ? toLocalDatetimeInput(editing.due_date) : ''}
+                  onChange={e => setEditing(p => ({ ...p, due_date: e.target.value ? new Date(e.target.value).toISOString() : null }))}
                 />
-                <Input
-                  type="time"
-                  className="w-28"
-                  value={editing.due_date ? splitDueDate(editing.due_date).time : ''}
-                  onChange={e => {
-                    const { date } = splitDueDate(editing.due_date ?? '')
-                    setEditing(p => ({ ...p, due_date: combineDueDate(date, e.target.value) }))
-                  }}
-                />
+                {editing.due_date && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="shrink-0 text-xs"
+                    onClick={() => setEditing(p => ({ ...p, due_date: null }))}
+                  >Clear</Button>
+                )}
               </div>
             </div>
             <div>
