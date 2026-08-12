@@ -1,7 +1,8 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import { ArrowUpRight, ArrowDownLeft, FileText } from 'lucide-react'
+import { ArrowUpRight, ArrowDownLeft, FileText, Link2, RefreshCw } from 'lucide-react'
+import { toast } from 'sonner'
 
 interface LinkNote {
   id: string
@@ -9,38 +10,100 @@ interface LinkNote {
   updated_at: string
 }
 
-interface WikiLinksPanelProps {
+interface Props {
   noteId: string
-  /** Pass the list of outgoing wikilink noteIds from the editor so we can show them without a DB round-trip */
-  outgoingIds?: string[]
+  /** Current note title — used to decide when to re-query unlinked mentions */
+  noteTitle?: string
 }
 
-export function BacklinksPanel({ noteId }: WikiLinksPanelProps) {
+export function BacklinksPanel({ noteId, noteTitle }: Props) {
   const router = useRouter()
-  const [outgoing, setOutgoing] = useState<LinkNote[]>([])
-  const [incoming, setIncoming] = useState<LinkNote[]>([])
-  const [loading, setLoading] = useState(true)
+  const [outgoing,  setOutgoing]  = useState<LinkNote[]>([])
+  const [incoming,  setIncoming]  = useState<LinkNote[]>([])
+  const [unlinked,  setUnlinked]  = useState<LinkNote[]>([])
+  const [loading,   setLoading]   = useState(true)
+  const [linking,   setLinking]   = useState<string | null>(null)
 
-  useEffect(() => {
+  const load = useCallback(() => {
     if (!noteId) return
     setLoading(true)
-
     Promise.all([
-      // Outgoing: notes this note [[links]] to
       fetch(`/api/notes/${noteId}/wikilinks`).then(r => r.ok ? r.json() : []),
-      // Incoming: notes that [[link]] to this note
       fetch(`/api/notes/${noteId}/backlinks`).then(r => r.ok ? r.json() : []),
-    ]).then(([out, inc]) => {
+      fetch(`/api/notes/${noteId}/unlinked-mentions`).then(r => r.ok ? r.json() : []),
+    ]).then(([out, inc, unl]) => {
       setOutgoing(Array.isArray(out) ? out : [])
       setIncoming(Array.isArray(inc) ? inc : [])
+      setUnlinked(Array.isArray(unl) ? unl : [])
       setLoading(false)
     }).catch(() => setLoading(false))
   }, [noteId])
+
+  useEffect(() => { load() }, [load])
+
+  // Re-fetch unlinked mentions when the note's title changes (debounced)
+  useEffect(() => {
+    if (!noteId || !noteTitle) return
+    const t = setTimeout(() => {
+      fetch(`/api/notes/${noteId}/unlinked-mentions`)
+        .then(r => r.ok ? r.json() : [])
+        .then(unl => setUnlinked(Array.isArray(unl) ? unl : []))
+        .catch(() => {})
+    }, 1200)
+    return () => clearTimeout(t)
+  }, [noteId, noteTitle])
+
+  async function linkNote(sourceId: string, sourceTitle: string) {
+    setLinking(sourceId)
+    try {
+      // Fetch the source note's current content
+      const noteRes = await fetch(`/api/notes/${sourceId}`)
+      if (!noteRes.ok) throw new Error('fetch failed')
+      const sourceNote = await noteRes.json()
+
+      // Append a wikilink node at the end of the content
+      const wikiLinkHtml = `<a data-wikilink data-note-id="${noteId}" data-note-title="${noteTitle ?? ''}">${'[['}${noteTitle ?? 'Untitled'}${']]'}</a>`
+      const newContent = (sourceNote.content ?? '<p></p>').replace(
+        /<\/p>\s*$/,
+        ` ${wikiLinkHtml}</p>`
+      ) || `<p>${wikiLinkHtml}</p>`
+
+      // Save updated content
+      const patchRes = await fetch(`/api/notes/${sourceId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: newContent }),
+      })
+      if (!patchRes.ok) throw new Error('patch failed')
+
+      // Sync wikilinks for the source note — collect existing wikilink IDs from its content
+      const parser = new DOMParser()
+      const doc = parser.parseFromString(newContent, 'text/html')
+      const wlNodes = doc.querySelectorAll('[data-wikilink]')
+      const targetNoteIds = Array.from(wlNodes).map(el => el.getAttribute('data-note-id')).filter(Boolean) as string[]
+
+      await fetch('/api/wikilinks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sourceNoteId: sourceId, targetNoteIds }),
+      })
+
+      // Move this note from unlinked → incoming
+      setUnlinked(prev => prev.filter(n => n.id !== sourceId))
+      setIncoming(prev => [...prev, { id: sourceId, title: sourceTitle, updated_at: new Date().toISOString() }])
+      toast.success(`Linked from "${sourceTitle}"`)
+    } catch {
+      toast.error('Could not create link — try again')
+    } finally {
+      setLinking(null)
+    }
+  }
 
   const totalCount = outgoing.length + incoming.length
 
   return (
     <div>
+      {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
         <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--muted-foreground)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
           Wikilinks
@@ -50,6 +113,16 @@ export function BacklinksPanel({ noteId }: WikiLinksPanelProps) {
             {totalCount}
           </span>
         )}
+        <button
+          type="button"
+          onClick={load}
+          title="Refresh"
+          style={{ marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted-foreground)', padding: 2, borderRadius: 4, display: 'flex' }}
+          onMouseEnter={e => (e.currentTarget.style.color = 'var(--primary)')}
+          onMouseLeave={e => (e.currentTarget.style.color = 'var(--muted-foreground)')}
+        >
+          <RefreshCw size={11} />
+        </button>
       </div>
 
       {loading ? (
@@ -71,16 +144,65 @@ export function BacklinksPanel({ noteId }: WikiLinksPanelProps) {
               : <NoteList notes={incoming} onOpen={id => router.push(`/notes/${id}`)} />
             }
           </div>
+
+          {/* Unlinked mentions */}
+          {unlinked.length > 0 && (
+            <div style={{ marginTop: 10 }}>
+              <SectionLabel icon={<Link2 size={11} />} label="Unlinked mentions" count={unlinked.length} accent />
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                {unlinked.map(note => (
+                  <div
+                    key={note.id}
+                    style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '4px 6px', borderRadius: 6 }}
+                    onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'var(--accent)')}
+                    onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
+                  >
+                    <FileText size={11} color="var(--muted-foreground)" style={{ flexShrink: 0 }} />
+                    <button
+                      type="button"
+                      onClick={() => router.push(`/notes/${note.id}`)}
+                      style={{
+                        flex: 1, background: 'none', border: 'none', cursor: 'pointer',
+                        textAlign: 'left', padding: 0,
+                        fontSize: 12, color: 'var(--secondary-foreground)',
+                        overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {note.title || 'Untitled'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => linkNote(note.id, note.title)}
+                      disabled={linking === note.id}
+                      title="Convert to wikilink"
+                      style={{
+                        flexShrink: 0, background: 'none', border: '1px solid var(--border)',
+                        borderRadius: 4, cursor: linking === note.id ? 'wait' : 'pointer',
+                        padding: '2px 6px', fontSize: 10,
+                        color: 'var(--primary)', display: 'flex', alignItems: 'center', gap: 3,
+                        opacity: linking === note.id ? 0.5 : 1,
+                        transition: 'all 0.12s',
+                      }}
+                      onMouseEnter={e => { e.currentTarget.style.background = 'color-mix(in srgb, var(--primary) 12%, transparent)' }}
+                      onMouseLeave={e => { e.currentTarget.style.background = 'none' }}
+                    >
+                      <Link2 size={9} /> Link
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </>
       )}
     </div>
   )
 }
 
-function SectionLabel({ icon, label, count }: { icon: React.ReactNode; label: string; count: number }) {
+function SectionLabel({ icon, label, count, accent }: { icon: React.ReactNode; label: string; count: number; accent?: boolean }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 4 }}>
-      <span style={{ color: 'var(--primary)', display: 'flex' }}>{icon}</span>
+      <span style={{ color: accent ? 'var(--muted-foreground)' : 'var(--primary)', display: 'flex' }}>{icon}</span>
       <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--sidebar-section-fg)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
         {label}
       </span>

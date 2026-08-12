@@ -457,7 +457,7 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
               )}
             </div>
 
-            <BacklinksPanel noteId={noteId} />
+            <BacklinksPanel noteId={noteId} noteTitle={note.title} />
           </div>
         )}
       </div>
