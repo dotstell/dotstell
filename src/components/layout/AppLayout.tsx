@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react'
 import { Sidebar } from './Sidebar'
 import { CommandPalette } from '@/components/command/CommandPalette'
+import { OnboardingFlow } from '@/components/onboarding/OnboardingFlow'
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const [collapsed, setCollapsed]     = useState(false)
@@ -50,6 +51,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         {children}
       </main>
       <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
+      <OnboardingFlow />
     </div>
   )
 }
