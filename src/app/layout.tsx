@@ -40,8 +40,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
-        <meta name="color-scheme" content="dark light" />
-        {/* No-flash theme script — must run before any paint */}
+        {/* No-flash theme script — must be first; sets data-theme, colorScheme, and backgroundColor before any paint */}
         <script dangerouslySetInnerHTML={{ __html: noFlashScript }} />
         {/* Google Fonts — editor font picker */}
         <link rel="preconnect" href="https://fonts.googleapis.com" />
