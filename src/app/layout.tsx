@@ -18,11 +18,12 @@ const noFlashScript = `(function(){
   var t = localStorage.getItem('dotstell-theme');
   if (!t || valid.indexOf(t) === -1) { t = 'dotstell'; localStorage.setItem('dotstell-theme', t); }
   document.documentElement.setAttribute('data-theme', t);
+  document.documentElement.style.colorScheme = ['plain-light','pure-light','solarized-light','github-light','catppuccin-latte','rose-pine-dawn','gruvbox-light'].indexOf(t) !== -1 ? 'light' : 'dark';
 })()`
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" data-theme="dotstell" suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning>
       <head>
         <meta name="color-scheme" content="dark light" />
         {/* No-flash theme script — must run before any paint */}
