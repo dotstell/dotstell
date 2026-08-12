@@ -82,7 +82,6 @@ export function OnboardingFlow() {
   if (!visible) return null
 
   const current = STEPS[step]
-  const progress = ((step + 1) / STEPS.length) * 100
 
   return (
     // Backdrop

@@ -51,10 +51,16 @@ export default function TasksPage() {
   const [viewMode, setViewMode] = useState<'board' | 'list'>('board')
 
   const fetchTasks = useCallback(async () => {
-    const res = await fetch('/api/tasks')
-    const data = await res.json()
-    setTasks(Array.isArray(data) ? data : [])
-    setLoading(false)
+    try {
+      const res = await fetch('/api/tasks')
+      if (!res.ok) { setLoading(false); return }
+      const data = await res.json()
+      setTasks(Array.isArray(data) ? data : [])
+    } catch {
+      // network error — leave existing tasks in place
+    } finally {
+      setLoading(false)
+    }
   }, [])
 
   useEffect(() => { fetchTasks() }, [fetchTasks])

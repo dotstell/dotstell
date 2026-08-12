@@ -147,8 +147,6 @@ interface RichTextEditorProps {
   onChange: (html: string) => void
   placeholder?: string
   autoSaveStatus?: 'saved' | 'saving' | 'unsaved' | null
-  wordCount?: number
-  readingTime?: number
   onFocusMode?: (active: boolean) => void
   focusMode?: boolean
   /** Called after every save with the list of [[wikilink]] target note IDs found in the content */
