@@ -15,6 +15,13 @@ import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '@
 import { formatDate, cn } from '@/lib/utils'
 import { PageContainer } from '@/components/layout/PageContainer'
 
+// datetime-local inputs expect local time as "YYYY-MM-DDTHH:mm" — not UTC
+function toLocalDatetimeInput(iso: string): string {
+  const d = new Date(iso)
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
+}
+
 const DEFAULT_TASK: Partial<Task> = {
   title: '', description: '', status: 'todo', priority: 'medium', tags: [],
 }
@@ -238,7 +245,7 @@ export default function TasksPage() {
             </div>
             <div>
               <label className="text-xs text-[var(--muted-foreground)] mb-1 block">Due date</label>
-              <Input type="datetime-local" value={editing.due_date ? editing.due_date.slice(0, 16) : ''} onChange={e => setEditing(p => ({ ...p, due_date: e.target.value ? new Date(e.target.value).toISOString() : null }))} />
+              <Input type="datetime-local" value={editing.due_date ? toLocalDatetimeInput(editing.due_date) : ''} onChange={e => setEditing(p => ({ ...p, due_date: e.target.value ? new Date(e.target.value).toISOString() : null }))} />
             </div>
             <div>
               <div className="flex flex-wrap gap-1 mb-2">
