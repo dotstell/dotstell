@@ -3,14 +3,22 @@ import { createClient } from '@/lib/supabase/server'
 
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url)
-  const code = searchParams.get('code')
 
+  // Email confirmation (any device) — Supabase sends token_hash + type
+  const token_hash = searchParams.get('token_hash')
+  const type = searchParams.get('type')
+  if (token_hash && type) {
+    const supabase = await createClient()
+    const { error } = await supabase.auth.verifyOtp({ token_hash, type: type as any })
+    if (!error) return NextResponse.redirect(`${origin}/dashboard`)
+  }
+
+  // OAuth / PKCE — same browser as signup, sends code
+  const code = searchParams.get('code')
   if (code) {
     const supabase = await createClient()
     const { error } = await supabase.auth.exchangeCodeForSession(code)
-    if (!error) {
-      return NextResponse.redirect(`${origin}/dashboard`)
-    }
+    if (!error) return NextResponse.redirect(`${origin}/dashboard`)
   }
 
   return NextResponse.redirect(`${origin}/auth/login?error=confirmation_failed`)
