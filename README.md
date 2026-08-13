@@ -2,7 +2,7 @@
 
 <br/>
 
-<img src="https://raw.githubusercontent.com/dotstell/dotstell/main/banner.svg" alt="dotstell" width="100%" />
+<img src="banner.svg" alt="dotstell" width="100%" />
 
 <br/>
 <br/>
