@@ -2,7 +2,7 @@
 
 <br/>
 
-<img src="public/logo-full.svg" alt="Dotstell" width="400" />
+<img src="https://raw.githubusercontent.com/dotstell/dotstell/main/banner.svg" alt="dotstell" width="100%" />
 
 <br/>
 <br/>

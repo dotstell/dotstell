@@ -1,0 +1,63 @@
+<svg width="1200" height="400" viewBox="0 0 1200 400" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1200" y2="400" gradientUnits="userSpaceOnUse">
+      <stop offset="0%"   stop-color="#0d0b1e"/>
+      <stop offset="100%" stop-color="#080614"/>
+    </linearGradient>
+    <radialGradient id="bloom" cx="50%" cy="50%" r="50%">
+      <stop offset="0%"   stop-color="#7c6aff" stop-opacity="0.45"/>
+      <stop offset="100%" stop-color="#7c6aff" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1200" height="400" rx="14" fill="url(#bg)"/>
+
+  <!-- Constellation  center:(290,200) -->
+  <line x1="290" y1="70"  x2="414" y2="161" stroke="#7c6aff" stroke-width="1.6" stroke-opacity="0.6"/>
+  <line x1="414" y1="161" x2="370" y2="300" stroke="#7c6aff" stroke-width="1.6" stroke-opacity="0.6"/>
+  <line x1="370" y1="300" x2="210" y2="300" stroke="#7c6aff" stroke-width="1.6" stroke-opacity="0.6"/>
+  <line x1="210" y1="300" x2="166" y2="161" stroke="#7c6aff" stroke-width="1.6" stroke-opacity="0.6"/>
+  <line x1="166" y1="161" x2="290" y2="70"  stroke="#7c6aff" stroke-width="1.6" stroke-opacity="0.6"/>
+
+  <line x1="290" y1="200" x2="290" y2="70"  stroke="#7c6aff" stroke-width="1" stroke-opacity="0.3" stroke-dasharray="22 16"/>
+  <line x1="290" y1="200" x2="414" y2="161" stroke="#7c6aff" stroke-width="1" stroke-opacity="0.3" stroke-dasharray="22 16"/>
+  <line x1="290" y1="200" x2="370" y2="300" stroke="#7c6aff" stroke-width="1" stroke-opacity="0.3" stroke-dasharray="22 16"/>
+  <line x1="290" y1="200" x2="210" y2="300" stroke="#7c6aff" stroke-width="1" stroke-opacity="0.3" stroke-dasharray="22 16"/>
+  <line x1="290" y1="200" x2="166" y2="161" stroke="#7c6aff" stroke-width="1" stroke-opacity="0.3" stroke-dasharray="22 16"/>
+
+  <circle cx="290" cy="70"  r="6.5" fill="#7c6aff"/>
+  <circle cx="414" cy="161" r="5"   fill="#a594ff"/>
+  <circle cx="370" cy="300" r="6.5" fill="#7c6aff"/>
+  <circle cx="210" cy="300" r="5"   fill="#a594ff"/>
+  <circle cx="166" cy="161" r="6.5" fill="#7c6aff"/>
+
+  <circle cx="290" cy="200" r="48" fill="url(#bloom)"/>
+  <circle cx="290" cy="200" r="14" fill="#7c6aff"/>
+  <circle cx="290" cy="200" r="7"  fill="white" fill-opacity="0.92"/>
+
+  <!-- Divider -->
+  <line x1="590" y1="55" x2="590" y2="345" stroke="#7c6aff" stroke-width="0.5" stroke-opacity="0.15"/>
+
+  <!-- Wordmark: "dots" white, "tell" purple -->
+  <text x="640" y="188"
+        font-family="system-ui,-apple-system,BlinkMacSystemFont,sans-serif"
+        font-size="72" font-weight="700" letter-spacing="-2" fill="#eeeef8">dots</text>
+  <text x="840" y="188"
+        font-family="system-ui,-apple-system,BlinkMacSystemFont,sans-serif"
+        font-size="72" font-weight="700" letter-spacing="-2" fill="#9080ff">tell</text>
+
+  <line x1="640" y1="205" x2="1110" y2="205" stroke="#7c6aff" stroke-width="1.2" stroke-opacity="0.3"/>
+
+  <text x="642" y="240"
+        font-family="system-ui,-apple-system,BlinkMacSystemFont,sans-serif"
+        font-size="20" font-weight="400" fill="#a594ff">Your knowledge is scattered. Dotstell connects it.</text>
+
+  <text x="642" y="270"
+        font-family="system-ui,-apple-system,BlinkMacSystemFont,sans-serif"
+        font-size="15" font-weight="400" fill="#6b6b88">Notes · People · Tasks · Bookmarks · Wikilinks · Knowledge Graph · Desktop App</text>
+
+  <text x="642" y="355"
+        font-family="system-ui,-apple-system,sans-serif"
+        font-size="13" fill="#44445a" letter-spacing="0.5">dotstell.app · hello@dotstell.com · AGPL-3.0 · Built by dotstell Labs</text>
+</svg>
