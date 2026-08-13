@@ -9,8 +9,12 @@ export const metadata: Metadata = {
   description: 'A personal knowledge graph and memory platform — connect your notes, people, tasks and bookmarks.',
   authors: [{ name: 'Dotstell', url: 'https://dotstell.com' }],
   icons: {
-    icon: '/favicon.svg',
-    shortcut: '/favicon.svg',
+    icon: [
+      { url: '/favicon.svg', type: 'image/svg+xml' },
+      { url: '/favicon-192x192.png', type: 'image/png', sizes: '192x192' },
+    ],
+    shortcut: '/favicon-192x192.png',
+    apple: '/apple-touch-icon.png',
   },
 }
 
