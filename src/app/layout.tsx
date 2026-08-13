@@ -7,6 +7,7 @@ import { Analytics } from '@vercel/analytics/next'
 export const metadata: Metadata = {
   title: 'Dotstell — Connect your knowledge',
   description: 'A personal knowledge graph and memory platform — connect your notes, people, tasks and bookmarks.',
+  authors: [{ name: 'Dotstell', url: 'https://dotstell.com' }],
   icons: {
     icon: '/favicon.svg',
     shortcut: '/favicon.svg',

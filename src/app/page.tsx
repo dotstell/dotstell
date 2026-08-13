@@ -79,7 +79,10 @@ export default function LandingPage() {
 
         {/* Footer note */}
         <p className="text-xs text-[var(--muted-foreground)] mt-10">
-          Open source · Built in public · Part of the Dotstell ecosystem
+          Open source · Built in public · Part of the Dotstell ecosystem ·{' '}
+          <a href="mailto:hello@dotstell.com" className="hover:text-[var(--foreground)] transition-colors">
+            hello@dotstell.com
+          </a>
         </p>
       </div>
     </main>

@@ -2,7 +2,7 @@
 name = "dotstell"
 version = "0.2.1"
 description = "Dotstell — your knowledge graph"
-authors = ["Dotstell"]
+authors = ["Dotstell <hello@dotstell.com>"]
 edition = "2021"
 
 [lib]
