@@ -17,10 +17,15 @@ const G_ROUTES: Record<string, string> = {
   g: '/graph',
 }
 
-function isEditable(el: EventTarget | null): boolean {
-  if (!el || !(el instanceof HTMLElement)) return false
-  if (['INPUT', 'TEXTAREA', 'SELECT'].includes(el.tagName)) return true
-  if (el.isContentEditable) return true
+function isEditable(el: Element | null): boolean {
+  if (!el) return false
+  // Walk up from active element to catch nested editables (Tiptap, etc.)
+  let node: Element | null = el
+  while (node && node !== document.body) {
+    if (['INPUT', 'TEXTAREA', 'SELECT'].includes(node.tagName)) return true
+    if ((node as HTMLElement).isContentEditable) return true
+    node = node.parentElement
+  }
   return false
 }
 
@@ -80,10 +85,12 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   }, [])
 
   // G-key vim-style navigation: press G, then D/N/P/B/T/G
+  // Uses capture phase so child stopPropagation calls can't block it.
+  // Checks document.activeElement (more reliable than e.target).
   useEffect(() => {
     function handleGKey(e: KeyboardEvent) {
       if (e.metaKey || e.ctrlKey || e.altKey) return
-      if (isEditable(e.target)) return
+      if (isEditable(document.activeElement)) return
 
       if (!waitingRef.current) {
         if (e.key === 'g' || e.key === 'G') {
@@ -105,9 +112,9 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         }
       }
     }
-    window.addEventListener('keydown', handleGKey)
+    document.addEventListener('keydown', handleGKey, true)
     return () => {
-      window.removeEventListener('keydown', handleGKey)
+      document.removeEventListener('keydown', handleGKey, true)
       if (gTimer.current) clearTimeout(gTimer.current)
     }
   }, [router])
