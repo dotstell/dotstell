@@ -167,21 +167,37 @@ function GraphPageInner() {
   // Effect 1: Build nodes ONLY when items or filter changes, then fit viewport
   useEffect(() => {
     const filtered = filter === 'all' ? items : items.filter(i => i.type === filter)
-    const cols = 5, xGap = 230, yGap = 130
+    const cols = 5, xGap = 240, yGap = 150
     const typeOrder = ['note', 'person', 'bookmark', 'task']
     const sorted = [...filtered].sort((a, b) => typeOrder.indexOf(a.type) - typeOrder.indexOf(b.type))
 
     const savedPos = loadSavedPositions()
-    setNodes(prev => {
-      const memMap = new Map(prev.map(n => [n.id, n.position]))
-      return sorted.map((item, idx) => ({
-        id: item.id,
-        type: 'graphNode',
-        position: savedPos.get(item.id) ?? memMap.get(item.id) ?? { x: (idx % cols) * xGap, y: Math.floor(idx / cols) * yGap },
-        data: { label: item.title, type: item.type, selected: false },
-      }))
+
+    // Collect positions already claimed by nodes that have a saved position,
+    // so grid-assigned nodes never land on top of them.
+    const claimed: Array<{ x: number; y: number }> = []
+    sorted.forEach(item => {
+      const p = savedPos.get(item.id)
+      if (p) claimed.push(p)
     })
-    // Re-fit after nodes rebuild — setTimeout gives ReactFlow time to render new nodes
+
+    let gridSlot = 0
+    const newNodes = sorted.map(item => {
+      const saved = savedPos.get(item.id)
+      if (saved) {
+        return { id: item.id, type: 'graphNode', position: saved, data: { label: item.title, type: item.type, selected: false } }
+      }
+      // Advance the grid slot until it doesn't collide with any claimed position
+      let pos: { x: number; y: number }
+      do {
+        pos = { x: (gridSlot % cols) * xGap, y: Math.floor(gridSlot / cols) * yGap }
+        gridSlot++
+      } while (claimed.some(p => Math.abs(p.x - pos.x) < xGap * 0.6 && Math.abs(p.y - pos.y) < yGap * 0.6))
+      claimed.push(pos)
+      return { id: item.id, type: 'graphNode', position: pos, data: { label: item.title, type: item.type, selected: false } }
+    })
+
+    setNodes(newNodes)
     setTimeout(() => fitView({ padding: 0.15, duration: 400 }), 80)
   }, [items, filter, setNodes, fitView])
 
