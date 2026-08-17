@@ -1,11 +1,28 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
+import { useRouter } from 'next/navigation'
 import { Sidebar } from './Sidebar'
 import { CommandPalette } from '@/components/command/CommandPalette'
 import { OnboardingFlow } from '@/components/onboarding/OnboardingFlow'
 import { TaskReminders } from '@/components/tasks/TaskReminders'
 import { createClient } from '@/lib/supabase/client'
 import { APP_VERSION, RELEASES_URL } from '@/lib/version'
+
+const G_ROUTES: Record<string, string> = {
+  d: '/dashboard',
+  n: '/notes',
+  p: '/people',
+  b: '/bookmarks',
+  t: '/tasks',
+  g: '/graph',
+}
+
+function isEditable(el: EventTarget | null): boolean {
+  if (!el || !(el instanceof HTMLElement)) return false
+  if (['INPUT', 'TEXTAREA', 'SELECT'].includes(el.tagName)) return true
+  if (el.isContentEditable) return true
+  return false
+}
 
 const USER_SCOPED_KEYS = [
   'dotstell-note-tabs',
@@ -15,9 +32,13 @@ const USER_SCOPED_KEYS = [
 ]
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
+  const router = useRouter()
   const [collapsed, setCollapsed]     = useState(false)
   const [paletteOpen, setPaletteOpen] = useState(false)
   const [isMobile, setIsMobile]       = useState(false)
+  const [gHint, setGHint]             = useState(false)
+  const gTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const waitingRef = useRef(false)
 
   // Wipe user-scoped localStorage state when a different account is detected
   useEffect(() => {
@@ -58,6 +79,39 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     return () => window.removeEventListener('keydown', handleKey)
   }, [])
 
+  // G-key vim-style navigation: press G, then D/N/P/B/T/G
+  useEffect(() => {
+    function handleGKey(e: KeyboardEvent) {
+      if (e.metaKey || e.ctrlKey || e.altKey) return
+      if (isEditable(e.target)) return
+
+      if (!waitingRef.current) {
+        if (e.key === 'g' || e.key === 'G') {
+          waitingRef.current = true
+          setGHint(true)
+          gTimer.current = setTimeout(() => {
+            waitingRef.current = false
+            setGHint(false)
+          }, 1500)
+        }
+      } else {
+        if (gTimer.current) clearTimeout(gTimer.current)
+        waitingRef.current = false
+        setGHint(false)
+        const route = G_ROUTES[e.key.toLowerCase()]
+        if (route) {
+          e.preventDefault()
+          router.push(route)
+        }
+      }
+    }
+    window.addEventListener('keydown', handleGKey)
+    return () => {
+      window.removeEventListener('keydown', handleGKey)
+      if (gTimer.current) clearTimeout(gTimer.current)
+    }
+  }, [router])
+
   const marginLeft = isMobile ? 0 : collapsed ? 64 : 240
 
   return (
@@ -75,6 +129,28 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         {children}
       </main>
       <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
+      {gHint && (
+        <div style={{
+          position: 'fixed', bottom: 48, right: 20, zIndex: 9999,
+          backgroundColor: 'var(--popover)',
+          border: '1px solid var(--border)',
+          borderRadius: 8, padding: '6px 14px',
+          fontSize: 13, fontWeight: 500,
+          color: 'var(--foreground)',
+          boxShadow: '0 4px 20px rgba(0,0,0,0.4)',
+          display: 'flex', alignItems: 'center', gap: 8,
+          pointerEvents: 'none',
+          animation: 'fadeIn 0.1s ease',
+        }}>
+          <kbd style={{
+            fontSize: 12, fontWeight: 700, fontFamily: 'monospace',
+            backgroundColor: 'var(--primary)', color: 'white',
+            padding: '1px 7px', borderRadius: 4,
+          }}>G</kbd>
+          <span style={{ color: 'var(--muted-foreground)' }}>→</span>
+          <span style={{ color: 'var(--muted-foreground)', fontSize: 12 }}>D N P B T G</span>
+        </div>
+      )}
       <OnboardingFlow />
       <TaskReminders />
       <a

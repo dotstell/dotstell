@@ -356,8 +356,20 @@ export default function HelpPage() {
               <Tip icon="⌨️" title="Command palette — Ctrl+K"
                 body={<>Press <Keys keys={['Ctrl', 'K']} /> (or <Keys keys={['Cmd', 'K']} /> on Mac) from anywhere in the app. When empty it shows quick navigation shortcuts. Type 2+ characters to search across all content types at once.</>}
               />
-              <Tip icon="⚡" title="Navigate from the palette"
-                body="When the command palette is open and the input is empty, it shows quick navigation items for all sections — click any of them or use the arrow keys and press Enter to jump there instantly."
+              <Tip icon="⚡" title="G-key navigation"
+                body={
+                  <span style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    <span>Press <Kbd>G</Kbd> from anywhere in the app (not while typing), then press a second key to jump to any section. A small hint badge appears at the bottom-right to confirm the first key was registered.</span>
+                    <span style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 2 }}>
+                      <Tag>G D — Dashboard</Tag>
+                      <Tag>G N — Notes</Tag>
+                      <Tag>G P — People</Tag>
+                      <Tag>G B — Bookmarks</Tag>
+                      <Tag>G T — Tasks</Tag>
+                      <Tag>G G — Graph</Tag>
+                    </span>
+                  </span>
+                }
               />
               <Tip icon="🔍" title="Universal search page"
                 body={<>The <Link href="/search" style={{ color: 'var(--primary)' }}>Search page</Link> (accessible via the sidebar search bar) lets you search across all content types simultaneously. Results show type icons so you know immediately what kind of item matched.</>}
@@ -368,8 +380,14 @@ export default function HelpPage() {
             <Section id="shortcuts" title="⌨️ Keyboard shortcuts">
               {[
                 { category: 'Global', rows: [
-                  { keys: ['Ctrl', 'K'],          desc: 'Open command palette / universal search' },
-                  { keys: ['Ctrl', 'N'],          desc: 'Create a new note (from within notes area)' },
+                  { keys: ['Ctrl', 'K'],   desc: 'Open command palette / universal search' },
+                  { keys: ['Ctrl', 'N'],   desc: 'Create a new note (from within notes area)' },
+                  { keys: ['G', 'D'],      desc: 'Go to Dashboard' },
+                  { keys: ['G', 'N'],      desc: 'Go to Notes' },
+                  { keys: ['G', 'P'],      desc: 'Go to People' },
+                  { keys: ['G', 'B'],      desc: 'Go to Bookmarks' },
+                  { keys: ['G', 'T'],      desc: 'Go to Tasks' },
+                  { keys: ['G', 'G'],      desc: 'Go to Graph' },
                 ]},
                 { category: 'Note editor', rows: [
                   { keys: ['/'],                   desc: 'Open slash command menu' },
