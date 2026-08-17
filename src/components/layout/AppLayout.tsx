@@ -5,6 +5,7 @@ import { CommandPalette } from '@/components/command/CommandPalette'
 import { OnboardingFlow } from '@/components/onboarding/OnboardingFlow'
 import { TaskReminders } from '@/components/tasks/TaskReminders'
 import { createClient } from '@/lib/supabase/client'
+import { APP_VERSION, RELEASES_URL } from '@/lib/version'
 
 const USER_SCOPED_KEYS = [
   'dotstell-note-tabs',
@@ -76,6 +77,23 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
       <OnboardingFlow />
       <TaskReminders />
+      <a
+        href={RELEASES_URL}
+        target="_blank"
+        rel="noopener noreferrer"
+        style={{
+          position: 'fixed', bottom: 12, right: 16, zIndex: 10,
+          fontSize: 10, color: 'var(--muted-foreground)', letterSpacing: '0.04em',
+          textDecoration: 'none', opacity: 0.45,
+          transition: 'opacity 0.15s',
+          pointerEvents: 'auto',
+          userSelect: 'none',
+        }}
+        onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.opacity = '0.9' }}
+        onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.opacity = '0.45' }}
+      >
+        v{APP_VERSION}
+      </a>
     </div>
   )
 }
