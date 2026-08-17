@@ -4,12 +4,13 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import {
   FileText, Bookmark, Users, CheckSquare, Network,
-  LayoutDashboard, LogOut, Search, ChevronLeft, ChevronRight, Tag, Menu, X
+  LayoutDashboard, LogOut, Search, ChevronLeft, ChevronRight, Tag, Menu, X, HelpCircle
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { DotstellLogo, ConstellationIcon } from '@/components/brand/DotstellLogo'
 import { ThemePicker } from '@/components/ui/ThemePicker'
 import { useTheme, type ThemeId } from '@/hooks/useTheme'
+import { APP_VERSION, RELEASES_URL } from '@/lib/version'
 
 const NAV_ITEMS = [
   { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
@@ -19,6 +20,7 @@ const NAV_ITEMS = [
   { href: '/tasks',     icon: CheckSquare,     label: 'Tasks' },
   { href: '/tags',      icon: Tag,             label: 'Tags' },
   { href: '/graph',     icon: Network,         label: 'Graph' },
+  { href: '/help',      icon: HelpCircle,      label: 'Help' },
 ]
 
 interface TooltipState {
@@ -219,6 +221,16 @@ export function Sidebar({ onOpenPalette }: { onOpenPalette?: () => void }) {
               <LogOut size={17} />
               <span>Sign out</span>
             </button>
+          </div>
+          <div style={{ padding: '4px 14px 10px', flexShrink: 0 }}>
+            <a
+              href={RELEASES_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ fontSize: 10, color: 'var(--sidebar-muted)', letterSpacing: '0.04em', fontWeight: 500, textDecoration: 'none', opacity: 0.6 }}
+            >
+              v{APP_VERSION}
+            </a>
           </div>
         </aside>
       </>
@@ -439,6 +451,22 @@ export function Sidebar({ onOpenPalette }: { onOpenPalette?: () => void }) {
             onMouseLeave={hideTip}
           >
             <ConstellationIcon size={14} />
+          </div>
+        )}
+        {/* ── Web version ── */}
+        {!isDesktop && !collapsed && (
+          <div style={{ padding: '4px 14px 10px', flexShrink: 0 }}>
+            <a
+              href={RELEASES_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                fontSize: 10, color: 'var(--sidebar-muted)', letterSpacing: '0.04em',
+                fontWeight: 500, textDecoration: 'none', opacity: 0.6,
+              }}
+            >
+              v{APP_VERSION}
+            </a>
           </div>
         )}
       </aside>
