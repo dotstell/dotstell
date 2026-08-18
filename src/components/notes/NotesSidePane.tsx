@@ -266,9 +266,6 @@ export function NotesSidePane({ width = 220, activeNoteId }: Props) {
     const isDropTarget = allowReorder && dragNoteId && dragNoteId !== note.id && dragOverNoteId === note.id
     return (
       <div
-        draggable={allowReorder}
-        onDragStart={e => handleNoteDragStart(e, note.id)}
-        onDragEnd={() => { setDragNoteId(null); setDragOverNoteId(null) }}
         onDragOver={e => {
           if (!dragNoteId || dragNoteId === note.id || !allowReorder) return
           e.preventDefault()
@@ -292,7 +289,20 @@ export function NotesSidePane({ width = 220, activeNoteId }: Props) {
         }}
       >
         {allowReorder && (
-          <GripVertical size={12} style={{ flexShrink: 0, color: 'var(--sidebar-muted)', opacity: 0.4, cursor: 'grab', marginLeft: 4 }} />
+          <div
+            draggable
+            onDragStart={e => handleNoteDragStart(e, note.id)}
+            onDragEnd={() => { setDragNoteId(null); setDragOverNoteId(null) }}
+            style={{
+              flexShrink: 0, cursor: 'grab', display: 'flex', alignItems: 'center',
+              height: ROW_H, padding: '0 2px 0 4px',
+              color: 'var(--sidebar-muted)', opacity: 0.4,
+            }}
+            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.opacity = '0.8' }}
+            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.opacity = '0.4' }}
+          >
+            <GripVertical size={12} />
+          </div>
         )}
         <button
           type="button"
@@ -303,7 +313,7 @@ export function NotesSidePane({ width = 220, activeNoteId }: Props) {
             display: 'flex', alignItems: 'center', gap: 7,
             flex: 1, height: ROW_H,
             paddingLeft: indent > 0 ? indent : (allowReorder ? 4 : 6), paddingRight: 8,
-            border: 'none', cursor: allowReorder ? 'grab' : 'pointer', textAlign: 'left',
+            border: 'none', cursor: 'pointer', textAlign: 'left',
             borderRadius: 6,
             borderLeft: isActive ? '2px solid var(--primary)' : '2px solid transparent',
             backgroundColor: isActive ? 'var(--sidebar-active-bg)' : 'transparent',
