@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { rateLimit } from '@/lib/ratelimit'
 
 export async function GET(req: NextRequest) {
   const supabase = await createClient()
@@ -10,7 +11,10 @@ export async function GET(req: NextRequest) {
   const q = searchParams.get('q')
 
   let query = supabase.from('people').select('*').eq('user_id', user.id).order('name')
-  if (q) query = query.ilike('name', `%${q}%`)
+  if (q) {
+    const safe = q.slice(0, 200).replace(/%/g, '\\%').replace(/_/g, '\\_')
+    query = query.ilike('name', `%${safe}%`)
+  }
 
   const { data, error } = await query
   if (error) return NextResponse.json({ error: 'An unexpected error occurred.' }, { status: 500 })
@@ -21,6 +25,8 @@ export async function POST(req: NextRequest) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const rl = rateLimit(`people-post:${user.id}`, 30, 60_000)
+  if (rl) return rl
 
   const body = await req.json()
   const { data, error } = await supabase.from('people').insert({

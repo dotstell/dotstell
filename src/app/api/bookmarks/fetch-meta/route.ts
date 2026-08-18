@@ -23,9 +23,16 @@ export async function GET(req: NextRequest) {
       /^10\./.test(host) ||
       /^172\.(1[6-9]|2\d|3[01])\./.test(host) ||
       /^192\.168\./.test(host) ||
-      /^169\.254\./.test(host) ||   // link-local / AWS metadata
+      /^169\.254\./.test(host) ||     // link-local / AWS metadata
+      /^100\.(6[4-9]|[7-9]\d|1[01]\d|12[0-7])\./.test(host) ||  // CGNAT
       /^::1$/.test(host) ||
-      /^fc00:/.test(host) ||
+      /^fc00:/i.test(host) ||
+      /^fd[0-9a-f]{2}:/i.test(host) || // ULA IPv6
+      /^::ffff:127\./i.test(host) ||   // IPv4-mapped loopback
+      /^::ffff:10\./i.test(host) ||    // IPv4-mapped RFC-1918
+      /^::ffff:192\.168\./i.test(host) ||
+      /^::ffff:172\.(1[6-9]|2\d|3[01])\./i.test(host) ||
+      /^::ffff:169\.254\./i.test(host) ||
       host.endsWith('.internal') ||
       host.endsWith('.local')
     if (isPrivate) return NextResponse.json({ error: 'Invalid URL' }, { status: 400 })

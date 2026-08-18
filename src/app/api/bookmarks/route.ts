@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { rateLimit } from '@/lib/ratelimit'
 
 export async function GET(req: NextRequest) {
   const supabase = await createClient()
@@ -24,6 +25,8 @@ export async function POST(req: NextRequest) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const rl = rateLimit(`bookmarks-post:${user.id}`, 60, 60_000)
+  if (rl) return rl
 
   const body = await req.json()
   const { data, error } = await supabase.from('bookmarks').insert({

@@ -6,7 +6,14 @@ export async function POST(req: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
+  const contentLength = req.headers.get('content-length')
+  if (contentLength && parseInt(contentLength) > 10 * 1024 * 1024) {
+    return NextResponse.json({ error: 'Payload too large (max 10 MB)' }, { status: 413 })
+  }
   const { html } = await req.json()
+  if (!html || html.length > 10 * 1024 * 1024) {
+    return NextResponse.json({ error: 'Payload too large (max 10 MB)' }, { status: 413 })
+  }
 
   // Count how many bookmarks land in each deepest folder
   const folderCounts = new Map<string, number>()

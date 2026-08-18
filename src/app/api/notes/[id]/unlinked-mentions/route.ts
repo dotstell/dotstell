@@ -38,13 +38,16 @@ export async function GET(
   const alreadyLinkedIds = new Set((formalLinks ?? []).map(l => l.source_id))
   alreadyLinkedIds.add(id) // exclude the note itself
 
+  // Escape % and _ so the title doesn't expand into a wildcard pattern
+  const safeTitle = title.slice(0, 200).replace(/%/g, '\\%').replace(/_/g, '\\_')
+
   // Search for notes whose content or title mentions this note's title as plain text
   // Uses Supabase ilike — content is HTML so we search for the raw text occurrence
   const { data: mentioning, error: searchErr } = await supabase
     .from('notes')
     .select('id, title, updated_at, content')
     .eq('user_id', user.id)
-    .ilike('content', `%${title}%`)
+    .ilike('content', `%${safeTitle}%`)
     .neq('id', id)
     .order('updated_at', { ascending: false })
     .limit(20)
