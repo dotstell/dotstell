@@ -45,12 +45,13 @@ export function NotesSidePane({ width = 220, activeNoteId }: Props) {
   const [dragNoteId,     setDragNoteId]     = useState<string | null>(null)
   const [dropNbId,       setDropNbId]       = useState<string | null>(null)
   const [dragOverNoteId, setDragOverNoteId] = useState<string | null>(null)
-  const [pinnedIds, setPinnedIds]             = useState<Set<string>>(() => {
-    if (typeof window === 'undefined') return new Set()
-    try { return new Set(JSON.parse(localStorage.getItem('dotstell-pinned-notes') ?? '[]')) } catch { return new Set() }
-  })
+  const [pinnedIds, setPinnedIds] = useState<Set<string>>(new Set())
   const newNbRef    = useRef<HTMLInputElement>(null)
   const dragNoteRef = useRef<string | null>(null)   // sync ref so dragover/drop see current value without waiting for re-render
+
+  useEffect(() => {
+    try { setPinnedIds(new Set(JSON.parse(localStorage.getItem('dotstell-pinned-notes') ?? '[]'))) } catch {}
+  }, [])
 
   const fetchNotes = useCallback(async () => {
     const params = new URLSearchParams({ root_only: 'true' })
@@ -288,7 +289,7 @@ export function NotesSidePane({ width = 220, activeNoteId }: Props) {
         }}
         style={{
           display: 'flex', alignItems: 'center',
-          opacity: dragNoteId === note.id ? 0.35 : 1,
+          opacity: dragNoteId === note.id && dragOverNoteId !== null ? 0.35 : 1,
           borderTop: isDropTarget ? '2px solid var(--primary)' : '2px solid transparent',
           transition: 'opacity 0.15s, border-color 0.1s',
         }}
