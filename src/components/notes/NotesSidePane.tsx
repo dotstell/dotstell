@@ -2,8 +2,18 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import {
+  DndContext, DragEndEvent, closestCenter,
+  PointerSensor, useSensor, useSensors,
+} from '@dnd-kit/core'
+import {
+  SortableContext, arrayMove, useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
+import {
   Plus, Search, ChevronDown, ChevronRight, FileText, Tag,
-  Pencil, Trash2, BookOpen, FolderPlus, X, StickyNote, Pin, PinOff, Copy, ArrowDownUp, GripVertical,
+  Pencil, Trash2, BookOpen, FolderPlus, X, StickyNote,
+  Pin, PinOff, Copy, ArrowDownUp, GripVertical,
 } from 'lucide-react'
 import { Note } from '@/types'
 import { useNotebooks, notebookTag, NOTEBOOK_TAG_PREFIX } from '@/hooks/useNotebooks'
@@ -15,12 +25,87 @@ interface Props {
   activeNoteId?: string
 }
 
-// Shared row height and spacing constants — matches sidebar
-const ROW_H    = 36
-const ICON_SZ  = 15
-const FONT_SM  = 12
-const FONT_MD  = 13
+const ROW_H   = 36
+const FONT_SM = 12
+const FONT_MD = 13
+const ICON_SZ = 15
 
+// ── Sortable note row — must live at module level so useSortable has stable identity ──
+function SortableNoteItem({
+  note, isActive, isPinned, onClick, onContextMenu,
+}: {
+  note: Note
+  isActive: boolean
+  isPinned: boolean
+  onClick: () => void
+  onContextMenu: (e: React.MouseEvent) => void
+}) {
+  const {
+    attributes, listeners, setNodeRef, setActivatorNodeRef,
+    transform, transition, isDragging,
+  } = useSortable({ id: note.id })
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={{
+        display: 'flex', alignItems: 'center',
+        transform: CSS.Transform.toString(transform),
+        transition: transition ?? undefined,
+        opacity: isDragging ? 0.4 : 1,
+      }}
+    >
+      {/* Drag handle — only this area starts drag; click elsewhere navigates */}
+      <div
+        ref={setActivatorNodeRef}
+        {...attributes}
+        {...listeners}
+        style={{
+          flexShrink: 0, cursor: isDragging ? 'grabbing' : 'grab',
+          display: 'flex', alignItems: 'center',
+          height: ROW_H, padding: '0 2px 0 4px',
+          color: 'var(--sidebar-muted)', opacity: 0.35,
+          touchAction: 'none',
+        }}
+        onMouseEnter={e => { (e.currentTarget as HTMLElement).style.opacity = '0.8' }}
+        onMouseLeave={e => { (e.currentTarget as HTMLElement).style.opacity = '0.35' }}
+      >
+        <GripVertical size={12} />
+      </div>
+
+      {/* Click area — normal navigation, no drag interference */}
+      <button
+        type="button"
+        onClick={onClick}
+        onContextMenu={onContextMenu}
+        title={note.title || 'Untitled'}
+        style={{
+          display: 'flex', alignItems: 'center', gap: 7,
+          flex: 1, height: ROW_H,
+          paddingLeft: 4, paddingRight: 8,
+          border: 'none', cursor: 'pointer', textAlign: 'left',
+          borderRadius: 6,
+          borderLeft: isActive ? '2px solid var(--primary)' : '2px solid transparent',
+          backgroundColor: isActive ? 'var(--sidebar-active-bg)' : 'transparent',
+          color: isActive ? 'var(--sidebar-active-fg)' : 'var(--sidebar-muted)',
+          transition: 'background 0.1s, color 0.1s',
+          fontWeight: isActive ? 600 : 400,
+          boxSizing: 'border-box',
+        }}
+        onMouseEnter={e => { if (!isActive) { e.currentTarget.style.backgroundColor = 'var(--sidebar-hover-bg)'; e.currentTarget.style.color = 'var(--sidebar-hover-fg)' } }}
+        onMouseLeave={e => { if (!isActive) { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = 'var(--sidebar-muted)' } }}
+      >
+        <FileText size={13} style={{ flexShrink: 0, opacity: isActive ? 1 : 0.55, color: isActive ? 'var(--primary)' : 'inherit' }} />
+        <span style={{ fontSize: FONT_MD, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          {note.title || 'Untitled'}
+        </span>
+        {isPinned && <Pin size={10} style={{ flexShrink: 0, opacity: 0.5, color: 'var(--primary)' }} />}
+      </button>
+    </div>
+  )
+}
+
+// ── Main component ────────────────────────────────────────────────────────────
 export function NotesSidePane({ width = 220, activeNoteId }: Props) {
   const router   = useRouter()
   const pathname = usePathname()
@@ -31,27 +116,31 @@ export function NotesSidePane({ width = 220, activeNoteId }: Props) {
   const { notebooks, createNotebook, deleteNotebook, renameNotebook, reorderNotebook } = useNotebooks()
   const { openTab } = useNoteTabs()
 
-  const [sectionOpen, setSectionOpen] = useState<Record<string, boolean>>({
-    all: true, notebooks: true, tags: false,
-  })
+  const [sectionOpen,    setSectionOpen]    = useState<Record<string, boolean>>({ all: true, notebooks: true, tags: false })
   const [newNotebookMode, setNewNotebookMode] = useState(false)
   const [newNotebookName, setNewNotebookName] = useState('')
-  const [contextMenu, setContextMenu]         = useState<{ x: number; y: number; id: string; type: 'notebook' | 'note' } | null>(null)
-  const [renameTarget, setRenameTarget]       = useState<{ id: string; value: string; type: 'notebook' | 'note' } | null>(null)
-  const [hoveredNb, setHoveredNb]             = useState<string | null>(null)
+  const [contextMenu,    setContextMenu]    = useState<{ x: number; y: number; id: string; type: 'notebook' | 'note' } | null>(null)
+  const [renameTarget,   setRenameTarget]   = useState<{ id: string; value: string; type: 'notebook' | 'note' } | null>(null)
+  const [hoveredNb,      setHoveredNb]      = useState<string | null>(null)
   const [sidebarSort,    setSidebarSort]    = useState<'updated' | 'manual'>('updated')
+  const [dndMounted,     setDndMounted]     = useState(false)   // SSR gate for DndContext
   const [dragNbId,       setDragNbId]       = useState<string | null>(null)
   const [dragOverId,     setDragOverId]     = useState<string | null>(null)
-  const [dragNoteId,     setDragNoteId]     = useState<string | null>(null)
-  const [dropNbId,       setDropNbId]       = useState<string | null>(null)
-  const [dragOverNoteId, setDragOverNoteId] = useState<string | null>(null)
-  const [pinnedIds, setPinnedIds] = useState<Set<string>>(new Set())
-  const newNbRef    = useRef<HTMLInputElement>(null)
-  const dragNoteRef = useRef<string | null>(null)   // sync ref so dragover/drop see current value without waiting for re-render
+  const [pinnedIds,      setPinnedIds]      = useState<Set<string>>(new Set())
+  const newNbRef = useRef<HTMLInputElement>(null)
 
+  // Mount DnD only client-side to avoid SSR hydration mismatch
+  useEffect(() => setDndMounted(true), [])
+
+  // Load pinned-ids from localStorage after mount (avoids server/client mismatch)
   useEffect(() => {
     try { setPinnedIds(new Set(JSON.parse(localStorage.getItem('dotstell-pinned-notes') ?? '[]'))) } catch {}
   }, [])
+
+  // Pointer sensor with 8px activation distance — click never triggers drag
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
+  )
 
   const fetchNotes = useCallback(async () => {
     const params = new URLSearchParams({ root_only: 'true' })
@@ -83,7 +172,7 @@ export function NotesSidePane({ width = 220, activeNoteId }: Props) {
     return () => document.removeEventListener('mousedown', h)
   }, [contextMenu])
 
-  // ── Derived ──────────────────────────────────────────────────
+  // ── Derived ──────────────────────────────────────────────────────────────────
   const filteredNotes = search.trim()
     ? notes.filter(n => (n.title || 'Untitled').toLowerCase().includes(search.toLowerCase()))
     : notes
@@ -96,10 +185,10 @@ export function NotesSidePane({ width = 220, activeNoteId }: Props) {
       .sort((a, b) => (pinnedIds.has(b.id) || b.pinned ? 1 : 0) - (pinnedIds.has(a.id) || a.pinned ? 1 : 0))
   }
   const notebookIds = new Set(notebooks.flatMap(nb => notebookNotesMap[nb.id]?.map(n => n.id) ?? []))
-  // In manual mode: API already returns in pinned-first, sort_order order — preserve that
+
   const unnotebookedNotes = (() => {
     const base = filteredNotes.filter(n => !notebookIds.has(n.id))
-    if (sidebarSort === 'manual') return base // DB order (pinned DESC, sort_order ASC)
+    if (sidebarSort === 'manual') return base // DB returns pinned DESC, sort_order ASC
     return base.sort((a, b) => {
       const ap = pinnedIds.has(a.id) || !!a.pinned
       const bp = pinnedIds.has(b.id) || !!b.pinned
@@ -118,7 +207,7 @@ export function NotesSidePane({ width = 220, activeNoteId }: Props) {
   }
   const sortedTags = [...tagMap.entries()].sort((a, b) => b[1].length - a[1].length)
 
-  // ── Handlers ─────────────────────────────────────────────────
+  // ── Handlers ─────────────────────────────────────────────────────────────────
   function openNote(id: string) { router.push(`/notes/${id}`) }
 
   async function createNote(notebookName?: string) {
@@ -160,6 +249,7 @@ export function NotesSidePane({ width = 220, activeNoteId }: Props) {
     })
   }
 
+  // ── Notebook drag-to-reorder (HTML5 — only notebooks, not notes) ──────────
   function handleNbDragStart(id: string) { setDragNbId(id) }
   function handleNbDragOver(e: React.DragEvent, id: string) { e.preventDefault(); setDragOverId(id) }
   function handleNbDrop(targetId: string) {
@@ -168,40 +258,27 @@ export function NotesSidePane({ width = 220, activeNoteId }: Props) {
     setDragNbId(null); setDragOverId(null)
   }
 
-  // ── Note → Notebook drag ─────────────────────────────────────────────────
-  function handleNoteDragStart(e: React.DragEvent, noteId: string) {
-    e.stopPropagation()
-    dragNoteRef.current = noteId
-    setDragNoteId(noteId)
-    e.dataTransfer.effectAllowed = 'move'
-  }
-  function handleNbDropNote(e: React.DragEvent, nbId: string) {
-    e.preventDefault()
-    e.stopPropagation()
-    setDropNbId(null)
-    const noteId = dragNoteRef.current
-    if (!noteId) return
-    dragNoteRef.current = null
-    setDragNoteId(null)
-    const note = notes.find(n => n.id === noteId)
-    const nb   = notebooks.find(n => n.id === nbId)
-    if (!note || !nb) return
-    const tag       = notebookTag(nb.name)
-    const cleanTags = (note.tags ?? []).filter(t => !t.startsWith(NOTEBOOK_TAG_PREFIX))
-    if (note.tags?.includes(tag)) return // already in notebook
-    const newTags = [...cleanTags, tag]
-    fetch(`/api/notes/${note.id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ tags: newTags }),
-    }).then(r => {
-      if (r.ok) {
-        setNotes(prev => prev.map(n => n.id === note.id ? { ...n, tags: newTags } : n))
-        toast.success(`Moved to "${nb.name}"`)
-      }
-    })
+  // ── Note reorder via @dnd-kit ─────────────────────────────────────────────
+  async function handleSidebarDragEnd(event: DragEndEvent) {
+    const { active, over } = event
+    if (!over || active.id === over.id) return
+    const oldIdx = notes.findIndex(n => n.id === active.id)
+    const newIdx = notes.findIndex(n => n.id === over.id)
+    if (oldIdx === -1 || newIdx === -1) return
+    const reordered = arrayMove([...notes], oldIdx, newIdx)
+    setNotes(reordered)
+    await Promise.all(
+      reordered.map((n, i) =>
+        fetch(`/api/notes/${n.id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sort_order: i }),
+        })
+      )
+    )
   }
 
+  // ── Note context-menu actions ─────────────────────────────────────────────
   async function moveNoteToNotebook(note: Note, nbName: string | null) {
     const cleanTags = (note.tags ?? []).filter(t => !t.startsWith(NOTEBOOK_TAG_PREFIX))
     const newTags   = nbName ? [...cleanTags, notebookTag(nbName)] : cleanTags
@@ -215,31 +292,6 @@ export function NotesSidePane({ width = 220, activeNoteId }: Props) {
       toast.success(nbName ? `Moved to "${nbName}"` : 'Removed from notebook')
       setContextMenu(null)
     }
-  }
-
-  async function reorderNoteDrop(overNoteId: string) {
-    const sourceId = dragNoteRef.current
-    if (!sourceId || sourceId === overNoteId) return
-    const current = [...notes]
-    const fromIdx = current.findIndex(n => n.id === sourceId)
-    const toIdx   = current.findIndex(n => n.id === overNoteId)
-    if (fromIdx === -1 || toIdx === -1) return
-    const reordered = [...current]
-    const [moved] = reordered.splice(fromIdx, 1)
-    reordered.splice(toIdx, 0, moved)
-    setNotes(reordered)
-    // Persist new sort_order
-    await Promise.all(
-      reordered.map((n, i) =>
-        fetch(`/api/notes/${n.id}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ sort_order: i }),
-        })
-      )
-    )
-    // Switch to manual mode now that an explicit order exists
-    setSidebarSort('manual')
   }
 
   async function duplicateNote(note: Note) {
@@ -263,83 +315,38 @@ export function NotesSidePane({ width = 220, activeNoteId }: Props) {
     }
   }
 
-  // ── Sub-components ───────────────────────────────────────────
-
-  function NoteItem({ note, indent = 0, allowReorder = false }: { note: Note; indent?: number; allowReorder?: boolean }) {
+  // ── Plain note row (notebook/tag sections — no drag needed) ───────────────
+  function NoteItem({ note, indent = 0 }: { note: Note; indent?: number }) {
     const isActive = note.id === activeNoteId
     const isPinned = note.pinned || pinnedIds.has(note.id)
-    const isDropTarget = allowReorder && dragNoteId && dragNoteId !== note.id && dragOverNoteId === note.id
     return (
-      <div
-        onDragOver={e => {
-          if (!dragNoteRef.current || dragNoteRef.current === note.id || !allowReorder) return
-          e.preventDefault()
-          e.stopPropagation()
-          setDragOverNoteId(note.id)
-          setDropNbId(null)
-        }}
-        onDragLeave={() => { if (dragOverNoteId === note.id) setDragOverNoteId(null) }}
-        onDrop={e => {
-          e.stopPropagation()
-          if (!allowReorder || !dragNoteRef.current) return
-          setDragOverNoteId(null)
-          reorderNoteDrop(note.id)
-          dragNoteRef.current = null
-          setDragNoteId(null)
-        }}
+      <button
+        type="button"
+        onClick={() => openNote(note.id)}
+        onContextMenu={e => onContextMenu(e, note.id, 'note')}
+        title={note.title || 'Untitled'}
         style={{
-          display: 'flex', alignItems: 'center',
-          opacity: dragNoteId === note.id && dragOverNoteId !== null ? 0.35 : 1,
-          borderTop: isDropTarget ? '2px solid var(--primary)' : '2px solid transparent',
-          transition: 'opacity 0.15s, border-color 0.1s',
+          display: 'flex', alignItems: 'center', gap: 7,
+          width: '100%', height: ROW_H,
+          paddingLeft: indent > 0 ? indent : 6, paddingRight: 8,
+          border: 'none', cursor: 'pointer', textAlign: 'left',
+          borderRadius: 6,
+          borderLeft: isActive ? '2px solid var(--primary)' : '2px solid transparent',
+          backgroundColor: isActive ? 'var(--sidebar-active-bg)' : 'transparent',
+          color: isActive ? 'var(--sidebar-active-fg)' : 'var(--sidebar-muted)',
+          transition: 'background 0.1s, color 0.1s',
+          fontWeight: isActive ? 600 : 400,
+          boxSizing: 'border-box',
         }}
+        onMouseEnter={e => { if (!isActive) { e.currentTarget.style.backgroundColor = 'var(--sidebar-hover-bg)'; e.currentTarget.style.color = 'var(--sidebar-hover-fg)' } }}
+        onMouseLeave={e => { if (!isActive) { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = 'var(--sidebar-muted)' } }}
       >
-        {allowReorder && (
-          <div
-            draggable
-            onDragStart={e => handleNoteDragStart(e, note.id)}
-            onDragEnd={() => { dragNoteRef.current = null; setDragNoteId(null); setDragOverNoteId(null) }}
-            style={{
-              flexShrink: 0, cursor: 'grab', display: 'flex', alignItems: 'center',
-              height: ROW_H, padding: '0 2px 0 4px',
-              color: 'var(--sidebar-muted)', opacity: 0.4,
-            }}
-            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.opacity = '0.8' }}
-            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.opacity = '0.4' }}
-          >
-            <GripVertical size={12} />
-          </div>
-        )}
-        <button
-          type="button"
-          onClick={() => openNote(note.id)}
-          onContextMenu={e => onContextMenu(e, note.id, 'note')}
-          title={note.title || 'Untitled'}
-          style={{
-            display: 'flex', alignItems: 'center', gap: 7,
-            flex: 1, height: ROW_H,
-            paddingLeft: indent > 0 ? indent : (allowReorder ? 4 : 6), paddingRight: 8,
-            border: 'none', cursor: 'pointer', textAlign: 'left',
-            borderRadius: 6,
-            borderLeft: isActive ? '2px solid var(--primary)' : '2px solid transparent',
-            backgroundColor: isActive ? 'var(--sidebar-active-bg)' : 'transparent',
-            color: isActive ? 'var(--sidebar-active-fg)' : 'var(--sidebar-muted)',
-            transition: 'background 0.1s, color 0.1s',
-            fontWeight: isActive ? 600 : 400,
-            boxSizing: 'border-box',
-          }}
-          onMouseEnter={e => { if (!isActive) { e.currentTarget.style.backgroundColor = 'var(--sidebar-hover-bg)'; e.currentTarget.style.color = 'var(--sidebar-hover-fg)' } }}
-          onMouseLeave={e => { if (!isActive) { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = 'var(--sidebar-muted)' } }}
-        >
-          <FileText size={13} style={{ flexShrink: 0, opacity: isActive ? 1 : 0.55, color: isActive ? 'var(--primary)' : 'inherit' }} />
-          <span style={{ fontSize: FONT_MD, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-            {note.title || 'Untitled'}
-          </span>
-          {isPinned && (
-            <Pin size={10} style={{ flexShrink: 0, opacity: 0.5, color: 'var(--primary)' }} />
-          )}
-        </button>
-      </div>
+        <FileText size={13} style={{ flexShrink: 0, opacity: isActive ? 1 : 0.55, color: isActive ? 'var(--primary)' : 'inherit' }} />
+        <span style={{ fontSize: FONT_MD, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          {note.title || 'Untitled'}
+        </span>
+        {isPinned && <Pin size={10} style={{ flexShrink: 0, opacity: 0.5, color: 'var(--primary)' }} />}
+      </button>
     )
   }
 
@@ -364,21 +371,11 @@ export function NotesSidePane({ width = 220, activeNoteId }: Props) {
             ? <ChevronDown size={11} style={{ color: 'var(--sidebar-section-fg)', flexShrink: 0 }} />
             : <ChevronRight size={11} style={{ color: 'var(--sidebar-section-fg)', flexShrink: 0 }} />}
           {Icon && <Icon size={12} style={{ color: 'var(--sidebar-section-fg)', flexShrink: 0 }} />}
-          <span style={{
-            fontSize: FONT_SM, fontWeight: 600,
-            color: 'var(--sidebar-section-fg)',
-            textTransform: 'uppercase', letterSpacing: '0.09em',
-            flex: 1,
-          }}>
+          <span style={{ fontSize: FONT_SM, fontWeight: 600, color: 'var(--sidebar-section-fg)', textTransform: 'uppercase', letterSpacing: '0.09em', flex: 1 }}>
             {label}
           </span>
           {count !== undefined && count > 0 && (
-            <span style={{
-              fontSize: 10, fontWeight: 700,
-              color: 'var(--sidebar-muted)',
-              backgroundColor: 'var(--muted)',
-              padding: '1px 6px', borderRadius: 99,
-            }}>
+            <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--sidebar-muted)', backgroundColor: 'var(--muted)', padding: '1px 6px', borderRadius: 99 }}>
               {count}
             </span>
           )}
@@ -392,8 +389,7 @@ export function NotesSidePane({ width = 220, activeNoteId }: Props) {
               width: 24, height: 24, flexShrink: 0,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               background: 'none', border: 'none', borderRadius: 6, cursor: 'pointer',
-              color: 'var(--sidebar-muted)',
-              transition: 'background 0.12s, color 0.12s',
+              color: 'var(--sidebar-muted)', transition: 'background 0.12s, color 0.12s',
             }}
             onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'var(--sidebar-hover-bg)'; (e.currentTarget as HTMLElement).style.color = 'var(--sidebar-hover-fg)' }}
             onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'none'; (e.currentTarget as HTMLElement).style.color = 'var(--sidebar-muted)' }}
@@ -405,7 +401,7 @@ export function NotesSidePane({ width = 220, activeNoteId }: Props) {
     )
   }
 
-  // ── Render ───────────────────────────────────────────────────
+  // ── Render ────────────────────────────────────────────────────────────────
   return (
     <div style={{
       width, flexShrink: 0,
@@ -415,27 +411,23 @@ export function NotesSidePane({ width = 220, activeNoteId }: Props) {
       height: '100%', overflow: 'hidden',
     }}>
 
-      {/* ── Header ── */}
+      {/* Header */}
       <div style={{
         display: 'flex', alignItems: 'center', gap: 8,
         height: 48, paddingLeft: 14, paddingRight: 10,
-        borderBottom: '1px solid var(--sidebar-border)',
-        flexShrink: 0,
+        borderBottom: '1px solid var(--sidebar-border)', flexShrink: 0,
       }}>
         <StickyNote size={16} style={{ color: 'var(--primary)', flexShrink: 0 }} />
-        <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--foreground)', flex: 1 }}>
-          Notes
-        </span>
+        <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--foreground)', flex: 1 }}>Notes</span>
         <button
           type="button"
-          title="New note (Ctrl+N / Alt+N)"
+          title="New note"
           onClick={() => createNote()}
           style={{
             width: 28, height: 28, flexShrink: 0,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             backgroundColor: 'var(--primary)', color: 'white',
-            border: 'none', borderRadius: 8, cursor: 'pointer',
-            transition: 'opacity 0.12s',
+            border: 'none', borderRadius: 8, cursor: 'pointer', transition: 'opacity 0.12s',
           }}
           onMouseEnter={e => (e.currentTarget.style.opacity = '0.8')}
           onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
@@ -444,13 +436,10 @@ export function NotesSidePane({ width = 220, activeNoteId }: Props) {
         </button>
       </div>
 
-      {/* ── Search ── */}
+      {/* Search */}
       <div style={{ padding: '8px 10px', flexShrink: 0 }}>
         <div style={{ position: 'relative' }}>
-          <Search size={13} style={{
-            position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)',
-            color: 'var(--sidebar-muted)', pointerEvents: 'none',
-          }} />
+          <Search size={13} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--sidebar-muted)', pointerEvents: 'none' }} />
           <input
             value={search}
             onChange={e => setSearch(e.target.value)}
@@ -468,12 +457,7 @@ export function NotesSidePane({ width = 220, activeNoteId }: Props) {
             <button
               type="button"
               onClick={() => setSearch('')}
-              style={{
-                position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)',
-                background: 'none', border: 'none', cursor: 'pointer',
-                color: 'var(--sidebar-muted)', display: 'flex', alignItems: 'center',
-                padding: 2, borderRadius: 4,
-              }}
+              style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--sidebar-muted)', display: 'flex', alignItems: 'center', padding: 2, borderRadius: 4 }}
             >
               <X size={12} />
             </button>
@@ -481,43 +465,38 @@ export function NotesSidePane({ width = 220, activeNoteId }: Props) {
         </div>
       </div>
 
-      {/* ── Tree ── */}
+      {/* Tree */}
       <div style={{ flex: 1, overflowY: 'auto', padding: '0 6px 16px' }}>
 
-        {/* All Notes */}
+        {/* All Notes section */}
         <div style={{ display: 'flex', alignItems: 'center' }}>
           <div style={{ flex: 1 }}>
-            <SectionHeader
-              label="All notes" sKey="all"
-              count={filteredNotes.length}
-              icon={FileText}
-              onAdd={() => createNote()}
-            />
+            <SectionHeader label="All notes" sKey="all" count={filteredNotes.length} icon={FileText} onAdd={() => createNote()} />
           </div>
-          {/* Sort toggle */}
           <button
             type="button"
-            title={sidebarSort === 'manual' ? 'Sorted manually — click for last edited' : 'Sorted by last edited — click for manual order'}
+            title={sidebarSort === 'manual' ? 'Manual order — click for last edited' : 'Last edited — click for manual order'}
             onClick={() => setSidebarSort(s => s === 'updated' ? 'manual' : 'updated')}
             style={{
               width: 24, height: 24, flexShrink: 0,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               background: 'none', border: 'none', borderRadius: 6, cursor: 'pointer',
               color: sidebarSort === 'manual' ? 'var(--primary)' : 'var(--sidebar-muted)',
-              transition: 'background 0.12s, color 0.12s',
-              marginRight: 2,
+              transition: 'background 0.12s, color 0.12s', marginRight: 2,
             }}
-            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'var(--sidebar-hover-bg)'; (e.currentTarget as HTMLElement).style.color = sidebarSort === 'manual' ? 'var(--primary)' : 'var(--sidebar-hover-fg)' }}
-            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'none'; (e.currentTarget as HTMLElement).style.color = sidebarSort === 'manual' ? 'var(--primary)' : 'var(--sidebar-muted)' }}
+            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'var(--sidebar-hover-bg)' }}
+            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'none' }}
           >
             <ArrowDownUp size={11} />
           </button>
         </div>
+
         {sidebarSort === 'manual' && !search && (
           <div style={{ padding: '0 10px 4px', fontSize: 10, color: 'var(--sidebar-muted)' }}>
-            Drag to reorder
+            Drag grip to reorder
           </div>
         )}
+
         {sectionOpen.all && (
           <div style={{ marginTop: 2 }}>
             {loading ? (
@@ -526,29 +505,36 @@ export function NotesSidePane({ width = 220, activeNoteId }: Props) {
               <div style={{ padding: '6px 12px', fontSize: FONT_SM, color: 'var(--sidebar-muted)' }}>
                 {search ? 'No matches' : 'No notes yet'}
               </div>
+            ) : sidebarSort === 'manual' && !search && dndMounted ? (
+              // @dnd-kit reorderable list — activates only after 8px mouse movement
+              <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleSidebarDragEnd}>
+                <SortableContext items={unnotebookedNotes.map(n => n.id)} strategy={verticalListSortingStrategy}>
+                  {unnotebookedNotes.map(n => (
+                    <SortableNoteItem
+                      key={n.id}
+                      note={n}
+                      isActive={n.id === activeNoteId}
+                      isPinned={n.pinned || pinnedIds.has(n.id)}
+                      onClick={() => openNote(n.id)}
+                      onContextMenu={e => onContextMenu(e, n.id, 'note')}
+                    />
+                  ))}
+                </SortableContext>
+              </DndContext>
             ) : (
-              unnotebookedNotes.map(n => <NoteItem key={n.id} note={n} allowReorder={sidebarSort === 'manual' && !search} />)
+              unnotebookedNotes.map(n => <NoteItem key={n.id} note={n} />)
             )}
           </div>
         )}
 
-        {/* Divider */}
         <div style={{ height: 1, backgroundColor: 'var(--sidebar-border)', margin: '8px 4px' }} />
 
-        {/* Notebooks */}
-        <SectionHeader
-          label="Notebooks" sKey="notebooks"
-          count={notebooks.length}
-          icon={BookOpen}
-          onAdd={() => setNewNotebookMode(true)}
-        />
+        {/* Notebooks section */}
+        <SectionHeader label="Notebooks" sKey="notebooks" count={notebooks.length} icon={BookOpen} onAdd={() => setNewNotebookMode(true)} />
         {sectionOpen.notebooks && (
           <div style={{ marginTop: 2 }}>
             {newNotebookMode && (
-              <div style={{
-                display: 'flex', alignItems: 'center', gap: 8,
-                height: ROW_H, paddingLeft: 10, paddingRight: 8,
-              }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, height: ROW_H, paddingLeft: 10, paddingRight: 8 }}>
                 <FolderPlus size={ICON_SZ} style={{ color: 'var(--primary)', flexShrink: 0 }} />
                 <input
                   ref={newNbRef}
@@ -560,61 +546,39 @@ export function NotesSidePane({ width = 220, activeNoteId }: Props) {
                   }}
                   onBlur={handleNewNotebook}
                   placeholder="Notebook name…"
-                  style={{
-                    flex: 1, background: 'var(--sidebar-search-bg)',
-                    border: '1px solid var(--primary)',
-                    borderRadius: 6, padding: '4px 8px', fontSize: FONT_MD,
-                    color: 'var(--foreground)', outline: 'none',
-                  }}
+                  style={{ flex: 1, background: 'var(--sidebar-search-bg)', border: '1px solid var(--primary)', borderRadius: 6, padding: '4px 8px', fontSize: FONT_MD, color: 'var(--foreground)', outline: 'none' }}
                 />
               </div>
             )}
-
             {notebooks.length === 0 && !newNotebookMode && (
               <button
                 type="button"
                 onClick={() => setNewNotebookMode(true)}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: 8,
-                  width: '100%', height: ROW_H, paddingLeft: 10,
-                  border: '1px dashed var(--sidebar-border)', borderRadius: 8,
-                  background: 'none', color: 'var(--sidebar-muted)', fontSize: FONT_SM,
-                  cursor: 'pointer', marginTop: 2, boxSizing: 'border-box',
-                }}
+                style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', height: ROW_H, paddingLeft: 10, border: '1px dashed var(--sidebar-border)', borderRadius: 8, background: 'none', color: 'var(--sidebar-muted)', fontSize: FONT_SM, cursor: 'pointer', marginTop: 2, boxSizing: 'border-box' }}
               >
                 <FolderPlus size={ICON_SZ} /> Create your first notebook
               </button>
             )}
-
             {notebooks.map(nb => {
               const nbNotes = notebookNotesMap[nb.id] ?? []
               const isOpen  = sectionOpen[`nb-${nb.id}`] ?? true
-
               return (
                 <div key={nb.id}>
                   <div
                     draggable
-                    onDragStart={() => { if (!dragNoteRef.current) handleNbDragStart(nb.id) }}
-                    onDragOver={e => {
-                      e.preventDefault()
-                      if (dragNoteRef.current) { setDropNbId(nb.id) }
-                      else handleNbDragOver(e, nb.id)
-                    }}
-                    onDrop={e => {
-                      if (dragNoteRef.current) handleNbDropNote(e, nb.id)
-                      else handleNbDrop(nb.id)
-                    }}
-                    onDragLeave={() => { if (dragNoteRef.current) setDropNbId(null) }}
-                    onDragEnd={() => { setDragNbId(null); setDragOverId(null); setDropNbId(null) }}
+                    onDragStart={() => handleNbDragStart(nb.id)}
+                    onDragOver={e => handleNbDragOver(e, nb.id)}
+                    onDrop={() => handleNbDrop(nb.id)}
+                    onDragLeave={() => setDragOverId(null)}
+                    onDragEnd={() => { setDragNbId(null); setDragOverId(null) }}
                     onMouseEnter={() => setHoveredNb(nb.id)}
                     onMouseLeave={() => setHoveredNb(null)}
                     style={{
                       display: 'flex', alignItems: 'center',
                       opacity: dragNbId === nb.id ? 0.4 : 1,
                       borderTop: dragOverId === nb.id && dragNbId !== nb.id ? '2px solid var(--primary)' : '2px solid transparent',
-                      backgroundColor: dropNbId === nb.id ? 'color-mix(in srgb, var(--primary) 12%, transparent)' : 'transparent',
                       borderRadius: 8,
-                      transition: 'opacity 0.15s, background 0.12s',
+                      transition: 'opacity 0.15s',
                       cursor: 'grab',
                     }}
                   >
@@ -622,13 +586,7 @@ export function NotesSidePane({ width = 220, activeNoteId }: Props) {
                       type="button"
                       onClick={() => toggleSection(`nb-${nb.id}`)}
                       onContextMenu={e => onContextMenu(e, nb.id, 'notebook')}
-                      style={{
-                        display: 'flex', alignItems: 'center', gap: 8,
-                        flex: 1, height: ROW_H, paddingLeft: 10, paddingRight: 4,
-                        background: 'none', border: 'none', cursor: 'pointer',
-                        borderRadius: 8, textAlign: 'left',
-                        transition: 'background 0.12s',
-                      }}
+                      style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, height: ROW_H, paddingLeft: 10, paddingRight: 4, background: 'none', border: 'none', cursor: 'pointer', borderRadius: 8, textAlign: 'left', transition: 'background 0.12s' }}
                       onMouseEnter={e => (e.currentTarget.style.background = 'var(--sidebar-hover-bg)')}
                       onMouseLeave={e => (e.currentTarget.style.background = 'none')}
                     >
@@ -647,64 +605,35 @@ export function NotesSidePane({ width = 220, activeNoteId }: Props) {
                           }}
                           onBlur={() => { renameNotebook(nb.id, renameTarget.value); setRenameTarget(null) }}
                           onClick={e => e.stopPropagation()}
-                          style={{
-                            flex: 1, background: 'var(--sidebar-search-bg)',
-                            border: '1px solid var(--primary)',
-                            borderRadius: 5, padding: '2px 6px', fontSize: FONT_MD,
-                            color: 'var(--foreground)', outline: 'none',
-                          }}
+                          style={{ flex: 1, background: 'var(--sidebar-search-bg)', border: '1px solid var(--primary)', borderRadius: 5, padding: '2px 6px', fontSize: FONT_MD, color: 'var(--foreground)', outline: 'none' }}
                         />
                       ) : (
-                        <span style={{
-                          fontSize: FONT_MD, color: 'var(--foreground)', fontWeight: 500,
-                          flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                        }}>
+                        <span style={{ fontSize: FONT_MD, color: 'var(--foreground)', fontWeight: 500, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                           {nb.name}
                         </span>
                       )}
-                      <span style={{
-                        fontSize: 10, fontWeight: 700,
-                        color: 'var(--sidebar-muted)', backgroundColor: 'var(--muted)',
-                        padding: '1px 6px', borderRadius: 99, flexShrink: 0,
-                      }}>
+                      <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--sidebar-muted)', backgroundColor: 'var(--muted)', padding: '1px 6px', borderRadius: 99, flexShrink: 0 }}>
                         {nbNotes.length}
                       </span>
                     </button>
-
-                    {/* New note in notebook — show on row hover */}
                     <button
                       type="button"
                       onClick={e => { e.stopPropagation(); createNote(nb.name) }}
                       title="New note in notebook"
-                      style={{
-                        width: 28, height: 28, flexShrink: 0,
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        background: 'none', border: 'none', borderRadius: 6, cursor: 'pointer',
-                        color: 'var(--primary)',
-                        opacity: hoveredNb === nb.id ? 1 : 0,
-                        transition: 'opacity 0.15s, background 0.12s',
-                      }}
+                      style={{ width: 28, height: 28, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', border: 'none', borderRadius: 6, cursor: 'pointer', color: 'var(--primary)', opacity: hoveredNb === nb.id ? 1 : 0, transition: 'opacity 0.15s, background 0.12s' }}
                       onMouseEnter={e => (e.currentTarget.style.background = 'var(--sidebar-hover-bg)')}
                       onMouseLeave={e => (e.currentTarget.style.background = 'none')}
                     >
                       <Plus size={13} />
                     </button>
                   </div>
-
                   {isOpen && (
                     <div style={{ marginLeft: 2 }}>
                       {nbNotes.length === 0 ? (
                         <button
                           type="button"
                           onClick={() => createNote(nb.name)}
-                          style={{
-                            display: 'flex', alignItems: 'center', gap: 8,
-                            width: '100%', height: ROW_H,
-                            paddingLeft: 28, paddingRight: 8,
-                            border: 'none', borderRadius: 7,
-                            background: 'none', color: 'var(--sidebar-muted)',
-                            fontSize: FONT_SM, cursor: 'pointer', boxSizing: 'border-box',
-                          }}
+                          style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', height: ROW_H, paddingLeft: 28, paddingRight: 8, border: 'none', borderRadius: 7, background: 'none', color: 'var(--sidebar-muted)', fontSize: FONT_SM, cursor: 'pointer', boxSizing: 'border-box' }}
                           onMouseEnter={e => (e.currentTarget.style.background = 'var(--sidebar-hover-bg)')}
                           onMouseLeave={e => (e.currentTarget.style.background = 'none')}
                         >
@@ -721,7 +650,7 @@ export function NotesSidePane({ width = 220, activeNoteId }: Props) {
           </div>
         )}
 
-        {/* Tags — only if any exist */}
+        {/* Tags section */}
         {sortedTags.length > 0 && (
           <>
             <div style={{ height: 1, backgroundColor: 'var(--sidebar-border)', margin: '8px 4px' }} />
@@ -735,36 +664,14 @@ export function NotesSidePane({ width = 220, activeNoteId }: Props) {
                       <button
                         type="button"
                         onClick={() => toggleSection(`tag-${tag}`)}
-                        style={{
-                          display: 'flex', alignItems: 'center', gap: 8,
-                          width: '100%', height: ROW_H,
-                          paddingLeft: 10, paddingRight: 8,
-                          background: 'none', border: 'none', cursor: 'pointer',
-                          borderRadius: 8, textAlign: 'left', boxSizing: 'border-box',
-                          color: 'var(--sidebar-muted)',
-                          transition: 'background 0.12s',
-                        }}
+                        style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', height: ROW_H, paddingLeft: 10, paddingRight: 8, background: 'none', border: 'none', cursor: 'pointer', borderRadius: 8, textAlign: 'left', boxSizing: 'border-box', color: 'var(--sidebar-muted)', transition: 'background 0.12s' }}
                         onMouseEnter={e => { e.currentTarget.style.background = 'var(--sidebar-hover-bg)'; e.currentTarget.style.color = 'var(--sidebar-hover-fg)' }}
                         onMouseLeave={e => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = 'var(--sidebar-muted)' }}
                       >
-                        {isOpen
-                          ? <ChevronDown size={12} style={{ flexShrink: 0, opacity: 0.6 }} />
-                          : <ChevronRight size={12} style={{ flexShrink: 0, opacity: 0.6 }} />}
+                        {isOpen ? <ChevronDown size={12} style={{ flexShrink: 0, opacity: 0.6 }} /> : <ChevronRight size={12} style={{ flexShrink: 0, opacity: 0.6 }} />}
                         <Tag size={13} style={{ color: 'var(--primary)', flexShrink: 0 }} />
-                        <span style={{
-                          fontSize: FONT_MD, flex: 1,
-                          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                          color: 'var(--foreground)',
-                        }}>
-                          {tag}
-                        </span>
-                        <span style={{
-                          fontSize: 10, fontWeight: 700,
-                          color: 'var(--sidebar-muted)', backgroundColor: 'var(--muted)',
-                          padding: '1px 6px', borderRadius: 99,
-                        }}>
-                          {tagNotes.length}
-                        </span>
+                        <span style={{ fontSize: FONT_MD, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--foreground)' }}>{tag}</span>
+                        <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--sidebar-muted)', backgroundColor: 'var(--muted)', padding: '1px 6px', borderRadius: 99 }}>{tagNotes.length}</span>
                       </button>
                       {isOpen && (
                         <div style={{ marginLeft: 2 }}>
@@ -780,7 +687,7 @@ export function NotesSidePane({ width = 220, activeNoteId }: Props) {
         )}
       </div>
 
-      {/* ── Context menu ── */}
+      {/* Context menu */}
       {contextMenu && (
         <div
           data-ctx-note-menu
@@ -800,9 +707,7 @@ export function NotesSidePane({ width = 220, activeNoteId }: Props) {
                 if (nb) setRenameTarget({ id: nb.id, value: nb.name, type: 'notebook' })
                 setContextMenu(null)
               }} />
-              <CtxItem icon={Trash2} label="Delete notebook" danger onClick={() => {
-                deleteNotebook(contextMenu.id); setContextMenu(null)
-              }} />
+              <CtxItem icon={Trash2} label="Delete notebook" danger onClick={() => { deleteNotebook(contextMenu.id); setContextMenu(null) }} />
             </>
           )}
           {contextMenu.type === 'note' && (() => {
