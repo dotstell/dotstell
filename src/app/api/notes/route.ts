@@ -13,8 +13,14 @@ export async function GET(req: NextRequest) {
   const parent_id = searchParams.get('parent_id')
   const q         = searchParams.get('q')
   const root_only = searchParams.get('root_only') // 'true' = only top-level notes
+  const sort      = searchParams.get('sort')      // 'manual' = pinned first, then sort_order
 
-  let query = supabase.from('notes').select('*').eq('user_id', user.id).order('updated_at', { ascending: false })
+  let query = supabase.from('notes').select('*').eq('user_id', user.id)
+  if (sort === 'manual') {
+    query = query.order('pinned', { ascending: false }).order('sort_order', { ascending: true }).order('updated_at', { ascending: false })
+  } else {
+    query = query.order('updated_at', { ascending: false })
+  }
 
   if (type)      query = query.eq('type', type)
   if (person_id) query = query.eq('person_id', person_id)

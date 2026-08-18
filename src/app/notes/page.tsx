@@ -1,8 +1,17 @@
 'use client'
 import { useState, useEffect, useCallback, useRef } from 'react'
 import {
+  DndContext, DragEndEvent, DragOverlay, closestCenter,
+  PointerSensor, useSensor, useSensors,
+} from '@dnd-kit/core'
+import {
+  SortableContext, arrayMove, useSortable,
+  rectSortingStrategy, verticalListSortingStrategy,
+} from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
+import {
   Plus, LayoutGrid, List, Tag, ChevronDown, ChevronRight,
-  FolderOpen, ArrowDownUp, Search,
+  FolderOpen, ArrowDownUp, Search, Pin, PinOff, Copy, BookOpen, Trash2,
 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
@@ -12,10 +21,18 @@ import { Input } from '@/components/ui/input'
 import { NoteCard } from '@/components/notes/NoteCard'
 import { NoteRow } from '@/components/notes/NoteRow'
 import { EmptyState } from '@/components/ui/empty-state'
+import { useNotebooks, notebookTag, NOTEBOOK_TAG_PREFIX } from '@/hooks/useNotebooks'
 
 type ViewMode = 'grid' | 'list'
 type GroupMode = 'none' | 'tag'
-type SortMode  = 'updated' | 'created' | 'title'
+type SortMode  = 'updated' | 'created' | 'title' | 'manual'
+
+interface CtxMenu {
+  x: number
+  y: number
+  note: Note
+  subMenu: 'notebook' | null
+}
 
 const TYPE_FILTERS: { value: NoteType | 'all'; label: string }[] = [
   { value: 'all',       label: 'All' },
@@ -28,6 +45,7 @@ const SORT_OPTIONS: { value: SortMode; label: string }[] = [
   { value: 'updated', label: 'Last edited' },
   { value: 'created', label: 'Date created' },
   { value: 'title',   label: 'Title A–Z' },
+  { value: 'manual',  label: 'Manual order' },
 ]
 
 function getLS<T>(key: string, fallback: T): T {
@@ -35,8 +53,29 @@ function getLS<T>(key: string, fallback: T): T {
   return (localStorage.getItem(key) as T) ?? fallback
 }
 
+// ── Sortable wrapper ─────────────────────────────────────────────────────────
+function SortableItem({ id, disabled, children }: { id: string; disabled: boolean; children: React.ReactNode }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id, disabled })
+  return (
+    <div
+      ref={setNodeRef}
+      style={{
+        transform: CSS.Transform.toString(transform),
+        transition: transition ?? undefined,
+        opacity: isDragging ? 0.35 : 1,
+        cursor: disabled ? undefined : 'grab',
+      }}
+      {...attributes}
+      {...listeners}
+    >
+      {children}
+    </div>
+  )
+}
+
 export default function NotesPage() {
   const router = useRouter()
+  const { notebooks } = useNotebooks()
   const [notes,      setNotes]      = useState<Note[]>([])
   const [loading,    setLoading]    = useState(true)
   const [search,     setSearch]     = useState('')
@@ -46,12 +85,19 @@ export default function NotesPage() {
   const [sortMode,   setSortMode]   = useState<SortMode>('updated')
   const [collapsed,  setCollapsed]  = useState<Record<string, boolean>>({})
   const [sortOpen,   setSortOpen]   = useState(false)
-  const sortRef = useRef<HTMLDivElement>(null)
+  const [ctxMenu,    setCtxMenu]    = useState<CtxMenu | null>(null)
+  const [activeId,   setActiveId]   = useState<string | null>(null)
+  const sortRef  = useRef<HTMLDivElement>(null)
+  const ctxRef   = useRef<HTMLDivElement>(null)
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
+  )
 
   useEffect(() => {
     setView(getLS('notes-view', 'grid'))
     setGroupMode(getLS('notes-group', 'none'))
-    setSortMode(getLS('notes-sort', 'updated'))
+    setSortMode(getLS('notes-sort', 'updated') as SortMode)
   }, [])
 
   useEffect(() => { localStorage.setItem('notes-view',  view)      }, [view])
@@ -66,16 +112,28 @@ export default function NotesPage() {
     return () => document.removeEventListener('mousedown', h)
   }, [])
 
+  // Close context menu on outside click
+  useEffect(() => {
+    if (!ctxMenu) return
+    function h(e: MouseEvent) {
+      if (ctxRef.current && ctxRef.current.contains(e.target as Node)) return
+      setCtxMenu(null)
+    }
+    document.addEventListener('mousedown', h)
+    return () => document.removeEventListener('mousedown', h)
+  }, [ctxMenu])
+
   const fetchNotes = useCallback(async () => {
     const params = new URLSearchParams()
     if (typeFilter !== 'all') params.set('type', typeFilter)
     if (search) params.set('q', search)
+    if (sortMode === 'manual') params.set('sort', 'manual')
     params.set('root_only', 'true')
     const res = await fetch(`/api/notes?${params}`)
     const data = await res.json()
     setNotes(Array.isArray(data) ? data : [])
     setLoading(false)
-  }, [typeFilter, search])
+  }, [typeFilter, search, sortMode])
 
   useEffect(() => { fetchNotes() }, [fetchNotes])
 
@@ -84,22 +142,108 @@ export default function NotesPage() {
     if (res.ok) { setNotes(prev => prev.filter(n => n.id !== id)); toast.success('Note deleted') }
   }
 
-  // Sort
-  const sorted = [...notes].sort((a, b) => {
-    if (sortMode === 'title')   return (a.title || 'Untitled').localeCompare(b.title || 'Untitled')
-    if (sortMode === 'created') return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-    return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
-  })
+  async function togglePin(note: Note) {
+    const pinned = !note.pinned
+    const res = await fetch(`/api/notes/${note.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pinned }),
+    })
+    if (res.ok) {
+      setNotes(prev => prev.map(n => n.id === note.id ? { ...n, pinned } : n))
+      toast.success(pinned ? 'Note pinned' : 'Note unpinned')
+    }
+  }
 
-  // Group by tag
+  async function duplicateNote(note: Note) {
+    const res = await fetch('/api/notes', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        title:           (note.title || 'Untitled') + ' (copy)',
+        content:         note.content,
+        type:            note.type,
+        tags:            note.tags,
+        checklist_items: note.checklist_items,
+        person_id:       note.person_id,
+      }),
+    })
+    if (res.ok) {
+      const created = await res.json()
+      setNotes(prev => [created, ...prev])
+      toast.success('Note duplicated')
+    }
+  }
+
+  async function moveToNotebook(note: Note, notebookName: string | null) {
+    // Remove all existing nb: tags, then add the new one (if any)
+    const cleanTags = (note.tags ?? []).filter(t => !t.startsWith(NOTEBOOK_TAG_PREFIX))
+    const newTags   = notebookName ? [...cleanTags, notebookTag(notebookName)] : cleanTags
+    const res = await fetch(`/api/notes/${note.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tags: newTags }),
+    })
+    if (res.ok) {
+      setNotes(prev => prev.map(n => n.id === note.id ? { ...n, tags: newTags } : n))
+      toast.success(notebookName ? `Moved to "${notebookName}"` : 'Removed from notebook')
+    }
+  }
+
+  // ── Drag-and-drop ────────────────────────────────────────────────────────
+  function handleDragStart(e: { active: { id: string | number } }) {
+    setActiveId(String(e.active.id))
+  }
+
+  async function handleDragEnd(event: DragEndEvent) {
+    setActiveId(null)
+    const { active, over } = event
+    if (!over || active.id === over.id) return
+
+    const oldIdx = notes.findIndex(n => n.id === active.id)
+    const newIdx = notes.findIndex(n => n.id === over.id)
+    if (oldIdx === -1 || newIdx === -1) return
+
+    const reordered = arrayMove(notes, oldIdx, newIdx)
+    setNotes(reordered)
+
+    // Persist new sort_order for all notes
+    await Promise.all(
+      reordered.map((n, i) =>
+        fetch(`/api/notes/${n.id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sort_order: i }),
+        })
+      )
+    )
+  }
+
+  // ── Sort and group ───────────────────────────────────────────────────────
+  const sorted = (() => {
+    if (sortMode === 'manual') {
+      // In manual mode order is managed by DB / drag-and-drop state; pinned float to top
+      const pinned   = notes.filter(n => n.pinned)
+      const unpinned = notes.filter(n => !n.pinned)
+      return [...pinned, ...unpinned]
+    }
+    const arr = [...notes]
+    if (sortMode === 'title')   arr.sort((a, b) => (a.title || 'Untitled').localeCompare(b.title || 'Untitled'))
+    else if (sortMode === 'created') arr.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+    else arr.sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())
+    // Pinned always at top for non-manual modes too
+    return [...arr.filter(n => n.pinned), ...arr.filter(n => !n.pinned)]
+  })()
+
   type NoteGroup = { key: string; label: string; notes: Note[] }
   const groups: NoteGroup[] = (() => {
     if (groupMode === 'none') return [{ key: '__all', label: 'All', notes: sorted }]
     const tagMap = new Map<string, Note[]>()
     const untagged: Note[] = []
     for (const note of sorted) {
-      if (!note.tags?.length) { untagged.push(note); continue }
-      for (const tag of note.tags) {
+      const visibleTags = note.tags?.filter(t => !t.startsWith(NOTEBOOK_TAG_PREFIX)) ?? []
+      if (!visibleTags.length) { untagged.push(note); continue }
+      for (const tag of visibleTags) {
         if (!tagMap.has(tag)) tagMap.set(tag, [])
         tagMap.get(tag)!.push(note)
       }
@@ -111,17 +255,29 @@ export default function NotesPage() {
     return result
   })()
 
-  const sortLabel = SORT_OPTIONS.find(s => s.value === sortMode)?.label ?? 'Sort'
+  const sortLabel  = SORT_OPTIONS.find(s => s.value === sortMode)?.label ?? 'Sort'
+  const dndEnabled = sortMode === 'manual' && groupMode === 'none'
+  const activeNote = activeId ? notes.find(n => n.id === activeId) : null
 
+  // ── Context menu helpers ─────────────────────────────────────────────────
+  function openCtx(e: React.MouseEvent, note: Note) {
+    e.preventDefault()
+    e.stopPropagation()
+    setCtxMenu({ x: e.clientX, y: e.clientY, note, subMenu: null })
+  }
+
+  // ── Render ───────────────────────────────────────────────────────────────
   return (
     <div style={{ height: '100%', overflowY: 'auto' }}>
       <div style={{ padding: '20px 28px 40px', maxWidth: 1200, paddingLeft: 48 }}>
+
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
           <div>
             <h1 style={{ fontSize: 20, fontWeight: 700, color: 'var(--foreground)', margin: 0 }}>All Notes</h1>
             <p style={{ fontSize: 13, color: 'var(--muted-foreground)', margin: '2px 0 0' }}>
               {sorted.length} {sorted.length === 1 ? 'note' : 'notes'}
+              {sorted.some(n => n.pinned) && ` · ${sorted.filter(n => n.pinned).length} pinned`}
             </p>
           </div>
           <Button onClick={() => router.push('/notes/new')}>
@@ -166,8 +322,11 @@ export default function NotesPage() {
           <div ref={sortRef} style={{ position: 'relative' }}>
             <button type="button" onClick={() => setSortOpen(o => !o)} style={{
               display: 'flex', alignItems: 'center', gap: 6,
-              padding: '5px 12px', borderRadius: 8, border: '1px solid var(--border)',
-              backgroundColor: 'transparent', color: 'var(--muted-foreground)', fontSize: 12, cursor: 'pointer',
+              padding: '5px 12px', borderRadius: 8, border: '1px solid',
+              borderColor: sortMode === 'manual' ? 'var(--primary)' : 'var(--border)',
+              backgroundColor: sortMode === 'manual' ? 'rgba(124,106,255,0.12)' : 'transparent',
+              color: sortMode === 'manual' ? 'var(--primary)' : 'var(--muted-foreground)',
+              fontSize: 12, cursor: 'pointer',
             }}>
               <ArrowDownUp size={13} /> {sortLabel} <ChevronDown size={11} />
             </button>
@@ -175,7 +334,7 @@ export default function NotesPage() {
               <div style={{
                 position: 'absolute', top: '100%', right: 0, zIndex: 50, marginTop: 4,
                 backgroundColor: 'var(--card)', border: '1px solid var(--border)',
-                borderRadius: 10, padding: 4, minWidth: 150,
+                borderRadius: 10, padding: 4, minWidth: 160,
                 boxShadow: '0 8px 28px rgba(0,0,0,0.5)',
               }}>
                 {SORT_OPTIONS.map(opt => (
@@ -187,7 +346,10 @@ export default function NotesPage() {
                   }}
                     onMouseEnter={e => { if (sortMode !== opt.value) e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.04)' }}
                     onMouseLeave={e => { if (sortMode !== opt.value) e.currentTarget.style.backgroundColor = 'transparent' }}
-                  >{opt.label}</button>
+                  >
+                    {opt.label}
+                    {opt.value === 'manual' && <span style={{ fontSize: 10, marginLeft: 6, color: 'var(--muted-foreground)' }}>drag to reorder</span>}
+                  </button>
                 ))}
               </div>
             )}
@@ -207,6 +369,12 @@ export default function NotesPage() {
           </div>
         </div>
 
+        {dndEnabled && (
+          <p style={{ fontSize: 11, color: 'var(--muted-foreground)', marginBottom: 12, marginTop: -8 }}>
+            Drag cards to reorder · Right-click for more options
+          </p>
+        )}
+
         {/* Content */}
         {loading ? (
           <p style={{ color: 'var(--muted-foreground)', fontSize: 13 }}>Loading…</p>
@@ -219,50 +387,211 @@ export default function NotesPage() {
             onAction={() => router.push('/notes/new')}
           />
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: groupMode === 'tag' ? 20 : 0 }}>
-            {groups.map(group => (
-              <div key={group.key}>
-                {groupMode === 'tag' && (
-                  <button type="button" onClick={() => setCollapsed(p => ({ ...p, [group.key]: !p[group.key] }))} style={{
-                    display: 'flex', alignItems: 'center', gap: 8, width: '100%',
-                    background: 'none', border: 'none', cursor: 'pointer',
-                    padding: '6px 2px', marginBottom: 8, textAlign: 'left',
-                  }}>
-                    {collapsed[group.key]
-                      ? <ChevronRight size={14} color="var(--muted-foreground)" />
-                      : <ChevronDown  size={14} color="var(--muted-foreground)" />}
-                    {group.key === '__untagged'
-                      ? <FolderOpen size={13} color="var(--muted-foreground)" />
-                      : <Tag size={12} color="var(--primary)" />}
-                    <span style={{ fontSize: 13, fontWeight: 600, color: group.key === '__untagged' ? 'var(--muted-foreground)' : 'var(--primary)' }}>
-                      {group.label}
-                    </span>
-                    <span style={{ fontSize: 11, color: 'var(--muted-foreground)', backgroundColor: 'var(--secondary)', padding: '1px 7px', borderRadius: 99, fontWeight: 600 }}>
-                      {group.notes.length}
-                    </span>
-                  </button>
-                )}
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragStart={e => setActiveId(String(e.active.id))}
+            onDragEnd={handleDragEnd}
+            onDragCancel={() => setActiveId(null)}
+          >
+            <div style={{ display: 'flex', flexDirection: 'column', gap: groupMode === 'tag' ? 20 : 0 }}>
+              {groups.map(group => (
+                <div key={group.key}>
+                  {groupMode === 'tag' && (
+                    <button type="button" onClick={() => setCollapsed(p => ({ ...p, [group.key]: !p[group.key] }))} style={{
+                      display: 'flex', alignItems: 'center', gap: 8, width: '100%',
+                      background: 'none', border: 'none', cursor: 'pointer',
+                      padding: '6px 2px', marginBottom: 8, textAlign: 'left',
+                    }}>
+                      {collapsed[group.key]
+                        ? <ChevronRight size={14} color="var(--muted-foreground)" />
+                        : <ChevronDown  size={14} color="var(--muted-foreground)" />}
+                      {group.key === '__untagged'
+                        ? <FolderOpen size={13} color="var(--muted-foreground)" />
+                        : <Tag size={12} color="var(--primary)" />}
+                      <span style={{ fontSize: 13, fontWeight: 600, color: group.key === '__untagged' ? 'var(--muted-foreground)' : 'var(--primary)' }}>
+                        {group.label}
+                      </span>
+                      <span style={{ fontSize: 11, color: 'var(--muted-foreground)', backgroundColor: 'var(--secondary)', padding: '1px 7px', borderRadius: 99, fontWeight: 600 }}>
+                        {group.notes.length}
+                      </span>
+                    </button>
+                  )}
 
-                {!collapsed[group.key] && (
-                  view === 'grid' ? (
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 10 }}>
-                      {group.notes.map(note => (
-                        <NoteCard key={note.id} note={note} onClick={() => router.push(`/notes/${note.id}`)} onDelete={deleteNote} />
-                      ))}
-                    </div>
+                  {!collapsed[group.key] && (
+                    <SortableContext
+                      items={group.notes.map(n => n.id)}
+                      strategy={view === 'grid' ? rectSortingStrategy : verticalListSortingStrategy}
+                    >
+                      {view === 'grid' ? (
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 10 }}>
+                          {group.notes.map(note => (
+                            <SortableItem key={note.id} id={note.id} disabled={!dndEnabled}>
+                              <NoteCard
+                                note={note}
+                                onClick={() => router.push(`/notes/${note.id}`)}
+                                onDelete={deleteNote}
+                                onContextMenu={e => openCtx(e, note)}
+                                onPin={() => togglePin(note)}
+                              />
+                            </SortableItem>
+                          ))}
+                        </div>
+                      ) : (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                          {group.notes.map(note => (
+                            <SortableItem key={note.id} id={note.id} disabled={!dndEnabled}>
+                              <NoteRow
+                                note={note}
+                                onClick={() => router.push(`/notes/${note.id}`)}
+                                onDelete={deleteNote}
+                                onContextMenu={e => openCtx(e, note)}
+                                onPin={() => togglePin(note)}
+                              />
+                            </SortableItem>
+                          ))}
+                        </div>
+                      )}
+                    </SortableContext>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            <DragOverlay>
+              {activeNote && (
+                <div style={{ opacity: 0.85, transform: 'rotate(1.5deg)', pointerEvents: 'none' }}>
+                  {view === 'grid' ? (
+                    <NoteCard note={activeNote} onClick={() => {}} onDelete={() => {}} />
                   ) : (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                      {group.notes.map(note => (
-                        <NoteRow key={note.id} note={note} onClick={() => router.push(`/notes/${note.id}`)} onDelete={deleteNote} />
-                      ))}
-                    </div>
-                  )
-                )}
-              </div>
-            ))}
-          </div>
+                    <NoteRow note={activeNote} onClick={() => {}} onDelete={() => {}} />
+                  )}
+                </div>
+              )}
+            </DragOverlay>
+          </DndContext>
         )}
       </div>
+
+      {/* ── Context menu ───────────────────────────────────────────────── */}
+      {ctxMenu && (
+        <div
+          ref={ctxRef}
+          style={{
+            position: 'fixed',
+            top: Math.min(ctxMenu.y, window.innerHeight - 240),
+            left: Math.min(ctxMenu.x, window.innerWidth - 200),
+            zIndex: 9999,
+            backgroundColor: 'var(--popover)',
+            border: '1px solid var(--border)',
+            borderRadius: 10, padding: 4, minWidth: 190,
+            boxShadow: '0 8px 28px rgba(0,0,0,0.5)',
+          }}
+        >
+          {/* Pin / Unpin */}
+          <CtxBtn
+            icon={ctxMenu.note.pinned ? PinOff : Pin}
+            label={ctxMenu.note.pinned ? 'Unpin note' : 'Pin note'}
+            onClick={() => { togglePin(ctxMenu.note); setCtxMenu(null) }}
+          />
+
+          {/* Move to notebook */}
+          <div style={{ position: 'relative' }}>
+            <CtxBtn
+              icon={BookOpen}
+              label="Move to notebook"
+              suffix={<ChevronDown size={11} style={{ marginLeft: 'auto', opacity: 0.5, transform: ctxMenu.subMenu === 'notebook' ? 'rotate(180deg)' : 'none' }} />}
+              onClick={() => setCtxMenu(m => m ? { ...m, subMenu: m.subMenu === 'notebook' ? null : 'notebook' } : m)}
+            />
+            {ctxMenu.subMenu === 'notebook' && (
+              <div style={{
+                marginTop: 2, borderTop: '1px solid var(--border)',
+                paddingTop: 4, paddingBottom: 4,
+              }}>
+                {notebooks.length === 0 ? (
+                  <div style={{ padding: '6px 14px', fontSize: 12, color: 'var(--muted-foreground)' }}>
+                    No notebooks yet
+                  </div>
+                ) : (
+                  <>
+                    {notebooks.map(nb => {
+                      const tag     = notebookTag(nb.name)
+                      const current = ctxMenu.note.tags?.includes(tag)
+                      return (
+                        <CtxBtn
+                          key={nb.id}
+                          icon={() => <span style={{ fontSize: 14 }}>{nb.icon ?? '📓'}</span>}
+                          label={nb.name}
+                          active={current}
+                          onClick={() => {
+                            moveToNotebook(ctxMenu.note, current ? null : nb.name)
+                            setCtxMenu(null)
+                          }}
+                        />
+                      )
+                    })}
+                    {ctxMenu.note.tags?.some(t => t.startsWith(NOTEBOOK_TAG_PREFIX)) && (
+                      <CtxBtn
+                        icon={FolderOpen}
+                        label="Remove from notebook"
+                        onClick={() => { moveToNotebook(ctxMenu.note, null); setCtxMenu(null) }}
+                      />
+                    )}
+                  </>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Duplicate */}
+          <CtxBtn
+            icon={Copy}
+            label="Duplicate note"
+            onClick={() => { duplicateNote(ctxMenu.note); setCtxMenu(null) }}
+          />
+
+          <div style={{ height: 1, backgroundColor: 'var(--border)', margin: '4px 8px' }} />
+
+          {/* Delete */}
+          <CtxBtn
+            icon={Trash2}
+            label="Delete note"
+            danger
+            onClick={() => { deleteNote(ctxMenu.note.id); setCtxMenu(null) }}
+          />
+        </div>
+      )}
     </div>
+  )
+}
+
+function CtxBtn({ icon: Icon, label, onClick, danger = false, active = false, suffix }: {
+  icon: React.ElementType
+  label: string
+  onClick: () => void
+  danger?: boolean
+  active?: boolean
+  suffix?: React.ReactNode
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      style={{
+        display: 'flex', alignItems: 'center', gap: 9,
+        width: '100%', padding: '7px 12px', borderRadius: 7,
+        border: 'none', background: 'transparent', cursor: 'pointer',
+        color: danger ? 'var(--destructive)' : active ? 'var(--primary)' : 'var(--foreground)',
+        fontSize: 13, textAlign: 'left',
+        transition: 'background 0.1s',
+        fontWeight: active ? 600 : 400,
+      }}
+      onMouseEnter={e => (e.currentTarget.style.background = danger ? 'rgba(239,68,68,0.1)' : 'var(--accent)')}
+      onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+    >
+      <Icon size={14} style={{ flexShrink: 0 }} />
+      <span style={{ flex: 1 }}>{label}</span>
+      {suffix}
+    </button>
   )
 }

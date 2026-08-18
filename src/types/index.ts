@@ -26,6 +26,8 @@ export interface Note {
   person_id?: string | null
   parent_id?: string | null
   sub_notes_count?: number
+  sort_order?: number
+  pinned?: boolean
   created_at: string
   updated_at: string
 }

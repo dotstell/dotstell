@@ -183,7 +183,19 @@ export default function HelpPage() {
                 body="Use the type tabs to filter: All / Rich text / Plain / Checklist. Checklists are notes that start with a task list — useful for meeting notes and action items."
               />
               <Tip icon="↕️" title="Sort and group"
-                body="Sort by Last edited, Date created, or Title A-Z. Enable Group by tag to collapse notes into tag groups — notes without a tag go to an Untagged group at the bottom."
+                body="Sort by Last edited, Date created, Title A-Z, or Manual order. Enable Group by tag to collapse notes into tag groups — notes without a tag go to an Untagged group at the bottom."
+              />
+              <Tip icon="📌" title="Pinning notes"
+                body="Pin any note to keep it at the top of the list. Hover a card and click the pin icon that appears, or right-click and choose Pin note. Pinned notes are shown with a subtle highlight and float above unpinned notes in every sort mode."
+              />
+              <Tip icon="↕️" title="Drag to reorder"
+                body={<>Switch to <strong>Manual order</strong> from the sort menu, then drag and drop any card to rearrange notes. Your order is saved to the server so it persists across devices and sessions. Pinned notes always stay at the top within the manual order.</>}
+              />
+              <Tip icon="🖱️" title="Right-click context menu"
+                body={<>Right-click any note card or row to open a context menu with: <strong>Pin / Unpin</strong>, <strong>Move to notebook</strong> (reassigns the note to a different notebook), <strong>Duplicate note</strong> (creates a copy with "(copy)" appended), and <strong>Delete</strong>.</>}
+              />
+              <Tip icon="📓" title="Notebooks"
+                body="Notebooks are displayed in the left sidebar of the Notes page. Every notebook shows a note count badge. Create notebooks via the + button next to the Notebooks header, drag notebooks to reorder them, and right-click to rename or delete. Notes can belong to one notebook at a time."
               />
               <Tip icon="🔍" title="Live search"
                 body="The search bar on the Notes page filters by title and content in real time as you type. For searching across all content types at once, use Ctrl+K."
