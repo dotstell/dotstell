@@ -128,11 +128,14 @@ export default function DashboardPage() {
   const [people,    setPeople]    = useState<{ id: string; created_at: string }[]>([])
   const [loading,   setLoading]   = useState(true)
   const [isMobile,  setIsMobile]  = useState(false)
+  const [greeting,  setGreeting]  = useState('Hello')
 
   useEffect(() => {
     function check() { setIsMobile(window.innerWidth < 768) }
     check()
     window.addEventListener('resize', check)
+    const h = new Date().getHours()
+    setGreeting(h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening')
     return () => window.removeEventListener('resize', check)
   }, [])
 
@@ -161,9 +164,6 @@ export default function DashboardPage() {
   const doneTasks    = tasks.filter(t => t.status === 'done')
   const inProgress   = tasks.filter(t => t.status === 'in_progress')
   const progress     = tasks.length > 0 ? Math.round((doneTasks.length / tasks.length) * 100) : 0
-
-  const hour     = new Date().getHours()
-  const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening'
 
   const activity = buildActivity(notes, bookmarks, tasks)
 
