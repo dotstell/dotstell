@@ -3,7 +3,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import {
   Plus, Search, ChevronDown, ChevronRight, FileText, Tag,
-  Pencil, Trash2, BookOpen, FolderPlus, X, StickyNote, Pin, PinOff, Copy,
+  Pencil, Trash2, BookOpen, FolderPlus, X, StickyNote, Pin, PinOff, Copy, ArrowDownUp,
 } from 'lucide-react'
 import { Note } from '@/types'
 import { useNotebooks, notebookTag, NOTEBOOK_TAG_PREFIX } from '@/hooks/useNotebooks'
@@ -39,10 +39,12 @@ export function NotesSidePane({ width = 220, activeNoteId }: Props) {
   const [contextMenu, setContextMenu]         = useState<{ x: number; y: number; id: string; type: 'notebook' | 'note' } | null>(null)
   const [renameTarget, setRenameTarget]       = useState<{ id: string; value: string; type: 'notebook' | 'note' } | null>(null)
   const [hoveredNb, setHoveredNb]             = useState<string | null>(null)
-  const [dragNbId,     setDragNbId]     = useState<string | null>(null)
-  const [dragOverId,   setDragOverId]   = useState<string | null>(null)
-  const [dragNoteId,   setDragNoteId]   = useState<string | null>(null)
-  const [dropNbId,     setDropNbId]     = useState<string | null>(null)
+  const [sidebarSort,    setSidebarSort]    = useState<'updated' | 'manual'>('updated')
+  const [dragNbId,       setDragNbId]       = useState<string | null>(null)
+  const [dragOverId,     setDragOverId]     = useState<string | null>(null)
+  const [dragNoteId,     setDragNoteId]     = useState<string | null>(null)
+  const [dropNbId,       setDropNbId]       = useState<string | null>(null)
+  const [dragOverNoteId, setDragOverNoteId] = useState<string | null>(null)
   const [pinnedIds, setPinnedIds]             = useState<Set<string>>(() => {
     if (typeof window === 'undefined') return new Set()
     try { return new Set(JSON.parse(localStorage.getItem('dotstell-pinned-notes') ?? '[]')) } catch { return new Set() }
@@ -50,10 +52,12 @@ export function NotesSidePane({ width = 220, activeNoteId }: Props) {
   const newNbRef = useRef<HTMLInputElement>(null)
 
   const fetchNotes = useCallback(async () => {
-    const res = await fetch('/api/notes?root_only=true')
+    const params = new URLSearchParams({ root_only: 'true' })
+    if (sidebarSort === 'manual') params.set('sort', 'manual')
+    const res = await fetch(`/api/notes?${params}`)
     if (res.ok) setNotes(await res.json().catch(() => []))
     setLoading(false)
-  }, [])
+  }, [sidebarSort])
 
   useEffect(() => { fetchNotes() }, [fetchNotes])
   useEffect(() => { fetchNotes() }, [pathname, fetchNotes])
@@ -87,12 +91,20 @@ export function NotesSidePane({ width = 220, activeNoteId }: Props) {
     const tag = notebookTag(nb.name)
     notebookNotesMap[nb.id] = filteredNotes
       .filter(n => n.tags?.includes(tag))
-      .sort((a, b) => (pinnedIds.has(b.id) ? 1 : 0) - (pinnedIds.has(a.id) ? 1 : 0))
+      .sort((a, b) => (pinnedIds.has(b.id) || b.pinned ? 1 : 0) - (pinnedIds.has(a.id) || a.pinned ? 1 : 0))
   }
-  const notebookIds       = new Set(notebooks.flatMap(nb => notebookNotesMap[nb.id]?.map(n => n.id) ?? []))
-  const unnotebookedNotes = filteredNotes
-    .filter(n => !notebookIds.has(n.id))
-    .sort((a, b) => (pinnedIds.has(b.id) ? 1 : 0) - (pinnedIds.has(a.id) ? 1 : 0))
+  const notebookIds = new Set(notebooks.flatMap(nb => notebookNotesMap[nb.id]?.map(n => n.id) ?? []))
+  // In manual mode: API already returns in pinned-first, sort_order order — preserve that
+  const unnotebookedNotes = (() => {
+    const base = filteredNotes.filter(n => !notebookIds.has(n.id))
+    if (sidebarSort === 'manual') return base // DB order (pinned DESC, sort_order ASC)
+    return base.sort((a, b) => {
+      const ap = pinnedIds.has(a.id) || !!a.pinned
+      const bp = pinnedIds.has(b.id) || !!b.pinned
+      if (bp !== ap) return bp ? 1 : -1
+      return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
+    })
+  })()
 
   const tagMap = new Map<string, Note[]>()
   for (const note of filteredNotes) {
@@ -200,6 +212,31 @@ export function NotesSidePane({ width = 220, activeNoteId }: Props) {
     }
   }
 
+  async function reorderNoteDrop(overNoteId: string) {
+    if (!dragNoteId || dragNoteId === overNoteId) return
+    // Work on the full flat list (all notes, not just unnotebooked)
+    const current = [...notes]
+    const fromIdx = current.findIndex(n => n.id === dragNoteId)
+    const toIdx   = current.findIndex(n => n.id === overNoteId)
+    if (fromIdx === -1 || toIdx === -1) return
+    const reordered = [...current]
+    const [moved] = reordered.splice(fromIdx, 1)
+    reordered.splice(toIdx, 0, moved)
+    setNotes(reordered)
+    // Persist new sort_order
+    await Promise.all(
+      reordered.map((n, i) =>
+        fetch(`/api/notes/${n.id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sort_order: i }),
+        })
+      )
+    )
+    // Switch to manual mode now that an explicit order exists
+    setSidebarSort('manual')
+  }
+
   async function duplicateNote(note: Note) {
     const res = await fetch('/api/notes', {
       method: 'POST',
@@ -223,15 +260,35 @@ export function NotesSidePane({ width = 220, activeNoteId }: Props) {
 
   // ── Sub-components ───────────────────────────────────────────
 
-  function NoteItem({ note, indent = 0 }: { note: Note; indent?: number }) {
+  function NoteItem({ note, indent = 0, allowReorder = false }: { note: Note; indent?: number; allowReorder?: boolean }) {
     const isActive = note.id === activeNoteId
     const isPinned = note.pinned || pinnedIds.has(note.id)
+    const isDropTarget = allowReorder && dragNoteId && dragNoteId !== note.id && dragOverNoteId === note.id
     return (
       <div
         draggable
         onDragStart={e => handleNoteDragStart(e, note.id)}
-        onDragEnd={() => setDragNoteId(null)}
-        style={{ opacity: dragNoteId === note.id ? 0.4 : 1, transition: 'opacity 0.15s' }}
+        onDragEnd={() => { setDragNoteId(null); setDragOverNoteId(null) }}
+        onDragOver={e => {
+          if (!dragNoteId || dragNoteId === note.id || !allowReorder) return
+          e.preventDefault()
+          e.stopPropagation()
+          setDragOverNoteId(note.id)
+          setDropNbId(null) // clear notebook drop highlight
+        }}
+        onDragLeave={() => { if (dragOverNoteId === note.id) setDragOverNoteId(null) }}
+        onDrop={e => {
+          e.stopPropagation()
+          if (!allowReorder || !dragNoteId) return
+          setDragOverNoteId(null)
+          reorderNoteDrop(note.id)
+          setDragNoteId(null)
+        }}
+        style={{
+          opacity: dragNoteId === note.id ? 0.35 : 1,
+          borderTop: isDropTarget ? '2px solid var(--primary)' : '2px solid transparent',
+          transition: 'opacity 0.15s, border-color 0.1s',
+        }}
       >
         <button
           type="button"
@@ -242,7 +299,7 @@ export function NotesSidePane({ width = 220, activeNoteId }: Props) {
             display: 'flex', alignItems: 'center', gap: 7,
             width: '100%', height: ROW_H,
             paddingLeft: indent > 0 ? indent : 6, paddingRight: 8,
-            border: 'none', cursor: 'pointer', textAlign: 'left',
+            border: 'none', cursor: allowReorder ? 'grab' : 'pointer', textAlign: 'left',
             borderRadius: 6,
             borderLeft: isActive ? '2px solid var(--primary)' : '2px solid transparent',
             backgroundColor: isActive ? 'var(--sidebar-active-bg)' : 'transparent',
@@ -408,12 +465,39 @@ export function NotesSidePane({ width = 220, activeNoteId }: Props) {
       <div style={{ flex: 1, overflowY: 'auto', padding: '0 6px 16px' }}>
 
         {/* All Notes */}
-        <SectionHeader
-          label="All notes" sKey="all"
-          count={filteredNotes.length}
-          icon={FileText}
-          onAdd={() => createNote()}
-        />
+        <div style={{ display: 'flex', alignItems: 'center' }}>
+          <div style={{ flex: 1 }}>
+            <SectionHeader
+              label="All notes" sKey="all"
+              count={filteredNotes.length}
+              icon={FileText}
+              onAdd={() => createNote()}
+            />
+          </div>
+          {/* Sort toggle */}
+          <button
+            type="button"
+            title={sidebarSort === 'manual' ? 'Sorted manually — click for last edited' : 'Sorted by last edited — click for manual order'}
+            onClick={() => setSidebarSort(s => s === 'updated' ? 'manual' : 'updated')}
+            style={{
+              width: 24, height: 24, flexShrink: 0,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              background: 'none', border: 'none', borderRadius: 6, cursor: 'pointer',
+              color: sidebarSort === 'manual' ? 'var(--primary)' : 'var(--sidebar-muted)',
+              transition: 'background 0.12s, color 0.12s',
+              marginRight: 2,
+            }}
+            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'var(--sidebar-hover-bg)'; (e.currentTarget as HTMLElement).style.color = sidebarSort === 'manual' ? 'var(--primary)' : 'var(--sidebar-hover-fg)' }}
+            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'none'; (e.currentTarget as HTMLElement).style.color = sidebarSort === 'manual' ? 'var(--primary)' : 'var(--sidebar-muted)' }}
+          >
+            <ArrowDownUp size={11} />
+          </button>
+        </div>
+        {sidebarSort === 'manual' && !search && (
+          <div style={{ padding: '0 10px 4px', fontSize: 10, color: 'var(--sidebar-muted)' }}>
+            Drag to reorder
+          </div>
+        )}
         {sectionOpen.all && (
           <div style={{ marginTop: 2 }}>
             {loading ? (
@@ -423,7 +507,7 @@ export function NotesSidePane({ width = 220, activeNoteId }: Props) {
                 {search ? 'No matches' : 'No notes yet'}
               </div>
             ) : (
-              unnotebookedNotes.map(n => <NoteItem key={n.id} note={n} />)
+              unnotebookedNotes.map(n => <NoteItem key={n.id} note={n} allowReorder={sidebarSort === 'manual' && !search} />)
             )}
           </div>
         )}
