@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect, useRef } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, usePathname } from 'next/navigation'
 import { Sidebar } from './Sidebar'
 import { CommandPalette } from '@/components/command/CommandPalette'
 import { OnboardingFlow } from '@/components/onboarding/OnboardingFlow'
@@ -37,7 +37,8 @@ const USER_SCOPED_KEYS = [
 ]
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
-  const router = useRouter()
+  const router   = useRouter()
+  const pathname = usePathname()
   const [collapsed, setCollapsed]     = useState(false)
   const [paletteOpen, setPaletteOpen] = useState(false)
   const [isMobile, setIsMobile]       = useState(false)
@@ -160,23 +161,26 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       )}
       <OnboardingFlow />
       <TaskReminders />
-      <a
-        href={RELEASES_URL}
-        target="_blank"
-        rel="noopener noreferrer"
-        style={{
-          position: 'fixed', bottom: 12, right: 16, zIndex: 10,
-          fontSize: 10, color: 'var(--muted-foreground)', letterSpacing: '0.04em',
-          textDecoration: 'none', opacity: 0.45,
-          transition: 'opacity 0.15s',
-          pointerEvents: 'auto',
-          userSelect: 'none',
-        }}
-        onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.opacity = '0.9' }}
-        onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.opacity = '0.45' }}
-      >
-        v{APP_VERSION}
-      </a>
+      {/* Hide on the note editor — its status bar occupies the same bottom-right corner */}
+      {!/^\/notes\/.+/.test(pathname) && (
+        <a
+          href={RELEASES_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{
+            position: 'fixed', bottom: 12, right: 16, zIndex: 10,
+            fontSize: 10, color: 'var(--muted-foreground)', letterSpacing: '0.04em',
+            textDecoration: 'none', opacity: 0.45,
+            transition: 'opacity 0.15s',
+            pointerEvents: 'auto',
+            userSelect: 'none',
+          }}
+          onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.opacity = '0.9' }}
+          onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.opacity = '0.45' }}
+        >
+          v{APP_VERSION}
+        </a>
+      )}
     </div>
   )
 }
