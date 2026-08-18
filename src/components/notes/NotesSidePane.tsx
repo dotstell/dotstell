@@ -49,7 +49,8 @@ export function NotesSidePane({ width = 220, activeNoteId }: Props) {
     if (typeof window === 'undefined') return new Set()
     try { return new Set(JSON.parse(localStorage.getItem('dotstell-pinned-notes') ?? '[]')) } catch { return new Set() }
   })
-  const newNbRef = useRef<HTMLInputElement>(null)
+  const newNbRef    = useRef<HTMLInputElement>(null)
+  const dragNoteRef = useRef<string | null>(null)   // sync ref so dragover/drop see current value without waiting for re-render
 
   const fetchNotes = useCallback(async () => {
     const params = new URLSearchParams({ root_only: 'true' })
@@ -169,6 +170,7 @@ export function NotesSidePane({ width = 220, activeNoteId }: Props) {
   // ── Note → Notebook drag ─────────────────────────────────────────────────
   function handleNoteDragStart(e: React.DragEvent, noteId: string) {
     e.stopPropagation()
+    dragNoteRef.current = noteId
     setDragNoteId(noteId)
     e.dataTransfer.effectAllowed = 'move'
   }
@@ -176,13 +178,16 @@ export function NotesSidePane({ width = 220, activeNoteId }: Props) {
     e.preventDefault()
     e.stopPropagation()
     setDropNbId(null)
-    if (!dragNoteId) return
-    const note = notes.find(n => n.id === dragNoteId)
+    const noteId = dragNoteRef.current
+    if (!noteId) return
+    dragNoteRef.current = null
+    setDragNoteId(null)
+    const note = notes.find(n => n.id === noteId)
     const nb   = notebooks.find(n => n.id === nbId)
-    if (!note || !nb) { setDragNoteId(null); return }
-    const tag      = notebookTag(nb.name)
+    if (!note || !nb) return
+    const tag       = notebookTag(nb.name)
     const cleanTags = (note.tags ?? []).filter(t => !t.startsWith(NOTEBOOK_TAG_PREFIX))
-    if (note.tags?.includes(tag)) { setDragNoteId(null); return } // already in notebook
+    if (note.tags?.includes(tag)) return // already in notebook
     const newTags = [...cleanTags, tag]
     fetch(`/api/notes/${note.id}`, {
       method: 'PATCH',
@@ -194,7 +199,6 @@ export function NotesSidePane({ width = 220, activeNoteId }: Props) {
         toast.success(`Moved to "${nb.name}"`)
       }
     })
-    setDragNoteId(null)
   }
 
   async function moveNoteToNotebook(note: Note, nbName: string | null) {
@@ -213,10 +217,10 @@ export function NotesSidePane({ width = 220, activeNoteId }: Props) {
   }
 
   async function reorderNoteDrop(overNoteId: string) {
-    if (!dragNoteId || dragNoteId === overNoteId) return
-    // Work on the full flat list (all notes, not just unnotebooked)
+    const sourceId = dragNoteRef.current
+    if (!sourceId || sourceId === overNoteId) return
     const current = [...notes]
-    const fromIdx = current.findIndex(n => n.id === dragNoteId)
+    const fromIdx = current.findIndex(n => n.id === sourceId)
     const toIdx   = current.findIndex(n => n.id === overNoteId)
     if (fromIdx === -1 || toIdx === -1) return
     const reordered = [...current]
@@ -267,7 +271,7 @@ export function NotesSidePane({ width = 220, activeNoteId }: Props) {
     return (
       <div
         onDragOver={e => {
-          if (!dragNoteId || dragNoteId === note.id || !allowReorder) return
+          if (!dragNoteRef.current || dragNoteRef.current === note.id || !allowReorder) return
           e.preventDefault()
           e.stopPropagation()
           setDragOverNoteId(note.id)
@@ -276,9 +280,10 @@ export function NotesSidePane({ width = 220, activeNoteId }: Props) {
         onDragLeave={() => { if (dragOverNoteId === note.id) setDragOverNoteId(null) }}
         onDrop={e => {
           e.stopPropagation()
-          if (!allowReorder || !dragNoteId) return
+          if (!allowReorder || !dragNoteRef.current) return
           setDragOverNoteId(null)
           reorderNoteDrop(note.id)
+          dragNoteRef.current = null
           setDragNoteId(null)
         }}
         style={{
@@ -292,7 +297,7 @@ export function NotesSidePane({ width = 220, activeNoteId }: Props) {
           <div
             draggable
             onDragStart={e => handleNoteDragStart(e, note.id)}
-            onDragEnd={() => { setDragNoteId(null); setDragOverNoteId(null) }}
+            onDragEnd={() => { dragNoteRef.current = null; setDragNoteId(null); setDragOverNoteId(null) }}
             style={{
               flexShrink: 0, cursor: 'grab', display: 'flex', alignItems: 'center',
               height: ROW_H, padding: '0 2px 0 4px',
@@ -588,17 +593,17 @@ export function NotesSidePane({ width = 220, activeNoteId }: Props) {
                 <div key={nb.id}>
                   <div
                     draggable
-                    onDragStart={() => { if (!dragNoteId) handleNbDragStart(nb.id) }}
+                    onDragStart={() => { if (!dragNoteRef.current) handleNbDragStart(nb.id) }}
                     onDragOver={e => {
                       e.preventDefault()
-                      if (dragNoteId) { setDropNbId(nb.id) }
+                      if (dragNoteRef.current) { setDropNbId(nb.id) }
                       else handleNbDragOver(e, nb.id)
                     }}
                     onDrop={e => {
-                      if (dragNoteId) handleNbDropNote(e, nb.id)
+                      if (dragNoteRef.current) handleNbDropNote(e, nb.id)
                       else handleNbDrop(nb.id)
                     }}
-                    onDragLeave={() => { if (dragNoteId) setDropNbId(null) }}
+                    onDragLeave={() => { if (dragNoteRef.current) setDropNbId(null) }}
                     onDragEnd={() => { setDragNbId(null); setDragOverId(null); setDropNbId(null) }}
                     onMouseEnter={() => setHoveredNb(nb.id)}
                     onMouseLeave={() => setHoveredNb(null)}
