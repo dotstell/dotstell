@@ -1,9 +1,6 @@
 'use client'
-import { useState } from 'react'
 import Link from 'next/link'
 import { AppLayout } from '@/components/layout/AppLayout'
-import { PageHeader } from '@/components/layout/PageHeader'
-import { PageContainer } from '@/components/layout/PageContainer'
 import { RELEASES_URL } from '@/lib/version'
 
 // ── primitives ──────────────────────────────────────────────────────────────
@@ -98,37 +95,26 @@ const SECTIONS = [
 // ── page ─────────────────────────────────────────────────────────────────────
 
 export default function HelpPage() {
-  const [tocOpen, setTocOpen] = useState(false)
-
   return (
     <AppLayout>
-      <PageContainer>
-        <PageHeader title="Help & features" />
+      {/* Full-viewport two-panel layout — TOC and content each scroll independently */}
+      <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
 
-        {/* Mobile TOC toggle */}
-        <div style={{ marginBottom: 24 }}>
-          <button
-            type="button"
-            onClick={() => setTocOpen(o => !o)}
-            style={{
-              display: 'none',
-              fontSize: 13, color: 'var(--primary)', background: 'none',
-              border: '1px solid var(--border)', borderRadius: 8,
-              padding: '6px 14px', cursor: 'pointer', marginBottom: 12,
-            }}
-          >
-            {tocOpen ? 'Hide contents ↑' : 'Jump to section ↓'}
-          </button>
+        {/* Page header — fixed, doesn't scroll */}
+        <div style={{ padding: '24px 32px 16px', flexShrink: 0, borderBottom: '1px solid var(--border)' }}>
+          <h1 style={{ fontSize: 20, fontWeight: 700, color: 'var(--foreground)', margin: 0 }}>Help &amp; features</h1>
         </div>
 
-        <div style={{ display: 'flex', gap: 40, alignItems: 'flex-start' }}>
+        <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
 
-          {/* ── TOC sidebar ─────────────────────────────────────────────── */}
+          {/* ── TOC sidebar — fixed, never scrolls away ──────────────────── */}
           <nav style={{
-            width: 200, flexShrink: 0, position: 'sticky', top: 24,
-            borderRight: '1px solid var(--border)', paddingRight: 24,
+            width: 220, flexShrink: 0,
+            borderRight: '1px solid var(--border)',
+            padding: '24px 20px 24px 32px',
+            overflowY: 'auto',
           }}>
-            <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--muted-foreground)', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 10 }}>
+            <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--muted-foreground)', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 12 }}>
               Contents
             </div>
             {SECTIONS.map(s => (
@@ -149,8 +135,9 @@ export default function HelpPage() {
             ))}
           </nav>
 
-          {/* ── Content ─────────────────────────────────────────────────── */}
-          <div style={{ flex: 1, minWidth: 0, maxWidth: 660, paddingBottom: 80 }}>
+          {/* ── Content — independently scrollable ──────────────────────── */}
+          <div style={{ flex: 1, minWidth: 0, overflowY: 'auto', padding: '32px 40px 80px' }}>
+          <div style={{ maxWidth: 660 }}>
 
             {/* GETTING STARTED */}
             <Section id="getting-started" title="🧭 Getting started">
@@ -440,8 +427,10 @@ export default function HelpPage() {
             </div>
 
           </div>
-        </div>
-      </PageContainer>
+          </div>{/* maxWidth wrapper */}
+        </div>{/* content scroll area */}
+        </div>{/* two-panel row */}
+      </div>{/* full-viewport column */}
     </AppLayout>
   )
 }
