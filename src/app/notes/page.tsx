@@ -76,6 +76,7 @@ function SortableItem({ id, disabled, children }: { id: string; disabled: boolea
 export default function NotesPage() {
   const router = useRouter()
   const { notebooks } = useNotebooks()
+  const [mounted,    setMounted]    = useState(false)
   const [notes,      setNotes]      = useState<Note[]>([])
   const [loading,    setLoading]    = useState(true)
   const [search,     setSearch]     = useState('')
@@ -89,6 +90,9 @@ export default function NotesPage() {
   const [activeId,   setActiveId]   = useState<string | null>(null)
   const sortRef  = useRef<HTMLDivElement>(null)
   const ctxRef   = useRef<HTMLDivElement>(null)
+
+  // Gate DnD and client-only rendering to prevent SSR hydration mismatch
+  useEffect(() => setMounted(true), [])
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
@@ -263,7 +267,10 @@ export default function NotesPage() {
   function openCtx(e: React.MouseEvent, note: Note) {
     e.preventDefault()
     e.stopPropagation()
-    setCtxMenu({ x: e.clientX, y: e.clientY, note, subMenu: null })
+    // Clamp at open-time so no window.* access during render
+    const x = Math.min(e.clientX, window.innerWidth  - 200)
+    const y = Math.min(e.clientY, window.innerHeight - 240)
+    setCtxMenu({ x, y, note, subMenu: null })
   }
 
   // ── Render ───────────────────────────────────────────────────────────────
@@ -375,8 +382,8 @@ export default function NotesPage() {
           </p>
         )}
 
-        {/* Content */}
-        {loading ? (
+        {/* Content — gate DnD on mounted to avoid SSR hydration mismatch */}
+        {!mounted || loading ? (
           <p style={{ color: 'var(--muted-foreground)', fontSize: 13 }}>Loading…</p>
         ) : sorted.length === 0 ? (
           <EmptyState
@@ -479,8 +486,8 @@ export default function NotesPage() {
           ref={ctxRef}
           style={{
             position: 'fixed',
-            top: Math.min(ctxMenu.y, window.innerHeight - 240),
-            left: Math.min(ctxMenu.x, window.innerWidth - 200),
+            top: ctxMenu.y,
+            left: ctxMenu.x,
             zIndex: 9999,
             backgroundColor: 'var(--popover)',
             border: '1px solid var(--border)',
