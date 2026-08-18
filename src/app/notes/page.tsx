@@ -350,12 +350,13 @@ export default function NotesPage() {
                     backgroundColor: sortMode === opt.value ? 'rgba(124,106,255,0.12)' : 'transparent',
                     color: sortMode === opt.value ? 'var(--primary)' : 'var(--secondary-foreground)',
                     fontSize: 13, cursor: 'pointer', fontWeight: sortMode === opt.value ? 600 : 400,
+                    display: 'flex', flexDirection: 'column', gap: 1, alignItems: 'flex-start',
                   }}
                     onMouseEnter={e => { if (sortMode !== opt.value) e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.04)' }}
                     onMouseLeave={e => { if (sortMode !== opt.value) e.currentTarget.style.backgroundColor = 'transparent' }}
                   >
-                    {opt.label}
-                    {opt.value === 'manual' && <span style={{ fontSize: 10, marginLeft: 6, color: 'var(--muted-foreground)' }}>drag to reorder</span>}
+                    <span>{opt.label}</span>
+                    {opt.value === 'manual' && <span style={{ fontSize: 10, color: 'var(--muted-foreground)', fontWeight: 400 }}>drag to reorder</span>}
                   </button>
                 ))}
               </div>

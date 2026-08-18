@@ -3,7 +3,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import {
   Plus, Search, ChevronDown, ChevronRight, FileText, Tag,
-  Pencil, Trash2, BookOpen, FolderPlus, X, StickyNote, Pin, PinOff, Copy, ArrowDownUp,
+  Pencil, Trash2, BookOpen, FolderPlus, X, StickyNote, Pin, PinOff, Copy, ArrowDownUp, GripVertical,
 } from 'lucide-react'
 import { Note } from '@/types'
 import { useNotebooks, notebookTag, NOTEBOOK_TAG_PREFIX } from '@/hooks/useNotebooks'
@@ -266,7 +266,7 @@ export function NotesSidePane({ width = 220, activeNoteId }: Props) {
     const isDropTarget = allowReorder && dragNoteId && dragNoteId !== note.id && dragOverNoteId === note.id
     return (
       <div
-        draggable
+        draggable={allowReorder}
         onDragStart={e => handleNoteDragStart(e, note.id)}
         onDragEnd={() => { setDragNoteId(null); setDragOverNoteId(null) }}
         onDragOver={e => {
@@ -274,7 +274,7 @@ export function NotesSidePane({ width = 220, activeNoteId }: Props) {
           e.preventDefault()
           e.stopPropagation()
           setDragOverNoteId(note.id)
-          setDropNbId(null) // clear notebook drop highlight
+          setDropNbId(null)
         }}
         onDragLeave={() => { if (dragOverNoteId === note.id) setDragOverNoteId(null) }}
         onDrop={e => {
@@ -285,11 +285,15 @@ export function NotesSidePane({ width = 220, activeNoteId }: Props) {
           setDragNoteId(null)
         }}
         style={{
+          display: 'flex', alignItems: 'center',
           opacity: dragNoteId === note.id ? 0.35 : 1,
           borderTop: isDropTarget ? '2px solid var(--primary)' : '2px solid transparent',
           transition: 'opacity 0.15s, border-color 0.1s',
         }}
       >
+        {allowReorder && (
+          <GripVertical size={12} style={{ flexShrink: 0, color: 'var(--sidebar-muted)', opacity: 0.4, cursor: 'grab', marginLeft: 4 }} />
+        )}
         <button
           type="button"
           onClick={() => openNote(note.id)}
@@ -297,8 +301,8 @@ export function NotesSidePane({ width = 220, activeNoteId }: Props) {
           title={note.title || 'Untitled'}
           style={{
             display: 'flex', alignItems: 'center', gap: 7,
-            width: '100%', height: ROW_H,
-            paddingLeft: indent > 0 ? indent : 6, paddingRight: 8,
+            flex: 1, height: ROW_H,
+            paddingLeft: indent > 0 ? indent : (allowReorder ? 4 : 6), paddingRight: 8,
             border: 'none', cursor: allowReorder ? 'grab' : 'pointer', textAlign: 'left',
             borderRadius: 6,
             borderLeft: isActive ? '2px solid var(--primary)' : '2px solid transparent',
