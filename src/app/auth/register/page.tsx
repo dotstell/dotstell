@@ -55,19 +55,25 @@ export default function RegisterPage() {
               <h1 className="text-lg font-semibold mb-4">Create account</h1>
               <form onSubmit={handleRegister} className="flex flex-col gap-3">
                 <Input
+                  id="email"
+                  name="email"
                   type="email"
                   placeholder="Email"
                   value={email}
                   onChange={e => setEmail(e.target.value)}
                   required
+                  autoComplete="email"
                 />
                 <Input
+                  id="password"
+                  name="password"
                   type="password"
                   placeholder="Password (min 6 chars)"
                   value={password}
                   onChange={e => setPassword(e.target.value)}
                   required
                   minLength={6}
+                  autoComplete="new-password"
                 />
                 {error && <p className="text-[var(--destructive)] text-sm">{error}</p>}
                 <Button type="submit" disabled={loading} className="w-full mt-1">

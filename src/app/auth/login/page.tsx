@@ -59,6 +59,8 @@ export default function LoginPage() {
           <h1 className="text-lg font-semibold mb-4">Sign in</h1>
           <form onSubmit={handleLogin} className="flex flex-col gap-3">
             <Input
+              id="email"
+              name="email"
               type="email"
               placeholder="Email"
               value={email}
@@ -67,6 +69,8 @@ export default function LoginPage() {
               autoComplete="email"
             />
             <Input
+              id="password"
+              name="password"
               type="password"
               placeholder="Password"
               value={password}
