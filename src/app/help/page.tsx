@@ -426,7 +426,6 @@ export default function HelpPage() {
               </div>
             </div>
 
-          </div>
           </div>{/* maxWidth wrapper */}
         </div>{/* content scroll area */}
         </div>{/* two-panel row */}
