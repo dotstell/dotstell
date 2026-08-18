@@ -35,11 +35,14 @@ function broadcast() {
 }
 
 export function useNoteTabs(currentId?: string) {
-  const [tabs,     setTabs]     = useState<NoteTab[]>(() => load())
-  const [activeId, setActiveId] = useState<string | null>(() => loadActive())
+  const [tabs,     setTabs]     = useState<NoteTab[]>([])
+  const [activeId, setActiveId] = useState<string | null>(null)
   const openedRef = useRef<string | null>(null)
 
   useEffect(() => {
+    // Load from localStorage after mount — avoids SSR/client hydration mismatch (#418)
+    setTabs(load())
+    setActiveId(loadActive())
     function onSync() { setTabs(load()); setActiveId(loadActive()) }
     window.addEventListener(EVT, onSync)
     return () => window.removeEventListener(EVT, onSync)
