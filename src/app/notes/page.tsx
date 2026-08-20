@@ -2,7 +2,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import {
   DndContext, DragEndEvent, DragOverlay, closestCenter,
-  PointerSensor, useSensor, useSensors,
+  PointerSensor, TouchSensor, useSensor, useSensors,
 } from '@dnd-kit/core'
 import {
   SortableContext, arrayMove, useSortable,
@@ -88,14 +88,23 @@ export default function NotesPage() {
   const [sortOpen,   setSortOpen]   = useState(false)
   const [ctxMenu,    setCtxMenu]    = useState<CtxMenu | null>(null)
   const [activeId,   setActiveId]   = useState<string | null>(null)
+  const [isMobile,   setIsMobile]   = useState(false)
   const sortRef  = useRef<HTMLDivElement>(null)
   const ctxRef   = useRef<HTMLDivElement>(null)
 
   // Gate DnD and client-only rendering to prevent SSR hydration mismatch
   useEffect(() => setMounted(true), [])
 
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768)
+    check()
+    window.addEventListener('resize', check)
+    return () => window.removeEventListener('resize', check)
+  }, [])
+
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(TouchSensor,   { activationConstraint: { delay: 250, tolerance: 8 } })
   )
 
   useEffect(() => {
@@ -280,7 +289,7 @@ export default function NotesPage() {
   // ── Render ───────────────────────────────────────────────────────────────
   return (
     <div style={{ height: '100%', overflowY: 'auto' }}>
-      <div style={{ padding: '20px 28px 40px', maxWidth: 1200, paddingLeft: 48 }}>
+      <div style={{ padding: '20px 28px 40px', maxWidth: 1200, paddingLeft: isMobile ? 16 : 48 }}>
 
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>

@@ -38,6 +38,7 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
   const [noteId, setNoteId]           = useState<string | null>(isNew ? null : id)
   const [subNotes, setSubNotes]       = useState<Note[]>([])
   const [wikiSyncCount, setWikiSyncCount] = useState(0)
+  const [isMobile, setIsMobile]       = useState(false)
   // Live plain-text from the editor — updated on every keystroke via onTextChange
   const [editorText, setEditorText]   = useState('')
   const saveTimer   = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -49,6 +50,13 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
   const readMins  = Math.max(1, Math.round(wordCount / 200))
 
   const { openTab, updateTitle } = useNoteTabs(noteId ?? undefined)
+
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768)
+    check()
+    window.addEventListener('resize', check)
+    return () => window.removeEventListener('resize', check)
+  }, [])
 
   // Pre-populate notebook tag when coming from side pane
   useEffect(() => {
@@ -377,8 +385,8 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
           />
         </div>
 
-        {/* Right panel */}
-        {!focusMode && noteId && (
+        {/* Right panel — hidden on mobile to preserve editor space */}
+        {!focusMode && noteId && !isMobile && (
           <div style={{
             width: 240, flexShrink: 0, borderLeft: '1px solid var(--border)',
             padding: 16, overflowY: 'auto', backgroundColor: 'var(--card)',

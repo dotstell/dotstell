@@ -3,7 +3,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import {
   DndContext, DragEndEvent, closestCenter,
-  PointerSensor, useSensor, useSensors,
+  PointerSensor, TouchSensor, useSensor, useSensors,
 } from '@dnd-kit/core'
 import {
   SortableContext, arrayMove, useSortable,
@@ -197,7 +197,8 @@ export function NotesSidePane({ width = 220, activeNoteId }: Props) {
 
   // Pointer sensor with 8px activation distance — click never triggers drag
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(TouchSensor,   { activationConstraint: { delay: 250, tolerance: 8 } })
   )
 
   const fetchNotes = useCallback(async () => {
@@ -337,16 +338,20 @@ export function NotesSidePane({ width = 220, activeNoteId }: Props) {
   }
 
   // ── Note context-menu actions ─────────────────────────────────────────────
-  async function setNoteColor(noteId: string, color: string | null) {
-    const res = await fetch(`/api/notes/${noteId}`, {
+  function setNoteColor(noteId: string, color: string | null) {
+    // Optimistic update — apply instantly, rollback on API failure
+    const prev = notes.find(n => n.id === noteId)
+    setNotes(ns => ns.map(n => n.id === noteId ? { ...n, color: color ?? undefined } : n))
+    setContextMenu(null)
+    fetch(`/api/notes/${noteId}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ color: color ?? null }),
+    }).then(res => {
+      if (!res.ok) setNotes(ns => ns.map(n => n.id === noteId ? { ...n, color: prev?.color } : n))
+    }).catch(() => {
+      setNotes(ns => ns.map(n => n.id === noteId ? { ...n, color: prev?.color } : n))
     })
-    if (res.ok) {
-      setNotes(prev => prev.map(n => n.id === noteId ? { ...n, color: color ?? undefined } : n))
-    }
-    setContextMenu(null)
   }
 
   async function moveNoteToNotebook(note: Note, nbName: string | null) {

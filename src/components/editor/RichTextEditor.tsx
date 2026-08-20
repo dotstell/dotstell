@@ -684,7 +684,7 @@ export function RichTextEditor({
             style={{
               position: 'absolute', left: 20, top: 60, zIndex: 100,
               backgroundColor: 'var(--card)', border: '1px solid var(--border)',
-              borderRadius: 12, padding: 6, width: 280,
+              borderRadius: 12, padding: 6, width: 280, maxWidth: 'calc(100vw - 40px)',
               boxShadow: '0 12px 40px rgba(0,0,0,0.6)',
               maxHeight: 300, overflowY: 'auto',
             }}
@@ -734,7 +734,7 @@ export function RichTextEditor({
             style={{
               position: 'absolute', left: 20, top: 60, zIndex: 100,
               backgroundColor: 'var(--card)', border: '1px solid var(--border)',
-              borderRadius: 12, padding: 6, width: 260,
+              borderRadius: 12, padding: 6, width: 260, maxWidth: 'calc(100vw - 40px)',
               boxShadow: '0 12px 40px rgba(0,0,0,0.6)',
               maxHeight: 360, overflowY: 'auto',
             }}>
