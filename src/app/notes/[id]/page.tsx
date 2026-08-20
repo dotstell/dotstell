@@ -314,6 +314,8 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
 
         {/* Row 2: title */}
         <input
+          id="note-title"
+          name="note-title"
           value={note.title ?? ''}
           onChange={e => handleTitleChange(e.target.value)}
           placeholder="Note title…"
@@ -356,6 +358,8 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
           </button>
         ))}
         <input
+          id="note-tag-input"
+          name="note-tag-input"
           value={tagInput}
           onChange={e => setTagInput(e.target.value)}
           onKeyDown={e => e.key === 'Enter' && addTag()}

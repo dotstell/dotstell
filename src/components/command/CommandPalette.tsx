@@ -126,6 +126,8 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
           <Search size={17} style={{ color: 'var(--muted-foreground)', flexShrink: 0 }} />
           <input
             ref={inputRef}
+            id="command-palette-search"
+            name="command-palette-search"
             value={query}
             onChange={e => { setQuery(e.target.value); setSelected(0) }}
             onKeyDown={handleKeyDown}
