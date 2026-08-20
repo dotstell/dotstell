@@ -27,8 +27,9 @@ import {
   Link as LinkIcon, Highlighter, Undo, Redo, Maximize2, Minimize2,
   ChevronDown, AlignLeft, AlignCenter, AlignRight, AlignJustify,
   Superscript as SuperscriptIcon, Subscript as SubscriptIcon,
-  Image as ImageIcon, Type, RotateCcw, FileCode2, Eye, FileText, Check,
+  Image as ImageIcon, Type, RotateCcw, FileCode2, Eye, FileText, Check, Palette, X,
 } from 'lucide-react'
+import { HexColorPicker } from 'react-colorful'
 // markdown ↔ HTML conversion (source mode)
 import TurndownService from 'turndown'
 import { marked } from 'marked'
@@ -37,31 +38,51 @@ import { WikiLinkExtension } from '@/lib/tiptap/WikiLinkExtension'
 const lowlight = createLowlight(common)
 
 // ── Colour palettes ─────────────────────────────────────────
+// 5 columns × 5 rows = 25 swatches; Tailwind-400 range works in both dark/light
 const TEXT_COLORS = [
-  { label: 'Default', value: '' },
-  { label: 'Gray',    value: '#9ca3af' },
-  { label: 'Red',     value: '#f87171' },
-  { label: 'Orange',  value: '#fb923c' },
-  { label: 'Amber',   value: '#fbbf24' },
-  { label: 'Green',   value: '#4ade80' },
-  { label: 'Teal',    value: '#2dd4bf' },
-  { label: 'Sky',     value: '#38bdf8' },
-  { label: 'Blue',    value: '#60a5fa' },
-  { label: 'Violet',  value: '#a78bfa' },
-  { label: 'Purple',  value: 'var(--primary)' },
-  { label: 'Pink',    value: '#f472b6' },
+  // Row 1: neutrals
+  { label: 'Default',  value: '' },
+  { label: 'Mist',     value: '#d1d5db' },
+  { label: 'Gray',     value: '#9ca3af' },
+  { label: 'Slate',    value: '#6b7280' },
+  { label: 'Charcoal', value: '#475569' },
+  // Row 2: warm vivid
+  { label: 'Red',      value: '#f87171' },
+  { label: 'Orange',   value: '#fb923c' },
+  { label: 'Amber',    value: '#fbbf24' },
+  { label: 'Yellow',   value: '#facc15' },
+  { label: 'Lime',     value: '#a3e635' },
+  // Row 3: cool vivid
+  { label: 'Green',    value: '#4ade80' },
+  { label: 'Teal',     value: '#2dd4bf' },
+  { label: 'Sky',      value: '#38bdf8' },
+  { label: 'Blue',     value: '#60a5fa' },
+  { label: 'Indigo',   value: '#818cf8' },
+  // Row 4: accent
+  { label: 'Violet',   value: '#a78bfa' },
+  { label: 'Purple',   value: 'var(--primary)' },
+  { label: 'Fuchsia',  value: '#e879f9' },
+  { label: 'Pink',     value: '#f472b6' },
+  { label: 'Rose',     value: '#fb7185' },
+  // Row 5: deeper tones
+  { label: 'Crimson',  value: '#dc2626' },
+  { label: 'Forest',   value: '#16a34a' },
+  { label: 'Ocean',    value: '#0284c7' },
+  { label: 'Plum',     value: '#7e22ce' },
+  { label: 'Gold',     value: '#b45309' },
 ]
 
+// 5 cols × 2 rows = 10 swatches (9 highlights + None)
 const HIGHLIGHT_COLORS = [
   { label: 'Yellow', value: 'rgba(251,191,36,0.45)',  dot: '#fbbf24' },
-  { label: 'Amber',  value: 'rgba(251,146,60,0.42)',  dot: '#fb923c' },
-  { label: 'Green',  value: 'rgba(74,222,128,0.38)',  dot: '#4ade80' },
-  { label: 'Teal',   value: 'rgba(45,212,191,0.38)',  dot: '#2dd4bf' },
-  { label: 'Sky',    value: 'rgba(56,189,248,0.4)',   dot: '#38bdf8' },
-  { label: 'Blue',   value: 'rgba(96,165,250,0.42)',  dot: '#60a5fa' },
-  { label: 'Violet', value: 'rgba(167,139,250,0.42)', dot: '#a78bfa' },
-  { label: 'Pink',   value: 'rgba(244,114,182,0.42)', dot: '#f472b6' },
-  { label: 'Red',    value: 'rgba(248,113,113,0.42)', dot: '#f87171' },
+  { label: 'Amber',  value: 'rgba(251,146,60,0.44)',  dot: '#fb923c' },
+  { label: 'Green',  value: 'rgba(74,222,128,0.4)',   dot: '#4ade80' },
+  { label: 'Teal',   value: 'rgba(45,212,191,0.4)',   dot: '#2dd4bf' },
+  { label: 'Sky',    value: 'rgba(56,189,248,0.42)',  dot: '#38bdf8' },
+  { label: 'Blue',   value: 'rgba(96,165,250,0.44)',  dot: '#60a5fa' },
+  { label: 'Violet', value: 'rgba(167,139,250,0.44)', dot: '#a78bfa' },
+  { label: 'Pink',   value: 'rgba(244,114,182,0.44)', dot: '#f472b6' },
+  { label: 'Red',    value: 'rgba(248,113,113,0.44)', dot: '#f87171' },
   { label: 'None',   value: '',                        dot: '' },
 ]
 
@@ -998,72 +1019,113 @@ function FontDropdown({ editor, open, setOpen, ref }: {
   )
 }
 
+function CustomColorModal({ initial, onSave, onCancel }: {
+  initial: string
+  onSave: (v: string) => void
+  onCancel: () => void
+}) {
+  const [color, setColor] = useState(/^#[0-9a-f]{6}$/i.test(initial) ? initial : '#6b7280')
+  return (
+    <div
+      style={{ position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.55)' }}
+      onMouseDown={e => { if (e.target === e.currentTarget) onCancel() }}
+    >
+      <div style={{ backgroundColor: 'var(--card)', border: '1px solid var(--border)', borderRadius: 14, padding: 20, width: 272, boxShadow: '0 20px 60px rgba(0,0,0,0.6)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+          <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: 'var(--foreground)' }}>Custom color</p>
+          <button type="button" onClick={onCancel} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted-foreground)', padding: 2, borderRadius: 5, display: 'flex' }}>
+            <X size={14} />
+          </button>
+        </div>
+        <HexColorPicker color={color} onChange={setColor} style={{ width: '100%' }} />
+        <div style={{ display: 'flex', gap: 8, marginTop: 12, alignItems: 'center' }}>
+          <div style={{ width: 34, height: 34, borderRadius: 7, backgroundColor: color, border: '1px solid var(--border)', flexShrink: 0 }} />
+          <input
+            type="text"
+            value={color}
+            onChange={e => { if (/^#[0-9a-f]{0,6}$/i.test(e.target.value)) setColor(e.target.value) }}
+            maxLength={7}
+            style={{ flex: 1, fontSize: 12, fontFamily: 'monospace', border: '1px solid var(--border)', borderRadius: 7, padding: '6px 10px', backgroundColor: 'var(--muted)', color: 'var(--foreground)', outline: 'none' }}
+          />
+        </div>
+        <div style={{ display: 'flex', gap: 8, marginTop: 14, justifyContent: 'flex-end' }}>
+          <button type="button" onClick={onCancel} style={{ padding: '6px 16px', borderRadius: 7, border: '1px solid var(--border)', backgroundColor: 'transparent', color: 'var(--foreground)', fontSize: 12, cursor: 'pointer' }}>
+            Cancel
+          </button>
+          <button type="button" onClick={() => onSave(color)} style={{ padding: '6px 16px', borderRadius: 7, border: 'none', backgroundColor: 'var(--primary)', color: 'white', fontSize: 12, cursor: 'pointer', fontWeight: 600 }}>
+            Apply
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function ColorPicker({ colors, activeValue, onSelect }: {
   colors: { label: string; value: string }[]
   activeValue: string
   onSelect: (v: string) => void
   onReset: () => void
 }) {
-  const [hex, setHex] = useState('')
-  const hexValid = /^#[0-9a-f]{6}$/i.test(hex)
+  const [showCustom, setShowCustom] = useState(false)
   return (
-    <div style={{
-      position: 'absolute', top: '100%', left: 0, zIndex: 200, marginTop: 4,
-      backgroundColor: 'var(--card)', border: '1px solid var(--border)',
-      borderRadius: 10, padding: '8px 6px', width: 192,
-      boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
-    }}>
-      <p style={{ fontSize: 10, color: 'var(--muted-foreground)', margin: '0 6px 5px', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 600 }}>Text color</p>
-      {colors.map(c => (
-        <button
-          key={c.label}
-          type="button"
-          onClick={() => onSelect(c.value)}
-          style={{
-            width: '100%', display: 'flex', alignItems: 'center', gap: 9,
-            padding: '5px 8px', borderRadius: 6, border: 'none', cursor: 'pointer',
-            backgroundColor: activeValue === c.value ? 'var(--accent)' : 'transparent',
-          }}
-          onMouseEnter={e => { if (activeValue !== c.value) e.currentTarget.style.backgroundColor = 'var(--muted)' }}
-          onMouseLeave={e => { if (activeValue !== c.value) e.currentTarget.style.backgroundColor = 'transparent' }}
-        >
-          <div style={{
-            width: 16, height: 16, borderRadius: 4, flexShrink: 0,
-            backgroundColor: c.value || 'transparent',
-            border: c.value ? 'none' : '1.5px solid var(--border)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-          }}>
-            {!c.value && <span style={{ fontSize: 9, color: 'var(--foreground)', fontWeight: 700 }}>A</span>}
-          </div>
-          <span style={{ flex: 1, fontSize: 13, color: c.value || 'var(--foreground)', textAlign: 'left' }}>{c.label}</span>
-          {activeValue === c.value && <Check size={12} color="var(--primary)" />}
-        </button>
-      ))}
-      <div style={{ padding: '6px 8px 2px', borderTop: '1px solid var(--border)', marginTop: 4 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <div style={{
-            width: 16, height: 16, borderRadius: 4, flexShrink: 0,
-            border: '1.5px solid var(--border)',
-            backgroundColor: hexValid ? hex : 'transparent',
-          }} />
-          <input
-            type="text"
-            placeholder="#rrggbb"
-            value={hex}
-            maxLength={7}
-            onChange={e => setHex(e.target.value)}
-            onKeyDown={e => {
-              if (e.key === 'Enter' && hexValid) { onSelect(hex); setHex('') }
-            }}
-            style={{
-              flex: 1, fontSize: 11, border: '1px solid var(--border)', borderRadius: 5,
-              padding: '3px 7px', backgroundColor: 'var(--muted)', color: 'var(--foreground)',
-              outline: 'none', fontFamily: 'monospace',
-            }}
-          />
+    <>
+      <div style={{
+        position: 'absolute', top: '100%', left: 0, zIndex: 200, marginTop: 4,
+        backgroundColor: 'var(--card)', border: '1px solid var(--border)',
+        borderRadius: 10, padding: '10px 10px 8px', width: 180,
+        boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
+      }}>
+        <p style={{ fontSize: 10, color: 'var(--muted-foreground)', margin: '0 0 8px', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 600 }}>Text color</p>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 4 }}>
+          {colors.map(c => (
+            <button
+              key={c.label}
+              type="button"
+              title={c.label}
+              onClick={() => onSelect(c.value)}
+              style={{
+                width: 28, height: 28, borderRadius: 6, border: `2px solid ${activeValue === c.value ? 'var(--primary)' : 'transparent'}`,
+                backgroundColor: c.value || 'var(--muted)',
+                cursor: 'pointer', position: 'relative',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                transition: 'transform 0.1s',
+                outline: 'none',
+              }}
+              onMouseEnter={e => (e.currentTarget.style.transform = 'scale(1.18)')}
+              onMouseLeave={e => (e.currentTarget.style.transform = 'scale(1)')}
+            >
+              {!c.value && <span style={{ fontSize: 10, color: 'var(--foreground)', fontWeight: 700, pointerEvents: 'none' }}>A</span>}
+              {activeValue === c.value && c.value && (
+                <Check size={12} color="white" style={{ position: 'absolute', filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.6))' }} />
+              )}
+              {activeValue === c.value && !c.value && (
+                <Check size={12} color="var(--primary)" style={{ position: 'absolute' }} />
+              )}
+            </button>
+          ))}
+        </div>
+        <div style={{ borderTop: '1px solid var(--border)', marginTop: 8, paddingTop: 6, display: 'flex', justifyContent: 'flex-end' }}>
+          <button
+            type="button"
+            title="Custom color"
+            onClick={() => setShowCustom(true)}
+            style={{ width: 28, height: 28, borderRadius: 6, border: '1px solid var(--border)', backgroundColor: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'var(--muted)')}
+            onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
+          >
+            <Palette size={13} color="var(--muted-foreground)" />
+          </button>
         </div>
       </div>
-    </div>
+      {showCustom && (
+        <CustomColorModal
+          initial={activeValue}
+          onSave={v => { onSelect(v); setShowCustom(false) }}
+          onCancel={() => setShowCustom(false)}
+        />
+      )}
+    </>
   )
 }
 
@@ -1076,40 +1138,45 @@ function HighlightPicker({ colors, editor, onSelect }: {
     <div style={{
       position: 'absolute', top: '100%', left: 0, zIndex: 200, marginTop: 4,
       backgroundColor: 'var(--card)', border: '1px solid var(--border)',
-      borderRadius: 10, padding: '8px 6px', width: 192,
+      borderRadius: 10, padding: '10px 10px 8px', width: 180,
       boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
     }}>
-      <p style={{ fontSize: 10, color: 'var(--muted-foreground)', margin: '0 6px 5px', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 600 }}>Highlight</p>
-      {colors.map(c => {
-        const isActive = c.value
-          ? editor.isActive('highlight', { color: c.value })
-          : !editor.isActive('highlight')
-        return (
-          <button
-            key={c.label}
-            type="button"
-            onClick={() => onSelect(c.value)}
-            style={{
-              width: '100%', display: 'flex', alignItems: 'center', gap: 9,
-              padding: '5px 8px', borderRadius: 6, border: 'none', cursor: 'pointer',
-              backgroundColor: isActive ? 'var(--accent)' : 'transparent',
-            }}
-            onMouseEnter={e => { if (!isActive) e.currentTarget.style.backgroundColor = 'var(--muted)' }}
-            onMouseLeave={e => { if (!isActive) e.currentTarget.style.backgroundColor = 'transparent' }}
-          >
-            <span style={{
-              fontSize: 11, fontWeight: 600, borderRadius: 3, padding: '1px 5px', flexShrink: 0, minWidth: 26, textAlign: 'center',
-              backgroundColor: c.value || 'transparent',
-              border: c.value ? 'none' : '1.5px solid var(--border)',
-              color: 'var(--foreground)',
-            }}>
-              {c.value ? 'Aa' : '–'}
-            </span>
-            <span style={{ flex: 1, fontSize: 13, color: 'var(--foreground)', textAlign: 'left' }}>{c.label}</span>
-            {isActive && <Check size={12} color="var(--primary)" />}
-          </button>
-        )
-      })}
+      <p style={{ fontSize: 10, color: 'var(--muted-foreground)', margin: '0 0 8px', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 600 }}>Highlight</p>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 4 }}>
+        {colors.map(c => {
+          const isActive = c.value
+            ? editor.isActive('highlight', { color: c.value })
+            : !editor.isActive('highlight')
+          return (
+            <button
+              key={c.label}
+              type="button"
+              title={c.label}
+              onClick={() => onSelect(c.value)}
+              style={{
+                width: 28, height: 28, borderRadius: 6,
+                border: `2px solid ${isActive ? 'var(--primary)' : 'transparent'}`,
+                backgroundColor: c.value || 'var(--muted)',
+                cursor: 'pointer', position: 'relative',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: 10, fontWeight: 700, color: 'var(--foreground)',
+                transition: 'transform 0.1s',
+                outline: 'none',
+              }}
+              onMouseEnter={e => (e.currentTarget.style.transform = 'scale(1.18)')}
+              onMouseLeave={e => (e.currentTarget.style.transform = 'scale(1)')}
+            >
+              {c.value ? <span style={{ pointerEvents: 'none', fontSize: 10 }}>Aa</span>
+                : <X size={11} color="var(--muted-foreground)" />}
+              {isActive && (
+                <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 4, backgroundColor: 'rgba(0,0,0,0.15)' }}>
+                  <Check size={12} color={c.value ? 'rgba(0,0,0,0.7)' : 'var(--primary)'} />
+                </div>
+              )}
+            </button>
+          )
+        })}
+      </div>
     </div>
   )
 }
