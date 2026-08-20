@@ -525,7 +525,6 @@ export function RichTextEditor({
                 else editor.chain().focus().unsetColor().run()
                 setColorPickerOpen(false)
               }}
-              onReset={() => { editor.chain().focus().unsetColor().run(); setColorPickerOpen(false) }}
             />
           )}
         </div>
@@ -1052,7 +1051,7 @@ function CustomColorModal({ initial, onSave, onCancel }: {
           <button type="button" onClick={onCancel} style={{ padding: '6px 16px', borderRadius: 7, border: '1px solid var(--border)', backgroundColor: 'transparent', color: 'var(--foreground)', fontSize: 12, cursor: 'pointer' }}>
             Cancel
           </button>
-          <button type="button" onClick={() => onSave(color)} style={{ padding: '6px 16px', borderRadius: 7, border: 'none', backgroundColor: 'var(--primary)', color: 'white', fontSize: 12, cursor: 'pointer', fontWeight: 600 }}>
+          <button type="button" onClick={() => { if (/^#[0-9a-f]{6}$/i.test(color)) onSave(color) }} style={{ padding: '6px 16px', borderRadius: 7, border: 'none', backgroundColor: 'var(--primary)', color: 'white', fontSize: 12, cursor: 'pointer', fontWeight: 600, opacity: /^#[0-9a-f]{6}$/i.test(color) ? 1 : 0.4 }}>
             Apply
           </button>
         </div>
@@ -1083,7 +1082,11 @@ const RECENT_COLORS_KEY = 'dotstell-recent-colors'
 const MAX_RECENT = 5
 
 function loadRecentColors(): string[] {
-  try { return JSON.parse(localStorage.getItem(RECENT_COLORS_KEY) ?? '[]') } catch { return [] }
+  try {
+    const raw = JSON.parse(localStorage.getItem(RECENT_COLORS_KEY) ?? '[]')
+    if (!Array.isArray(raw)) return []
+    return raw.filter((c): c is string => typeof c === 'string' && /^#[0-9a-f]{6}$/i.test(c))
+  } catch { return [] }
 }
 function saveRecentColor(color: string, prev: string[]): string[] {
   const next = [color, ...prev.filter(c => c !== color)].slice(0, MAX_RECENT)
@@ -1095,7 +1098,6 @@ function ColorPicker({ colors, activeValue, onSelect }: {
   colors: { label: string; value: string }[]
   activeValue: string
   onSelect: (v: string) => void
-  onReset: () => void
 }) {
   const [showCustom, setShowCustom] = useState(false)
   const [recentColors, setRecentColors] = useState<string[]>(() => loadRecentColors())
