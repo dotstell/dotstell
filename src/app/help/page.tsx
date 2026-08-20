@@ -217,7 +217,13 @@ export default function HelpPage() {
                 body={<>Type <Kbd>/</Kbd> anywhere in the editor to open the command menu. Available blocks: Heading 1/2/3 · Bullet list · Numbered list · Checklist · Quote · Code block · Callout (💡 Info or ⚠️ Warning) · Divider · Table · Image</>}
               />
               <Tip icon="🔤" title="Rich text toolbar"
-                body={<>The full toolbar provides: Heading levels · <strong>Font family</strong> (16 options including System, Serif, Mono, Handwritten) · Bold · Italic · Underline · Strikethrough · Inline code · Superscript/Subscript · Text colour (10 colours) · Highlight (8 colours) · Alignment · Lists · Quote · Code block · Table · Image · Link · Markdown mode</>}
+                body={<>The full toolbar provides: Heading levels · <strong>Font family</strong> (16 options including System, Serif, Mono, Handwritten) · Bold · Italic · Underline · Strikethrough · Inline code · Superscript/Subscript · <strong>Text colour</strong> (25 presets + custom gradient picker) · <strong>Highlight</strong> (9 colours + None) · Alignment · Lists · Quote · Code block · Table · Image · Link · Markdown mode</>}
+              />
+              <Tip icon="🎨" title="Text colour & highlight picker"
+                body="Click the T (text colour) or highlighter icon in the toolbar to open a colour swatch grid. Choose from 25 preset colours or click the palette icon to pick any custom colour with a full gradient picker. Your last 5 custom colours are remembered and shown as quick-access swatches. Highlight colours show an Aa preview so you see exactly how each looks before applying."
+              />
+              <Tip icon="🏷️" title="Note colour labels"
+                body="Right-click any note in the sidebar or grid to set a colour label — choose from Red, Orange, Yellow, Green, Teal, Blue, Purple, or Pink. A coloured left border and tinted background make colour-coded notes immediately visible. Right-click and select the active colour again to clear it."
               />
               <Tip icon="📝" title="Markdown source mode"
                 body="Click the Markdown button in the toolbar to switch to raw Markdown editing with a cheatsheet bar. Click Rich text to convert back. Useful for pasting content from other apps."
