@@ -146,17 +146,19 @@ export default function NotesPage() {
     if (res.ok) { setNotes(prev => prev.filter(n => n.id !== id)); toast.success('Note deleted') }
   }
 
-  async function togglePin(note: Note) {
+  function togglePin(note: Note) {
     const pinned = !note.pinned
-    const res = await fetch(`/api/notes/${note.id}`, {
+    setNotes(prev => prev.map(n => n.id === note.id ? { ...n, pinned } : n))
+    toast.success(pinned ? 'Note pinned' : 'Note unpinned')
+    fetch(`/api/notes/${note.id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ pinned }),
+    }).then(res => {
+      if (!res.ok) setNotes(prev => prev.map(n => n.id === note.id ? { ...n, pinned: note.pinned } : n))
+    }).catch(() => {
+      setNotes(prev => prev.map(n => n.id === note.id ? { ...n, pinned: note.pinned } : n))
     })
-    if (res.ok) {
-      setNotes(prev => prev.map(n => n.id === note.id ? { ...n, pinned } : n))
-      toast.success(pinned ? 'Note pinned' : 'Note unpinned')
-    }
   }
 
   async function duplicateNote(note: Note) {
@@ -179,19 +181,21 @@ export default function NotesPage() {
     }
   }
 
-  async function moveToNotebook(note: Note, notebookName: string | null) {
+  function moveToNotebook(note: Note, notebookName: string | null) {
     // Remove all existing nb: tags, then add the new one (if any)
     const cleanTags = (note.tags ?? []).filter(t => !t.startsWith(NOTEBOOK_TAG_PREFIX))
     const newTags   = notebookName ? [...cleanTags, notebookTag(notebookName)] : cleanTags
-    const res = await fetch(`/api/notes/${note.id}`, {
+    setNotes(prev => prev.map(n => n.id === note.id ? { ...n, tags: newTags } : n))
+    toast.success(notebookName ? `Moved to "${notebookName}"` : 'Removed from notebook')
+    fetch(`/api/notes/${note.id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ tags: newTags }),
+    }).then(res => {
+      if (!res.ok) setNotes(prev => prev.map(n => n.id === note.id ? { ...n, tags: note.tags } : n))
+    }).catch(() => {
+      setNotes(prev => prev.map(n => n.id === note.id ? { ...n, tags: note.tags } : n))
     })
-    if (res.ok) {
-      setNotes(prev => prev.map(n => n.id === note.id ? { ...n, tags: newTags } : n))
-      toast.success(notebookName ? `Moved to "${notebookName}"` : 'Removed from notebook')
-    }
   }
 
   // ── Drag-and-drop ────────────────────────────────────────────────────────
