@@ -52,7 +52,7 @@ const NOTEBOOK_ITEMS = [
 
 // Connections shown in the note — illustrate that everything links together
 const CONNECTIONS = [
-  { icon: '👤', label: 'Jordan Kim',           type: 'Person',   accent: '#7c6aff' },
+  { icon: '👤', label: 'Shihab',               type: 'Person',   accent: '#7c6aff' },
   { icon: '📄', label: 'Q3 Goals',             type: 'Note',     accent: '#22c55e' },
   { icon: '🔖', label: 'figma.com/wireframes', type: 'Bookmark', accent: '#3b82f6' },
   { icon: '✅', label: 'Define launch scope',  type: 'Task',     accent: '#f59e0b' },
@@ -181,7 +181,7 @@ function AppMock() {
 
               {/* Rich text with inline wikilinks */}
               <p style={{ fontSize: 12, color: 'var(--foreground)', lineHeight: 1.9, margin: 0 }}>
-                Coordinate timeline with <WikiLink label="Jordan Kim" accent="#7c6aff" /> and ensure all deliverables
+                Coordinate timeline with <WikiLink label="Shihab" accent="#7c6aff" /> and ensure all deliverables
                 align with <WikiLink label="Q3 Goals" accent="#22c55e" />.
                 Reference wireframes saved in <WikiLink label="figma.com/wireframes" accent="#3b82f6" />.
               </p>
@@ -190,7 +190,7 @@ function AppMock() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
                 {[
                   { done: true,  text: 'Align on scope with stakeholders' },
-                  { done: false, text: 'Review wireframes with Jordan Kim' },
+                  { done: false, text: 'Review wireframes with Shihab' },
                   { done: false, text: 'Map deliverables into Q3 Goals' },
                 ].map(item => (
                   <div key={item.text} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>

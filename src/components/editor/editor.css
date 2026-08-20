@@ -193,6 +193,9 @@
 .tiptap-editor ul[data-type="taskList"] li > label input[type="checkbox"] {
   width: 15px; height: 15px; accent-color: var(--primary); cursor: pointer;
 }
+.tiptap-editor ul[data-type="taskList"] li > div {
+  flex: 1; min-width: 0; caret-color: var(--foreground);
+}
 .tiptap-editor ul[data-type="taskList"] li[data-checked="true"] > div {
   color: var(--muted-foreground); text-decoration: line-through;
 }
