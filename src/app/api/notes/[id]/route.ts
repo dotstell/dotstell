@@ -23,7 +23,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
   const body = await req.json()
   const allowed: Record<string, unknown> = {}
-  const fields = ['title','content','type','tags','person_id','parent_id','pinned','sort_order','checklist_items'] as const
+  const fields = ['title','content','type','tags','person_id','parent_id','pinned','sort_order','checklist_items','color'] as const
   for (const f of fields) if (f in body) allowed[f] = body[f]
   const { data, error } = await supabase.from('notes').update(allowed).eq('id', id).eq('user_id', user.id).select().single()
   if (error) return NextResponse.json({ error: 'An unexpected error occurred.' }, { status: 500 })

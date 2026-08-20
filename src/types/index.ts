@@ -28,6 +28,7 @@ export interface Note {
   sub_notes_count?: number
   sort_order?: number
   pinned?: boolean
+  color?: string
   created_at: string
   updated_at: string
 }

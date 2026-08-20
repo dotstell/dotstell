@@ -82,5 +82,13 @@ export function useNotebooks() {
     })
   }, [])
 
-  return { notebooks, createNotebook, deleteNotebook, renameNotebook, reorderNotebook }
+  const setNotebookColor = useCallback((id: string, color: string | null) => {
+    setNotebooks(prev => {
+      const next = prev.map(n => n.id === id ? { ...n, color: color ?? undefined } : n)
+      persist(next)
+      return next
+    })
+  }, [])
+
+  return { notebooks, createNotebook, deleteNotebook, renameNotebook, reorderNotebook, setNotebookColor }
 }

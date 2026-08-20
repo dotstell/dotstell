@@ -39,8 +39,10 @@ export function NoteRow({ note, onClick, onDelete, onContextMenu, onPin }: NoteR
         display: 'flex', alignItems: 'center', gap: 12,
         padding: '10px 14px', borderRadius: 9,
         cursor: 'pointer', transition: 'background 0.12s',
-        backgroundColor: note.pinned ? 'color-mix(in srgb, var(--primary) 5%, transparent)' : 'transparent',
-        borderLeft: note.pinned ? '2px solid var(--primary)' : '2px solid transparent',
+        backgroundColor: note.color
+          ? `color-mix(in srgb, ${note.color} 5%, transparent)`
+          : note.pinned ? 'color-mix(in srgb, var(--primary) 5%, transparent)' : 'transparent',
+        borderLeft: note.color ? `2px solid ${note.color}` : note.pinned ? '2px solid var(--primary)' : '2px solid transparent',
       }}
       onMouseEnter={e => {
         e.currentTarget.style.backgroundColor = 'var(--card)'
@@ -50,7 +52,9 @@ export function NoteRow({ note, onClick, onDelete, onContextMenu, onPin }: NoteR
         if (pinBtn) pinBtn.style.opacity = '1'
       }}
       onMouseLeave={e => {
-        e.currentTarget.style.backgroundColor = note.pinned ? 'color-mix(in srgb, var(--primary) 5%, transparent)' : 'transparent'
+        e.currentTarget.style.backgroundColor = note.color
+          ? `color-mix(in srgb, ${note.color} 5%, transparent)`
+          : note.pinned ? 'color-mix(in srgb, var(--primary) 5%, transparent)' : 'transparent'
         const btn = e.currentTarget.querySelector<HTMLElement>('.delete-btn')
         if (btn) btn.style.opacity = '0'
         const pinBtn = e.currentTarget.querySelector<HTMLElement>('.pin-btn')

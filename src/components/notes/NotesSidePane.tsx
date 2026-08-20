@@ -30,6 +30,64 @@ const FONT_SM = 12
 const FONT_MD = 13
 const ICON_SZ = 15
 
+const NOTE_COLORS = [
+  { label: 'Red',    value: '#ef4444' },
+  { label: 'Orange', value: '#f97316' },
+  { label: 'Yellow', value: '#eab308' },
+  { label: 'Green',  value: '#22c55e' },
+  { label: 'Teal',   value: '#14b8a6' },
+  { label: 'Blue',   value: '#3b82f6' },
+  { label: 'Purple', value: '#8b5cf6' },
+  { label: 'Pink',   value: '#ec4899' },
+]
+
+// ── Color swatches — used in both note and notebook context menus ──
+function ColorSwatches({ current, onSelect }: {
+  current?: string | null
+  onSelect: (color: string | null) => void
+}) {
+  return (
+    <div style={{ padding: '6px 12px 4px', borderTop: '1px solid var(--border)' }}>
+      <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--muted-foreground)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>
+        Color
+      </div>
+      <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+        {/* Clear / none */}
+        <button
+          type="button"
+          title="No color"
+          onClick={() => onSelect(null)}
+          style={{
+            width: 18, height: 18, borderRadius: '50%', flexShrink: 0,
+            border: current ? '2px solid var(--border)' : '2px solid var(--foreground)',
+            background: 'transparent', cursor: 'pointer', position: 'relative',
+          }}
+        >
+          <span style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, color: 'var(--muted-foreground)', lineHeight: 1 }}>✕</span>
+        </button>
+        {NOTE_COLORS.map(c => (
+          <button
+            key={c.value}
+            type="button"
+            title={c.label}
+            onClick={() => onSelect(c.value)}
+            style={{
+              width: 18, height: 18, borderRadius: '50%', flexShrink: 0,
+              backgroundColor: c.value, cursor: 'pointer',
+              border: current === c.value ? '2.5px solid var(--foreground)' : '2px solid transparent',
+              outline: current === c.value ? `2px solid ${c.value}` : 'none',
+              outlineOffset: 1,
+              transition: 'transform 0.1s, border 0.1s',
+            }}
+            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.transform = 'scale(1.2)' }}
+            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.transform = 'scale(1)' }}
+          />
+        ))}
+      </div>
+    </div>
+  )
+}
+
 // ── Sortable note row — must live at module level so useSortable has stable identity ──
 function SortableNoteItem({
   note, isActive, isPinned, onClick, onContextMenu,
@@ -85,7 +143,7 @@ function SortableNoteItem({
           paddingLeft: 4, paddingRight: 8,
           border: 'none', cursor: 'pointer', textAlign: 'left',
           borderRadius: 6,
-          borderLeft: isActive ? '2px solid var(--primary)' : '2px solid transparent',
+          borderLeft: note.color ? `2px solid ${note.color}` : isActive ? '2px solid var(--primary)' : '2px solid transparent',
           backgroundColor: isActive ? 'var(--sidebar-active-bg)' : 'transparent',
           color: isActive ? 'var(--sidebar-active-fg)' : 'var(--sidebar-muted)',
           transition: 'background 0.1s, color 0.1s',
@@ -113,7 +171,7 @@ export function NotesSidePane({ width = 220, activeNoteId }: Props) {
   const [notes,   setNotes]   = useState<Note[]>([])
   const [search,  setSearch]  = useState('')
   const [loading, setLoading] = useState(true)
-  const { notebooks, createNotebook, deleteNotebook, renameNotebook, reorderNotebook } = useNotebooks()
+  const { notebooks, createNotebook, deleteNotebook, renameNotebook, reorderNotebook, setNotebookColor } = useNotebooks()
   const { openTab } = useNoteTabs()
 
   const [sectionOpen,    setSectionOpen]    = useState<Record<string, boolean>>({ all: true, notebooks: true, tags: false })
@@ -279,6 +337,18 @@ export function NotesSidePane({ width = 220, activeNoteId }: Props) {
   }
 
   // ── Note context-menu actions ─────────────────────────────────────────────
+  async function setNoteColor(noteId: string, color: string | null) {
+    const res = await fetch(`/api/notes/${noteId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ color: color ?? null }),
+    })
+    if (res.ok) {
+      setNotes(prev => prev.map(n => n.id === noteId ? { ...n, color: color ?? undefined } : n))
+    }
+    setContextMenu(null)
+  }
+
   async function moveNoteToNotebook(note: Note, nbName: string | null) {
     const cleanTags = (note.tags ?? []).filter(t => !t.startsWith(NOTEBOOK_TAG_PREFIX))
     const newTags   = nbName ? [...cleanTags, notebookTag(nbName)] : cleanTags
@@ -331,7 +401,7 @@ export function NotesSidePane({ width = 220, activeNoteId }: Props) {
           paddingLeft: indent > 0 ? indent : 6, paddingRight: 8,
           border: 'none', cursor: 'pointer', textAlign: 'left',
           borderRadius: 6,
-          borderLeft: isActive ? '2px solid var(--primary)' : '2px solid transparent',
+          borderLeft: note.color ? `2px solid ${note.color}` : isActive ? '2px solid var(--primary)' : '2px solid transparent',
           backgroundColor: isActive ? 'var(--sidebar-active-bg)' : 'transparent',
           color: isActive ? 'var(--sidebar-active-fg)' : 'var(--sidebar-muted)',
           transition: 'background 0.1s, color 0.1s',
@@ -593,7 +663,8 @@ export function NotesSidePane({ width = 220, activeNoteId }: Props) {
                       {isOpen
                         ? <ChevronDown size={12} style={{ color: 'var(--sidebar-muted)', flexShrink: 0 }} />
                         : <ChevronRight size={12} style={{ color: 'var(--sidebar-muted)', flexShrink: 0 }} />}
-                      <span style={{ fontSize: 15, flexShrink: 0 }}>{nb.icon ?? '📓'}</span>
+                      <span style={{ fontSize: 15, flexShrink: 0, filter: nb.color ? `drop-shadow(0 0 3px ${nb.color}88)` : 'none' }}>{nb.icon ?? '📓'}</span>
+                      {nb.color && <span style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: nb.color, flexShrink: 0 }} />}
                       {renameTarget?.id === nb.id ? (
                         <input
                           autoFocus
@@ -700,16 +771,23 @@ export function NotesSidePane({ width = 220, activeNoteId }: Props) {
             boxShadow: '0 8px 28px rgba(0,0,0,0.45)',
           }}
         >
-          {contextMenu.type === 'notebook' && (
-            <>
-              <CtxItem icon={Pencil} label="Rename" onClick={() => {
-                const nb = notebooks.find(n => n.id === contextMenu.id)
-                if (nb) setRenameTarget({ id: nb.id, value: nb.name, type: 'notebook' })
-                setContextMenu(null)
-              }} />
-              <CtxItem icon={Trash2} label="Delete notebook" danger onClick={() => { deleteNotebook(contextMenu.id); setContextMenu(null) }} />
-            </>
-          )}
+          {contextMenu.type === 'notebook' && (() => {
+            const ctxNb = notebooks.find(n => n.id === contextMenu.id)
+            return (
+              <>
+                <CtxItem icon={Pencil} label="Rename" onClick={() => {
+                  if (ctxNb) setRenameTarget({ id: ctxNb.id, value: ctxNb.name, type: 'notebook' })
+                  setContextMenu(null)
+                }} />
+                <ColorSwatches
+                  current={ctxNb?.color}
+                  onSelect={color => { setNotebookColor(contextMenu.id, color); setContextMenu(null) }}
+                />
+                <div style={{ height: 4 }} />
+                <CtxItem icon={Trash2} label="Delete notebook" danger onClick={() => { deleteNotebook(contextMenu.id); setContextMenu(null) }} />
+              </>
+            )
+          })()}
           {contextMenu.type === 'note' && (() => {
             const ctxNote = notes.find(n => n.id === contextMenu.id)
             const isPinned = ctxNote?.pinned || pinnedIds.has(contextMenu.id)
@@ -719,6 +797,10 @@ export function NotesSidePane({ width = 220, activeNoteId }: Props) {
                   icon={isPinned ? PinOff : Pin}
                   label={isPinned ? 'Unpin note' : 'Pin note'}
                   onClick={() => { togglePin(contextMenu.id); setContextMenu(null) }}
+                />
+                <ColorSwatches
+                  current={ctxNote?.color}
+                  onSelect={color => setNoteColor(contextMenu.id, color)}
                 />
                 {notebooks.length > 0 && (
                   <div style={{ borderTop: '1px solid var(--border)', margin: '2px 0', paddingTop: 2 }}>
