@@ -27,7 +27,7 @@ import {
   Link as LinkIcon, Highlighter, Undo, Redo, Maximize2, Minimize2,
   ChevronDown, AlignLeft, AlignCenter, AlignRight, AlignJustify,
   Superscript as SuperscriptIcon, Subscript as SubscriptIcon,
-  Image as ImageIcon, Type, RotateCcw, FileCode2, Eye, FileText,
+  Image as ImageIcon, Type, RotateCcw, FileCode2, Eye, FileText, Check,
 } from 'lucide-react'
 // markdown ↔ HTML conversion (source mode)
 import TurndownService from 'turndown'
@@ -38,27 +38,31 @@ const lowlight = createLowlight(common)
 
 // ── Colour palettes ─────────────────────────────────────────
 const TEXT_COLORS = [
-  { label: 'Default',    value: '' },
-  { label: 'Purple',     value: 'var(--primary)' },
-  { label: 'Blue',       value: '#60a5fa' },
-  { label: 'Cyan',       value: '#22d3ee' },
-  { label: 'Green',      value: '#34d399' },
-  { label: 'Yellow',     value: '#fbbf24' },
-  { label: 'Orange',     value: '#fb923c' },
-  { label: 'Red',        value: '#f87171' },
-  { label: 'Pink',       value: '#f472b6' },
-  { label: 'Gray',       value: '#9ca3af' },
+  { label: 'Default', value: '' },
+  { label: 'Gray',    value: '#9ca3af' },
+  { label: 'Red',     value: '#f87171' },
+  { label: 'Orange',  value: '#fb923c' },
+  { label: 'Amber',   value: '#fbbf24' },
+  { label: 'Green',   value: '#4ade80' },
+  { label: 'Teal',    value: '#2dd4bf' },
+  { label: 'Sky',     value: '#38bdf8' },
+  { label: 'Blue',    value: '#60a5fa' },
+  { label: 'Violet',  value: '#a78bfa' },
+  { label: 'Purple',  value: 'var(--primary)' },
+  { label: 'Pink',    value: '#f472b6' },
 ]
 
 const HIGHLIGHT_COLORS = [
-  { label: 'Yellow',  value: 'rgba(251,191,36,0.3)',   dot: '#fbbf24' },
-  { label: 'Purple',  value: 'rgba(124,106,255,0.3)',  dot: 'var(--primary)' },
-  { label: 'Blue',    value: 'rgba(96,165,250,0.3)',   dot: '#60a5fa' },
-  { label: 'Green',   value: 'rgba(52,211,153,0.3)',   dot: '#34d399' },
-  { label: 'Pink',    value: 'rgba(244,114,182,0.3)',  dot: '#f472b6' },
-  { label: 'Orange',  value: 'rgba(251,146,60,0.3)',   dot: '#fb923c' },
-  { label: 'Red',     value: 'rgba(248,113,113,0.3)',  dot: '#f87171' },
-  { label: 'None',    value: '',                        dot: '' },
+  { label: 'Yellow', value: 'rgba(251,191,36,0.45)',  dot: '#fbbf24' },
+  { label: 'Amber',  value: 'rgba(251,146,60,0.42)',  dot: '#fb923c' },
+  { label: 'Green',  value: 'rgba(74,222,128,0.38)',  dot: '#4ade80' },
+  { label: 'Teal',   value: 'rgba(45,212,191,0.38)',  dot: '#2dd4bf' },
+  { label: 'Sky',    value: 'rgba(56,189,248,0.4)',   dot: '#38bdf8' },
+  { label: 'Blue',   value: 'rgba(96,165,250,0.42)',  dot: '#60a5fa' },
+  { label: 'Violet', value: 'rgba(167,139,250,0.42)', dot: '#a78bfa' },
+  { label: 'Pink',   value: 'rgba(244,114,182,0.42)', dot: '#f472b6' },
+  { label: 'Red',    value: 'rgba(248,113,113,0.42)', dot: '#f87171' },
+  { label: 'None',   value: '',                        dot: '' },
 ]
 
 type FontEntry = { label: string; value: string; preview?: string }
@@ -994,44 +998,71 @@ function FontDropdown({ editor, open, setOpen, ref }: {
   )
 }
 
-function ColorPicker({ colors, activeValue, onSelect, onReset }: {
+function ColorPicker({ colors, activeValue, onSelect }: {
   colors: { label: string; value: string }[]
   activeValue: string
   onSelect: (v: string) => void
   onReset: () => void
 }) {
+  const [hex, setHex] = useState('')
+  const hexValid = /^#[0-9a-f]{6}$/i.test(hex)
   return (
     <div style={{
       position: 'absolute', top: '100%', left: 0, zIndex: 200, marginTop: 4,
       backgroundColor: 'var(--card)', border: '1px solid var(--border)',
-      borderRadius: 10, padding: 10, width: 200,
-      boxShadow: '0 8px 28px rgba(0,0,0,0.6)',
+      borderRadius: 10, padding: '8px 6px', width: 192,
+      boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
     }}>
-      <p style={{ fontSize: 10, color: 'var(--border)', margin: '0 0 8px', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Text color</p>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 5 }}>
-        {colors.map(c => (
-          <button
-            key={c.label}
-            type="button"
-            title={c.label}
-            onClick={() => onSelect(c.value)}
-            style={{
-              width: 28, height: 28, borderRadius: 6, border: activeValue === c.value ? '2px solid var(--primary)' : '2px solid transparent',
-              backgroundColor: c.value || 'var(--border)',
-              cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+      <p style={{ fontSize: 10, color: 'var(--muted-foreground)', margin: '0 6px 5px', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 600 }}>Text color</p>
+      {colors.map(c => (
+        <button
+          key={c.label}
+          type="button"
+          onClick={() => onSelect(c.value)}
+          style={{
+            width: '100%', display: 'flex', alignItems: 'center', gap: 9,
+            padding: '5px 8px', borderRadius: 6, border: 'none', cursor: 'pointer',
+            backgroundColor: activeValue === c.value ? 'var(--accent)' : 'transparent',
+          }}
+          onMouseEnter={e => { if (activeValue !== c.value) e.currentTarget.style.backgroundColor = 'var(--muted)' }}
+          onMouseLeave={e => { if (activeValue !== c.value) e.currentTarget.style.backgroundColor = 'transparent' }}
+        >
+          <div style={{
+            width: 16, height: 16, borderRadius: 4, flexShrink: 0,
+            backgroundColor: c.value || 'transparent',
+            border: c.value ? 'none' : '1.5px solid var(--border)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            {!c.value && <span style={{ fontSize: 9, color: 'var(--foreground)', fontWeight: 700 }}>A</span>}
+          </div>
+          <span style={{ flex: 1, fontSize: 13, color: c.value || 'var(--foreground)', textAlign: 'left' }}>{c.label}</span>
+          {activeValue === c.value && <Check size={12} color="var(--primary)" />}
+        </button>
+      ))}
+      <div style={{ padding: '6px 8px 2px', borderTop: '1px solid var(--border)', marginTop: 4 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <div style={{
+            width: 16, height: 16, borderRadius: 4, flexShrink: 0,
+            border: '1.5px solid var(--border)',
+            backgroundColor: hexValid ? hex : 'transparent',
+          }} />
+          <input
+            type="text"
+            placeholder="#rrggbb"
+            value={hex}
+            maxLength={7}
+            onChange={e => setHex(e.target.value)}
+            onKeyDown={e => {
+              if (e.key === 'Enter' && hexValid) { onSelect(hex); setHex('') }
             }}
-          >
-            {!c.value && <span style={{ fontSize: 10, color: 'var(--secondary-foreground)' }}>A</span>}
-          </button>
-        ))}
+            style={{
+              flex: 1, fontSize: 11, border: '1px solid var(--border)', borderRadius: 5,
+              padding: '3px 7px', backgroundColor: 'var(--muted)', color: 'var(--foreground)',
+              outline: 'none', fontFamily: 'monospace',
+            }}
+          />
+        </div>
       </div>
-      <button type="button" onClick={onReset} style={{
-        marginTop: 8, width: '100%', padding: '5px', borderRadius: 6,
-        backgroundColor: 'var(--muted)', border: '1px solid var(--border)', color: 'var(--muted-foreground)',
-        fontSize: 11, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4,
-      }}>
-        <RotateCcw size={10} /> Reset color
-      </button>
     </div>
   )
 }
@@ -1045,33 +1076,40 @@ function HighlightPicker({ colors, editor, onSelect }: {
     <div style={{
       position: 'absolute', top: '100%', left: 0, zIndex: 200, marginTop: 4,
       backgroundColor: 'var(--card)', border: '1px solid var(--border)',
-      borderRadius: 10, padding: 10, width: 200,
-      boxShadow: '0 8px 28px rgba(0,0,0,0.6)',
+      borderRadius: 10, padding: '8px 6px', width: 192,
+      boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
     }}>
-      <p style={{ fontSize: 10, color: 'var(--border)', margin: '0 0 8px', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Highlight color</p>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 5 }}>
-        {colors.map(c => {
-          const isActive = c.value ? editor.isActive('highlight', { color: c.value }) : false
-          return (
-            <button
-              key={c.label}
-              type="button"
-              title={c.label}
-              onClick={() => onSelect(c.value)}
-              style={{
-                height: 28, borderRadius: 6, border: isActive ? '2px solid var(--primary)' : '2px solid transparent',
-                backgroundColor: c.value || 'var(--secondary)',
-                cursor: 'pointer', fontSize: 11, color: 'var(--foreground)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4,
-                padding: '0 6px',
-              }}
-            >
-              {c.dot ? <span style={{ width: 10, height: 10, borderRadius: 3, backgroundColor: c.dot, display: 'inline-block', flexShrink: 0 }} /> : null}
-              {!c.value ? <span style={{ fontSize: 10, color: 'var(--muted-foreground)' }}>None</span> : null}
-            </button>
-          )
-        })}
-      </div>
+      <p style={{ fontSize: 10, color: 'var(--muted-foreground)', margin: '0 6px 5px', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 600 }}>Highlight</p>
+      {colors.map(c => {
+        const isActive = c.value
+          ? editor.isActive('highlight', { color: c.value })
+          : !editor.isActive('highlight')
+        return (
+          <button
+            key={c.label}
+            type="button"
+            onClick={() => onSelect(c.value)}
+            style={{
+              width: '100%', display: 'flex', alignItems: 'center', gap: 9,
+              padding: '5px 8px', borderRadius: 6, border: 'none', cursor: 'pointer',
+              backgroundColor: isActive ? 'var(--accent)' : 'transparent',
+            }}
+            onMouseEnter={e => { if (!isActive) e.currentTarget.style.backgroundColor = 'var(--muted)' }}
+            onMouseLeave={e => { if (!isActive) e.currentTarget.style.backgroundColor = 'transparent' }}
+          >
+            <span style={{
+              fontSize: 11, fontWeight: 600, borderRadius: 3, padding: '1px 5px', flexShrink: 0, minWidth: 26, textAlign: 'center',
+              backgroundColor: c.value || 'transparent',
+              border: c.value ? 'none' : '1.5px solid var(--border)',
+              color: 'var(--foreground)',
+            }}>
+              {c.value ? 'Aa' : '–'}
+            </span>
+            <span style={{ flex: 1, fontSize: 13, color: 'var(--foreground)', textAlign: 'left' }}>{c.label}</span>
+            {isActive && <Check size={12} color="var(--primary)" />}
+          </button>
+        )
+      })}
     </div>
   )
 }
