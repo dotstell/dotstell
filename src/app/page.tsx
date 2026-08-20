@@ -37,11 +37,17 @@ const FEATURES = [
 ]
 
 const NAV_ITEMS = [
-  { label: 'Notes',     active: true  },
-  { label: 'Bookmarks', active: false },
-  { label: 'People',    active: false },
-  { label: 'Tasks',     active: false },
-  { label: 'Graph',     active: false },
+  { icon: '📄', label: 'Notes',     active: true  },
+  { icon: '🔖', label: 'Bookmarks', active: false },
+  { icon: '👥', label: 'People',    active: false },
+  { icon: '✅', label: 'Tasks',     active: false },
+  { icon: '🌐', label: 'Graph',     active: false },
+]
+
+const NOTEBOOK_ITEMS = [
+  { icon: '📁', label: 'Personal' },
+  { icon: '📁', label: 'Work'     },
+  { icon: '📁', label: 'Research' },
 ]
 
 const NOTE_CARDS = [
@@ -126,6 +132,7 @@ function AppMock() {
               <div
                 key={item.label}
                 style={{
+                  display: 'flex', alignItems: 'center', gap: 7,
                   padding: '6px 10px', borderRadius: 6, fontSize: 12,
                   fontWeight: item.active ? 500 : 400,
                   background: item.active ? 'var(--sidebar-active-bg)' : 'transparent',
@@ -133,6 +140,7 @@ function AppMock() {
                   cursor: 'default',
                 }}
               >
+                <span style={{ fontSize: 13, lineHeight: 1, flexShrink: 0, opacity: item.active ? 1 : 0.65 }}>{item.icon}</span>
                 {item.label}
               </div>
             ))}
@@ -140,15 +148,17 @@ function AppMock() {
             <div style={{ padding: '4px 8px 6px', fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', color: 'var(--sidebar-section-fg)', textTransform: 'uppercase' }}>
               Notebooks
             </div>
-            {['Personal', 'Work', 'Research'].map(nb => (
+            {NOTEBOOK_ITEMS.map(nb => (
               <div
-                key={nb}
+                key={nb.label}
                 style={{
+                  display: 'flex', alignItems: 'center', gap: 7,
                   padding: '5px 10px', borderRadius: 6, fontSize: 11,
                   color: 'var(--sidebar-muted)', cursor: 'default',
                 }}
               >
-                {nb}
+                <span style={{ fontSize: 11, lineHeight: 1, flexShrink: 0, opacity: 0.6 }}>{nb.icon}</span>
+                {nb.label}
               </div>
             ))}
           </div>
@@ -475,7 +485,7 @@ export default function LandingPage() {
           {[
             { icon: '🔓', label: 'Open source',    sub: 'AGPL-3.0 licensed. Fork it, self-host it, audit the code — the source is always open.'    },
             { icon: '🔒', label: 'No lock-in',      sub: 'Your notes are yours. No proprietary formats, no walled gardens, no vendor chains.'        },
-            { icon: '📡', label: 'Built in public', sub: 'Every feature shipped transparently, one commit at a time on GitHub.'                      },
+            { icon: '📡', label: 'Built in public', sub: 'Development happens openly on GitHub — issues, roadmap and every change are visible to anyone.' },
           ].map(item => (
             <div key={item.label}>
               <div style={{ fontSize: 28, marginBottom: 12 }}>{item.icon}</div>
@@ -500,7 +510,7 @@ export default function LandingPage() {
             Start building your graph today.
           </h2>
           <p style={{ fontSize: 14, color: 'var(--muted-foreground)', marginBottom: 32 }}>
-            Free, open source, and works in your browser — no setup needed.
+            Works in your browser or as a native desktop app for Windows — free, open source, no setup needed.
           </p>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, flexWrap: 'wrap' }}>
             <Link
