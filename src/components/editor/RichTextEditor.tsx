@@ -1079,6 +1079,18 @@ function swatchStyle(isActive: boolean, bg: string, isNoColor = false): React.CS
   }
 }
 
+const RECENT_COLORS_KEY = 'dotstell-recent-colors'
+const MAX_RECENT = 5
+
+function loadRecentColors(): string[] {
+  try { return JSON.parse(localStorage.getItem(RECENT_COLORS_KEY) ?? '[]') } catch { return [] }
+}
+function saveRecentColor(color: string, prev: string[]): string[] {
+  const next = [color, ...prev.filter(c => c !== color)].slice(0, MAX_RECENT)
+  try { localStorage.setItem(RECENT_COLORS_KEY, JSON.stringify(next)) } catch {}
+  return next
+}
+
 function ColorPicker({ colors, activeValue, onSelect }: {
   colors: { label: string; value: string }[]
   activeValue: string
@@ -1086,11 +1098,9 @@ function ColorPicker({ colors, activeValue, onSelect }: {
   onReset: () => void
 }) {
   const [showCustom, setShowCustom] = useState(false)
-  const [lastCustom, setLastCustom] = useState<string | null>(null)
+  const [recentColors, setRecentColors] = useState<string[]>(() => loadRecentColors())
 
   const isCustomActive = activeValue !== '' && !colors.some(c => c.value === activeValue)
-  // Show the last-used custom color as a small swatch beside the palette button
-  const customSwatch = isCustomActive ? activeValue : lastCustom
 
   return (
     <>
@@ -1115,7 +1125,6 @@ function ColorPicker({ colors, activeValue, onSelect }: {
                 onMouseEnter={e => (e.currentTarget.style.transform = 'scale(1.18)')}
                 onMouseLeave={e => (e.currentTarget.style.transform = 'scale(1)')}
               >
-                {/* checkmark only on real colors, never on Default */}
                 {isActive && !isDefault && (
                   <Check size={12} color="white" style={{ position: 'absolute', filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.6))' }} />
                 )}
@@ -1124,35 +1133,39 @@ function ColorPicker({ colors, activeValue, onSelect }: {
           })}
         </div>
 
-        {/* Bottom bar: custom swatch (last/active custom) + always-visible palette button */}
-        <div style={{ borderTop: '1px solid var(--border)', marginTop: 8, paddingTop: 6, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-            {customSwatch && (
-              <button
-                type="button"
-                title={`Apply custom: ${customSwatch}`}
-                onClick={() => onSelect(customSwatch)}
-                style={{
-                  width: 20, height: 20, borderRadius: 4, cursor: 'pointer',
-                  backgroundColor: customSwatch,
-                  border: '1px solid rgba(0,0,0,0.1)',
-                  outline: isCustomActive ? '2px solid var(--primary)' : 'none',
-                  outlineOffset: 1,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  transition: 'transform 0.1s', flexShrink: 0,
-                }}
-                onMouseEnter={e => (e.currentTarget.style.transform = 'scale(1.15)')}
-                onMouseLeave={e => (e.currentTarget.style.transform = 'scale(1)')}
-              >
-                {isCustomActive && <Check size={9} color="white" style={{ filter: 'drop-shadow(0 1px 1px rgba(0,0,0,0.7))' }} />}
-              </button>
-            )}
+        {/* Bottom bar: up to 5 recent custom colors + always-visible palette button */}
+        <div style={{ borderTop: '1px solid var(--border)', marginTop: 8, paddingTop: 6, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 4 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4, flex: 1 }}>
+            {recentColors.map(rc => {
+              const isActive = activeValue === rc
+              return (
+                <button
+                  key={rc}
+                  type="button"
+                  title={rc}
+                  onClick={() => onSelect(rc)}
+                  style={{
+                    width: 20, height: 20, borderRadius: 4, cursor: 'pointer', flexShrink: 0,
+                    backgroundColor: rc,
+                    border: '1px solid rgba(0,0,0,0.1)',
+                    outline: isActive ? '2px solid var(--primary)' : 'none',
+                    outlineOffset: 1,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    transition: 'transform 0.1s',
+                  }}
+                  onMouseEnter={e => (e.currentTarget.style.transform = 'scale(1.2)')}
+                  onMouseLeave={e => (e.currentTarget.style.transform = 'scale(1)')}
+                >
+                  {isActive && <Check size={9} color="white" style={{ filter: 'drop-shadow(0 1px 1px rgba(0,0,0,0.7))' }} />}
+                </button>
+              )
+            })}
           </div>
           <button
             type="button"
             title="Open color picker"
             onClick={() => setShowCustom(true)}
-            style={{ width: 28, height: 28, borderRadius: 6, border: '1px solid var(--border)', backgroundColor: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background 0.1s' }}
+            style={{ width: 28, height: 28, borderRadius: 6, border: '1px solid var(--border)', backgroundColor: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background 0.1s', flexShrink: 0 }}
             onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'var(--muted)')}
             onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
           >
@@ -1162,8 +1175,12 @@ function ColorPicker({ colors, activeValue, onSelect }: {
       </div>
       {showCustom && (
         <CustomColorModal
-          initial={isCustomActive ? activeValue : (lastCustom || '#6b7280')}
-          onSave={v => { onSelect(v); setLastCustom(v); setShowCustom(false) }}
+          initial={isCustomActive ? activeValue : (recentColors[0] || '#6b7280')}
+          onSave={v => {
+            onSelect(v)
+            setRecentColors(prev => saveRecentColor(v, prev))
+            setShowCustom(false)
+          }}
           onCancel={() => setShowCustom(false)}
         />
       )}
