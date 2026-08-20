@@ -65,7 +65,7 @@ function AppMock() {
         aria-hidden="true"
         style={{
           position: 'absolute', inset: '-20px',
-          background: 'radial-gradient(ellipse at 50% 50%, rgba(124,106,255,0.22), transparent 68%)',
+          background: 'radial-gradient(ellipse at 50% 50%, color-mix(in srgb, var(--primary) 22%, transparent), transparent 68%)',
           filter: 'blur(40px)',
           pointerEvents: 'none',
           borderRadius: 24,
@@ -347,7 +347,7 @@ export default function LandingPage() {
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
           padding: '12px 24px',
           borderBottom: '1px solid var(--border)',
-          background: 'rgba(10,10,20,0.88)',
+          background: 'color-mix(in srgb, var(--card) 92%, transparent)',
           backdropFilter: 'blur(14px)',
           WebkitBackdropFilter: 'blur(14px)',
         }}
@@ -388,7 +388,7 @@ export default function LandingPage() {
           aria-hidden="true"
           style={{
             position: 'absolute', inset: 0, pointerEvents: 'none',
-            background: 'radial-gradient(ellipse 60% 50% at 50% 0%, rgba(124,106,255,0.16) 0%, transparent 65%)',
+            background: 'radial-gradient(ellipse 60% 50% at 50% 0%, color-mix(in srgb, var(--primary) 16%, transparent) 0%, transparent 65%)',
           }}
         />
 
@@ -397,7 +397,7 @@ export default function LandingPage() {
             <DotstellLogo size="lg" />
           </div>
 
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '4px 14px', borderRadius: 999, marginBottom: 24, border: '1px solid rgba(124,106,255,0.35)', background: 'rgba(124,106,255,0.08)', color: 'var(--primary)', fontSize: 12 }}>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '4px 14px', borderRadius: 999, marginBottom: 24, border: '1px solid color-mix(in srgb, var(--primary) 35%, transparent)', background: 'color-mix(in srgb, var(--primary) 8%, transparent)', color: 'var(--primary)', fontSize: 12 }}>
             <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--primary)', flexShrink: 0, animation: 'pulse 2s cubic-bezier(0.4,0,0.6,1) infinite' }} />
             Open source · Free forever
           </div>
@@ -502,7 +502,7 @@ export default function LandingPage() {
           aria-hidden="true"
           style={{
             position: 'absolute', inset: 0, pointerEvents: 'none',
-            background: 'radial-gradient(ellipse 60% 50% at 50% 100%, rgba(124,106,255,0.12) 0%, transparent 65%)',
+            background: 'radial-gradient(ellipse 60% 50% at 50% 100%, color-mix(in srgb, var(--primary) 12%, transparent) 0%, transparent 65%)',
           }}
         />
         <div style={{ position: 'relative', maxWidth: 480 }}>
