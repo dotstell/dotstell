@@ -1063,6 +1063,22 @@ function CustomColorModal({ initial, onSave, onCancel }: {
 
 const NO_COLOR_BG = 'linear-gradient(to top right, transparent calc(50% - 1.5px), #ef4444 calc(50% - 1.5px), #ef4444 calc(50% + 1.5px), transparent calc(50% + 1.5px))'
 
+// Shared swatch button styles — uses outline (not border) for active ring so layout never shifts
+function swatchStyle(isActive: boolean, bg: string, isNoColor = false): React.CSSProperties {
+  return {
+    width: 28, height: 28, borderRadius: 6,
+    border: '1px solid rgba(0,0,0,0.08)',
+    outline: isActive ? '2px solid var(--primary)' : 'none',
+    outlineOffset: 1,
+    backgroundColor: isNoColor ? 'var(--card)' : bg,
+    backgroundImage: isNoColor ? NO_COLOR_BG : 'none',
+    cursor: 'pointer', position: 'relative',
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    transition: 'transform 0.1s',
+    flexShrink: 0,
+  }
+}
+
 function ColorPicker({ colors, activeValue, onSelect }: {
   colors: { label: string; value: string }[]
   activeValue: string
@@ -1073,7 +1089,8 @@ function ColorPicker({ colors, activeValue, onSelect }: {
   const [lastCustom, setLastCustom] = useState<string | null>(null)
 
   const isCustomActive = activeValue !== '' && !colors.some(c => c.value === activeValue)
-  const customDisplay = isCustomActive ? activeValue : lastCustom
+  // Show the last-used custom color as a small swatch beside the palette button
+  const customSwatch = isCustomActive ? activeValue : lastCustom
 
   return (
     <>
@@ -1094,16 +1111,7 @@ function ColorPicker({ colors, activeValue, onSelect }: {
                 type="button"
                 title={c.label}
                 onClick={() => onSelect(c.value)}
-                style={{
-                  width: 28, height: 28, borderRadius: 6, overflow: 'hidden',
-                  border: `2px solid ${isActive ? 'var(--primary)' : 'transparent'}`,
-                  backgroundColor: 'var(--card)',
-                  backgroundImage: isDefault ? NO_COLOR_BG : 'none',
-                  ...(isDefault ? {} : { backgroundColor: c.value }),
-                  cursor: 'pointer', position: 'relative',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  transition: 'transform 0.1s', outline: 'none',
-                }}
+                style={swatchStyle(isActive, c.value, isDefault)}
                 onMouseEnter={e => (e.currentTarget.style.transform = 'scale(1.18)')}
                 onMouseLeave={e => (e.currentTarget.style.transform = 'scale(1)')}
               >
@@ -1115,25 +1123,40 @@ function ColorPicker({ colors, activeValue, onSelect }: {
             )
           })}
         </div>
-        <div style={{ borderTop: '1px solid var(--border)', marginTop: 8, paddingTop: 6, display: 'flex', justifyContent: 'flex-end' }}>
+
+        {/* Bottom bar: custom swatch (last/active custom) + always-visible palette button */}
+        <div style={{ borderTop: '1px solid var(--border)', marginTop: 8, paddingTop: 6, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+            {customSwatch && (
+              <button
+                type="button"
+                title={`Apply custom: ${customSwatch}`}
+                onClick={() => onSelect(customSwatch)}
+                style={{
+                  width: 20, height: 20, borderRadius: 4, cursor: 'pointer',
+                  backgroundColor: customSwatch,
+                  border: '1px solid rgba(0,0,0,0.1)',
+                  outline: isCustomActive ? '2px solid var(--primary)' : 'none',
+                  outlineOffset: 1,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  transition: 'transform 0.1s', flexShrink: 0,
+                }}
+                onMouseEnter={e => (e.currentTarget.style.transform = 'scale(1.15)')}
+                onMouseLeave={e => (e.currentTarget.style.transform = 'scale(1)')}
+              >
+                {isCustomActive && <Check size={9} color="white" style={{ filter: 'drop-shadow(0 1px 1px rgba(0,0,0,0.7))' }} />}
+              </button>
+            )}
+          </div>
           <button
             type="button"
-            title={customDisplay ? 'Custom color' : 'Pick custom color'}
+            title="Open color picker"
             onClick={() => setShowCustom(true)}
-            style={{
-              width: 28, height: 28, borderRadius: 6, overflow: 'hidden',
-              border: `2px solid ${isCustomActive ? 'var(--primary)' : 'var(--border)'}`,
-              backgroundColor: customDisplay || 'transparent',
-              cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-              transition: 'transform 0.1s',
-            }}
-            onMouseEnter={e => (e.currentTarget.style.transform = 'scale(1.18)')}
-            onMouseLeave={e => (e.currentTarget.style.transform = 'scale(1)')}
+            style={{ width: 28, height: 28, borderRadius: 6, border: '1px solid var(--border)', backgroundColor: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background 0.1s' }}
+            onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'var(--muted)')}
+            onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
           >
-            {isCustomActive
-              ? <Check size={12} color="white" style={{ filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.7))' }} />
-              : <Palette size={13} color={customDisplay ? 'rgba(255,255,255,0.85)' : 'var(--muted-foreground)'} />
-            }
+            <Palette size={13} color="var(--muted-foreground)" />
           </button>
         </div>
       </div>
@@ -1173,26 +1196,16 @@ function HighlightPicker({ colors, editor, onSelect }: {
               type="button"
               title={c.label}
               onClick={() => onSelect(c.value)}
-              style={{
-                width: 28, height: 28, borderRadius: 6, overflow: 'hidden',
-                border: `2px solid ${isActive ? 'var(--primary)' : 'transparent'}`,
-                backgroundColor: 'var(--card)',
-                backgroundImage: isNone ? NO_COLOR_BG : 'none',
-                ...(isNone ? {} : { backgroundColor: c.value }),
-                cursor: 'pointer', position: 'relative',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: 10, fontWeight: 700, color: 'var(--foreground)',
-                transition: 'transform 0.1s', outline: 'none',
-              }}
+              style={{ ...swatchStyle(isActive, c.value, isNone), fontSize: 10, fontWeight: 700, color: 'var(--foreground)' }}
               onMouseEnter={e => (e.currentTarget.style.transform = 'scale(1.18)')}
               onMouseLeave={e => (e.currentTarget.style.transform = 'scale(1)')}
             >
-              {/* Aa label on highlight swatches; nothing on None (the diagonal line is the indicator) */}
-              {!isNone && <span style={{ pointerEvents: 'none', fontSize: 10 }}>Aa</span>}
-              {/* checkmark only on real highlight colors, never on None */}
+              {/* Aa on highlight swatches; nothing on None — the diagonal line speaks for itself */}
+              {!isNone && <span style={{ pointerEvents: 'none' }}>Aa</span>}
+              {/* checkmark only on actual highlight colors, never on None */}
               {isActive && !isNone && (
-                <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 4, backgroundColor: 'rgba(0,0,0,0.15)' }}>
-                  <Check size={12} color="rgba(0,0,0,0.7)" />
+                <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 5, backgroundColor: 'rgba(0,0,0,0.18)' }}>
+                  <Check size={12} color="rgba(0,0,0,0.75)" />
                 </div>
               )}
             </button>
