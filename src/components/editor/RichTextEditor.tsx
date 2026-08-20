@@ -1061,6 +1061,8 @@ function CustomColorModal({ initial, onSave, onCancel }: {
   )
 }
 
+const NO_COLOR_BG = 'linear-gradient(to top right, transparent calc(50% - 1.5px), #ef4444 calc(50% - 1.5px), #ef4444 calc(50% + 1.5px), transparent calc(50% + 1.5px))'
+
 function ColorPicker({ colors, activeValue, onSelect }: {
   colors: { label: string; value: string }[]
   activeValue: string
@@ -1068,6 +1070,11 @@ function ColorPicker({ colors, activeValue, onSelect }: {
   onReset: () => void
 }) {
   const [showCustom, setShowCustom] = useState(false)
+  const [lastCustom, setLastCustom] = useState<string | null>(null)
+
+  const isCustomActive = activeValue !== '' && !colors.some(c => c.value === activeValue)
+  const customDisplay = isCustomActive ? activeValue : lastCustom
+
   return (
     <>
       <div style={{
@@ -1078,50 +1085,62 @@ function ColorPicker({ colors, activeValue, onSelect }: {
       }}>
         <p style={{ fontSize: 10, color: 'var(--muted-foreground)', margin: '0 0 8px', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 600 }}>Text color</p>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 4 }}>
-          {colors.map(c => (
-            <button
-              key={c.label}
-              type="button"
-              title={c.label}
-              onClick={() => onSelect(c.value)}
-              style={{
-                width: 28, height: 28, borderRadius: 6, border: `2px solid ${activeValue === c.value ? 'var(--primary)' : 'transparent'}`,
-                backgroundColor: c.value || 'var(--muted)',
-                cursor: 'pointer', position: 'relative',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                transition: 'transform 0.1s',
-                outline: 'none',
-              }}
-              onMouseEnter={e => (e.currentTarget.style.transform = 'scale(1.18)')}
-              onMouseLeave={e => (e.currentTarget.style.transform = 'scale(1)')}
-            >
-              {!c.value && <span style={{ fontSize: 10, color: 'var(--foreground)', fontWeight: 700, pointerEvents: 'none' }}>A</span>}
-              {activeValue === c.value && c.value && (
-                <Check size={12} color="white" style={{ position: 'absolute', filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.6))' }} />
-              )}
-              {activeValue === c.value && !c.value && (
-                <Check size={12} color="var(--primary)" style={{ position: 'absolute' }} />
-              )}
-            </button>
-          ))}
+          {colors.map(c => {
+            const isActive = activeValue === c.value
+            const isDefault = c.value === ''
+            return (
+              <button
+                key={c.label}
+                type="button"
+                title={c.label}
+                onClick={() => onSelect(c.value)}
+                style={{
+                  width: 28, height: 28, borderRadius: 6, overflow: 'hidden',
+                  border: `2px solid ${isActive ? 'var(--primary)' : 'transparent'}`,
+                  backgroundColor: 'var(--card)',
+                  backgroundImage: isDefault ? NO_COLOR_BG : 'none',
+                  ...(isDefault ? {} : { backgroundColor: c.value }),
+                  cursor: 'pointer', position: 'relative',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  transition: 'transform 0.1s', outline: 'none',
+                }}
+                onMouseEnter={e => (e.currentTarget.style.transform = 'scale(1.18)')}
+                onMouseLeave={e => (e.currentTarget.style.transform = 'scale(1)')}
+              >
+                {/* checkmark only on real colors, never on Default */}
+                {isActive && !isDefault && (
+                  <Check size={12} color="white" style={{ position: 'absolute', filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.6))' }} />
+                )}
+              </button>
+            )
+          })}
         </div>
         <div style={{ borderTop: '1px solid var(--border)', marginTop: 8, paddingTop: 6, display: 'flex', justifyContent: 'flex-end' }}>
           <button
             type="button"
-            title="Custom color"
+            title={customDisplay ? 'Custom color' : 'Pick custom color'}
             onClick={() => setShowCustom(true)}
-            style={{ width: 28, height: 28, borderRadius: 6, border: '1px solid var(--border)', backgroundColor: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-            onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'var(--muted)')}
-            onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
+            style={{
+              width: 28, height: 28, borderRadius: 6, overflow: 'hidden',
+              border: `2px solid ${isCustomActive ? 'var(--primary)' : 'var(--border)'}`,
+              backgroundColor: customDisplay || 'transparent',
+              cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              transition: 'transform 0.1s',
+            }}
+            onMouseEnter={e => (e.currentTarget.style.transform = 'scale(1.18)')}
+            onMouseLeave={e => (e.currentTarget.style.transform = 'scale(1)')}
           >
-            <Palette size={13} color="var(--muted-foreground)" />
+            {isCustomActive
+              ? <Check size={12} color="white" style={{ filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.7))' }} />
+              : <Palette size={13} color={customDisplay ? 'rgba(255,255,255,0.85)' : 'var(--muted-foreground)'} />
+            }
           </button>
         </div>
       </div>
       {showCustom && (
         <CustomColorModal
-          initial={activeValue}
-          onSave={v => { onSelect(v); setShowCustom(false) }}
+          initial={isCustomActive ? activeValue : (lastCustom || '#6b7280')}
+          onSave={v => { onSelect(v); setLastCustom(v); setShowCustom(false) }}
           onCancel={() => setShowCustom(false)}
         />
       )}
@@ -1147,6 +1166,7 @@ function HighlightPicker({ colors, editor, onSelect }: {
           const isActive = c.value
             ? editor.isActive('highlight', { color: c.value })
             : !editor.isActive('highlight')
+          const isNone = c.value === ''
           return (
             <button
               key={c.label}
@@ -1154,23 +1174,25 @@ function HighlightPicker({ colors, editor, onSelect }: {
               title={c.label}
               onClick={() => onSelect(c.value)}
               style={{
-                width: 28, height: 28, borderRadius: 6,
+                width: 28, height: 28, borderRadius: 6, overflow: 'hidden',
                 border: `2px solid ${isActive ? 'var(--primary)' : 'transparent'}`,
-                backgroundColor: c.value || 'var(--muted)',
+                backgroundColor: 'var(--card)',
+                backgroundImage: isNone ? NO_COLOR_BG : 'none',
+                ...(isNone ? {} : { backgroundColor: c.value }),
                 cursor: 'pointer', position: 'relative',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 fontSize: 10, fontWeight: 700, color: 'var(--foreground)',
-                transition: 'transform 0.1s',
-                outline: 'none',
+                transition: 'transform 0.1s', outline: 'none',
               }}
               onMouseEnter={e => (e.currentTarget.style.transform = 'scale(1.18)')}
               onMouseLeave={e => (e.currentTarget.style.transform = 'scale(1)')}
             >
-              {c.value ? <span style={{ pointerEvents: 'none', fontSize: 10 }}>Aa</span>
-                : <X size={11} color="var(--muted-foreground)" />}
-              {isActive && (
+              {/* Aa label on highlight swatches; nothing on None (the diagonal line is the indicator) */}
+              {!isNone && <span style={{ pointerEvents: 'none', fontSize: 10 }}>Aa</span>}
+              {/* checkmark only on real highlight colors, never on None */}
+              {isActive && !isNone && (
                 <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 4, backgroundColor: 'rgba(0,0,0,0.15)' }}>
-                  <Check size={12} color={c.value ? 'rgba(0,0,0,0.7)' : 'var(--primary)'} />
+                  <Check size={12} color="rgba(0,0,0,0.7)" />
                 </div>
               )}
             </button>
