@@ -807,31 +807,58 @@ export function NotesSidePane({ width = 220, activeNoteId }: Props) {
                   current={ctxNote?.color}
                   onSelect={color => setNoteColor(contextMenu.id, color)}
                 />
-                {notebooks.length > 0 && (
-                  <div style={{ borderTop: '1px solid var(--border)', margin: '2px 0', paddingTop: 2 }}>
-                    <div style={{ padding: '4px 12px 2px', fontSize: 10, fontWeight: 600, color: 'var(--muted-foreground)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                      Notebook
-                    </div>
-                    {notebooks.map(nb => {
-                      const tag     = notebookTag(nb.name)
-                      const current = ctxNote?.tags?.includes(tag)
-                      return (
-                        <CtxItem
-                          key={nb.id}
-                          icon={() => (
-                            <span style={{ fontSize: 13, width: 16, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
-                              {current ? '✓' : nb.icon ?? '📓'}
-                            </span>
+                {notebooks.length > 0 && (() => {
+                  const currentNb = notebooks.find(nb => ctxNote?.tags?.includes(notebookTag(nb.name)))
+                  const otherNbs  = notebooks.filter(nb => nb !== currentNb)
+                  return (
+                    <div style={{ borderTop: '1px solid var(--border)', margin: '2px 0', paddingTop: 2 }}>
+                      {currentNb ? (
+                        <>
+                          <div style={{ padding: '4px 12px 2px', fontSize: 10, fontWeight: 600, color: 'var(--muted-foreground)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                            In notebook
+                          </div>
+                          <CtxItem
+                            icon={() => <span style={{ fontSize: 13 }}>{currentNb.icon ?? '📓'}</span>}
+                            label={currentNb.name}
+                            active
+                            suffix={<span style={{ fontSize: 10, color: 'var(--muted-foreground)', marginLeft: 'auto' }}>Remove</span>}
+                            onClick={() => ctxNote && moveNoteToNotebook(ctxNote, null)}
+                          />
+                          {otherNbs.length > 0 && (
+                            <>
+                              <div style={{ padding: '6px 12px 2px', fontSize: 10, fontWeight: 600, color: 'var(--muted-foreground)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                                Move to
+                              </div>
+                              {otherNbs.map(nb => (
+                                <CtxItem
+                                  key={nb.id}
+                                  icon={() => <span style={{ fontSize: 13 }}>{nb.icon ?? '📓'}</span>}
+                                  label={nb.name}
+                                  onClick={() => ctxNote && moveNoteToNotebook(ctxNote, nb.name)}
+                                />
+                              ))}
+                            </>
                           )}
-                          label={current ? `Remove from "${nb.name}"` : nb.name}
-                          active={current}
-                          onClick={() => ctxNote && moveNoteToNotebook(ctxNote, current ? null : nb.name)}
-                        />
-                      )
-                    })}
-                    <div style={{ height: 1, backgroundColor: 'var(--border)', margin: '2px 8px' }} />
-                  </div>
-                )}
+                        </>
+                      ) : (
+                        <>
+                          <div style={{ padding: '4px 12px 2px', fontSize: 10, fontWeight: 600, color: 'var(--muted-foreground)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                            Add to notebook
+                          </div>
+                          {notebooks.map(nb => (
+                            <CtxItem
+                              key={nb.id}
+                              icon={() => <span style={{ fontSize: 13 }}>{nb.icon ?? '📓'}</span>}
+                              label={nb.name}
+                              onClick={() => ctxNote && moveNoteToNotebook(ctxNote, nb.name)}
+                            />
+                          ))}
+                        </>
+                      )}
+                      <div style={{ height: 1, backgroundColor: 'var(--border)', margin: '2px 8px' }} />
+                    </div>
+                  )
+                })()}
                 <CtxItem icon={Copy} label="Duplicate" onClick={() => ctxNote && duplicateNote(ctxNote)} />
                 <CtxItem icon={Trash2} label="Delete note" danger onClick={async () => {
                   await fetch(`/api/notes/${contextMenu.id}`, { method: 'DELETE' })
@@ -847,8 +874,8 @@ export function NotesSidePane({ width = 220, activeNoteId }: Props) {
   )
 }
 
-function CtxItem({ icon: Icon, label, onClick, danger = false, active = false }: {
-  icon: React.ElementType; label: string; onClick: () => void; danger?: boolean; active?: boolean
+function CtxItem({ icon: Icon, label, onClick, danger = false, active = false, suffix }: {
+  icon: React.ElementType; label: string; onClick: () => void; danger?: boolean; active?: boolean; suffix?: React.ReactNode
 }) {
   return (
     <button
@@ -867,7 +894,8 @@ function CtxItem({ icon: Icon, label, onClick, danger = false, active = false }:
       onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
     >
       <Icon size={14} style={{ flexShrink: 0 }} />
-      {label}
+      <span style={{ flex: 1 }}>{label}</span>
+      {suffix}
     </button>
   )
 }
