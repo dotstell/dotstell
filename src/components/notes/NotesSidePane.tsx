@@ -185,8 +185,11 @@ export function NotesSidePane({ width = 220, activeNoteId }: Props) {
   const [dragNbId,       setDragNbId]       = useState<string | null>(null)
   const [dragOverId,     setDragOverId]     = useState<string | null>(null)
   const [pinnedIds,      setPinnedIds]      = useState<Set<string>>(new Set())
-  const newNbRef  = useRef<HTMLInputElement>(null)
-  const ctxMenuRef = useRef<HTMLDivElement>(null)
+  const newNbRef         = useRef<HTMLInputElement>(null)
+  const ctxMenuRef       = useRef<HTMLDivElement>(null)
+  // Guard against double-invocation: onKeyDown (Enter) and onBlur can both fire handleNewNotebook
+  // during the async gap between the await and the state update committing to the DOM.
+  const isCreatingNb     = useRef(false)
   // Adjusted display position — starts at click coords, shifted after render to stay in viewport
   const [ctxPos, setCtxPos] = useState({ x: 0, y: 0 })
 
@@ -318,6 +321,9 @@ export function NotesSidePane({ width = 220, activeNoteId }: Props) {
   }
 
   async function handleNewNotebook() {
+    // Ref guard prevents double-submission: Enter fires onKeyDown, which may also trigger
+    // onBlur before the state update commits, causing a second invocation mid-await.
+    if (isCreatingNb.current) return
     const name = newNotebookName.trim()
     if (!name) { setNewNotebookName(''); setNewNotebookMode(false); return }
     // Client-side duplicate check avoids a round-trip for the common case
@@ -325,8 +331,10 @@ export function NotesSidePane({ width = 220, activeNoteId }: Props) {
       toast.error(`A notebook named "${name}" already exists.`)
       return
     }
+    isCreatingNb.current = true
     setNewNotebookName(''); setNewNotebookMode(false)
     const result = await createNotebook(name, notebooks.length)
+    isCreatingNb.current = false
     if ('error' in result) toast.error(result.error)
   }
 

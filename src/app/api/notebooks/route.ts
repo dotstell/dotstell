@@ -37,7 +37,8 @@ export async function POST(req: NextRequest) {
   // Only accept a client-supplied id when the migration flag is present.
   // Without this guard any authenticated user could specify arbitrary UUIDs.
   if (id && body._migrate === true) {
-    if (typeof id !== 'string' || !/^[0-9a-f-]{36}$/i.test(id)) {
+    // Strict UUID v4 format: 8-4-4-4-12 hex groups — rejects loose strings that pass the old [a-f0-9-]{36} check
+    if (typeof id !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) {
       return NextResponse.json({ error: 'Invalid id' }, { status: 400 })
     }
     payload.id = id
