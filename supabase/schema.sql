@@ -116,3 +116,22 @@ create trigger notes_updated_at before update on notes for each row execute func
 create trigger people_updated_at before update on people for each row execute function update_updated_at();
 create trigger bookmarks_updated_at before update on bookmarks for each row execute function update_updated_at();
 create trigger tasks_updated_at before update on tasks for each row execute function update_updated_at();
+create trigger notebooks_updated_at before update on notebooks for each row execute function update_updated_at();
+
+-- ============================================================
+-- NOTEBOOKS
+-- ============================================================
+create table if not exists notebooks (
+  id         uuid primary key default gen_random_uuid(),
+  user_id    uuid not null references auth.users(id) on delete cascade,
+  name       text not null,
+  color      text,
+  icon       text default '📓',
+  sort_order integer not null default 0,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+alter table notebooks enable row level security;
+create policy "Users manage own notebooks" on notebooks for all using (auth.uid() = user_id);
+create index if not exists idx_notebooks_user_id on notebooks (user_id, sort_order);
