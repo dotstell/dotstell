@@ -74,6 +74,19 @@ jobs:
         run: mkdir -p dist
         shell: bash
 
+      # Extract the section for the current tag from CHANGELOG.md.
+      # Reads from ## [vX.Y.Z] down to (but not including) the next ## [
+      - name: Extract changelog section
+        id: changelog
+        run: |
+          TAG="${{ github.ref_name }}"
+          BODY=$(awk "/^## \[${TAG}\]/{flag=1; next} /^## \[v[0-9]/{flag=0} flag" CHANGELOG.md)
+          BODY="${BODY}"$'\n\n---\n\n## Downloads\n\n| Platform | File |\n|---|---|\n| Windows (installer) | `Dotstell_*_x64_en-US.msi` |\n| Windows (setup) | `Dotstell_*_x64-setup.exe` |\n| macOS Apple Silicon | `Dotstell_*_aarch64.dmg` |\n| macOS Intel | `Dotstell_*_x64.dmg` |\n| Linux | `dotstell_*_amd64.AppImage` / `.deb` |\n\n> **Note:** Builds are currently unsigned. macOS: right-click the `.dmg` and choose **Open** to bypass Gatekeeper. Windows: click **More info → Run anyway** on the SmartScreen prompt.'
+          echo "body<<EOF" >> $GITHUB_OUTPUT
+          echo "$BODY" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+        shell: bash
+
       - name: Build and publish release
         uses: tauri-apps/tauri-action@v0
         env:
@@ -81,54 +94,7 @@ jobs:
         with:
           tagName: ${{ github.ref_name }}
           releaseName: 'Dotstell ${{ github.ref_name }}'
-          releaseBody: |
-            A productivity and safety release — note recovery with 30-day trash, smart paste, table of contents, PDF export, and richer templates.
-
-            ---
-
-            ## 🗑️ Trash — 30-day note recovery
-
-            - Deleting a note now moves it to Trash instead of removing it permanently
-            - **Restore** any trashed note within 30 days from the Trash view in the sidebar
-            - Notes are **auto-purged** after the 30-day window expires
-            - **Empty Trash** and **Delete Forever** both require a confirmation dialog so you never lose a note by accident
-
-            ## 📋 Smart paste
-
-            - Pasting from web pages and documents now preserves semantic formatting: headings, bold, italic, lists, and links
-            - Unsafe elements (scripts, inline styles) are stripped automatically
-            - Toggle **Rich paste / Plain paste** mode in the toolbar — preference is remembered between sessions
-
-            ## 🗂️ Table of contents (Outline panel)
-
-            - An auto-generated Outline panel appears in the right sidebar of every note, built from your headings (H1–H4)
-            - Click any entry to scroll to that section instantly
-            - Collapsible; preference is remembered per-session
-
-            ## 📄 PDF export
-
-            - New **PDF** button in the editor header opens a clean print-ready view
-            - Use your browser's **Save as PDF** option in the print dialog to export
-
-            ## 📐 Richer templates with auto-date
-
-            - All 9 built-in templates now include structured guidance text, mood/energy indicators, and type selectors
-            - Today's date is auto-filled when a template is selected — no manual editing required
-            - Templates include: SBI Feedback, Decision log with confidence rating, Weekly review with energy/mood, Daily standup, Meeting notes, and more
-
-            ---
-
-            ## Downloads
-
-            | Platform | File |
-            |---|---|
-            | Windows (installer) | `Dotstell_*_x64_en-US.msi` |
-            | Windows (setup) | `Dotstell_*_x64-setup.exe` |
-            | macOS Apple Silicon | `Dotstell_*_aarch64.dmg` |
-            | macOS Intel | `Dotstell_*_x64.dmg` |
-            | Linux | `dotstell_*_amd64.AppImage` / `.deb` |
-
-            > **Note:** Builds are currently unsigned. macOS: right-click the `.dmg` and choose **Open** to bypass Gatekeeper. Windows: click **More info → Run anyway** on the SmartScreen prompt.
+          releaseBody: ${{ steps.changelog.outputs.body }}
           releaseDraft: true
           prerelease: false
           args: ${{ matrix.args }}
