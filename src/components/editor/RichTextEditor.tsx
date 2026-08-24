@@ -28,6 +28,7 @@ import {
   ChevronDown, AlignLeft, AlignCenter, AlignRight, AlignJustify,
   Superscript as SuperscriptIcon, Subscript as SubscriptIcon,
   Image as ImageIcon, Type, RotateCcw, FileCode2, Eye, FileText, Check, Palette, X,
+  Clipboard,
 } from 'lucide-react'
 import { HexColorPicker } from 'react-colorful'
 // markdown ↔ HTML conversion (source mode)
@@ -231,6 +232,12 @@ export function RichTextEditor({
   // Source mode (raw markdown)
   const [sourceMode,      setSourceMode]      = useState(false)
   const [markdownSource,  setMarkdownSource]  = useState('')
+  // Paste mode — 'rich' keeps semantic HTML, 'plain' strips everything
+  const [pasteMode, setPasteMode] = useState<'rich' | 'plain'>(() =>
+    (typeof window !== 'undefined' ? (localStorage.getItem('dotstell_paste_mode') as 'rich' | 'plain') : null) ?? 'rich'
+  )
+  const pasteModeRef = useRef<'rich' | 'plain'>('rich')
+  useEffect(() => { pasteModeRef.current = pasteMode }, [pasteMode])
   // Wikilink [[...]] picker
   const [wikiOpen,        setWikiOpen]        = useState(false)
   const [wikiQuery,       setWikiQuery]       = useState('')
@@ -275,6 +282,43 @@ export function RichTextEditor({
     content,
     editorProps: {
       attributes: { class: 'tiptap-editor' },
+      handlePaste: (_view, event) => {
+        if (pasteModeRef.current === 'plain') {
+          const text = event.clipboardData?.getData('text/plain') ?? ''
+          if (text) {
+            _view.dispatch(_view.state.tr.insertText(text))
+            return true
+          }
+        }
+        return false
+      },
+      transformPastedHTML: (html) => {
+        if (pasteModeRef.current === 'plain') return ''
+        try {
+          const doc = new DOMParser().parseFromString(html, 'text/html')
+          // Remove presentation/chrome elements
+          doc.querySelectorAll(
+            'script,style,nav,header,footer,aside,form,button,input,select,textarea,iframe,noscript,svg,canvas,figure > figcaption'
+          ).forEach(el => el.remove())
+          // Strip all attributes except the semantically meaningful ones
+          const KEEP: Record<string, string[]> = {
+            a:   ['href', 'title'],
+            img: ['src', 'alt'],
+            td:  ['colspan', 'rowspan'],
+            th:  ['colspan', 'rowspan'],
+          }
+          doc.querySelectorAll('*').forEach(el => {
+            const tag = el.tagName.toLowerCase()
+            const allowed = KEEP[tag] ?? []
+            Array.from(el.attributes).forEach(attr => {
+              if (!allowed.includes(attr.name)) el.removeAttribute(attr.name)
+            })
+          })
+          return doc.body.innerHTML
+        } catch {
+          return html
+        }
+      },
     },
     onUpdate: ({ editor }) => {
       const html = editor.getHTML()
@@ -603,6 +647,28 @@ export function RichTextEditor({
 
         {/* Source mode toggle + focus — always clickable, outside dimmed area */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '5px 8px 5px 4px', flexShrink: 0 }}>
+          {/* Paste mode toggle */}
+          <button
+            type="button"
+            title={pasteMode === 'rich' ? 'Paste: Rich text (keeps headings, bold, lists) — click for plain' : 'Paste: Plain text (strips all formatting) — click for rich'}
+            onClick={() => {
+              const next = pasteMode === 'rich' ? 'plain' : 'rich'
+              setPasteMode(next)
+              localStorage.setItem('dotstell_paste_mode', next)
+            }}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 5,
+              padding: '4px 10px', borderRadius: 6, border: '1px solid',
+              borderColor: pasteMode === 'plain' ? 'var(--primary)' : 'var(--border)',
+              backgroundColor: pasteMode === 'plain' ? 'color-mix(in srgb, var(--primary) 20%, transparent)' : 'transparent',
+              color: pasteMode === 'plain' ? 'var(--primary)' : 'var(--muted-foreground)',
+              fontSize: 11, fontWeight: 600, cursor: 'pointer', transition: 'all 0.15s',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            <Clipboard size={12} />
+            {pasteMode === 'rich' ? 'Rich paste' : 'Plain paste'}
+          </button>
           <button
             type="button"
             title={sourceMode ? 'Switch to rich text' : 'Switch to Markdown source'}
