@@ -11,6 +11,7 @@ export async function GET(req: NextRequest) {
   const status = searchParams.get('status')
   const priority = searchParams.get('priority')
 
+  // nullsFirst: false — tasks with no due date sink to the bottom; soonest deadline rises to top
   let query = supabase.from('tasks').select('*, person:people(id,name)').eq('user_id', user.id).order('due_date', { ascending: true, nullsFirst: false })
 
   if (status) query = query.eq('status', status)
@@ -32,6 +33,7 @@ export async function POST(req: NextRequest) {
   if (!body.title || typeof body.title !== 'string') {
     return NextResponse.json({ error: 'Invalid title' }, { status: 400 })
   }
+  // Validate before insert — DB has CHECK constraints too, but API validation gives a cleaner 400 error message
   const VALID_STATUS   = ['todo', 'in_progress', 'done', 'cancelled']
   const VALID_PRIORITY = ['low', 'medium', 'high', 'urgent']
   if (body.status   && !VALID_STATUS.includes(body.status))   return NextResponse.json({ error: 'Invalid status' },   { status: 400 })

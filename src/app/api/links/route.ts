@@ -28,6 +28,8 @@ export async function POST(req: NextRequest) {
   if (!body.source_id || !body.target_id) {
     return NextResponse.json({ error: 'source_id and target_id required' }, { status: 400 })
   }
+  // Upsert on (user_id, source_id, target_id) — the unique constraint prevents duplicate edges
+  // while allowing the label to be updated if the same pair is re-linked with a different label.
   const { data, error } = await supabase.from('knowledge_links').upsert({
     user_id:     user.id,
     source_id:   body.source_id,
@@ -45,6 +47,8 @@ export async function DELETE(req: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
+  // DELETE reads a JSON body — non-standard but intentional: links are identified by
+  // (source_id, target_id), not a single URL param, so body is the cleanest interface.
   const body = await req.json()
   if (!body.source_id || !body.target_id) {
     return NextResponse.json({ error: 'source_id and target_id required' }, { status: 400 })

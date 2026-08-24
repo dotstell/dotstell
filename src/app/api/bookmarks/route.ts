@@ -12,6 +12,7 @@ export async function GET(req: NextRequest) {
 
   let query = supabase.from('bookmarks').select('*').eq('user_id', user.id).order('created_at', { ascending: false })
   if (q) {
+    // Escape % and _ so user input can't manipulate PostgREST ilike wildcard patterns
     const safe = q.slice(0, 200).replace(/%/g, '\\%').replace(/_/g, '\\_')
     query = query.or(`title.ilike.%${safe}%,url.ilike.%${safe}%,description.ilike.%${safe}%`)
   }

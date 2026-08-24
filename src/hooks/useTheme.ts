@@ -36,12 +36,15 @@ function getStored(): ThemeId {
   return VALID_IDS.includes(v) ? v : DEFAULT
 }
 
+// Cookie is read server-side (middleware/layout) to set data-theme before HTML is sent,
+// preventing the flash of unstyled/default-theme content on first load.
 function setCookie(id: ThemeId) {
   document.cookie = `${COOKIE_NAME}=${id};path=/;max-age=31536000;samesite=lax`
 }
 
 function apply(id: ThemeId) {
   document.documentElement.setAttribute('data-theme', id)
+  // colorScheme tells the browser which system UI to use (scrollbars, inputs, etc.)
   document.documentElement.style.colorScheme = LIGHT_THEMES.includes(id) ? 'light' : 'dark'
 }
 

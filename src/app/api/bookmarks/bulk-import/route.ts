@@ -14,6 +14,8 @@ interface SkippedEntry {
   reason: string
 }
 
+// Parses the Netscape Bookmark File Format exported by Chrome, Firefox, and Safari.
+// Format spec: https://learn.microsoft.com/en-us/previous-versions/windows/internet-explorer/ie-developer/platform-apis/aa753582(v=vs.85)
 function parseNetscapeHTML(html: string): { bookmarks: ParsedBookmark[]; skipped: SkippedEntry[] } {
   const bookmarks: ParsedBookmark[] = []
   const skipped: SkippedEntry[] = []

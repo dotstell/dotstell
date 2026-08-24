@@ -19,7 +19,7 @@ export function useMention(content: string, onInsert: (updated: string) => void)
     const lastAt = content.lastIndexOf('@')
     if (lastAt === -1) { setMentionQuery(null); return }
     const after = content.slice(lastAt + 1)
-    // Only trigger if no space after @
+    // Only trigger if no space after @; cap at 30 chars to ignore stale @ symbols in long content
     if (/\s/.test(after) || after.length > 30) { setMentionQuery(null); return }
     setMentionQuery(after)
     setAtIndex(lastAt)
@@ -38,6 +38,7 @@ export function useMention(content: string, onInsert: (updated: string) => void)
   function pickSuggestion(person: MentionSuggestion) {
     const before = content.slice(0, atIndex)
     const after  = content.slice(atIndex + 1 + (mentionQuery?.length ?? 0))
+    // Serialized as @[name](person:id) — the parser extracts id for DB lookups, name for display
     onInsert(`${before}@[${person.name}](person:${person.id})${after}`)
     setSuggestions([])
     setMentionQuery(null)

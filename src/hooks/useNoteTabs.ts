@@ -37,6 +37,8 @@ function broadcast() {
 export function useNoteTabs(currentId?: string) {
   const [tabs,     setTabs]     = useState<NoteTab[]>([])
   const [activeId, setActiveId] = useState<string | null>(null)
+  // openedRef tracks the last note we explicitly activated so the URL-change effect
+  // doesn't re-activate the same tab on every re-render (it only fires once per new id)
   const openedRef = useRef<string | null>(null)
 
   useEffect(() => {

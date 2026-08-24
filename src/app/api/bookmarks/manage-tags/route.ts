@@ -26,7 +26,8 @@ export async function PATCH(req: NextRequest) {
   if (error) return NextResponse.json({ error: 'An unexpected error occurred.' }, { status: 500 })
   if (!bookmarks || bookmarks.length === 0) return NextResponse.json({ updated: 0 })
 
-  // Update each bookmark's tags array
+  // Update each bookmark individually — Supabase/Postgres has no native array-element replace,
+  // so a bulk UPDATE WHERE tags @> [oldTag] cannot atomically swap one element in each row.
   const updates = bookmarks.map(b => ({
     id: b.id,
     tags: [...new Set(b.tags.map((t: string) => t === oldTag ? newTag.toLowerCase().trim() : t))],

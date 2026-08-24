@@ -31,6 +31,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
   if ('color' in allowed) {
     const c = allowed.color
+    // Allow null (clear color) or a valid CSS hex — rejects rgb(), named colors, and 3-digit shorthand
     if (c !== null && (typeof c !== 'string' || !/^#[0-9a-f]{6}$/i.test(c)))
       return NextResponse.json({ error: 'Invalid color value' }, { status: 400 })
   }
