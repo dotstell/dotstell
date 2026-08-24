@@ -290,7 +290,7 @@ export function NotesSidePane({ width = 220, activeNoteId }: Props) {
 
   function handleNewNotebook() {
     const name = newNotebookName.trim()
-    if (name) createNotebook(name)
+    if (name) createNotebook(name, notebooks.length)
     setNewNotebookName(''); setNewNotebookMode(false)
   }
 

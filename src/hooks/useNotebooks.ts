@@ -68,7 +68,7 @@ export function useNotebooks() {
     })
   }, [])
 
-  const createNotebook = useCallback(async (name: string): Promise<Notebook> => {
+  const createNotebook = useCallback(async (name: string, sortIndex: number): Promise<Notebook> => {
     const optimistic: Notebook = {
       id:    crypto.randomUUID(),
       name:  name.trim(),
@@ -80,7 +80,7 @@ export function useNotebooks() {
       const res = await fetch('/api/notebooks', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: optimistic.id, name: optimistic.name, color: optimistic.color, icon: optimistic.icon, sort_order: Date.now() }),
+        body: JSON.stringify({ id: optimistic.id, name: optimistic.name, color: optimistic.color, icon: optimistic.icon, sort_order: sortIndex }),
       })
       if (res.ok) {
         const saved = await res.json()
