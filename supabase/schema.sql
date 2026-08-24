@@ -133,5 +133,10 @@ create table if not exists notebooks (
 );
 
 alter table notebooks enable row level security;
-create policy "Users manage own notebooks" on notebooks for all using (auth.uid() = user_id);
+create policy "Users manage own notebooks" on notebooks
+  for all
+  using      (auth.uid() = user_id)
+  with check (auth.uid() = user_id);
+create unique index if not exists notebooks_user_name_unique on notebooks (user_id, name);
 create index if not exists idx_notebooks_user_id on notebooks (user_id, sort_order);
+create trigger notebooks_updated_at before update on notebooks for each row execute function update_updated_at();

@@ -222,13 +222,19 @@ export function NotesSidePane({ width = 220, activeNoteId }: Props) {
 
   useEffect(() => {
     if (!contextMenu) return
-    function h(e: MouseEvent) {
+    function onMouseDown(e: MouseEvent) {
       const menu = document.querySelector('[data-ctx-note-menu]')
       if (menu && menu.contains(e.target as Node)) return
       setContextMenu(null)
     }
-    document.addEventListener('mousedown', h)
-    return () => document.removeEventListener('mousedown', h)
+    // Close on scroll so the menu doesn't orphan above a scrolled list
+    function onScroll() { setContextMenu(null) }
+    document.addEventListener('mousedown', onMouseDown)
+    document.addEventListener('scroll', onScroll, true) // capture phase catches all scroll containers
+    return () => {
+      document.removeEventListener('mousedown', onMouseDown)
+      document.removeEventListener('scroll', onScroll, true)
+    }
   }, [contextMenu])
 
   // ── Derived ──────────────────────────────────────────────────────────────────

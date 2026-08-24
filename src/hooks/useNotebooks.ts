@@ -20,10 +20,6 @@ const NOTEBOOK_COLORS = [
 const LEGACY_KEY = 'dotstell-notebooks'
 const MIGRATED_KEY = 'dotstell-notebooks-migrated'
 
-let colorIdx = 0
-function nextColor(): string {
-  return NOTEBOOK_COLORS[colorIdx++ % NOTEBOOK_COLORS.length]
-}
 
 type ServerNotebook = Notebook & { sort_order?: number; user_id?: string }
 
@@ -47,14 +43,16 @@ async function migrateFromLocalStorage(): Promise<void> {
     // Skip upload if server already has data — user signed in on another device first
     const existing = await fetchNotebooks()
     if (existing.length > 0) { localStorage.setItem(MIGRATED_KEY, '1'); return }
-    await Promise.all(local.map((nb, i) =>
+    const results = await Promise.all(local.map((nb, i) =>
       fetch('/api/notebooks', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: nb.id, name: nb.name, color: nb.color, icon: nb.icon, sort_order: i }),
+        // _migrate flag unlocks client-supplied id; required to preserve nb: tag references
+        body: JSON.stringify({ id: nb.id, name: nb.name, color: nb.color, icon: nb.icon, sort_order: i, _migrate: true }),
       })
     ))
-    localStorage.setItem(MIGRATED_KEY, '1')
+    // Only mark migration done if every notebook was saved — partial failure retries on next load
+    if (results.every(r => r.ok)) localStorage.setItem(MIGRATED_KEY, '1')
   } catch {
     // Non-fatal: flag not set, so it retries on next load until it succeeds
   }
@@ -71,11 +69,11 @@ export function useNotebooks() {
 
   // sortIndex must come from the caller (notebooks.length) — never use Date.now() here:
   // sort_order is a PG INTEGER (max ~2.1B) and Date.now() in 2026 is ~1.78T, which overflows.
-  const createNotebook = useCallback(async (name: string, sortIndex: number): Promise<Notebook> => {
+  const createNotebook = useCallback(async (name: string, sortIndex: number): Promise<Notebook | null> => {
     const optimistic: Notebook = {
       id:    crypto.randomUUID(),
       name:  name.trim(),
-      color: nextColor(),
+      color: NOTEBOOK_COLORS[sortIndex % NOTEBOOK_COLORS.length], // stable, no global counter
       icon:  '📓',
     }
     setNotebooks(prev => [...prev, optimistic])
@@ -90,27 +88,41 @@ export function useNotebooks() {
         setNotebooks(prev => prev.map(n => n.id === optimistic.id ? { id: saved.id, name: saved.name, color: saved.color, icon: saved.icon } : n))
         return { id: saved.id, name: saved.name, color: saved.color, icon: saved.icon }
       }
-    } catch {}
-    return optimistic
+      // Non-ok response: remove the ghost notebook so state matches the server
+      setNotebooks(prev => prev.filter(n => n.id !== optimistic.id))
+      return null
+    } catch {
+      setNotebooks(prev => prev.filter(n => n.id !== optimistic.id))
+      return null
+    }
   }, [])
 
   const deleteNotebook = useCallback(async (id: string) => {
+    const snapshot = notebooks
     setNotebooks(prev => prev.filter(n => n.id !== id))
     try {
-      await fetch(`/api/notebooks/${id}`, { method: 'DELETE' })
-    } catch {}
-  }, [])
+      const res = await fetch(`/api/notebooks/${id}`, { method: 'DELETE' })
+      if (!res.ok) setNotebooks(snapshot)
+    } catch {
+      setNotebooks(snapshot)
+    }
+  }, [notebooks])
 
   const renameNotebook = useCallback(async (id: string, name: string) => {
-    setNotebooks(prev => prev.map(n => n.id === id ? { ...n, name: name.trim() } : n))
+    const trimmed = name.trim()
+    const snapshot = notebooks
+    setNotebooks(prev => prev.map(n => n.id === id ? { ...n, name: trimmed } : n))
     try {
-      await fetch(`/api/notebooks/${id}`, {
+      const res = await fetch(`/api/notebooks/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: name.trim() }),
+        body: JSON.stringify({ name: trimmed }),
       })
-    } catch {}
-  }, [])
+      if (!res.ok) setNotebooks(snapshot)
+    } catch {
+      setNotebooks(snapshot)
+    }
+  }, [notebooks])
 
   const reorderNotebook = useCallback(async (dragId: string, targetId: string) => {
     setNotebooks(prev => {

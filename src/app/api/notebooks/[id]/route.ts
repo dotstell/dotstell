@@ -9,7 +9,12 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   const { id } = await params
   const body = await req.json()
   const allowed: Record<string, unknown> = {}
-  if (body.name !== undefined) allowed.name = body.name.trim()
+  if (body.name !== undefined) {
+    if (typeof body.name !== 'string') return NextResponse.json({ error: 'Invalid name' }, { status: 400 })
+    const trimmed = body.name.trim()
+    if (!trimmed) return NextResponse.json({ error: 'Name required' }, { status: 400 })
+    allowed.name = trimmed
+  }
   if (body.color !== undefined) allowed.color = body.color
   if (body.icon !== undefined) allowed.icon = body.icon
   if (body.sort_order !== undefined) allowed.sort_order = body.sort_order

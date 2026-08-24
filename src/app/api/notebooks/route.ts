@@ -8,7 +8,7 @@ export async function GET() {
 
   const { data, error } = await supabase
     .from('notebooks')
-    .select('*')
+    .select('id, name, color, icon, sort_order, created_at, updated_at')
     .eq('user_id', user.id)
     .order('sort_order', { ascending: true })
     .order('created_at', { ascending: true })
@@ -34,8 +34,14 @@ export async function POST(req: NextRequest) {
     icon: icon ?? '📓',
     sort_order: sort_order ?? 0,
   }
-  // Allow client to supply id (for migration from localStorage)
-  if (id) payload.id = id
+  // Only accept a client-supplied id when the migration flag is present.
+  // Without this guard any authenticated user could specify arbitrary UUIDs.
+  if (id && body._migrate === true) {
+    if (typeof id !== 'string' || !/^[0-9a-f-]{36}$/i.test(id)) {
+      return NextResponse.json({ error: 'Invalid id' }, { status: 400 })
+    }
+    payload.id = id
+  }
 
   const { data, error } = await supabase
     .from('notebooks')
