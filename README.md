@@ -62,7 +62,7 @@ The question it answers that other tools don't:
 
 Live previews of the app are available on [dotstell.com](https://www.dotstell.com) — the landing page includes an interactive knowledge graph, dashboard mockup, and feature walkthroughs.
 
-Try the live app at [dotstell.app](https://dotstell.app) or [download the desktop build](#getting-started) for Windows, macOS and Linux.
+Try the live app at [dotstell.app](https://dotstell.app) or [download the desktop build](https://github.com/dotstell/dotstell/releases) for Windows, macOS and Linux.
 
 ---
 
