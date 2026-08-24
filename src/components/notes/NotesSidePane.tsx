@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useLayoutEffect, useRef, useCallback } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import {
   DndContext, DragEndEvent, closestCenter,
@@ -185,7 +185,10 @@ export function NotesSidePane({ width = 220, activeNoteId }: Props) {
   const [dragNbId,       setDragNbId]       = useState<string | null>(null)
   const [dragOverId,     setDragOverId]     = useState<string | null>(null)
   const [pinnedIds,      setPinnedIds]      = useState<Set<string>>(new Set())
-  const newNbRef = useRef<HTMLInputElement>(null)
+  const newNbRef  = useRef<HTMLInputElement>(null)
+  const ctxMenuRef = useRef<HTMLDivElement>(null)
+  // Adjusted display position — starts at click coords, shifted after render to stay in viewport
+  const [ctxPos, setCtxPos] = useState({ x: 0, y: 0 })
 
   // Mount DnD only client-side to avoid SSR hydration mismatch
   useEffect(() => setDndMounted(true), [])
@@ -219,6 +222,20 @@ export function NotesSidePane({ width = 220, activeNoteId }: Props) {
   useEffect(() => {
     if (newNotebookMode) setTimeout(() => newNbRef.current?.focus(), 40)
   }, [newNotebookMode])
+
+  // After the menu renders, measure it and nudge position to stay within the viewport.
+  // useLayoutEffect fires before paint so there is no visible flicker.
+  useLayoutEffect(() => {
+    if (!contextMenu || !ctxMenuRef.current) return
+    const { width, height } = ctxMenuRef.current.getBoundingClientRect()
+    const vw = window.innerWidth
+    const vh = window.innerHeight
+    const MARGIN = 8
+    setCtxPos({
+      x: Math.min(contextMenu.x, vw - width - MARGIN),
+      y: Math.min(contextMenu.y, vh - height - MARGIN),
+    })
+  }, [contextMenu]) // re-runs when a new menu opens (different id/type/coords)
 
   useEffect(() => {
     if (!contextMenu) return
@@ -315,6 +332,8 @@ export function NotesSidePane({ width = 220, activeNoteId }: Props) {
 
   function onContextMenu(e: React.MouseEvent, id: string, type: 'notebook' | 'note') {
     e.preventDefault(); e.stopPropagation()
+    // Set ctxPos to raw click coords first; useLayoutEffect will clamp after render
+    setCtxPos({ x: e.clientX, y: e.clientY })
     setContextMenu({ x: e.clientX, y: e.clientY, id, type })
   }
 
@@ -785,10 +804,11 @@ export function NotesSidePane({ width = 220, activeNoteId }: Props) {
       {/* Context menu */}
       {contextMenu && (
         <div
+          ref={ctxMenuRef}
           data-ctx-note-menu
           style={{
             position: 'fixed', zIndex: 9999,
-            top: contextMenu.y, left: contextMenu.x,
+            top: ctxPos.y, left: ctxPos.x,
             backgroundColor: 'var(--popover)',
             border: '1px solid var(--border)',
             borderRadius: 10, padding: 4, minWidth: 150,
