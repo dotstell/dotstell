@@ -234,20 +234,19 @@ ${note.content ?? ''}
     setTimeout(() => { win.print(); win.close() }, 600)
   }
 
-  // Navigate the editor cursor to the first heading matching the given text,
-  // then scroll it into view — used by the ToC panel.
+  // Navigate to a heading by querying the actual rendered DOM inside the editor.
+  // Tiptap's scrollIntoView() targets the ProseMirror viewport, not the outer
+  // scrollable div — querying the DOM and calling scrollIntoView() directly is reliable.
   function scrollToHeading(text: string) {
     const ed = editorRef.current
     if (!ed) return
-    let targetPos: number | null = null
-    ed.state.doc.descendants((node, pos) => {
-      if (targetPos !== null) return false
-      if (node.type.name === 'heading' && node.textContent.trim() === text) {
-        targetPos = pos
+    const editorDom = ed.view.dom as HTMLElement
+    const headings = editorDom.querySelectorAll('h1,h2,h3,h4')
+    for (const el of headings) {
+      if (el.textContent?.trim() === text) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+        return
       }
-    })
-    if (targetPos !== null) {
-      ed.chain().setTextSelection(targetPos + 1).scrollIntoView().run()
     }
   }
 
