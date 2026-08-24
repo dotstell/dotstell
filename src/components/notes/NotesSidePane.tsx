@@ -843,7 +843,7 @@ export function NotesSidePane({ width = 220, activeNoteId }: Props) {
                       ) : (
                         <>
                           <div style={{ padding: '4px 12px 2px', fontSize: 10, fontWeight: 600, color: 'var(--muted-foreground)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                            Add to notebook
+                            Move to notebook
                           </div>
                           {notebooks.map(nb => (
                             <CtxItem
