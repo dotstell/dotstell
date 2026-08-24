@@ -2,16 +2,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Notebook } from '@/types'
 
-const KEY = 'dotstell-notebooks'
-
-function load(): Notebook[] {
-  if (typeof window === 'undefined') return []
-  try { return JSON.parse(localStorage.getItem(KEY) ?? '[]') } catch { return [] }
-}
-function persist(notebooks: Notebook[]) {
-  try { localStorage.setItem(KEY, JSON.stringify(notebooks)) } catch {}
-}
-
 export const NOTEBOOK_TAG_PREFIX = 'nb:'
 
 export function notebookTag(name: string) {
@@ -27,49 +17,99 @@ const NOTEBOOK_COLORS = [
   '#7c6aff', '#10b981', '#f59e0b', '#ef4444',
   '#06b6d4', '#8b5cf6', '#f97316', '#ec4899',
 ]
+const LEGACY_KEY = 'dotstell-notebooks'
+const MIGRATED_KEY = 'dotstell-notebooks-migrated'
 
 let colorIdx = 0
 function nextColor(): string {
   return NOTEBOOK_COLORS[colorIdx++ % NOTEBOOK_COLORS.length]
 }
 
+type ServerNotebook = Notebook & { sort_order?: number; user_id?: string }
+
+async function fetchNotebooks(): Promise<Notebook[]> {
+  const res = await fetch('/api/notebooks')
+  if (!res.ok) return []
+  const data: ServerNotebook[] = await res.json()
+  return data.map(({ id, name, color, icon }) => ({ id, name, color, icon }))
+}
+
+async function migrateFromLocalStorage(): Promise<void> {
+  if (typeof window === 'undefined') return
+  if (localStorage.getItem(MIGRATED_KEY)) return
+  try {
+    const raw = localStorage.getItem(LEGACY_KEY)
+    if (!raw) { localStorage.setItem(MIGRATED_KEY, '1'); return }
+    const local: Notebook[] = JSON.parse(raw)
+    if (!local.length) { localStorage.setItem(MIGRATED_KEY, '1'); return }
+    // Check if server already has notebooks (avoid duplicate migration)
+    const existing = await fetchNotebooks()
+    if (existing.length > 0) { localStorage.setItem(MIGRATED_KEY, '1'); return }
+    // Upload each local notebook preserving its id
+    await Promise.all(local.map((nb, i) =>
+      fetch('/api/notebooks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: nb.id, name: nb.name, color: nb.color, icon: nb.icon, sort_order: i }),
+      })
+    ))
+    localStorage.setItem(MIGRATED_KEY, '1')
+  } catch {
+    // Migration failure is non-fatal; will retry next load until flag is set
+  }
+}
+
 export function useNotebooks() {
   const [notebooks, setNotebooks] = useState<Notebook[]>([])
 
-  useEffect(() => { setNotebooks(load()) }, [])
+  useEffect(() => {
+    migrateFromLocalStorage().then(() => {
+      fetchNotebooks().then(setNotebooks)
+    })
+  }, [])
 
-  const createNotebook = useCallback((name: string): Notebook => {
-    const nb: Notebook = {
+  const createNotebook = useCallback(async (name: string): Promise<Notebook> => {
+    const optimistic: Notebook = {
       id:    crypto.randomUUID(),
       name:  name.trim(),
       color: nextColor(),
       icon:  '📓',
     }
-    setNotebooks(prev => {
-      const next = [...prev, nb]
-      persist(next)
-      return next
-    })
-    return nb
+    setNotebooks(prev => [...prev, optimistic])
+    try {
+      const res = await fetch('/api/notebooks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: optimistic.id, name: optimistic.name, color: optimistic.color, icon: optimistic.icon, sort_order: Date.now() }),
+      })
+      if (res.ok) {
+        const saved = await res.json()
+        setNotebooks(prev => prev.map(n => n.id === optimistic.id ? { id: saved.id, name: saved.name, color: saved.color, icon: saved.icon } : n))
+        return { id: saved.id, name: saved.name, color: saved.color, icon: saved.icon }
+      }
+    } catch {}
+    return optimistic
   }, [])
 
-  const deleteNotebook = useCallback((id: string) => {
-    setNotebooks(prev => {
-      const next = prev.filter(n => n.id !== id)
-      persist(next)
-      return next
-    })
+  const deleteNotebook = useCallback(async (id: string) => {
+    setNotebooks(prev => prev.filter(n => n.id !== id))
+    try {
+      await fetch(`/api/notebooks/${id}`, { method: 'DELETE' })
+    } catch {}
   }, [])
 
-  const renameNotebook = useCallback((id: string, name: string) => {
-    setNotebooks(prev => {
-      const next = prev.map(n => n.id === id ? { ...n, name: name.trim() } : n)
-      persist(next)
-      return next
-    })
+  const renameNotebook = useCallback(async (id: string, name: string) => {
+    setNotebooks(prev => prev.map(n => n.id === id ? { ...n, name: name.trim() } : n))
+    try {
+      await fetch(`/api/notebooks/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: name.trim() }),
+      })
+    } catch {}
   }, [])
 
-  const reorderNotebook = useCallback((dragId: string, targetId: string) => {
+  const reorderNotebook = useCallback(async (dragId: string, targetId: string) => {
     setNotebooks(prev => {
       const next = [...prev]
       const from = next.findIndex(n => n.id === dragId)
@@ -77,17 +117,27 @@ export function useNotebooks() {
       if (from === -1 || to === -1) return prev
       const [item] = next.splice(from, 1)
       next.splice(to, 0, item)
-      persist(next)
+      // Persist new order
+      next.forEach((nb, i) => {
+        fetch(`/api/notebooks/${nb.id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sort_order: i }),
+        }).catch(() => {})
+      })
       return next
     })
   }, [])
 
-  const setNotebookColor = useCallback((id: string, color: string | null) => {
-    setNotebooks(prev => {
-      const next = prev.map(n => n.id === id ? { ...n, color: color ?? undefined } : n)
-      persist(next)
-      return next
-    })
+  const setNotebookColor = useCallback(async (id: string, color: string | null) => {
+    setNotebooks(prev => prev.map(n => n.id === id ? { ...n, color: color ?? undefined } : n))
+    try {
+      await fetch(`/api/notebooks/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ color }),
+      })
+    } catch {}
   }, [])
 
   return { notebooks, createNotebook, deleteNotebook, renameNotebook, reorderNotebook, setNotebookColor }

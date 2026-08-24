@@ -5,6 +5,7 @@ export interface Notebook {
   name: string
   color?: string
   icon?: string
+  sort_order?: number
   note_count?: number
 }
 
