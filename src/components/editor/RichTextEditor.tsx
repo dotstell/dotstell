@@ -252,10 +252,9 @@ export function RichTextEditor({
   useEffect(() => { onWikiLinksChangeRef.current = onWikiLinksChange }, [onWikiLinksChange])
   const onTextChangeRef = useRef(onTextChange)
   useEffect(() => { onTextChangeRef.current = onTextChange }, [onTextChange])
-  // Expose the editor instance to the parent once it's initialised (used for ToC navigation)
+  // Ref keeps onEditorReady stable so the effect below never re-runs due to prop identity changes
   const onEditorReadyRef = useRef(onEditorReady)
   useEffect(() => { onEditorReadyRef.current = onEditorReady }, [onEditorReady])
-  useEffect(() => { if (editor) onEditorReadyRef.current?.(editor) }, [editor])
   const colorRef  = useRef<HTMLDivElement>(null)
   const hlRef     = useRef<HTMLDivElement>(null)
   const fontRef   = useRef<HTMLDivElement>(null)
@@ -407,6 +406,9 @@ export function RichTextEditor({
       editor.commands.setContent(content)
     }
   }, [content, editor])
+
+  // Notify parent once the editor is ready — used for ToC scroll-to-heading
+  useEffect(() => { if (editor) onEditorReadyRef.current?.(editor) }, [editor])
 
   const filteredCommands = SLASH_COMMANDS.filter(c =>
     c.label.toLowerCase().includes(slashFilter.toLowerCase())
