@@ -34,6 +34,8 @@ async function fetchNotebooks(): Promise<Notebook[]> {
   return data.map(({ id, name, color, icon }) => ({ id, name, color, icon }))
 }
 
+// Runs once per browser profile: uploads any notebooks that were stored in localStorage
+// before the server-sync migration, preserving their IDs so existing nb: tags still resolve.
 async function migrateFromLocalStorage(): Promise<void> {
   if (typeof window === 'undefined') return
   if (localStorage.getItem(MIGRATED_KEY)) return
@@ -42,10 +44,9 @@ async function migrateFromLocalStorage(): Promise<void> {
     if (!raw) { localStorage.setItem(MIGRATED_KEY, '1'); return }
     const local: Notebook[] = JSON.parse(raw)
     if (!local.length) { localStorage.setItem(MIGRATED_KEY, '1'); return }
-    // Check if server already has notebooks (avoid duplicate migration)
+    // Skip upload if server already has data — user signed in on another device first
     const existing = await fetchNotebooks()
     if (existing.length > 0) { localStorage.setItem(MIGRATED_KEY, '1'); return }
-    // Upload each local notebook preserving its id
     await Promise.all(local.map((nb, i) =>
       fetch('/api/notebooks', {
         method: 'POST',
@@ -55,7 +56,7 @@ async function migrateFromLocalStorage(): Promise<void> {
     ))
     localStorage.setItem(MIGRATED_KEY, '1')
   } catch {
-    // Migration failure is non-fatal; will retry next load until flag is set
+    // Non-fatal: flag not set, so it retries on next load until it succeeds
   }
 }
 
@@ -68,6 +69,8 @@ export function useNotebooks() {
     })
   }, [])
 
+  // sortIndex must come from the caller (notebooks.length) — never use Date.now() here:
+  // sort_order is a PG INTEGER (max ~2.1B) and Date.now() in 2026 is ~1.78T, which overflows.
   const createNotebook = useCallback(async (name: string, sortIndex: number): Promise<Notebook> => {
     const optimistic: Notebook = {
       id:    crypto.randomUUID(),

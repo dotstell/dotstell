@@ -808,6 +808,7 @@ export function NotesSidePane({ width = 220, activeNoteId }: Props) {
                   onSelect={color => setNoteColor(contextMenu.id, color)}
                 />
                 {notebooks.length > 0 && (() => {
+                  // Derive which notebook this note belongs to from its nb: tag (e.g. "nb:my-notebook")
                   const currentNb = notebooks.find(nb => ctxNote?.tags?.includes(notebookTag(nb.name)))
                   const otherNbs  = notebooks.filter(nb => nb !== currentNb)
                   return (
