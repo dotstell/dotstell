@@ -1,0 +1,110 @@
+name: Release
+
+# Triggers on version tags (e.g. v0.3.0) or manual dispatch from GitHub Actions UI
+on:
+  push:
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+'
+  workflow_dispatch:
+
+jobs:
+  build:
+    permissions:
+      contents: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # macOS Apple Silicon (M1/M2/M3)
+          - platform: macos-latest
+            args: '--target aarch64-apple-darwin'
+            rust-target: aarch64-apple-darwin
+          # macOS Intel
+          - platform: macos-13
+            args: '--target x86_64-apple-darwin'
+            rust-target: x86_64-apple-darwin
+          # Windows
+          - platform: windows-latest
+            args: ''
+            rust-target: ''
+          # Linux (AppImage + deb)
+          - platform: ubuntu-22.04
+            args: ''
+            rust-target: ''
+
+    runs-on: ${{ matrix.platform }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install Rust (stable)
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          # Add cross-compile target for macOS universal builds
+          targets: ${{ matrix.rust-target }}
+
+      - name: Rust cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: './src-tauri -> target'
+
+      # Required by webkit2gtk on Linux
+      - name: Install Linux dependencies
+        if: matrix.platform == 'ubuntu-22.04'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            libappindicator3-dev \
+            librsvg2-dev \
+            patchelf
+
+      - name: Install frontend dependencies
+        run: pnpm install --frozen-lockfile
+
+      # tauri.conf.json has frontendDist: "../dist" — the app loads dotstell.app via URL,
+      # but Tauri still requires this directory to exist during the build step.
+      - name: Create dist placeholder
+        run: mkdir -p dist
+        shell: bash
+
+      - name: Build and publish release
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tagName: ${{ github.ref_name }}
+          releaseName: 'Dotstell ${{ github.ref_name }}'
+          releaseBody: |
+            ## What's new
+
+            See the full [changelog on dotstell.com](https://dotstell.com/#whats-new) for details.
+
+            ---
+
+            ## Downloads
+
+            | Platform | File |
+            |---|---|
+            | Windows (installer) | `Dotstell_*_x64_en-US.msi` |
+            | Windows (setup) | `Dotstell_*_x64-setup.exe` |
+            | macOS Apple Silicon | `Dotstell_*_aarch64.dmg` |
+            | macOS Intel | `Dotstell_*_x64.dmg` |
+            | Linux | `dotstell_*_amd64.AppImage` / `.deb` |
+
+            > **Note:** Builds are currently unsigned. macOS users: right-click the `.dmg` and choose Open to bypass Gatekeeper. Windows users: click "More info → Run anyway" on the SmartScreen prompt.
+          releaseDraft: true
+          prerelease: false
+          args: ${{ matrix.args }}
