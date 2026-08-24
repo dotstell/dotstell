@@ -300,10 +300,17 @@ export function NotesSidePane({ width = 220, activeNoteId }: Props) {
     setSectionOpen(p => ({ ...p, [key]: !p[key] }))
   }
 
-  function handleNewNotebook() {
+  async function handleNewNotebook() {
     const name = newNotebookName.trim()
-    if (name) createNotebook(name, notebooks.length)
+    if (!name) { setNewNotebookName(''); setNewNotebookMode(false); return }
+    // Client-side duplicate check avoids a round-trip for the common case
+    if (notebooks.some(nb => nb.name.toLowerCase() === name.toLowerCase())) {
+      toast.error(`A notebook named "${name}" already exists.`)
+      return
+    }
     setNewNotebookName(''); setNewNotebookMode(false)
+    const result = await createNotebook(name, notebooks.length)
+    if ('error' in result) toast.error(result.error)
   }
 
   function onContextMenu(e: React.MouseEvent, id: string, type: 'notebook' | 'note') {

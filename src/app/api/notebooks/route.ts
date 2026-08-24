@@ -49,6 +49,10 @@ export async function POST(req: NextRequest) {
     .select()
     .single()
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) {
+    // Postgres unique violation (user_id, name) — surface as 409 so the client can show a clear message
+    if (error.code === '23505') return NextResponse.json({ error: 'A notebook with this name already exists.' }, { status: 409 })
+    return NextResponse.json({ error: error.message }, { status: 500 })
+  }
   return NextResponse.json(data, { status: 201 })
 }

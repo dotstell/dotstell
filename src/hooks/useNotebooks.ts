@@ -73,7 +73,7 @@ export function useNotebooks() {
 
   // sortIndex must come from the caller (notebooks.length) — never use Date.now() here:
   // sort_order is a PG INTEGER (max ~2.1B) and Date.now() in 2026 is ~1.78T, which overflows.
-  const createNotebook = useCallback(async (name: string, sortIndex: number): Promise<Notebook | null> => {
+  const createNotebook = useCallback(async (name: string, sortIndex: number): Promise<{ notebook: Notebook } | { error: string }> => {
     const optimistic: Notebook = {
       id:    crypto.randomUUID(),
       name:  name.trim(),
@@ -90,14 +90,14 @@ export function useNotebooks() {
       if (res.ok) {
         const saved = await res.json()
         setNotebooks(prev => prev.map(n => n.id === optimistic.id ? { id: saved.id, name: saved.name, color: saved.color, icon: saved.icon } : n))
-        return { id: saved.id, name: saved.name, color: saved.color, icon: saved.icon }
+        return { notebook: { id: saved.id, name: saved.name, color: saved.color, icon: saved.icon } as Notebook }
       }
-      // Non-ok response: remove the ghost notebook so state matches the server
       setNotebooks(prev => prev.filter(n => n.id !== optimistic.id))
-      return null
+      const body = await res.json().catch(() => ({}))
+      return { error: body.error ?? 'Failed to create notebook' }
     } catch {
       setNotebooks(prev => prev.filter(n => n.id !== optimistic.id))
-      return null
+      return { error: 'Failed to create notebook' }
     }
   }, [])
 
