@@ -74,17 +74,31 @@ jobs:
         run: mkdir -p dist
         shell: bash
 
-      # Extract the section for the current tag from CHANGELOG.md.
+      # Extract the section for the current tag from CHANGELOG.md into a file.
       # Reads from ## [vX.Y.Z] down to (but not including) the next ## [
       - name: Extract changelog section
-        id: changelog
         run: |
           TAG="${{ github.ref_name }}"
-          BODY=$(awk "/^## \[${TAG}\]/{flag=1; next} /^## \[v[0-9]/{flag=0} flag" CHANGELOG.md)
-          BODY="${BODY}"$'\n\n---\n\n## Downloads\n\n| Platform | File |\n|---|---|\n| Windows (installer) | `Dotstell_*_x64_en-US.msi` |\n| Windows (setup) | `Dotstell_*_x64-setup.exe` |\n| macOS Apple Silicon | `Dotstell_*_aarch64.dmg` |\n| macOS Intel | `Dotstell_*_x64.dmg` |\n| Linux | `dotstell_*_amd64.AppImage` / `.deb` |\n\n> **Note:** Builds are currently unsigned. macOS: right-click the `.dmg` and choose **Open** to bypass Gatekeeper. Windows: click **More info → Run anyway** on the SmartScreen prompt.'
-          echo "body<<EOF" >> $GITHUB_OUTPUT
-          echo "$BODY" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
+          awk "/^## \[${TAG}\]/{flag=1; next} /^## \[v[0-9]/{flag=0} flag" CHANGELOG.md > /tmp/release_body.md
+          cat >> /tmp/release_body.md << 'FOOTER'
+
+---
+
+## Downloads
+
+| Platform | File |
+|---|---|
+| Windows (installer) | `Dotstell_*_x64_en-US.msi` |
+| Windows (setup) | `Dotstell_*_x64-setup.exe` |
+| macOS Apple Silicon | `Dotstell_*_aarch64.dmg` |
+| macOS Intel | `Dotstell_*_x64.dmg` |
+| Linux | `dotstell_*_amd64.AppImage` / `.deb` |
+
+> **Note:** Builds are currently unsigned.
+> - **macOS:** right-click the `.dmg` and choose **Open** to bypass Gatekeeper
+> - **Windows:** click **More info → Run anyway** on the SmartScreen prompt
+> - **Linux:** run `chmod +x *.AppImage` before launching
+FOOTER
         shell: bash
 
       - name: Build and publish release
@@ -94,7 +108,7 @@ jobs:
         with:
           tagName: ${{ github.ref_name }}
           releaseName: 'Dotstell ${{ github.ref_name }}'
-          releaseBody: ${{ steps.changelog.outputs.body }}
+          releaseBodyPath: /tmp/release_body.md
           releaseDraft: true
           prerelease: false
           args: ${{ matrix.args }}
