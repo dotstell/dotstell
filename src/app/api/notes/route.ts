@@ -27,7 +27,7 @@ export async function GET(req: NextRequest) {
   if (parent_id) query = query.eq('parent_id', parent_id)
   if (root_only === 'true') query = query.is('parent_id', null)
   if (q) {
-    const safe = q.slice(0, 200)
+    const safe = q.slice(0, 200).replace(/%/g, '\\%').replace(/_/g, '\\_')
     query = query.or(`title.ilike.%${safe}%,content.ilike.%${safe}%`)
   }
 
@@ -62,6 +62,12 @@ export async function POST(req: NextRequest) {
   if (rl) return rl
 
   const body = await req.json()
+  if (!body.title || typeof body.title !== 'string') {
+    return NextResponse.json({ error: 'Invalid title' }, { status: 400 })
+  }
+  if (typeof body.content === 'string' && body.content.length > 2_000_000) {
+    return NextResponse.json({ error: 'Content too large (max 2 MB)' }, { status: 413 })
+  }
   const { data, error } = await supabase.from('notes').insert({
     user_id:         user.id,
     title:           body.title,

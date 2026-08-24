@@ -22,6 +22,9 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   if (rl) return rl
 
   const body = await req.json()
+  if (typeof body.content === 'string' && body.content.length > 2_000_000) {
+    return NextResponse.json({ error: 'Content too large (max 2 MB)' }, { status: 413 })
+  }
   const allowed: Record<string, unknown> = {}
   const fields = ['title','content','type','tags','person_id','parent_id','pinned','sort_order','checklist_items','color'] as const
   for (const f of fields) if (f in body) allowed[f] = body[f]

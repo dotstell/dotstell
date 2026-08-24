@@ -263,7 +263,11 @@ export function RichTextEditor({
       CharacterCount,
       Highlight.configure({ multicolor: true }),
       Typography,
-      Link.configure({ openOnClick: false, HTMLAttributes: { class: 'tiptap-link' } }),
+      Link.configure({
+        openOnClick: false,
+        HTMLAttributes: { class: 'tiptap-link' },
+        validate: href => /^(https?:\/\/|mailto:|\/|#)/i.test(href),
+      }),
       Table.configure({ resizable: true }),
       TableRow,
       TableCell,
@@ -314,9 +318,14 @@ export function RichTextEditor({
               if (!allowed.includes(attr.name)) el.removeAttribute(attr.name)
             })
           })
+          // Strip any surviving javascript: hrefs (defence-in-depth)
+          doc.querySelectorAll('a[href]').forEach(a => {
+            const href = a.getAttribute('href') ?? ''
+            if (!/^(https?:\/\/|mailto:|\/|#)/i.test(href)) a.removeAttribute('href')
+          })
           return doc.body.innerHTML
         } catch {
-          return html
+          return ''
         }
       },
     },
@@ -457,8 +466,13 @@ export function RichTextEditor({
 
   function setLink() {
     if (!editor) return
-    if (linkUrl) editor.chain().focus().setLink({ href: linkUrl }).run()
-    else editor.chain().focus().unsetLink().run()
+    if (linkUrl) {
+      const url = linkUrl.trim()
+      if (!/^(https?:\/\/|mailto:|\/|#)/i.test(url)) return
+      editor.chain().focus().setLink({ href: url }).run()
+    } else {
+      editor.chain().focus().unsetLink().run()
+    }
     setLinkDialogOpen(false)
     setLinkUrl('')
   }

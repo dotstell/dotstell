@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { lookup } from 'dns/promises'
 
 export async function GET(req: NextRequest) {
   const supabase = await createClient()
@@ -36,6 +37,23 @@ export async function GET(req: NextRequest) {
       host.endsWith('.internal') ||
       host.endsWith('.local')
     if (isPrivate) return NextResponse.json({ error: 'Invalid URL' }, { status: 400 })
+
+    // Resolve hostname to IP before fetching to prevent DNS rebinding
+    try {
+      const resolved = await lookup(parsed.hostname)
+      const ip = resolved.address
+      const isResolvedPrivate =
+        /^127\./.test(ip) || ip === '::1' ||
+        /^10\./.test(ip) ||
+        /^172\.(1[6-9]|2\d|3[01])\./.test(ip) ||
+        /^192\.168\./.test(ip) ||
+        /^169\.254\./.test(ip) ||
+        /^fc00:/i.test(ip) || /^fd[0-9a-f]{2}:/i.test(ip) ||
+        ip === '0.0.0.0'
+      if (isResolvedPrivate) return NextResponse.json({ error: 'Invalid URL' }, { status: 400 })
+    } catch {
+      return NextResponse.json({ error: 'Invalid URL' }, { status: 400 })
+    }
   } catch {
     return NextResponse.json({ error: 'Invalid URL' }, { status: 400 })
   }

@@ -29,6 +29,9 @@ export async function POST(req: NextRequest) {
   if (rl) return rl
 
   const body = await req.json()
+  if (!body.name || typeof body.name !== 'string') {
+    return NextResponse.json({ error: 'Invalid name' }, { status: 400 })
+  }
   const { data, error } = await supabase.from('people').insert({
     user_id:    user.id,
     name:       body.name,
