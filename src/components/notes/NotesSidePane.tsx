@@ -810,7 +810,7 @@ export function NotesSidePane({ width = 220, activeNoteId }: Props) {
                 {notebooks.length > 0 && (
                   <div style={{ borderTop: '1px solid var(--border)', margin: '2px 0', paddingTop: 2 }}>
                     <div style={{ padding: '4px 12px 2px', fontSize: 10, fontWeight: 600, color: 'var(--muted-foreground)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                      Move to notebook
+                      Notebook
                     </div>
                     {notebooks.map(nb => {
                       const tag     = notebookTag(nb.name)
@@ -818,8 +818,12 @@ export function NotesSidePane({ width = 220, activeNoteId }: Props) {
                       return (
                         <CtxItem
                           key={nb.id}
-                          icon={() => <span style={{ fontSize: 13 }}>{nb.icon ?? '📓'}</span>}
-                          label={nb.name}
+                          icon={() => (
+                            <span style={{ fontSize: 13, width: 16, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+                              {current ? '✓' : nb.icon ?? '📓'}
+                            </span>
+                          )}
+                          label={current ? `Remove from "${nb.name}"` : nb.name}
                           active={current}
                           onClick={() => ctxNote && moveNoteToNotebook(ctxNote, current ? null : nb.name)}
                         />
