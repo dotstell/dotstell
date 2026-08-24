@@ -47,8 +47,9 @@ The question it answers that other tools don't:
 |---|---|---|
 | 📑 | **Rich Text Notes** | Write in rich text with slash commands, tables, code blocks and checklists |
 | ⬡ | **Wikilinks & Backlinks** | Type `[[` in any note to link it to another — backlinks update automatically |
-| 👥 | **People & 1-on-1s** | Track contacts, attach notes, tasks and context directly to people |
-| 🔖 | **Smart Bookmarks** | Save any URL — title, description and favicon fetched automatically |
+| 📓 | **Notebooks** | Organise notes into named collections with colour-coded sidebar grouping |
+| 👥 | **People & 1-on-1s** | Track contacts, attach notes, tasks and context directly to people — supports `@mention` in notes |
+| 🔖 | **Smart Bookmarks** | Save any URL — title, description and favicon fetched automatically; bulk import from Chrome, Firefox or Safari |
 | ✅ | **Tasks & Priorities** | Kanban board + list view with priorities, due dates and overdue alerts |
 | 🌐 | **Knowledge Graph** | Visual map of everything — wikilinks and manual connections appear as live edges |
 | 🔍 | **Universal Search** | Ctrl+K command palette across all notes, people, tasks and bookmarks |
@@ -61,7 +62,7 @@ The question it answers that other tools don't:
 
 Live previews of the app are available on [dotstell.com](https://www.dotstell.com) — the landing page includes an interactive knowledge graph, dashboard mockup, and feature walkthroughs.
 
-App screenshots will be added here once the first public release is tagged.
+Try the live app at [dotstell.app](https://dotstell.app) or [download the desktop build](#getting-started) for Windows, macOS and Linux.
 
 ---
 
