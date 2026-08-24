@@ -13,6 +13,8 @@
 
 <br/>
 
+[![GitHub Stars](https://img.shields.io/github/stars/dotstell/dotstell?style=flat-square&color=7c6aff&logo=github)](https://github.com/dotstell/dotstell/stargazers)
+[![GitHub Forks](https://img.shields.io/github/forks/dotstell/dotstell?style=flat-square&color=gray&logo=github)](https://github.com/dotstell/dotstell/network/members)
 [![License: AGPL-3.0](https://img.shields.io/badge/License-AGPL--3.0-7c6aff?style=flat-square)](LICENSE)
 [![Next.js](https://img.shields.io/badge/Next.js-16-black?style=flat-square&logo=next.js)](https://nextjs.org)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?style=flat-square&logo=typescript)](https://typescriptlang.org)
@@ -23,7 +25,7 @@
 
 <br/>
 
-[Website](https://www.dotstell.com) · [Live App](https://dotstell.app) · [Report a bug](https://github.com/dotstell/dotstell/issues) · [Request a feature](https://github.com/dotstell/dotstell/issues) · [Contact](mailto:hello@dotstell.com)
+[Website](https://www.dotstell.com) · [Live App](https://dotstell.app) · [Releases](https://github.com/dotstell/dotstell/releases) · [Report a bug](https://github.com/dotstell/dotstell/issues) · [Request a feature](https://github.com/dotstell/dotstell/issues) · [Contact](mailto:hello@dotstell.com)
 
 </div>
 
@@ -38,6 +40,19 @@ Most productivity tools are built around **capture**. Dotstell is built around *
 The question it answers that other tools don't:
 
 > *"What do I know about this person, this project, this decision — right now, in full context?"*
+
+---
+
+## Support the project
+
+Dotstell is free, self-hostable, and built in the open. If it saves you time or you believe in what we're building:
+
+- **[Star the repo](https://github.com/dotstell/dotstell/stargazers)** — the single most useful thing you can do. It helps others find Dotstell and tells us the work is worthwhile.
+- **[Open an issue](https://github.com/dotstell/dotstell/issues)** — bug reports and feature requests shape what gets built next.
+- **[Contribute code](CONTRIBUTING.md)** — all skill levels welcome; see the contributing guide.
+- **Share it** — tell someone who needs a better way to organise their work.
+
+Every star, issue, and PR genuinely matters for an early-stage OSS project.
 
 ---
 
