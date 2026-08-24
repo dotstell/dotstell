@@ -156,34 +156,71 @@ See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for a full breakdown of the sys
 ```
 src/
 ├── app/
-│   ├── api/              # REST API routes
-│   │   ├── notes/        # Notes CRUD + wikilinks + backlinks
-│   │   ├── people/       # People CRUD
-│   │   ├── bookmarks/    # Bookmarks CRUD
-│   │   ├── tasks/        # Tasks CRUD
-│   │   ├── links/        # Knowledge links (manual + wikilink edges)
-│   │   └── search/       # Universal search
-│   ├── auth/             # Login & register pages
-│   ├── dashboard/        # Home dashboard
-│   ├── notes/            # Notes list + editor
-│   ├── people/           # People list + detail
-│   ├── bookmarks/        # Bookmarks + collections
-│   ├── tasks/            # Kanban + list view
-│   ├── graph/            # Knowledge graph
-│   └── search/           # Global search page
+│   ├── api/                          # Next.js API routes (server-side)
+│   │   ├── notes/                    # Notes list + create
+│   │   ├── notes/[id]/               # Note CRUD (soft delete)
+│   │   ├── notes/[id]/backlinks/     # Backlink lookup for a note
+│   │   ├── notes/[id]/wikilinks/     # Wikilink edge sync on save
+│   │   ├── notes/[id]/unlinked-mentions/ # Unlinked [[title]] detection
+│   │   ├── notes/[id]/restore/       # Restore note from trash
+│   │   ├── notes/[id]/permanent/     # Permanent delete (bypass soft)
+│   │   ├── notes/trash/              # List trashed notes
+│   │   ├── notebooks/                # Notebooks list + create
+│   │   ├── notebooks/[id]/           # Notebook rename / delete
+│   │   ├── people/                   # People list + create
+│   │   ├── people/[id]/              # Person CRUD
+│   │   ├── bookmarks/                # Bookmarks list + create
+│   │   ├── bookmarks/[id]/           # Bookmark patch / delete
+│   │   ├── bookmarks/bulk-import/    # Netscape HTML file parser
+│   │   ├── bookmarks/bulk-delete/    # Delete multiple bookmarks
+│   │   ├── bookmarks/preview-import/ # Parse without saving (preview)
+│   │   ├── bookmarks/manage-tags/    # Rename / delete a tag globally
+│   │   ├── bookmarks/fetch-meta/     # SSRF-protected URL metadata fetch
+│   │   ├── bookmarks/visit/          # Record visit + update last_visited_at
+│   │   ├── tasks/                    # Tasks list + create
+│   │   ├── tasks/[id]/               # Task CRUD
+│   │   ├── links/                    # Knowledge links (manual + wikilink edges)
+│   │   ├── wikilinks/                # Wikilink resolution (title → id lookup)
+│   │   ├── graph/                    # Graph data (all nodes + edges combined)
+│   │   └── search/                   # Full-text search across all entity types
+│   ├── auth/                         # Login, register, OAuth callback
+│   ├── dashboard/                    # Home: overdue tasks, recent notes
+│   ├── notes/                        # Notes list
+│   ├── notes/[id]/                   # Note editor (full page)
+│   ├── people/                       # People list
+│   ├── people/[id]/                  # Person detail + attached notes/tasks
+│   ├── bookmarks/                    # Bookmarks + collections
+│   ├── tasks/                        # Kanban board + list view
+│   ├── graph/                        # Interactive knowledge graph
+│   ├── tags/                         # Tag browser across all entity types
+│   ├── search/                       # Global search results
+│   └── help/                         # Help & keyboard shortcuts
 ├── components/
-│   ├── editor/           # Tiptap rich text editor + WikiLinkExtension
-│   ├── layout/           # Sidebar, AppLayout, PageHeader
-│   ├── links/            # LinkPanel (manual knowledge linking)
-│   ├── notes/            # NoteCard, BacklinksPanel
-│   └── ui/               # Design system (ThemePicker, buttons, etc.)
-├── hooks/                # useTheme, useDebounce, etc.
+│   ├── editor/                       # Tiptap editor + WikiLinkExtension node
+│   ├── layout/                       # Sidebar, AppLayout, PageHeader
+│   ├── command/                      # Ctrl+K command palette
+│   ├── links/                        # LinkPanel (manual entity-to-entity linking)
+│   ├── graph/                        # Graph canvas, node/edge renderers
+│   ├── notes/                        # NoteCard, NotesSidePane, BacklinksPanel
+│   ├── bookmarks/                    # BookmarkCard, BookmarkImport, TagFilter
+│   ├── people/                       # PersonCard, PersonDetail
+│   ├── tasks/                        # TaskCard, KanbanBoard, TaskList
+│   ├── onboarding/                   # First-run onboarding flow
+│   ├── brand/                        # Logo and brand assets
+│   └── ui/                           # Design system: buttons, dialogs, inputs
+├── hooks/                            # useNotebooks, useMention, useTheme, etc.
+├── store/                            # Zustand global stores
 ├── lib/
-│   ├── supabase/         # Supabase client + server helpers
-│   └── tiptap/           # WikiLinkExtension node
-└── types/                # Shared TypeScript types
+│   ├── supabase/                     # Browser + server Supabase clients
+│   ├── tiptap/                       # WikiLinkExtension (custom ProseMirror node)
+│   └── ratelimit.ts                  # In-memory rate limiter
+└── types/                            # Shared TypeScript types
+src-tauri/
+├── src/lib.rs                        # Tauri v2 desktop shell (Rust)
+└── tauri.conf.json                   # App metadata, permissions, updater config
 supabase/
-└── migrations/           # SQL migrations with RLS policies
+├── schema.sql                        # Full schema: tables, RLS, indexes, triggers
+└── migrations/                       # Incremental SQL migrations (002 → 007)
 ```
 
 ---
@@ -195,10 +232,11 @@ supabase/
 | Notes, People, Tasks, Bookmarks | ✅ Live |
 | Wikilinks + Backlinks | ✅ Live |
 | Knowledge Graph | ✅ Live |
-| AI layer (auto-tagging, semantic search) | 🔜 Planned |
-| Desktop app (Windows + macOS) | ✅ Live |
+| Desktop app (Windows, macOS + Linux) | ✅ Live |
+| AI layer (auto-tagging, semantic search) | 🔜 Soon |
+| Docs (per-project documentation) | 🔜 Soon |
 | Browser extension | 🔜 Planned |
-| Slack / Teams integrations | 🔜 Planned |
+| Integrations (Slack, Teams, etc.) | 🔜 Planned |
 | Mobile app | 🔜 Planned |
 
 ---

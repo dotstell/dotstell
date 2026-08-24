@@ -94,28 +94,45 @@ Next.js App Router. Every folder is a route segment.
 
 ```
 src/app/
-├── api/                 # REST API (server-side, has access to Supabase service key)
-│   ├── notes/           # Notes CRUD + wikilink backlink writes
-│   ├── notes/[id]/      # Single note CRUD (soft delete via deleted_at)
-│   ├── people/          # People CRUD
-│   ├── bookmarks/       # Bookmarks CRUD + bulk import
-│   ├── bookmarks/[id]/  # Single bookmark patch / delete
-│   ├── bookmarks/bulk-import/    # Netscape HTML bookmark file parser
-│   ├── bookmarks/manage-tags/    # Rename / delete a tag across all bookmarks
-│   ├── bookmarks/fetch-meta/     # SSRF-protected URL metadata fetch
-│   ├── tasks/           # Tasks CRUD
-│   ├── links/           # Knowledge links (manual + wikilink edges)
-│   ├── notebooks/       # Notebooks CRUD
-│   ├── notebooks/[id]/  # Single notebook PATCH / DELETE
-│   └── search/          # Full-text search across all entity types
-├── auth/                # Login & register UI
-├── dashboard/           # Home screen
-├── notes/               # Notes list + editor
-├── people/              # People list + detail
-├── bookmarks/           # Bookmarks + collections view
-├── tasks/               # Kanban + list views
-├── graph/               # Knowledge graph (React Flow)
-└── search/              # Global search results page
+├── api/                              # REST API (server-side)
+│   ├── notes/                        # Notes list + create
+│   ├── notes/[id]/                   # Note CRUD (soft delete via deleted_at)
+│   ├── notes/[id]/backlinks/         # Inbound wikilinks for a note
+│   ├── notes/[id]/wikilinks/         # Sync wikilink edges on save
+│   ├── notes/[id]/unlinked-mentions/ # Detect [[Title]] with no matching note
+│   ├── notes/[id]/restore/           # Restore soft-deleted note
+│   ├── notes/[id]/permanent/         # Hard delete (bypasses soft delete)
+│   ├── notes/trash/                  # List soft-deleted notes
+│   ├── notebooks/                    # Notebooks list + create
+│   ├── notebooks/[id]/               # Notebook rename / delete
+│   ├── people/                       # People list + create
+│   ├── people/[id]/                  # Person CRUD
+│   ├── bookmarks/                    # Bookmarks list + create
+│   ├── bookmarks/[id]/               # Bookmark patch / delete
+│   ├── bookmarks/bulk-import/        # Netscape HTML file parser + batch insert
+│   ├── bookmarks/bulk-delete/        # Delete multiple bookmarks at once
+│   ├── bookmarks/preview-import/     # Parse Netscape file, return preview without saving
+│   ├── bookmarks/manage-tags/        # Rename / delete a tag across all bookmarks
+│   ├── bookmarks/fetch-meta/         # SSRF-protected URL metadata fetch
+│   ├── bookmarks/visit/              # Record visit, update last_visited_at
+│   ├── tasks/                        # Tasks list + create
+│   ├── tasks/[id]/                   # Task CRUD
+│   ├── links/                        # Knowledge links (manual + wikilink edges)
+│   ├── wikilinks/                    # Wikilink title → id resolution
+│   ├── graph/                        # All graph nodes + edges in one response
+│   └── search/                       # Full-text search across all entity types
+├── auth/                             # Login, register, OAuth callback
+├── dashboard/                        # Home: overdue tasks, recent notes
+├── notes/                            # Notes list
+├── notes/[id]/                       # Note editor (full page)
+├── people/                           # People list
+├── people/[id]/                      # Person detail + attached notes/tasks
+├── bookmarks/                        # Bookmarks + collections
+├── tasks/                            # Kanban board + list view
+├── graph/                            # Interactive knowledge graph (React Flow)
+├── tags/                             # Tag browser across all entity types
+├── search/                           # Global search results
+└── help/                             # Help & keyboard shortcuts
 ```
 
 ### `src/components/` — UI Components
@@ -123,10 +140,17 @@ src/app/
 ```
 src/components/
 ├── editor/       # Tiptap rich text editor + WikiLinkExtension (custom ProseMirror node)
-├── layout/       # Sidebar, AppLayout, PageHeader, CommandPalette (Ctrl+K)
+├── layout/       # Sidebar, AppLayout, PageHeader
+├── command/      # Ctrl+K command palette
 ├── links/        # LinkPanel — manual entity-to-entity connection UI
+├── graph/        # Graph canvas, node renderers, edge renderers
 ├── notes/        # NoteCard, NotesSidePane (notebooks UI), BacklinksPanel
-└── ui/           # Design system: ThemePicker, buttons, dialogs, etc.
+├── bookmarks/    # BookmarkCard, BookmarkImport, TagFilter
+├── people/       # PersonCard, PersonDetail
+├── tasks/        # TaskCard, KanbanBoard, TaskList
+├── onboarding/   # First-run onboarding flow
+├── brand/        # Logo and brand assets
+└── ui/           # Design system: ThemePicker, buttons, dialogs, inputs
 ```
 
 ### `src/hooks/` — Data & Behaviour Hooks
@@ -139,6 +163,10 @@ src/components/
 | `useTheme` | Theme selection, cookie sync for SSR flash prevention |
 | `useTaskReminders` | Browser Notification API, fires once per session |
 | `useDebounce` | Generic debounce for search inputs |
+
+### `src/store/` — Global State
+
+Zustand stores for cross-component state that doesn't belong in a single hook.
 
 ### `src/lib/` — Utilities
 
