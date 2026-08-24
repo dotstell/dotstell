@@ -38,6 +38,15 @@ A productivity and safety release — note recovery with 30-day trash, smart pas
 - Today's date is auto-filled when a template is selected — no manual editing required
 - Templates include: Meeting notes, 1-on-1, Daily standup, Weekly review, Decision log, Project plan, Bug report, Feedback (SBI), and Blank
 
+### 🔒 Security hardening
+
+- Blocked `javascript:` hrefs in the link dialog and paste path; added Link `validate` callback in the editor
+- DNS pre-resolution in the bookmark fetch-meta endpoint to prevent DNS rebinding SSRF
+- Rate limits added to bulk-import (5/min) and preview-import (10/min) bookmark endpoints
+- Escaped `LIKE` metacharacters (`%`, `_`) in the notes search query to prevent injection
+- Enforced 2 MB content size cap on note POST and PATCH routes
+- Input validation added across notes, tasks, and people POST routes (title/name required, status/priority enum checks)
+
 ---
 
 ## [v0.2.2] — Aug 2026

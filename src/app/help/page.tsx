@@ -464,6 +464,9 @@ export default function HelpPage() {
                 <Tip icon="📐" title="Richer templates with auto-date"
                   body="Nine built-in templates now include structured guidance text, mood/energy indicators, and auto-fill today's date on selection. Templates include SBI Feedback, Decision log with confidence, Weekly review with rating, and more."
                 />
+                <Tip icon="🔒" title="Security hardening"
+                  body="Blocked javascript: hrefs in the link dialog and paste path. DNS rebinding SSRF fix on bookmark fetch. Rate limits on bulk-import endpoints. LIKE injection fix in notes search. 2 MB content cap and input validation across notes, tasks, and people routes."
+                />
               </div>
 
               {/* v0.2.2 */}
