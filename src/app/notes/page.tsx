@@ -92,6 +92,14 @@ export default function NotesPage() {
   const [showTrash,  setShowTrash]  = useState(false)
   const [trashNotes, setTrashNotes] = useState<Note[]>([])
   const [trashLoading, setTrashLoading] = useState(false)
+  const [confirmState, setConfirmState] = useState<{
+    open: boolean; title: string; body: string; confirmLabel: string; onConfirm: () => void
+  }>({ open: false, title: '', body: '', confirmLabel: '', onConfirm: () => {} })
+
+  function openConfirm(opts: { title: string; body: string; confirmLabel: string; onConfirm: () => void }) {
+    setConfirmState({ ...opts, open: true })
+  }
+  function closeConfirm() { setConfirmState(s => ({ ...s, open: false })) }
   const sortRef  = useRef<HTMLDivElement>(null)
   const ctxRef   = useRef<HTMLDivElement>(null)
 
@@ -174,22 +182,28 @@ export default function NotesPage() {
     if (res.ok) { setTrashNotes(prev => prev.filter(n => n.id !== id)); toast.success('Note restored') }
   }
 
-  async function permanentDelete(id: string) {
-    const res = await fetch(`/api/notes/${id}`, { method: 'DELETE' })
-    // After restore makes deleted_at null, a second DELETE would soft-delete again.
-    // For permanent delete from trash we need a direct hard-delete call.
-    // Call the trash endpoint with the note id instead.
-    if (res.ok) { setTrashNotes(prev => prev.filter(n => n.id !== id)); toast.success('Permanently deleted') }
+  async function permanentDeleteNote(id: string, title: string) {
+    openConfirm({
+      title: 'Delete forever?',
+      body: `"${title || 'Untitled'}" will be permanently deleted and cannot be recovered.`,
+      confirmLabel: 'Delete forever',
+      onConfirm: async () => {
+        const res = await fetch(`/api/notes/${id}/permanent`, { method: 'DELETE' })
+        if (res.ok) { setTrashNotes(prev => prev.filter(n => n.id !== id)); toast.success('Permanently deleted') }
+      },
+    })
   }
 
-  async function hardDeleteNote(id: string) {
-    const res = await fetch(`/api/notes/${id}/permanent`, { method: 'DELETE' })
-    if (res.ok) { setTrashNotes(prev => prev.filter(n => n.id !== id)); toast.success('Permanently deleted') }
-  }
-
-  async function emptyTrash() {
-    const res = await fetch('/api/notes/trash', { method: 'DELETE' })
-    if (res.ok) { setTrashNotes([]); toast.success('Trash emptied') }
+  function confirmEmptyTrash() {
+    openConfirm({
+      title: 'Empty trash?',
+      body: `All ${trashNotes.length} note${trashNotes.length === 1 ? '' : 's'} in trash will be permanently deleted. This cannot be undone.`,
+      confirmLabel: 'Empty trash',
+      onConfirm: async () => {
+        const res = await fetch('/api/notes/trash', { method: 'DELETE' })
+        if (res.ok) { setTrashNotes([]); toast.success('Trash emptied') }
+      },
+    })
   }
 
   // How long ago a note was deleted (human readable)
@@ -360,7 +374,7 @@ export default function NotesPage() {
             {showTrash ? (
               <>
                 {trashNotes.length > 0 && (
-                  <button type="button" onClick={emptyTrash} style={{
+                  <button type="button" onClick={confirmEmptyTrash} style={{
                     display: 'flex', alignItems: 'center', gap: 6,
                     padding: '6px 14px', borderRadius: 8, border: '1px solid var(--destructive)',
                     backgroundColor: 'transparent', color: 'var(--destructive)',
@@ -433,14 +447,7 @@ export default function NotesPage() {
                       }}>
                         <RotateCcw size={13} /> Restore
                       </button>
-                      <button type="button" onClick={() => {
-                        if (window.confirm(`Permanently delete "${note.title || 'Untitled'}"? This cannot be undone.`)) {
-                          fetch(`/api/notes/${note.id}/permanent`, { method: 'DELETE' })
-                            .then(res => {
-                              if (res.ok) { setTrashNotes(prev => prev.filter(n => n.id !== note.id)); toast.success('Permanently deleted') }
-                            })
-                        }
-                      }} title="Delete permanently" style={{
+                      <button type="button" onClick={() => permanentDeleteNote(note.id, note.title)} title="Delete permanently" style={{
                         display: 'flex', alignItems: 'center',
                         padding: 6, borderRadius: 7, border: 'none',
                         backgroundColor: 'transparent', color: 'var(--muted-foreground)',
@@ -645,6 +652,71 @@ export default function NotesPage() {
         )}
         </>}
       </div>
+
+      {/* ── Confirm modal ──────────────────────────────────────────────── */}
+      {confirmState.open && (
+        <>
+          <div onClick={closeConfirm} style={{
+            position: 'fixed', inset: 0, zIndex: 9998,
+            backgroundColor: 'rgba(0,0,0,0.65)',
+            backdropFilter: 'blur(4px)',
+          }} />
+          <div style={{
+            position: 'fixed', top: '50%', left: '50%',
+            transform: 'translate(-50%, -50%)',
+            zIndex: 9999,
+            width: '100%', maxWidth: 420,
+            backgroundColor: 'var(--card)',
+            border: '1px solid var(--border)',
+            borderRadius: 14,
+            boxShadow: '0 24px 60px rgba(0,0,0,0.65)',
+            padding: '24px 24px 20px',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14, marginBottom: 20 }}>
+              <div style={{
+                width: 38, height: 38, borderRadius: 10, flexShrink: 0,
+                backgroundColor: 'rgba(239,68,68,0.12)',
+                border: '1px solid rgba(239,68,68,0.25)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}>
+                <Trash2 size={17} color="var(--destructive)" />
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <p style={{ margin: 0, fontSize: 15, fontWeight: 700, color: 'var(--foreground)' }}>
+                  {confirmState.title}
+                </p>
+                <p style={{ margin: '5px 0 0', fontSize: 13, color: 'var(--muted-foreground)', lineHeight: 1.55 }}>
+                  {confirmState.body}
+                </p>
+              </div>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+              <button type="button" onClick={closeConfirm} style={{
+                padding: '7px 18px', borderRadius: 8,
+                border: '1px solid var(--border)',
+                backgroundColor: 'transparent', color: 'var(--foreground)',
+                fontSize: 13, cursor: 'pointer', fontWeight: 500,
+              }}
+                onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'var(--accent)')}
+                onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
+              >
+                Cancel
+              </button>
+              <button type="button" onClick={() => { confirmState.onConfirm(); closeConfirm() }} style={{
+                padding: '7px 18px', borderRadius: 8, border: 'none',
+                backgroundColor: 'var(--destructive)', color: 'white',
+                fontSize: 13, cursor: 'pointer', fontWeight: 600,
+                transition: 'opacity 0.15s',
+              }}
+                onMouseEnter={e => (e.currentTarget.style.opacity = '0.85')}
+                onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
+              >
+                {confirmState.confirmLabel}
+              </button>
+            </div>
+          </div>
+        </>
+      )}
 
       {/* ── Context menu ───────────────────────────────────────────────── */}
       {ctxMenu && (

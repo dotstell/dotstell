@@ -90,6 +90,7 @@ const SECTIONS = [
   { id: 'tags',             label: '🏷️ Tags' },
   { id: 'search',           label: '🔍 Search & command palette' },
   { id: 'shortcuts',        label: '⌨️ Keyboard shortcuts' },
+  { id: 'whats-new',        label: '✨ What\'s new in v0.3.0' },
 ]
 
 // ── page ─────────────────────────────────────────────────────────────────────
@@ -200,6 +201,9 @@ export default function HelpPage() {
               <Tip icon="🔍" title="Live search"
                 body="The search bar on the Notes page filters by title and content in real time as you type. For searching across all content types at once, use Ctrl+K."
               />
+              <Tip icon="🗑" title="Trash & recovery"
+                body={<>Deleted notes go to <strong>Trash</strong> instead of being removed immediately. Click the <strong>Trash</strong> button in the Notes header to open the trash view. Each note shows how many days remain before it is permanently deleted (30-day window). Restore a note with one click, or delete it forever. Empty Trash removes everything at once. Notes that pass the 30-day limit are auto-purged when the trash is next opened.</>}
+              />
             </Section>
 
             {/* EDITOR */}
@@ -211,7 +215,7 @@ export default function HelpPage() {
                 body="Click the expand icon in the toolbar (or the button in the top-right) to enter focus mode — the sidebar and header disappear and the note fills the screen. Click the same button to exit."
               />
               <Tip icon="📐" title="Templates"
-                body="A template picker opens automatically for every new note. You can also reopen it via the Templates button in the toolbar. Templates include Meeting notes, Weekly review, 1-on-1, and more."
+                body={<>A template picker opens automatically for every new note. Reopen it any time via the <strong>Templates</strong> button in the toolbar. Nine built-in templates: <strong>Meeting notes</strong>, <strong>1-on-1</strong>, <strong>Daily standup</strong>, <strong>Weekly review</strong>, <strong>Decision log</strong>, <strong>Project plan</strong>, <strong>Bug report</strong>, <strong>Feedback (SBI)</strong>, and <strong>Blank</strong>. All templates auto-fill today's date and include guidance text inside each section so you know what to write.</>}
               />
               <Tip icon="/" title="Slash commands"
                 body={<>Type <Kbd>/</Kbd> anywhere in the editor to open the command menu. Available blocks: Heading 1/2/3 · Bullet list · Numbered list · Checklist · Quote · Code block · Callout (💡 Info or ⚠️ Warning) · Divider · Table · Image</>}
@@ -228,8 +232,14 @@ export default function HelpPage() {
               <Tip icon="📝" title="Markdown source mode"
                 body="Click the Markdown button in the toolbar to switch to raw Markdown editing with a cheatsheet bar. Click Rich text to convert back. Useful for pasting content from other apps."
               />
-              <Tip icon="⬇️" title="Export as Markdown"
-                body="Click the download icon in the editor header to export the current note as a .md file. Useful for sharing or backing up individual notes."
+              <Tip icon="📋" title="Smart paste"
+                body={<>The toolbar has a <strong>Rich paste / Plain paste</strong> toggle. In <strong>Rich paste</strong> mode (default), pasting HTML content from a web page or document preserves headings, bold, lists, and links — stripping only unsafe formatting. In <strong>Plain paste</strong> mode, everything is stripped to bare text. Your preference is remembered between sessions.</>}
+              />
+              <Tip icon="🗂" title="Table of contents (Outline)"
+                body={<>The right panel of any note shows an <strong>Outline</strong> section that auto-generates a table of contents from all headings in the note (H1–H4). Click any heading in the outline to scroll directly to that section. The panel is collapsible — your preference is remembered. The outline updates live as you write.</>}
+              />
+              <Tip icon="⬇️" title="Export as Markdown or PDF"
+                body={<>Use the <strong>.md</strong> button in the editor header to export as a Markdown file. Use the <strong>PDF</strong> button to open a print-ready version of the note in a new tab and trigger the browser's print dialog — choose <em>Save as PDF</em> for a clean export. Both options are available in the editor header toolbar.</>}
               />
               <Tip icon="🌳" title="Sub-notes"
                 body="The right panel of any note includes a Sub-notes section. Create child notes that are automatically linked to the parent. Navigate the hierarchy using the breadcrumb at the top of the note."
@@ -427,6 +437,25 @@ export default function HelpPage() {
                   </table>
                 </div>
               ))}
+            </Section>
+
+            {/* WHAT'S NEW */}
+            <Section id="whats-new" title="✨ What's new in v0.3.0">
+              <Tip icon="🗑" title="Trash — 30-day note recovery"
+                body="Delete now moves notes to a recoverable trash instead of removing them permanently. Restore any note within 30 days. Notes auto-purge after the window expires."
+              />
+              <Tip icon="📐" title="Richer templates with auto-date"
+                body="All 9 templates now include structured guidance text, mood/energy indicators, type selectors, and auto-fill today's date when selected. Templates include SBI Feedback, Decision log with confidence, and more."
+              />
+              <Tip icon="📋" title="Smart paste with HTML preservation"
+                body="Pasting from web pages and documents now preserves semantic formatting (headings, bold, lists, links) while stripping unsafe elements. Toggle to Plain paste mode for raw text."
+              />
+              <Tip icon="🗂" title="Table of contents (Outline panel)"
+                body="An auto-generated Outline appears in the right panel of every note, built from your headings. Click any entry to scroll to that section instantly."
+              />
+              <Tip icon="📄" title="PDF export"
+                body="Export any note as a PDF using the new PDF button in the editor header. Opens a print-ready view — choose Save as PDF in the browser print dialog."
+              />
             </Section>
 
             {/* ABOUT */}
