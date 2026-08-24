@@ -3,6 +3,9 @@ create extension if not exists vector;
 
 -- ============================================================
 -- NOTES
+-- Tags are stored as text[] (e.g. ['nb:my-notebook', 'work']) rather than a
+-- join table to keep queries simple at the cost of no FK enforcement on tags.
+-- Notebook membership is encoded as 'nb:<slug>' tags — see useNotebooks.ts.
 -- ============================================================
 create table if not exists notes (
   id uuid primary key default gen_random_uuid(),
@@ -18,6 +21,7 @@ create table if not exists notes (
 );
 
 alter table notes enable row level security;
+-- FOR ALL without WITH CHECK is fine here: Supabase applies USING as implicit WITH CHECK
 create policy "Users manage own notes" on notes for all using (auth.uid() = user_id);
 
 -- ============================================================
@@ -41,7 +45,7 @@ create table if not exists people (
 alter table people enable row level security;
 create policy "Users manage own people" on people for all using (auth.uid() = user_id);
 
--- Add FK from notes to people
+-- FK added after both tables exist
 alter table notes add constraint notes_person_id_fkey
   foreign key (person_id) references people(id) on delete set null;
 
@@ -85,6 +89,9 @@ create policy "Users manage own tasks" on tasks for all using (auth.uid() = user
 
 -- ============================================================
 -- KNOWLEDGE LINKS
+-- source_id / target_id are intentionally untyped UUIDs (no FK) because they
+-- can reference any linkable type (note, person, bookmark, task). The app
+-- enforces referential integrity; the DB enforces uniqueness and ownership only.
 -- ============================================================
 create table if not exists knowledge_links (
   id uuid primary key default gen_random_uuid(),
@@ -102,24 +109,10 @@ alter table knowledge_links enable row level security;
 create policy "Users manage own links" on knowledge_links for all using (auth.uid() = user_id);
 
 -- ============================================================
--- UPDATED_AT TRIGGER
--- ============================================================
-create or replace function update_updated_at()
-returns trigger as $$
-begin
-  new.updated_at = now();
-  return new;
-end;
-$$ language plpgsql;
-
-create trigger notes_updated_at before update on notes for each row execute function update_updated_at();
-create trigger people_updated_at before update on people for each row execute function update_updated_at();
-create trigger bookmarks_updated_at before update on bookmarks for each row execute function update_updated_at();
-create trigger tasks_updated_at before update on tasks for each row execute function update_updated_at();
-create trigger notebooks_updated_at before update on notebooks for each row execute function update_updated_at();
-
--- ============================================================
 -- NOTEBOOKS
+-- Notebooks are named containers whose membership is tracked via note tags
+-- (e.g. tag 'nb:my-notebook' on a note means it belongs to "My Notebook").
+-- sort_order is INTEGER — never write Date.now() here, it overflows INT4.
 -- ============================================================
 create table if not exists notebooks (
   id         uuid primary key default gen_random_uuid(),
@@ -133,10 +126,31 @@ create table if not exists notebooks (
 );
 
 alter table notebooks enable row level security;
+-- Explicit WITH CHECK ensures INSERT/UPDATE ownership is enforced at policy level,
+-- not only via the .eq('user_id') filter in application code.
 create policy "Users manage own notebooks" on notebooks
   for all
   using      (auth.uid() = user_id)
   with check (auth.uid() = user_id);
+-- Prevents slug collisions: two notebooks with the same name produce the same nb: tag
 create unique index if not exists notebooks_user_name_unique on notebooks (user_id, name);
 create index if not exists idx_notebooks_user_id on notebooks (user_id, sort_order);
+
+-- ============================================================
+-- UPDATED_AT TRIGGER
+-- Single shared function; each table gets its own trigger below.
+-- Must be defined after all tables it references.
+-- ============================================================
+create or replace function update_updated_at()
+returns trigger as $$
+begin
+  new.updated_at = now();
+  return new;
+end;
+$$ language plpgsql;
+
+create trigger notes_updated_at     before update on notes     for each row execute function update_updated_at();
+create trigger people_updated_at    before update on people    for each row execute function update_updated_at();
+create trigger bookmarks_updated_at before update on bookmarks for each row execute function update_updated_at();
+create trigger tasks_updated_at     before update on tasks     for each row execute function update_updated_at();
 create trigger notebooks_updated_at before update on notebooks for each row execute function update_updated_at();

@@ -2,8 +2,12 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Notebook } from '@/types'
 
+// Note membership is stored as a tag, not a foreign key. "My Notebook" → tag "nb:my-notebook".
+// Changing this prefix breaks all existing notebook associations.
 export const NOTEBOOK_TAG_PREFIX = 'nb:'
 
+// Produces the canonical tag for a notebook name. Must match the slug used when the
+// notebook was created — renames do NOT retroactively update note tags.
 export function notebookTag(name: string) {
   return `${NOTEBOOK_TAG_PREFIX}${name.toLowerCase().replace(/\s+/g, '-')}`
 }
@@ -124,6 +128,9 @@ export function useNotebooks() {
     }
   }, [notebooks])
 
+  // Known limitation (H4): the N PATCHes are fire-and-forget inside the state updater.
+  // If any fail, server order diverges silently. Fixing requires moving fetches outside
+  // the updater, awaiting them, and rolling back — deferred until drag-reorder is used in prod.
   const reorderNotebook = useCallback(async (dragId: string, targetId: string) => {
     setNotebooks(prev => {
       const next = [...prev]
@@ -132,7 +139,6 @@ export function useNotebooks() {
       if (from === -1 || to === -1) return prev
       const [item] = next.splice(from, 1)
       next.splice(to, 0, item)
-      // Persist new order
       next.forEach((nb, i) => {
         fetch(`/api/notebooks/${nb.id}`, {
           method: 'PATCH',

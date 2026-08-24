@@ -18,13 +18,15 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   if (body.color !== undefined) allowed.color = body.color
   if (body.icon !== undefined) allowed.icon = body.icon
   if (body.sort_order !== undefined) allowed.sort_order = body.sort_order
+  // Explicit timestamp: DB trigger is authoritative but this covers environments
+  // where 007_notebooks_constraints.sql hasn't been applied yet.
   allowed.updated_at = new Date().toISOString()
 
   const { data, error } = await supabase
     .from('notebooks')
     .update(allowed)
     .eq('id', id)
-    .eq('user_id', user.id)
+    .eq('user_id', user.id) // ownership check in addition to RLS — defense-in-depth
     .select()
     .single()
 
@@ -43,7 +45,7 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
     .from('notebooks')
     .delete()
     .eq('id', id)
-    .eq('user_id', user.id)
+    .eq('user_id', user.id) // ownership check in addition to RLS — defense-in-depth
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return new NextResponse(null, { status: 204 })
