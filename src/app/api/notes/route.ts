@@ -15,7 +15,8 @@ export async function GET(req: NextRequest) {
   const root_only = searchParams.get('root_only') // 'true' = only top-level notes
   const sort      = searchParams.get('sort')      // 'manual' = pinned first, then sort_order
 
-  let query = supabase.from('notes').select('*').eq('user_id', user.id)
+  // Exclude soft-deleted notes from all normal queries
+  let query = supabase.from('notes').select('*').eq('user_id', user.id).is('deleted_at', null)
   if (sort === 'manual') {
     query = query.order('pinned', { ascending: false }).order('sort_order', { ascending: true }).order('updated_at', { ascending: false })
   } else {
@@ -42,6 +43,7 @@ export async function GET(req: NextRequest) {
       .select('parent_id')
       .in('parent_id', ids)
       .eq('user_id', user.id)
+      .is('deleted_at', null)
 
     const countMap: Record<string, number> = {}
     for (const s of (subs ?? [])) {

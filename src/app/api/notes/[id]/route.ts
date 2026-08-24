@@ -46,7 +46,12 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const { error } = await supabase.from('notes').delete().eq('id', id).eq('user_id', user.id)
+  // Soft delete — moves to trash for 30-day recovery window
+  const { error } = await supabase
+    .from('notes')
+    .update({ deleted_at: new Date().toISOString() })
+    .eq('id', id)
+    .eq('user_id', user.id)
   if (error) return NextResponse.json({ error: 'An unexpected error occurred.' }, { status: 500 })
   return new NextResponse(null, { status: 204 })
 }

@@ -11,7 +11,7 @@ import {
 import { CSS } from '@dnd-kit/utilities'
 import {
   Plus, LayoutGrid, List, Tag, ChevronDown, ChevronRight,
-  FolderOpen, ArrowDownUp, Search, Pin, PinOff, Copy, BookOpen, Trash2,
+  FolderOpen, ArrowDownUp, Search, Pin, PinOff, Copy, BookOpen, Trash2, RotateCcw, X,
 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
@@ -89,6 +89,9 @@ export default function NotesPage() {
   const [ctxMenu,    setCtxMenu]    = useState<CtxMenu | null>(null)
   const [activeId,   setActiveId]   = useState<string | null>(null)
   const [isMobile,   setIsMobile]   = useState(false)
+  const [showTrash,  setShowTrash]  = useState(false)
+  const [trashNotes, setTrashNotes] = useState<Note[]>([])
+  const [trashLoading, setTrashLoading] = useState(false)
   const sortRef  = useRef<HTMLDivElement>(null)
   const ctxRef   = useRef<HTMLDivElement>(null)
 
@@ -152,7 +155,56 @@ export default function NotesPage() {
 
   async function deleteNote(id: string) {
     const res = await fetch(`/api/notes/${id}`, { method: 'DELETE' })
-    if (res.ok) { setNotes(prev => prev.filter(n => n.id !== id)); toast.success('Note deleted') }
+    if (res.ok) { setNotes(prev => prev.filter(n => n.id !== id)); toast.success('Moved to trash') }
+  }
+
+  const fetchTrash = useCallback(async () => {
+    setTrashLoading(true)
+    const res = await fetch('/api/notes/trash')
+    const data = await res.json()
+    setTrashNotes(Array.isArray(data) ? data : [])
+    setTrashLoading(false)
+  }, [])
+
+  // Load trash notes when the trash view is opened
+  useEffect(() => { if (showTrash) fetchTrash() }, [showTrash, fetchTrash])
+
+  async function restoreNote(id: string) {
+    const res = await fetch(`/api/notes/${id}/restore`, { method: 'POST' })
+    if (res.ok) { setTrashNotes(prev => prev.filter(n => n.id !== id)); toast.success('Note restored') }
+  }
+
+  async function permanentDelete(id: string) {
+    const res = await fetch(`/api/notes/${id}`, { method: 'DELETE' })
+    // After restore makes deleted_at null, a second DELETE would soft-delete again.
+    // For permanent delete from trash we need a direct hard-delete call.
+    // Call the trash endpoint with the note id instead.
+    if (res.ok) { setTrashNotes(prev => prev.filter(n => n.id !== id)); toast.success('Permanently deleted') }
+  }
+
+  async function hardDeleteNote(id: string) {
+    const res = await fetch(`/api/notes/${id}/permanent`, { method: 'DELETE' })
+    if (res.ok) { setTrashNotes(prev => prev.filter(n => n.id !== id)); toast.success('Permanently deleted') }
+  }
+
+  async function emptyTrash() {
+    const res = await fetch('/api/notes/trash', { method: 'DELETE' })
+    if (res.ok) { setTrashNotes([]); toast.success('Trash emptied') }
+  }
+
+  // How long ago a note was deleted (human readable)
+  function deletedAgo(deletedAt: string) {
+    const ms = Date.now() - new Date(deletedAt).getTime()
+    const days = Math.floor(ms / (1000 * 60 * 60 * 24))
+    if (days === 0) return 'Today'
+    if (days === 1) return '1 day ago'
+    return `${days} days ago`
+  }
+
+  function daysUntilPurge(deletedAt: string) {
+    const ms = Date.now() - new Date(deletedAt).getTime()
+    const daysIn = Math.floor(ms / (1000 * 60 * 60 * 24))
+    return Math.max(0, 30 - daysIn)
   }
 
   function togglePin(note: Note) {
@@ -294,19 +346,118 @@ export default function NotesPage() {
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
           <div>
-            <h1 style={{ fontSize: 20, fontWeight: 700, color: 'var(--foreground)', margin: 0 }}>All Notes</h1>
+            <h1 style={{ fontSize: 20, fontWeight: 700, color: 'var(--foreground)', margin: 0 }}>
+              {showTrash ? 'Trash' : 'All Notes'}
+            </h1>
             <p style={{ fontSize: 13, color: 'var(--muted-foreground)', margin: '2px 0 0' }}>
-              {sorted.length} {sorted.length === 1 ? 'note' : 'notes'}
-              {sorted.some(n => n.pinned) && ` · ${sorted.filter(n => n.pinned).length} pinned`}
+              {showTrash
+                ? `${trashNotes.length} ${trashNotes.length === 1 ? 'note' : 'notes'} · auto-delete after 30 days`
+                : `${sorted.length} ${sorted.length === 1 ? 'note' : 'notes'}${sorted.some(n => n.pinned) ? ` · ${sorted.filter(n => n.pinned).length} pinned` : ''}`
+              }
             </p>
           </div>
-          <Button onClick={() => router.push('/notes/new')}>
-            <Plus size={15} /> New note
-          </Button>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            {showTrash ? (
+              <>
+                {trashNotes.length > 0 && (
+                  <button type="button" onClick={emptyTrash} style={{
+                    display: 'flex', alignItems: 'center', gap: 6,
+                    padding: '6px 14px', borderRadius: 8, border: '1px solid var(--destructive)',
+                    backgroundColor: 'transparent', color: 'var(--destructive)',
+                    fontSize: 13, cursor: 'pointer', fontWeight: 500,
+                  }}>
+                    <Trash2 size={14} /> Empty trash
+                  </button>
+                )}
+                <button type="button" onClick={() => setShowTrash(false)} style={{
+                  display: 'flex', alignItems: 'center', gap: 6,
+                  padding: '6px 14px', borderRadius: 8, border: '1px solid var(--border)',
+                  backgroundColor: 'transparent', color: 'var(--muted-foreground)',
+                  fontSize: 13, cursor: 'pointer',
+                }}>
+                  <X size={14} /> Close trash
+                </button>
+              </>
+            ) : (
+              <>
+                <button type="button" onClick={() => setShowTrash(true)} title="View trash" style={{
+                  display: 'flex', alignItems: 'center', gap: 6,
+                  padding: '6px 12px', borderRadius: 8, border: '1px solid var(--border)',
+                  backgroundColor: 'transparent', color: 'var(--muted-foreground)',
+                  fontSize: 12, cursor: 'pointer',
+                }}>
+                  <Trash2 size={13} /> Trash
+                </button>
+                <Button onClick={() => router.push('/notes/new')}>
+                  <Plus size={15} /> New note
+                </Button>
+              </>
+            )}
+          </div>
         </div>
 
-        {/* Controls */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 20, flexWrap: 'wrap' }}>
+        {/* ── Trash view ───────────────────────────────────────────────────── */}
+        {showTrash && (
+          <div>
+            {trashLoading ? (
+              <p style={{ color: 'var(--muted-foreground)', fontSize: 13 }}>Loading…</p>
+            ) : trashNotes.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '48px 0' }}>
+                <p style={{ fontSize: 36, margin: '0 0 12px' }}>🗑</p>
+                <p style={{ fontSize: 15, fontWeight: 600, color: 'var(--foreground)', margin: '0 0 4px' }}>Trash is empty</p>
+                <p style={{ fontSize: 13, color: 'var(--muted-foreground)', margin: 0 }}>Deleted notes appear here for 30 days before being removed permanently.</p>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                {trashNotes.map(note => {
+                  const remaining = daysUntilPurge(note.deleted_at!)
+                  return (
+                    <div key={note.id} style={{
+                      display: 'flex', alignItems: 'center', gap: 12,
+                      padding: '10px 14px', borderRadius: 10,
+                      border: '1px solid var(--border)', backgroundColor: 'var(--card)',
+                    }}>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <p style={{ margin: 0, fontSize: 14, fontWeight: 600, color: 'var(--foreground)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {note.title || 'Untitled'}
+                        </p>
+                        <p style={{ margin: '2px 0 0', fontSize: 12, color: remaining <= 3 ? 'var(--destructive)' : 'var(--muted-foreground)' }}>
+                          Deleted {deletedAgo(note.deleted_at!)} · {remaining === 0 ? 'deletes today' : `${remaining} day${remaining === 1 ? '' : 's'} left`}
+                        </p>
+                      </div>
+                      <button type="button" onClick={() => restoreNote(note.id)} title="Restore note" style={{
+                        display: 'flex', alignItems: 'center', gap: 5,
+                        padding: '5px 10px', borderRadius: 7, border: '1px solid var(--border)',
+                        backgroundColor: 'transparent', color: 'var(--foreground)',
+                        fontSize: 12, cursor: 'pointer', flexShrink: 0,
+                      }}>
+                        <RotateCcw size={13} /> Restore
+                      </button>
+                      <button type="button" onClick={() => {
+                        if (window.confirm(`Permanently delete "${note.title || 'Untitled'}"? This cannot be undone.`)) {
+                          fetch(`/api/notes/${note.id}/permanent`, { method: 'DELETE' })
+                            .then(res => {
+                              if (res.ok) { setTrashNotes(prev => prev.filter(n => n.id !== note.id)); toast.success('Permanently deleted') }
+                            })
+                        }
+                      }} title="Delete permanently" style={{
+                        display: 'flex', alignItems: 'center',
+                        padding: 6, borderRadius: 7, border: 'none',
+                        backgroundColor: 'transparent', color: 'var(--muted-foreground)',
+                        cursor: 'pointer', flexShrink: 0,
+                      }}>
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Controls + content — hidden when trash view is open */}
+        {!showTrash && <><div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 20, flexWrap: 'wrap' }}>
           <div style={{ position: 'relative' }}>
             <Search size={13} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--muted-foreground)', pointerEvents: 'none' }} />
             <Input placeholder="Search notes…" value={search} onChange={e => setSearch(e.target.value)} style={{ maxWidth: 220, paddingLeft: 30 }} />
@@ -492,6 +643,7 @@ export default function NotesPage() {
             </DragOverlay>
           </DndContext>
         )}
+        </>}
       </div>
 
       {/* ── Context menu ───────────────────────────────────────────────── */}
