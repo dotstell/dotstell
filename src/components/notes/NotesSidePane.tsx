@@ -821,7 +821,7 @@ export function NotesSidePane({ width = 220, activeNoteId }: Props) {
                             icon={() => <span style={{ fontSize: 13 }}>{currentNb.icon ?? '📓'}</span>}
                             label={currentNb.name}
                             active
-                            suffix={<span style={{ fontSize: 10, color: 'var(--muted-foreground)', marginLeft: 'auto' }}>Remove</span>}
+                            suffix={<span style={{ fontSize: 10, color: 'var(--muted-foreground)', marginLeft: 'auto' }}>→ All Notes</span>}
                             onClick={() => ctxNote && moveNoteToNotebook(ctxNote, null)}
                           />
                           {otherNbs.length > 0 && (
