@@ -1,6 +1,6 @@
 name: Release
 
-# Triggers on version tags (e.g. v0.3.0) or manual dispatch from GitHub Actions UI
+# Triggers on version tags (e.g. v0.3.0) or manual dispatch
 on:
   push:
     tags:
@@ -23,7 +23,7 @@ jobs:
           - platform: macos-13
             args: '--target x86_64-apple-darwin'
             rust-target: x86_64-apple-darwin
-          # Windows
+          # Windows (MSI + EXE)
           - platform: windows-latest
             args: ''
             rust-target: ''
@@ -38,21 +38,19 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: 9
-
+      # Node is needed only to install the Tauri CLI npm package.
+      # We don't build Next.js here — the app loads dotstell.app via WebView at runtime.
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: pnpm
+
+      - name: Install Tauri CLI
+        run: npm install -g @tauri-apps/cli@^2
 
       - name: Install Rust (stable)
         uses: dtolnay/rust-toolchain@stable
         with:
-          # Add cross-compile target for macOS universal builds
           targets: ${{ matrix.rust-target }}
 
       - name: Rust cache
@@ -60,8 +58,8 @@ jobs:
         with:
           workspaces: './src-tauri -> target'
 
-      # Required by webkit2gtk on Linux
-      - name: Install Linux dependencies
+      # Required by webkit2gtk / appindicator on Linux
+      - name: Install Linux system dependencies
         if: matrix.platform == 'ubuntu-22.04'
         run: |
           sudo apt-get update
@@ -71,11 +69,7 @@ jobs:
             librsvg2-dev \
             patchelf
 
-      - name: Install frontend dependencies
-        run: pnpm install --frozen-lockfile
-
-      # tauri.conf.json has frontendDist: "../dist" — the app loads dotstell.app via URL,
-      # but Tauri still requires this directory to exist during the build step.
+      # tauri.conf.json frontendDist: "../dist" must point to an existing directory
       - name: Create dist placeholder
         run: mkdir -p dist
         shell: bash
@@ -104,7 +98,8 @@ jobs:
             | macOS Intel | `Dotstell_*_x64.dmg` |
             | Linux | `dotstell_*_amd64.AppImage` / `.deb` |
 
-            > **Note:** Builds are currently unsigned. macOS users: right-click the `.dmg` and choose Open to bypass Gatekeeper. Windows users: click "More info → Run anyway" on the SmartScreen prompt.
+            > **Note:** Builds are currently unsigned. macOS: right-click the `.dmg` and choose Open to bypass Gatekeeper. Windows: click "More info → Run anyway" on the SmartScreen prompt.
           releaseDraft: true
           prerelease: false
           args: ${{ matrix.args }}
+          tauriScript: tauri

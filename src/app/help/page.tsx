@@ -440,22 +440,118 @@ export default function HelpPage() {
             </Section>
 
             {/* WHAT'S NEW */}
-            <Section id="whats-new" title="✨ What's new in v0.3.0">
-              <Tip icon="🗑" title="Trash — 30-day note recovery"
-                body="Delete now moves notes to a recoverable trash instead of removing them permanently. Restore any note within 30 days. Notes auto-purge after the window expires."
-              />
-              <Tip icon="📐" title="Richer templates with auto-date"
-                body="All 9 templates now include structured guidance text, mood/energy indicators, type selectors, and auto-fill today's date when selected. Templates include SBI Feedback, Decision log with confidence, and more."
-              />
-              <Tip icon="📋" title="Smart paste with HTML preservation"
-                body="Pasting from web pages and documents now preserves semantic formatting (headings, bold, lists, links) while stripping unsafe elements. Toggle to Plain paste mode for raw text."
-              />
-              <Tip icon="🗂" title="Table of contents (Outline panel)"
-                body="An auto-generated Outline appears in the right panel of every note, built from your headings. Click any entry to scroll to that section instantly."
-              />
-              <Tip icon="📄" title="PDF export"
-                body="Export any note as a PDF using the new PDF button in the editor header. Opens a print-ready view — choose Save as PDF in the browser print dialog."
-              />
+            <Section id="whats-new" title="✨ Changelog">
+
+              {/* v0.3.0 */}
+              <div style={{ marginBottom: 32 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--primary)', background: 'color-mix(in srgb, var(--primary) 10%, transparent)', border: '1px solid color-mix(in srgb, var(--primary) 25%, transparent)', padding: '3px 10px', borderRadius: 99 }}>v0.3.0</span>
+                  <span style={{ fontSize: 12, fontWeight: 600, color: '#10b981', background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.2)', padding: '2px 8px', borderRadius: 99 }}>Latest</span>
+                  <span style={{ fontSize: 12, color: 'var(--muted-foreground)' }}>Aug 2026</span>
+                </div>
+                <Tip icon="🗑" title="Trash — 30-day note recovery"
+                  body="Delete moves notes to a recoverable trash. Restore any note within 30 days. Notes auto-purge after the window expires. Permanent delete with a proper confirmation dialog."
+                />
+                <Tip icon="📋" title="Smart paste"
+                  body="Pasting from web pages preserves headings, bold, lists, and links while stripping unsafe elements. Toggle Rich paste / Plain paste mode in the toolbar — preference remembered between sessions."
+                />
+                <Tip icon="🗂" title="Table of contents (Outline)"
+                  body="Auto-generated Outline panel in every note built from headings (H1–H4). Click any heading to scroll there instantly. Collapsible, preference remembered."
+                />
+                <Tip icon="📄" title="PDF export"
+                  body="Export any note as a PDF — new PDF button in the editor header opens a print-ready view. Browser print dialog → Save as PDF."
+                />
+                <Tip icon="📐" title="Richer templates with auto-date"
+                  body="Nine built-in templates now include structured guidance text, mood/energy indicators, and auto-fill today's date on selection. Templates include SBI Feedback, Decision log with confidence, Weekly review with rating, and more."
+                />
+              </div>
+
+              {/* v0.2.2 */}
+              <div style={{ marginBottom: 32 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--primary)', background: 'color-mix(in srgb, var(--primary) 10%, transparent)', border: '1px solid color-mix(in srgb, var(--primary) 25%, transparent)', padding: '3px 10px', borderRadius: 99 }}>v0.2.2</span>
+                  <span style={{ fontSize: 12, color: 'var(--muted-foreground)' }}>Aug 2026</span>
+                </div>
+                <Tip icon="🎨" title="Colour picker redesign"
+                  body="25-colour swatch grid with a full gradient custom picker. Your last 5 custom colours saved as quick-access swatches. Highlights show an Aa preview before applying."
+                />
+                <Tip icon="🏷️" title="Note & notebook colour labels"
+                  body="Right-click any note or notebook to assign a colour label. Notes get a coloured left border and tinted background — visible in both the sidebar and the main grid."
+                />
+                <Tip icon="↕️" title="Smooth drag-to-reorder"
+                  body="Sidebar note reordering rebuilt with pointer-based drag — no more accidental single-click moves. Works precisely on trackpads and touch screens."
+                />
+                <Tip icon="🔒" title="Security hardening"
+                  body="Fixed IPv6-mapped SSRF bypass, ILIKE pattern injection, missing rate limits on write routes, and OTP type validation. HSTS extended to all routes."
+                />
+              </div>
+
+              {/* v0.2.1 */}
+              <div style={{ marginBottom: 32 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--primary)', background: 'color-mix(in srgb, var(--primary) 10%, transparent)', border: '1px solid color-mix(in srgb, var(--primary) 25%, transparent)', padding: '3px 10px', borderRadius: 99 }}>v0.2.1</span>
+                  <span style={{ fontSize: 12, color: 'var(--muted-foreground)' }}>Aug 2026</span>
+                </div>
+                <Tip icon="🎉" title="Onboarding flow"
+                  body="A guided 3-step welcome for first-time users — creates your first note and gets you into the graph immediately."
+                />
+                <Tip icon="🔔" title="Task reminders"
+                  body="Browser notifications when a task is due within 15 minutes. Set a date and time — dotstell reminds you automatically."
+                />
+                <Tip icon="🔗" title="Unlinked mentions"
+                  body="The backlinks panel now shows notes that mention your note's title as plain text. One click converts them into a formal [[wikilink]]."
+                />
+                <Tip icon="⏱️" title="Note status bar"
+                  body="Word count, character count, and read time in a clean status bar at the bottom of every note."
+                />
+              </div>
+
+              {/* v0.2.0 */}
+              <div style={{ marginBottom: 32 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--primary)', background: 'color-mix(in srgb, var(--primary) 10%, transparent)', border: '1px solid color-mix(in srgb, var(--primary) 25%, transparent)', padding: '3px 10px', borderRadius: 99 }}>v0.2.0</span>
+                  <span style={{ fontSize: 12, color: 'var(--muted-foreground)' }}>Aug 2026</span>
+                </div>
+                <Tip icon="🗂️" title="Notebooks"
+                  body="Organise notes into named collections. Collapsible sidebar, drag to reorder, pin important notes to the top."
+                />
+                <Tip icon="🗃️" title="Note tabs"
+                  body="Open multiple notes at once in a tab bar. Tabs persist across refresh. Middle-click to close."
+                />
+                <Tip icon="📝" title="Sub-notes"
+                  body="Nest notes under a parent for hierarchical organisation — ideal for projects and meeting series."
+                />
+                <Tip icon="🎨" title="12 themes"
+                  body="Six new themes added: Dotstell Light, Pure Light, Catppuccin Latte, Rosé Pine Dawn, Gruvbox Light, Catppuccin Mocha."
+                />
+                <Tip icon="📤" title="Export to Markdown"
+                  body="Download any note as a .md file in one click."
+                />
+              </div>
+
+              {/* v0.1.0 */}
+              <div style={{ marginBottom: 16 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--primary)', background: 'color-mix(in srgb, var(--primary) 10%, transparent)', border: '1px solid color-mix(in srgb, var(--primary) 25%, transparent)', padding: '3px 10px', borderRadius: 99 }}>v0.1.0</span>
+                  <span style={{ fontSize: 12, color: 'var(--muted-foreground)' }}>Aug 2026 — Initial release</span>
+                </div>
+                <Tip icon="✍️" title="Rich text notes"
+                  body="Full editor with slash commands, tables, code blocks, task lists, and [[wikilinks]] between notes."
+                />
+                <Tip icon="🌐" title="Knowledge graph"
+                  body="Visual graph of all linked notes. Click any node to navigate. Backlinks tracked automatically."
+                />
+                <Tip icon="👥" title="People"
+                  body="Track contacts and collaborators. Attach notes, tasks, and context to any person."
+                />
+                <Tip icon="✅" title="Tasks"
+                  body="Kanban board with priorities, due dates, and status tracking. Attach tasks to people."
+                />
+                <Tip icon="🔖" title="Bookmarks"
+                  body="Save any URL — title, description and favicon fetched automatically. Tag and search."
+                />
+              </div>
+
             </Section>
 
             {/* ABOUT */}
