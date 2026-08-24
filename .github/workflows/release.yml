@@ -74,31 +74,12 @@ jobs:
         run: mkdir -p dist
         shell: bash
 
-      # Extract the section for the current tag from CHANGELOG.md into a file.
-      # Reads from ## [vX.Y.Z] down to (but not including) the next ## [
+      # Extract the section for the current tag from CHANGELOG.md, append footer.
       - name: Extract changelog section
         run: |
           TAG="${{ github.ref_name }}"
           awk "/^## \[${TAG}\]/{flag=1; next} /^## \[v[0-9]/{flag=0} flag" CHANGELOG.md > /tmp/release_body.md
-          cat >> /tmp/release_body.md << 'FOOTER'
-
----
-
-## Downloads
-
-| Platform | File |
-|---|---|
-| Windows (installer) | `Dotstell_*_x64_en-US.msi` |
-| Windows (setup) | `Dotstell_*_x64-setup.exe` |
-| macOS Apple Silicon | `Dotstell_*_aarch64.dmg` |
-| macOS Intel | `Dotstell_*_x64.dmg` |
-| Linux | `dotstell_*_amd64.AppImage` / `.deb` |
-
-> **Note:** Builds are currently unsigned.
-> - **macOS:** right-click the `.dmg` and choose **Open** to bypass Gatekeeper
-> - **Windows:** click **More info → Run anyway** on the SmartScreen prompt
-> - **Linux:** run `chmod +x *.AppImage` before launching
-FOOTER
+          cat .github/release_footer.md >> /tmp/release_body.md
         shell: bash
 
       - name: Build and publish release
