@@ -16,6 +16,7 @@
 [![License: AGPL-3.0](https://img.shields.io/badge/License-AGPL--3.0-7c6aff?style=flat-square)](LICENSE)
 [![Next.js](https://img.shields.io/badge/Next.js-16-black?style=flat-square&logo=next.js)](https://nextjs.org)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?style=flat-square&logo=typescript)](https://typescriptlang.org)
+[![Rust](https://img.shields.io/badge/Rust-Tauri%20v2-CE422B?style=flat-square&logo=rust)](https://tauri.app)
 [![Supabase](https://img.shields.io/badge/Supabase-Postgres-3ECF8E?style=flat-square&logo=supabase)](https://supabase.com)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind-v4-38bdf8?style=flat-square&logo=tailwindcss)](https://tailwindcss.com)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen?style=flat-square)](CONTRIBUTING.md)
@@ -89,14 +90,20 @@ pnpm install
 ### 3. Set up Supabase
 
 1. Create a new project at [supabase.com](https://supabase.com)
-2. Go to **SQL Editor** and run the migrations in order:
+2. Go to **SQL Editor** and run `supabase/schema.sql` to create all tables, policies, and triggers.
 
-```bash
+   For an existing database, apply migrations in order:
+
+```
 supabase/migrations/
-├── 001_initial_schema.sql
-├── 002_knowledge_links.sql
-├── 003_bookmarks.sql
-└── 004_notes_hierarchy.sql
+├── add_notebooks_table.sql
+├── add_notes_soft_delete.sql
+├── 002_bookmarks_enhancements.sql
+├── 003_bookmark_visits.sql
+├── 004_notes_parent.sql
+├── 005_notes_sort_pin.sql
+├── 006_notes_color.sql
+└── 007_notebooks_constraints.sql
 ```
 
 3. Copy your project URL and anon key from **Settings → API**
@@ -131,13 +138,16 @@ Open [http://localhost:3000](http://localhost:3000), create an account and start
 | Layer | Technology |
 |---|---|
 | Framework | Next.js 16 (App Router, React 19) |
-| Language | TypeScript 5 |
+| Language | TypeScript 5 · Rust (desktop shell) |
 | Styling | Tailwind CSS v4 |
-| Database | Supabase (PostgreSQL + Row Level Security) |
-| Auth | Supabase Auth |
+| Database | Supabase (PostgreSQL 15 + Row Level Security) |
+| Auth | Supabase Auth (JWT) |
 | Rich Text Editor | Tiptap v3 |
 | Graph Visualisation | React Flow v11 |
+| Desktop | Tauri v2 (native WebView wrapper, ~10 MB installer) |
 | Icons | Lucide React |
+
+See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for a full breakdown of the system design, data model, security model, and key design decisions.
 
 ---
 
