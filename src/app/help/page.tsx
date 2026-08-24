@@ -90,7 +90,7 @@ const SECTIONS = [
   { id: 'tags',             label: '🏷️ Tags' },
   { id: 'search',           label: '🔍 Search & command palette' },
   { id: 'shortcuts',        label: '⌨️ Keyboard shortcuts' },
-  { id: 'whats-new',        label: '✨ What\'s new in v0.3.0' },
+  { id: 'whats-new',        label: '✨ Changelog' },
 ]
 
 // ── page ─────────────────────────────────────────────────────────────────────
