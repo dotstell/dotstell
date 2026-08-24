@@ -631,7 +631,9 @@ ${note.content ?? ''}
         open={showTemplates}
         onClose={() => setShowTemplates(false)}
         onSelect={tmpl => {
-          setNote(prev => ({ ...prev, title: tmpl.title, content: tmpl.content }))
+          const today = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
+          const content = tmpl.content.replace(/\{\{DATE\}\}/g, today)
+          setNote(prev => ({ ...prev, title: tmpl.title, content }))
         }}
       />
     </div>

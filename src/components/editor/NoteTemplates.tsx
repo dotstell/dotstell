@@ -11,6 +11,7 @@ interface Template {
   content: string
 }
 
+// {{DATE}} is replaced at selection time with the current formatted date
 export const NOTE_TEMPLATES: Template[] = [
   {
     id: 'blank',
@@ -27,18 +28,28 @@ export const NOTE_TEMPLATES: Template[] = [
     description: 'Structured notes for 1-on-1 meetings',
     title: '1-on-1 — ',
     content: `<h2>1-on-1 Notes</h2>
-<p><strong>Date:</strong> </p>
+<p><strong>Date:</strong> {{DATE}}</p>
 <p><strong>With:</strong> </p>
-<h3>Their updates</h3>
+<p><strong>Energy check:</strong> 🟢 High  ·  🟡 Medium  ·  🔴 Low</p>
+<h3>What's top of mind?</h3>
+<p></p>
+<h3>Updates &amp; progress</h3>
+<ul><li><p></p></li><li><p></p></li></ul>
+<h3>Challenges &amp; blockers</h3>
 <ul><li><p></p></li></ul>
-<h3>My updates</h3>
-<ul><li><p></p></li></ul>
-<h3>Topics discussed</h3>
-<ul><li><p></p></li></ul>
+<h3>Career &amp; growth</h3>
+<p>Goals, skills to develop, or opportunities to discuss:</p>
+<h3>Feedback (both ways)</h3>
+<ul>
+  <li><p><strong>For them:</strong> </p></li>
+  <li><p><strong>For me:</strong> </p></li>
+</ul>
 <h3>Action items</h3>
-<ul data-type="taskList"><li data-checked="false"><label><input type="checkbox"></label><div><p></p></div></li></ul>
-<h3>Notes for next time</h3>
-<p></p>`,
+<ul data-type="taskList">
+  <li data-checked="false"><label><input type="checkbox"></label><div><p></p></div></li>
+  <li data-checked="false"><label><input type="checkbox"></label><div><p></p></div></li>
+</ul>
+<p><strong>Next 1-on-1:</strong> </p>`,
   },
   {
     id: 'meeting',
@@ -47,17 +58,23 @@ export const NOTE_TEMPLATES: Template[] = [
     description: 'Agenda, decisions and action items',
     title: 'Meeting — ',
     content: `<h2>Meeting Notes</h2>
-<p><strong>Date:</strong> </p>
+<p><strong>Date:</strong> {{DATE}}</p>
 <p><strong>Attendees:</strong> </p>
-<p><strong>Goal:</strong> </p>
+<p><strong>Goal:</strong> What decision or outcome do we need from this meeting?</p>
 <h3>Agenda</h3>
-<ol><li><p></p></li></ol>
-<h3>Discussion</h3>
+<ol><li><p></p></li><li><p></p></li></ol>
+<h3>Discussion highlights</h3>
 <p></p>
 <h3>Decisions made</h3>
 <ul><li><p></p></li></ul>
+<h3>Parking lot</h3>
+<ul><li><p>Topics to revisit later:</p></li></ul>
 <h3>Action items</h3>
-<ul data-type="taskList"><li data-checked="false"><label><input type="checkbox"></label><div><p><strong>Owner:</strong> | <strong>Due:</strong> </p></div></li></ul>`,
+<ul data-type="taskList">
+  <li data-checked="false"><label><input type="checkbox"></label><div><p><strong>Owner:</strong>  ·  <strong>Due:</strong> </p></div></li>
+  <li data-checked="false"><label><input type="checkbox"></label><div><p><strong>Owner:</strong>  ·  <strong>Due:</strong> </p></div></li>
+</ul>
+<p><strong>Next meeting:</strong> </p>`,
   },
   {
     id: 'decision',
@@ -66,20 +83,27 @@ export const NOTE_TEMPLATES: Template[] = [
     description: 'Document options, reasoning and outcomes',
     title: 'Decision — ',
     content: `<h2>Decision Log</h2>
-<p><strong>Date:</strong> </p>
-<p><strong>Decision:</strong> </p>
-<h3>Context</h3>
-<p>Why does this decision need to be made?</p>
+<p><strong>Date:</strong> {{DATE}}</p>
+<p><strong>Status:</strong> ✅ Decided  ·  🔄 In review  ·  ⏸ On hold</p>
+<p><strong>Confidence:</strong> High  ·  Medium  ·  Low</p>
+<p><strong>Stakeholders:</strong> </p>
+<h3>Context &amp; problem</h3>
+<p>Why does this decision need to be made? What happens if we don't?</p>
 <h3>Options considered</h3>
-<ol><li><p><strong>Option A:</strong> </p></li><li><p><strong>Option B:</strong> </p></li></ol>
-<h3>Decision made</h3>
+<ul>
+  <li><p><strong>Option A:</strong>  — pros: , cons: </p></li>
+  <li><p><strong>Option B:</strong>  — pros: , cons: </p></li>
+</ul>
+<h3>Decision</h3>
 <blockquote><p></p></blockquote>
-<h3>Reasoning</h3>
+<h3>Rationale</h3>
 <p></p>
-<h3>Consequences &amp; risks</h3>
+<h3>Risks &amp; trade-offs</h3>
 <ul><li><p></p></li></ul>
-<h3>Follow-up</h3>
-<ul data-type="taskList"><li data-checked="false"><label><input type="checkbox"></label><div><p></p></div></li></ul>`,
+<h3>Next steps</h3>
+<ul data-type="taskList">
+  <li data-checked="false"><label><input type="checkbox"></label><div><p></p></div></li>
+</ul>`,
   },
   {
     id: 'standup',
@@ -88,11 +112,16 @@ export const NOTE_TEMPLATES: Template[] = [
     description: 'Yesterday · Today · Blockers',
     title: 'Daily standup — ',
     content: `<h2>Daily Standup</h2>
-<p><strong>Date:</strong> </p>
+<p><strong>Date:</strong> {{DATE}}</p>
+<p><strong>Focus:</strong> 🟢 High  ·  🟡 Medium  ·  🔴 Low</p>
 <h3>Yesterday</h3>
 <ul><li><p></p></li><li><p></p></li></ul>
-<h3>Today</h3>
-<ul data-type="taskList"><li data-checked="false"><label><input type="checkbox"></label><div><p></p></div></li><li data-checked="false"><label><input type="checkbox"></label><div><p></p></div></li></ul>
+<h3>Today's focus</h3>
+<ul data-type="taskList">
+  <li data-checked="false"><label><input type="checkbox"></label><div><p></p></div></li>
+  <li data-checked="false"><label><input type="checkbox"></label><div><p></p></div></li>
+  <li data-checked="false"><label><input type="checkbox"></label><div><p></p></div></li>
+</ul>
 <h3>Blockers</h3>
 <ul><li><p></p></li></ul>`,
   },
@@ -103,19 +132,24 @@ export const NOTE_TEMPLATES: Template[] = [
     description: 'Goals, milestones, risks and team',
     title: 'Project — ',
     content: `<h2>Project Plan</h2>
-<p><strong>Status:</strong> 🟡 In progress</p>
+<p><strong>Status:</strong> 🟡 In progress  ·  ✅ Done  ·  🔴 Blocked  ·  💡 Planning</p>
 <p><strong>Owner:</strong> </p>
 <p><strong>Target date:</strong> </p>
 <h3>Overview</h3>
-<p></p>
-<h3>Goals</h3>
+<p>What are we building and why? What problem does it solve?</p>
+<h3>Goals &amp; success criteria</h3>
 <ul><li><p></p></li><li><p></p></li></ul>
 <h3>Milestones</h3>
 <ol><li><p></p></li><li><p></p></li><li><p></p></li></ol>
 <h3>Risks &amp; mitigations</h3>
 <ul><li><p><strong>Risk:</strong>  — <strong>Mitigation:</strong> </p></li></ul>
+<h3>Open questions</h3>
+<ul><li><p></p></li></ul>
 <h3>Action items</h3>
-<ul data-type="taskList"><li data-checked="false"><label><input type="checkbox"></label><div><p></p></div></li><li data-checked="false"><label><input type="checkbox"></label><div><p></p></div></li></ul>`,
+<ul data-type="taskList">
+  <li data-checked="false"><label><input type="checkbox"></label><div><p><strong>Owner:</strong>  ·  <strong>Due:</strong> </p></div></li>
+  <li data-checked="false"><label><input type="checkbox"></label><div><p></p></div></li>
+</ul>`,
   },
   {
     id: 'weekly',
@@ -124,14 +158,21 @@ export const NOTE_TEMPLATES: Template[] = [
     description: 'Wins, challenges and next week priorities',
     title: 'Weekly review — ',
     content: `<h2>Weekly Review</h2>
-<p><strong>Week of:</strong> </p>
+<p><strong>Week of:</strong> {{DATE}}</p>
+<p><strong>Week rating:</strong> ⭐⭐⭐⭐⭐  (delete stars to rate 1–5)</p>
 <h3>✅ Wins this week</h3>
 <ul><li><p></p></li><li><p></p></li></ul>
 <h3>⚠️ Challenges &amp; learnings</h3>
 <ul><li><p></p></li></ul>
-<h3>🎯 Priorities for next week</h3>
-<ul data-type="taskList"><li data-checked="false"><label><input type="checkbox"></label><div><p></p></div></li><li data-checked="false"><label><input type="checkbox"></label><div><p></p></div></li><li data-checked="false"><label><input type="checkbox"></label><div><p></p></div></li></ul>
+<h3>🎯 Top 3 priorities for next week</h3>
+<ul data-type="taskList">
+  <li data-checked="false"><label><input type="checkbox"></label><div><p></p></div></li>
+  <li data-checked="false"><label><input type="checkbox"></label><div><p></p></div></li>
+  <li data-checked="false"><label><input type="checkbox"></label><div><p></p></div></li>
+</ul>
 <h3>📊 Numbers &amp; metrics</h3>
+<p></p>
+<h3>🙏 Grateful for</h3>
 <p></p>`,
   },
   {
@@ -141,9 +182,11 @@ export const NOTE_TEMPLATES: Template[] = [
     description: 'Steps to reproduce, expected vs actual',
     title: 'Bug — ',
     content: `<h2>Bug Report</h2>
-<p><strong>Severity:</strong> 🔴 Critical / 🟠 High / 🟡 Medium / 🟢 Low</p>
+<p><strong>Date:</strong> {{DATE}}</p>
+<p><strong>Severity:</strong> 🔴 Critical  ·  🟠 High  ·  🟡 Medium  ·  🟢 Low</p>
+<p><strong>Status:</strong> 🆕 New  ·  🔄 In progress  ·  ✅ Fixed</p>
 <h3>Summary</h3>
-<p></p>
+<p>One-line description of the bug:</p>
 <h3>Steps to reproduce</h3>
 <ol><li><p></p></li><li><p></p></li><li><p></p></li></ol>
 <h3>Expected behaviour</h3>
@@ -151,7 +194,11 @@ export const NOTE_TEMPLATES: Template[] = [
 <h3>Actual behaviour</h3>
 <p></p>
 <h3>Environment</h3>
-<ul><li><p><strong>OS:</strong> </p></li><li><p><strong>Browser / version:</strong> </p></li></ul>
+<ul>
+  <li><p><strong>OS:</strong> </p></li>
+  <li><p><strong>Browser / version:</strong> </p></li>
+  <li><p><strong>App version / commit:</strong> </p></li>
+</ul>
 <h3>Proposed fix</h3>
 <p></p>`,
   },
@@ -162,16 +209,23 @@ export const NOTE_TEMPLATES: Template[] = [
     description: 'Situation · Behaviour · Impact framework',
     title: 'Feedback — ',
     content: `<h2>Feedback Notes</h2>
+<p><strong>Date:</strong> {{DATE}}</p>
 <p><strong>For:</strong> </p>
-<p><strong>Context:</strong> </p>
+<p><strong>Type:</strong> ⭐ Positive  ·  🔧 Constructive  ·  📋 Performance review</p>
+<h3>Context</h3>
+<p>Which project, sprint, or situation does this relate to?</p>
 <h3>Situation</h3>
-<p>What happened?</p>
+<p>When and where did it happen? Be specific about the event or timeframe.</p>
 <h3>Behaviour observed</h3>
-<p></p>
+<p>What exact actions did you observe? Focus on behaviour, not personality or assumptions.</p>
 <h3>Impact</h3>
-<p></p>
+<p>What was the effect on the team, project, customers, or stakeholders?</p>
 <h3>Desired outcome</h3>
-<p></p>`,
+<p>What would you like to see continue, stop, or change? Be specific and actionable.</p>
+<h3>Follow-up</h3>
+<ul data-type="taskList">
+  <li data-checked="false"><label><input type="checkbox"></label><div><p> — by </p></div></li>
+</ul>`,
   },
 ]
 
