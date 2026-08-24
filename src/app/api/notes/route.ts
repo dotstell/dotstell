@@ -64,7 +64,7 @@ export async function POST(req: NextRequest) {
   if (rl) return rl
 
   const body = await req.json()
-  if (!body.title || typeof body.title !== 'string') {
+  if (typeof body.title !== 'string') {
     return NextResponse.json({ error: 'Invalid title' }, { status: 400 })
   }
   if (typeof body.content === 'string' && body.content.length > 2_000_000) {
