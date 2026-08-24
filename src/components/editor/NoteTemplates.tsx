@@ -90,11 +90,70 @@ export const NOTE_TEMPLATES: Template[] = [
     content: `<h2>Daily Standup</h2>
 <p><strong>Date:</strong> </p>
 <h3>Yesterday</h3>
-<ul><li><p></p></li></ul>
+<ul><li><p></p></li><li><p></p></li></ul>
 <h3>Today</h3>
-<ul><li><p></p></li></ul>
+<ul data-type="taskList"><li data-checked="false"><label><input type="checkbox"></label><div><p></p></div></li><li data-checked="false"><label><input type="checkbox"></label><div><p></p></div></li></ul>
 <h3>Blockers</h3>
 <ul><li><p></p></li></ul>`,
+  },
+  {
+    id: 'project',
+    label: 'Project plan',
+    icon: '🗂',
+    description: 'Goals, milestones, risks and team',
+    title: 'Project — ',
+    content: `<h2>Project Plan</h2>
+<p><strong>Status:</strong> 🟡 In progress</p>
+<p><strong>Owner:</strong> </p>
+<p><strong>Target date:</strong> </p>
+<h3>Overview</h3>
+<p></p>
+<h3>Goals</h3>
+<ul><li><p></p></li><li><p></p></li></ul>
+<h3>Milestones</h3>
+<ol><li><p></p></li><li><p></p></li><li><p></p></li></ol>
+<h3>Risks &amp; mitigations</h3>
+<ul><li><p><strong>Risk:</strong>  — <strong>Mitigation:</strong> </p></li></ul>
+<h3>Action items</h3>
+<ul data-type="taskList"><li data-checked="false"><label><input type="checkbox"></label><div><p></p></div></li><li data-checked="false"><label><input type="checkbox"></label><div><p></p></div></li></ul>`,
+  },
+  {
+    id: 'weekly',
+    label: 'Weekly review',
+    icon: '📅',
+    description: 'Wins, challenges and next week priorities',
+    title: 'Weekly review — ',
+    content: `<h2>Weekly Review</h2>
+<p><strong>Week of:</strong> </p>
+<h3>✅ Wins this week</h3>
+<ul><li><p></p></li><li><p></p></li></ul>
+<h3>⚠️ Challenges &amp; learnings</h3>
+<ul><li><p></p></li></ul>
+<h3>🎯 Priorities for next week</h3>
+<ul data-type="taskList"><li data-checked="false"><label><input type="checkbox"></label><div><p></p></div></li><li data-checked="false"><label><input type="checkbox"></label><div><p></p></div></li><li data-checked="false"><label><input type="checkbox"></label><div><p></p></div></li></ul>
+<h3>📊 Numbers &amp; metrics</h3>
+<p></p>`,
+  },
+  {
+    id: 'bug',
+    label: 'Bug report',
+    icon: '🐛',
+    description: 'Steps to reproduce, expected vs actual',
+    title: 'Bug — ',
+    content: `<h2>Bug Report</h2>
+<p><strong>Severity:</strong> 🔴 Critical / 🟠 High / 🟡 Medium / 🟢 Low</p>
+<h3>Summary</h3>
+<p></p>
+<h3>Steps to reproduce</h3>
+<ol><li><p></p></li><li><p></p></li><li><p></p></li></ol>
+<h3>Expected behaviour</h3>
+<p></p>
+<h3>Actual behaviour</h3>
+<p></p>
+<h3>Environment</h3>
+<ul><li><p><strong>OS:</strong> </p></li><li><p><strong>Browser / version:</strong> </p></li></ul>
+<h3>Proposed fix</h3>
+<p></p>`,
   },
   {
     id: 'feedback',

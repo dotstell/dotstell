@@ -1,5 +1,5 @@
 'use client'
-import { useEditor, EditorContent } from '@tiptap/react'
+import { useEditor, EditorContent, Editor } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import Placeholder from '@tiptap/extension-placeholder'
 import TaskList from '@tiptap/extension-task-list'
@@ -178,6 +178,8 @@ interface RichTextEditorProps {
   focusMode?: boolean
   /** Called after every save with the list of [[wikilink]] target note IDs found in the content */
   onWikiLinksChange?: (targetNoteIds: string[]) => void
+  /** Called once the Tiptap editor instance is ready — use to drive ToC navigation from the parent */
+  onEditorReady?: (editor: Editor) => void
 }
 
 // ── Markdown converters (singleton) ─────────────────────────
@@ -217,7 +219,7 @@ function extractWikiLinkIdsFromDoc(editor: ReturnType<typeof useEditor>): string
 
 export function RichTextEditor({
   content, onChange, onTextChange, placeholder = 'Start writing… (type / for commands)',
-  onFocusMode, focusMode, onWikiLinksChange,
+  onFocusMode, focusMode, onWikiLinksChange, onEditorReady,
 }: RichTextEditorProps) {
   const [slashOpen,       setSlashOpen]       = useState(false)
   const [slashFilter,     setSlashFilter]     = useState('')
@@ -250,6 +252,10 @@ export function RichTextEditor({
   useEffect(() => { onWikiLinksChangeRef.current = onWikiLinksChange }, [onWikiLinksChange])
   const onTextChangeRef = useRef(onTextChange)
   useEffect(() => { onTextChangeRef.current = onTextChange }, [onTextChange])
+  // Expose the editor instance to the parent once it's initialised (used for ToC navigation)
+  const onEditorReadyRef = useRef(onEditorReady)
+  useEffect(() => { onEditorReadyRef.current = onEditorReady }, [onEditorReady])
+  useEffect(() => { if (editor) onEditorReadyRef.current?.(editor) }, [editor])
   const colorRef  = useRef<HTMLDivElement>(null)
   const hlRef     = useRef<HTMLDivElement>(null)
   const fontRef   = useRef<HTMLDivElement>(null)

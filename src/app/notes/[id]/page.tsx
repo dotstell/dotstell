@@ -1,11 +1,13 @@
 'use client'
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { use } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   X, Maximize2, Minimize2, Plus, FileText,
   ChevronRight, ArrowLeft, LayoutTemplate, Download,
+  List, ChevronDown,
 } from 'lucide-react'
+import type { Editor } from '@tiptap/react'
 import Link from 'next/link'
 import { Note } from '@/types'
 import { RichTextEditor } from '@/components/editor/RichTextEditor'
@@ -41,8 +43,29 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
   const [isMobile, setIsMobile]       = useState(false)
   // Live plain-text from the editor — updated on every keystroke via onTextChange
   const [editorText, setEditorText]   = useState('')
-  const saveTimer   = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const wikiLinkIds = useRef<string[]>([])
+  // ToC visibility — persisted so the user's preference survives navigation
+  const [tocOpen, setTocOpen]         = useState(() =>
+    typeof window !== 'undefined' ? localStorage.getItem('dotstell_toc_open') !== 'false' : true
+  )
+  const saveTimer    = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const wikiLinkIds  = useRef<string[]>([])
+  // Holds the live Tiptap editor instance so we can scroll to headings from the ToC
+  const editorRef    = useRef<Editor | null>(null)
+
+  // Parse headings from HTML content so the ToC stays in sync with the editor
+  const headings = useMemo(() => {
+    if (!note.content) return []
+    try {
+      const dom = new DOMParser().parseFromString(note.content, 'text/html')
+      const result: { text: string; level: number; index: number }[] = []
+      let idx = 0
+      dom.querySelectorAll('h1,h2,h3,h4').forEach(el => {
+        const text = el.textContent?.trim()
+        if (text) result.push({ text, level: parseInt(el.tagName[1]), index: idx++ })
+      })
+      return result
+    } catch { return [] }
+  }, [note.content])
 
   // Word / char counts from the editor's own plain text (accurate, includes spaces)
   const wordCount = editorText ? editorText.split(/\s+/).filter(Boolean).length : 0
@@ -180,6 +203,54 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
     a.click(); URL.revokeObjectURL(url)
   }
 
+  // Opens a clean HTML page in a new tab and triggers the browser's print-to-PDF dialog.
+  // No dependencies needed — works in every desktop browser.
+  function exportPdf() {
+    const title = note.title || 'Untitled'
+    const safe  = (s: string) => s.replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    const win   = window.open('', '_blank')
+    if (!win) return
+    win.document.write(`<!DOCTYPE html><html lang="en"><head>
+<meta charset="utf-8"><title>${safe(title)}</title>
+<style>
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;max-width:800px;margin:40px auto;padding:0 24px;color:#111;line-height:1.6}
+  h1{font-size:26px;font-weight:800;margin-bottom:4px}
+  h2{font-size:20px;font-weight:700}h3{font-size:16px;font-weight:600}
+  code{background:#f3f3f3;padding:2px 6px;border-radius:4px;font-size:.88em}
+  pre{background:#f3f3f3;padding:14px;border-radius:8px;overflow-x:auto}pre code{background:none;padding:0}
+  blockquote{border-left:3px solid #ddd;margin:0;padding:6px 14px;color:#555}
+  a{color:#5b4de0}ul,ol{padding-left:22px}
+  table{border-collapse:collapse;width:100%}th,td{border:1px solid #ddd;padding:8px 10px;text-align:left}th{background:#f5f5f5;font-weight:600}
+  img{max-width:100%;height:auto}
+  @media print{body{margin:0}}
+</style>
+</head><body>
+<h1>${safe(title)}</h1>
+${note.content ?? ''}
+</body></html>`)
+    win.document.close()
+    win.focus()
+    // Brief delay lets the browser render before the print dialog opens
+    setTimeout(() => { win.print(); win.close() }, 600)
+  }
+
+  // Navigate the editor cursor to the first heading matching the given text,
+  // then scroll it into view — used by the ToC panel.
+  function scrollToHeading(text: string) {
+    const ed = editorRef.current
+    if (!ed) return
+    let targetPos: number | null = null
+    ed.state.doc.descendants((node, pos) => {
+      if (targetPos !== null) return false
+      if (node.type.name === 'heading' && node.textContent.trim() === text) {
+        targetPos = pos
+      }
+    })
+    if (targetPos !== null) {
+      ed.chain().setTextSelection(targetPos + 1).scrollIntoView().run()
+    }
+  }
+
   function scheduleAutoSave(updates: Partial<Note>) {
     setSaveStatus('unsaved')
     if (saveTimer.current) clearTimeout(saveTimer.current)
@@ -255,24 +326,32 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
             </div>
           )}
 
-          {/* Export */}
+          {/* Export — Markdown and PDF side by side */}
           {noteId && (
-            <button
-              type="button"
-              title="Export as Markdown"
-              onClick={exportMarkdown}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 5,
-                padding: '5px 10px', borderRadius: 7,
-                border: '1px solid var(--border)', background: 'none',
-                color: 'var(--muted-foreground)', fontSize: 12, cursor: 'pointer',
-                transition: 'all 0.12s',
-              }}
-              onMouseEnter={e => { e.currentTarget.style.background = 'var(--accent)'; e.currentTarget.style.color = 'var(--foreground)' }}
-              onMouseLeave={e => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = 'var(--muted-foreground)' }}
-            >
-              <Download size={13} /> Export
-            </button>
+            <div style={{ display: 'flex', gap: 3 }}>
+              {([
+                { label: '.md', title: 'Export as Markdown', onClick: exportMarkdown },
+                { label: 'PDF', title: 'Export as PDF (print dialog)', onClick: exportPdf },
+              ] as const).map(btn => (
+                <button
+                  key={btn.label}
+                  type="button"
+                  title={btn.title}
+                  onClick={btn.onClick}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 4,
+                    padding: '5px 9px', borderRadius: 7,
+                    border: '1px solid var(--border)', background: 'none',
+                    color: 'var(--muted-foreground)', fontSize: 12, cursor: 'pointer',
+                    transition: 'all 0.12s',
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.background = 'var(--accent)'; e.currentTarget.style.color = 'var(--foreground)' }}
+                  onMouseLeave={e => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = 'var(--muted-foreground)' }}
+                >
+                  <Download size={12} /> {btn.label}
+                </button>
+              ))}
+            </div>
           )}
 
           {/* Templates */}
@@ -386,6 +465,7 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
             focusMode={focusMode}
             onFocusMode={setFocusMode}
             onWikiLinksChange={ids => { wikiLinkIds.current = ids }}
+            onEditorReady={ed => { editorRef.current = ed }}
           />
         </div>
 
@@ -396,6 +476,66 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
             padding: 16, overflowY: 'auto', backgroundColor: 'var(--card)',
             display: 'flex', flexDirection: 'column', gap: 20,
           }}>
+
+            {/* ── Table of Contents ── */}
+            <div>
+              {/* Header with toggle — clicking shows/hides the outline */}
+              <button
+                type="button"
+                onClick={() => {
+                  const next = !tocOpen
+                  setTocOpen(next)
+                  localStorage.setItem('dotstell_toc_open', String(next))
+                }}
+                style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                  width: '100%', background: 'none', border: 'none', cursor: 'pointer',
+                  padding: '0 0 8px', marginBottom: tocOpen ? 4 : 0,
+                }}
+              >
+                <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, fontWeight: 600, color: 'var(--muted-foreground)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                  <List size={12} /> Outline
+                </span>
+                <ChevronDown size={12} style={{ color: 'var(--muted-foreground)', transform: tocOpen ? 'rotate(0deg)' : 'rotate(-90deg)', transition: 'transform 0.15s' }} />
+              </button>
+
+              {tocOpen && (
+                headings.length === 0 ? (
+                  <p style={{ fontSize: 12, color: 'var(--muted-foreground)', margin: 0, opacity: 0.5 }}>
+                    Add headings to see outline
+                  </p>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                    {headings.map(h => (
+                      <button
+                        key={h.index}
+                        type="button"
+                        onClick={() => scrollToHeading(h.text)}
+                        title={h.text}
+                        style={{
+                          display: 'block', width: '100%', textAlign: 'left',
+                          background: 'none', border: 'none', cursor: 'pointer',
+                          // Indent by heading level: h1=0px, h2=10px, h3=18px, h4=24px
+                          paddingLeft: Math.max(0, (h.level - 1) * 8),
+                          paddingTop: 3, paddingBottom: 3, paddingRight: 4,
+                          borderRadius: 5,
+                          fontSize: h.level === 1 ? 13 : 12,
+                          fontWeight: h.level <= 2 ? 600 : 400,
+                          color: 'var(--foreground)',
+                          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                          transition: 'background 0.1s, color 0.1s',
+                        }}
+                        onMouseEnter={e => { e.currentTarget.style.background = 'var(--accent)'; e.currentTarget.style.color = 'var(--primary)' }}
+                        onMouseLeave={e => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = 'var(--foreground)' }}
+                      >
+                        {h.text}
+                      </button>
+                    ))}
+                  </div>
+                )
+              )}
+            </div>
+
             <LinkPanel sourceId={noteId} sourceType="note" />
 
             {/* Sub-notes */}
