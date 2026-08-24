@@ -227,13 +227,19 @@ export function NotesSidePane({ width = 220, activeNoteId }: Props) {
       if (menu && menu.contains(e.target as Node)) return
       setContextMenu(null)
     }
-    // Close on scroll so the menu doesn't orphan above a scrolled list
-    function onScroll() { setContextMenu(null) }
+    // Close the menu as soon as the user starts scrolling or wheeling.
+    // 'wheel' fires before any scroll event (catches blocked-scroll cases on trackpads).
+    // 'scroll' with capture catches programmatic and keyboard scroll.
+    function onClose() { setContextMenu(null) }
     document.addEventListener('mousedown', onMouseDown)
-    document.addEventListener('scroll', onScroll, true) // capture phase catches all scroll containers
+    document.addEventListener('wheel',     onClose, { capture: true, passive: true })
+    document.addEventListener('scroll',    onClose, { capture: true })
+    document.addEventListener('touchmove', onClose, { capture: true, passive: true })
     return () => {
       document.removeEventListener('mousedown', onMouseDown)
-      document.removeEventListener('scroll', onScroll, true)
+      document.removeEventListener('wheel',     onClose, { capture: true } as EventListenerOptions)
+      document.removeEventListener('scroll',    onClose, { capture: true } as EventListenerOptions)
+      document.removeEventListener('touchmove', onClose, { capture: true } as EventListenerOptions)
     }
   }, [contextMenu])
 
