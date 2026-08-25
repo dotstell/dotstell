@@ -1183,7 +1183,7 @@ export default function BookmarksPage() {
                           border: checked ? '1px solid rgba(124,106,255,0.2)' : '1px solid transparent',
                           transition: 'all 0.1s',
                         }}
-                        onMouseEnter={e => { if (!checked) e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.03)' }}
+                        onMouseEnter={e => { if (!checked) e.currentTarget.style.backgroundColor = 'var(--accent)' }}
                         onMouseLeave={e => { if (!checked) e.currentTarget.style.backgroundColor = 'transparent' }}
                       >
                         {/* Checkbox */}

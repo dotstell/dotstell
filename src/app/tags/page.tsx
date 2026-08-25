@@ -123,7 +123,7 @@ export default function TagsPage() {
                     color: selected === tag ? 'var(--primary)' : 'var(--secondary-foreground)',
                     textAlign: 'left', transition: 'background 0.15s',
                   }}
-                  onMouseEnter={e => { if (selected !== tag) e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.04)' }}
+                  onMouseEnter={e => { if (selected !== tag) e.currentTarget.style.backgroundColor = 'var(--accent)' }}
                   onMouseLeave={e => { if (selected !== tag) e.currentTarget.style.backgroundColor = 'transparent' }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -180,7 +180,7 @@ export default function TagsPage() {
                           padding: '10px 12px', borderRadius: 8, textDecoration: 'none',
                           transition: 'background 0.15s',
                         }}
-                          onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.04)')}
+                          onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'var(--accent)')}
                           onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
                         >
                           <div style={{ width: 30, height: 30, borderRadius: 8, backgroundColor: color + '20', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
