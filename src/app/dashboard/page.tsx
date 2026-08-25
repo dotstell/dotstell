@@ -252,7 +252,7 @@ export default function DashboardPage() {
                 transition: 'border-color 0.15s, background 0.15s',
                 display: 'flex', flexDirection: 'column', gap: 12,
               }}
-                onMouseEnter={e => { e.currentTarget.style.borderColor = color + '55'; e.currentTarget.style.backgroundColor = '#14141f' }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = color + '55'; e.currentTarget.style.backgroundColor = 'var(--accent)' }}
                 onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.backgroundColor = 'var(--card)' }}
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
@@ -316,7 +316,7 @@ export default function DashboardPage() {
               ? <PanelEmpty icon="📑" text="No notes yet" />
               : notes.slice(0, 6).map(note => (
                 <Link key={note.id} href={`/notes/${note.id}`} style={rowStyle}
-                  onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.03)')}
+                  onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'var(--accent)')}
                   onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
                 >
                   <div style={{ width: 7, height: 7, borderRadius: '50%', backgroundColor: NOTE_TYPE_COLOR[note.type] ?? 'var(--primary)', flexShrink: 0 }} />
@@ -372,7 +372,7 @@ export default function DashboardPage() {
               ? <PanelEmpty icon="🔖" text="No bookmarks yet" />
               : bookmarks.slice(0, 6).map(bm => (
                 <a key={bm.id} href={bm.url} target="_blank" rel="noopener noreferrer" style={rowStyle}
-                  onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.03)')}
+                  onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'var(--accent)')}
                   onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
                 >
                   {bm.favicon_url
@@ -407,7 +407,7 @@ export default function DashboardPage() {
                   padding: '8px 10px', borderRadius: 8, textDecoration: 'none',
                   transition: 'background 0.12s',
                 }}
-                  onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.03)')}
+                  onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'var(--accent)')}
                   onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
                 >
                   <div style={{
