@@ -11,6 +11,7 @@ import { generateId } from '@/lib/utils'
 import { useMention } from '@/hooks/useMention'
 import { LinkPanel } from '@/components/links/LinkPanel'
 
+// ssr: false — @uiw/react-md-editor accesses document directly and cannot render server-side
 const MDEditor = dynamic(() => import('@uiw/react-md-editor'), { ssr: false })
 
 interface NoteEditorProps {

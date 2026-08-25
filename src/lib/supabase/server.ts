@@ -17,7 +17,11 @@ export async function createClient() {
             cookiesToSet.forEach(({ name, value, options }) =>
               cookieStore.set(name, value, options)
             )
-          } catch {}
+          } catch {
+            // Route Handlers (and Server Components) cannot set cookies — only
+            // middleware and Server Actions can. The try/catch is intentional:
+            // session refresh still works; calling code just can't persist cookies here.
+          }
         },
       },
     }

@@ -59,6 +59,7 @@ export function LinkPanel({ sourceId, sourceType }: LinkPanelProps) {
     const res = await fetch(`/api/links?source_id=${sourceId}`)
     if (!res.ok) return
     const data = await res.json()
+    // Exclude auto-tracked wikilinks — those are managed by the editor, not shown here as manual links
     const filtered = data.filter((l: { label?: string }) => l.label !== '__wikilink__')
     if (!Array.isArray(filtered) || filtered.length === 0) { setLinks([]); return }
 
