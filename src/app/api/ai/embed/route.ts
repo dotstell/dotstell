@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { rateLimit }    from '@/lib/ratelimit'
-import { embed, validateConfig } from '@/lib/ai/client'
+import { embed, validateServerConfig } from '@/lib/ai/client'
 import { AIConfig } from '@/lib/ai/types'
 
 // POST /api/ai/embed
@@ -17,7 +17,7 @@ export async function POST(req: NextRequest) {
   if (rl) return rl
 
   const body: { config: AIConfig; entityType: 'note' | 'bookmark'; entityId: string } = await req.json()
-  const configError = validateConfig(body.config)
+  const configError = validateServerConfig(body.config)
   if (configError) return NextResponse.json({ error: configError }, { status: 400 })
 
   if (!body.entityType || !body.entityId) {
@@ -83,7 +83,7 @@ export async function PUT(req: NextRequest) {
   if (rl) return rl
 
   const body: { config: AIConfig } = await req.json()
-  const configError = validateConfig(body.config)
+  const configError = validateServerConfig(body.config)
   if (configError) return NextResponse.json({ error: configError }, { status: 400 })
 
   // Fetch IDs of entities without embeddings (limit 200 per bulk run to avoid timeout)

@@ -68,3 +68,19 @@ export function validateConfig(config: Partial<AIConfig> | null): string | null 
   if (!config.model)   return 'No model selected'
   return null
 }
+
+/**
+ * Server-side config validation — extends validateConfig with a check that blocks
+ * Ollama localhost requests from hosted API routes (Vercel can't reach the user's machine).
+ */
+export function validateServerConfig(config: Partial<AIConfig> | null): string | null {
+  const base = validateConfig(config)
+  if (base) return base
+  if (config?.provider === 'ollama') {
+    const url = config.baseUrl ?? 'http://localhost:11434'
+    if (/localhost|127\.0\.0\.1|::1/.test(url)) {
+      return 'Ollama (localhost) is only available from the desktop app. Switch to OpenAI, Gemini or Groq to use AI in the browser.'
+    }
+  }
+  return null
+}

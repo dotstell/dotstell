@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { rateLimit }    from '@/lib/ratelimit'
-import { streamChat, validateConfig } from '@/lib/ai/client'
+import { streamChat, validateServerConfig } from '@/lib/ai/client'
 import { AIConfig, AIMessage } from '@/lib/ai/types'
 
 // POST /api/ai/chat
@@ -17,7 +17,7 @@ export async function POST(req: NextRequest) {
   if (rl) return rl
 
   const body: { config: AIConfig; messages: AIMessage[]; context?: string } = await req.json()
-  const configError = validateConfig(body.config)
+  const configError = validateServerConfig(body.config)
   if (configError) return NextResponse.json({ error: configError }, { status: 400 })
 
   const messages: AIMessage[] = body.messages ?? []
