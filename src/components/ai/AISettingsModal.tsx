@@ -26,16 +26,29 @@ const PROVIDER_NOTES: Record<AIProvider, string> = {
   groq:      'Requires a Groq account. Very fast inference, generous free tier.',
 }
 
-const FALLBACK_OLLAMA_CHAT_MODELS  = ['llama3.2', 'llama3.1', 'mistral', 'phi3', 'gemma2', 'qwen2.5']
+const FALLBACK_OLLAMA_CHAT_MODELS  = ['llama3.2', 'phi4-mini', 'qwen2.5:7b', 'gemma2:9b', 'llama3.1', 'mistral', 'phi3', 'gemma2', 'qwen2.5']
 const FALLBACK_OLLAMA_EMBED_MODELS = ['nomic-embed-text', 'mxbai-embed-large', 'all-minilm']
 
+// First entry in each list is the recommended model for dotstell's use case
 const CHAT_MODEL_SUGGESTIONS: Record<AIProvider, string[]> = {
   ollama:    FALLBACK_OLLAMA_CHAT_MODELS,
   openai:    ['gpt-4o-mini', 'gpt-4o', 'gpt-4-turbo', 'gpt-3.5-turbo'],
   anthropic: ['claude-haiku-4-5-20251001', 'claude-sonnet-5', 'claude-opus-5'],
-  gemini:    ['gemini-2.0-flash', 'gemini-2.5-flash', 'gemini-2.5-pro', 'gemini-1.5-flash'],
+  gemini:    ['gemini-2.0-flash-lite', 'gemini-2.0-flash', 'gemini-2.5-flash', 'gemini-2.5-pro', 'gemini-1.5-flash'],
   groq:      ['llama-3.1-8b-instant', 'llama-3.3-70b-versatile', 'mixtral-8x7b-32768'],
 }
+
+// Short guidance shown below the model picker for each provider
+const MODEL_HINTS: Record<AIProvider, string> = {
+  ollama:    '7B models (llama3.2, phi4-mini, qwen2.5:7b) work well for all features. Models above 13B are slow without a dedicated GPU.',
+  openai:    'gpt-4o-mini is recommended — fast, low cost, and excellent for note intelligence tasks.',
+  anthropic: 'claude-haiku-4-5 is the fastest and most affordable option for summarisation and tagging.',
+  gemini:    'gemini-2.0-flash-lite is recommended — fast, highly capable, and free-tier friendly.',
+  groq:      'llama-3.1-8b-instant is recommended — Groq\'s free tier is generous and inference is extremely fast.',
+}
+
+// Models flagged as too heavy for typical use without a GPU
+const HEAVY_MODEL_PATTERN = /\b(70b|72b|405b|671b|110b|34b|32b)\b/i
 
 const EMBED_MODEL_SUGGESTIONS: Record<EmbeddingProvider, string[]> = {
   ollama: FALLBACK_OLLAMA_EMBED_MODELS,
@@ -323,7 +336,23 @@ export function AISettingsModal({ onClose }: AISettingsModalProps) {
             </span>
           ) : undefined}
         >
-          <ModelInput value={draft.model} suggestions={chatModels} onChange={v => setDraft(p => ({ ...p, model: v }))} />
+          <ModelInput
+            value={draft.model}
+            suggestions={chatModels}
+            recommendedModel={CHAT_MODEL_SUGGESTIONS[draft.provider][0]}
+            onChange={v => setDraft(p => ({ ...p, model: v }))}
+          />
+          {/* Per-provider model guidance */}
+          <p style={{ margin: '5px 0 0', fontSize: 11, color: 'var(--muted-foreground)', lineHeight: 1.5 }}>
+            💡 {MODEL_HINTS[draft.provider]}
+          </p>
+          {/* Heavy model warning — shown when user picks a known large model */}
+          {HEAVY_MODEL_PATTERN.test(draft.model) && (
+            <div style={{ marginTop: 6, padding: '6px 10px', borderRadius: 7, backgroundColor: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.25)', fontSize: 11, color: '#fbbf24', display: 'flex', gap: 6, alignItems: 'flex-start' }}>
+              <AlertCircle size={11} style={{ flexShrink: 0, marginTop: 1 }} />
+              Large model detected — this will be slow without a powerful dedicated GPU. Consider a 7B model for a better experience.
+            </div>
+          )}
         </Field>
 
         {/* ── Step 2: Semantic Search ── */}
@@ -524,7 +553,7 @@ function Select({ value, options, onChange }: { value: string; options: { value:
   )
 }
 
-function ModelInput({ value, suggestions, onChange }: { value: string; suggestions: string[]; onChange: (v: string) => void }) {
+function ModelInput({ value, suggestions, recommendedModel, onChange }: { value: string; suggestions: string[]; recommendedModel?: string; onChange: (v: string) => void }) {
   const [open, setOpen] = useState(false)
   return (
     <div style={{ position: 'relative' }}>
@@ -536,14 +565,22 @@ function ModelInput({ value, suggestions, onChange }: { value: string; suggestio
         style={inputStyle}
       />
       {open && suggestions.length > 0 && (
-        <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 50, backgroundColor: 'var(--card)', border: '1px solid var(--border)', borderRadius: 8, marginTop: 2, boxShadow: '0 8px 24px rgba(0,0,0,0.4)', overflow: 'hidden', maxHeight: 180, overflowY: 'auto' }}>
+        <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 50, backgroundColor: 'var(--card)', border: '1px solid var(--border)', borderRadius: 8, marginTop: 2, boxShadow: '0 8px 24px rgba(0,0,0,0.4)', overflow: 'hidden', maxHeight: 200, overflowY: 'auto' }}>
           {suggestions.map(s => (
             <button key={s} type="button" onMouseDown={() => { onChange(s); setOpen(false) }}
-              style={{ width: '100%', padding: '8px 12px', border: 'none', backgroundColor: 'transparent', color: 'var(--foreground)', fontSize: 12, cursor: 'pointer', textAlign: 'left', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
+              style={{ width: '100%', padding: '7px 12px', border: 'none', backgroundColor: 'transparent', color: 'var(--foreground)', fontSize: 12, cursor: 'pointer', textAlign: 'left', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}
               onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'var(--accent)')}
               onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
             >
-              {s} {value === s && <Check size={11} color="var(--primary)" />}
+              <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s}</span>
+              <span style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
+                {recommendedModel === s && value !== s && (
+                  <span style={{ fontSize: 9, fontWeight: 700, color: '#10b981', backgroundColor: 'rgba(16,185,129,0.12)', border: '1px solid rgba(16,185,129,0.25)', padding: '1px 5px', borderRadius: 99 }}>
+                    Recommended
+                  </span>
+                )}
+                {value === s && <Check size={11} color="var(--primary)" />}
+              </span>
             </button>
           ))}
         </div>

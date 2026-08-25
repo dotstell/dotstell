@@ -169,7 +169,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
             padding: '1px 7px', borderRadius: 4,
           }}>G</kbd>
           <span style={{ color: 'var(--muted-foreground)' }}>→</span>
-          <span style={{ color: 'var(--muted-foreground)', fontSize: 12 }}>D N P B T G</span>
+          <span style={{ color: 'var(--muted-foreground)', fontSize: 12 }}>D N P B T G A H</span>
         </div>
       )}
       <OnboardingFlow />

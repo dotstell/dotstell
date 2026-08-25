@@ -159,7 +159,7 @@ export default function TagsPage() {
                         onChange={e => setItemSearch(e.target.value)}
                         style={{
                           width: '100%', padding: '6px 10px 6px 28px', borderRadius: 7,
-                          border: '1px solid var(--border)', backgroundColor: '#0e0e18',
+                          border: '1px solid var(--border)', backgroundColor: 'var(--card)',
                           color: 'var(--foreground)', fontSize: 12, outline: 'none',
                         }}
                         onFocus={e => (e.currentTarget.style.borderColor = 'var(--primary)')}
