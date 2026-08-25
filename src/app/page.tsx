@@ -34,6 +34,11 @@ const FEATURES = [
     title: 'Tasks & Checklists',
     desc: 'Create checklists inside any note or as standalone tasks — keep what you need to do right next to why you need to do it.',
   },
+  {
+    icon: '✨',
+    title: 'AI Intelligence',
+    desc: 'Bring your own key — Ollama, OpenAI, Anthropic, Gemini or Groq. Daily digest, note summaries, auto-tags, smart titles, graph analysis and AI chat across your entire knowledge base.',
+  },
 ]
 
 const NAV_ITEMS = [
@@ -270,14 +275,14 @@ export default function LandingPage() {
           </div>
           <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '4px 14px', borderRadius: 999, marginBottom: 24, border: '1px solid color-mix(in srgb, var(--primary) 35%, transparent)', background: 'color-mix(in srgb, var(--primary) 8%, transparent)', color: 'var(--primary)', fontSize: 12 }}>
             <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--primary)', flexShrink: 0, animation: 'pulse 2s cubic-bezier(0.4,0,0.6,1) infinite' }} />
-            Open source · Free forever
+            v0.4.0 · AI layer live · Open source
           </div>
           <h1 style={{ fontSize: 'clamp(28px, 6vw, 48px)', fontWeight: 700, letterSpacing: '-0.5px', lineHeight: 1.15, marginBottom: 20 }}>
             Your knowledge is scattered.<br />
             <span style={{ color: 'var(--primary)' }}>Dotstell connects it.</span>
           </h1>
           <p style={{ fontSize: 'clamp(14px, 2.5vw, 18px)', color: 'var(--muted-foreground)', maxWidth: 500, margin: '0 auto 10px' }}>
-            Notes, people, tasks and bookmarks — linked together in one living knowledge graph.
+            Notes, people, tasks and bookmarks — linked in one living knowledge graph. Now with AI that understands all of it.
           </p>
           <p style={{ fontSize: 13, color: 'var(--muted-foreground)', opacity: 0.65, marginBottom: 36 }}>
             Free and open source. No lock-in. Your data, your graph.
