@@ -1,6 +1,6 @@
 'use client'
-import { useState, useEffect } from 'react'
-import { X, Sparkles, ChevronDown, Check, AlertCircle, Loader2, Wifi, Database } from 'lucide-react'
+import { useState, useEffect, useCallback } from 'react'
+import { X, Sparkles, ChevronDown, Check, AlertCircle, Loader2, Wifi, Database, RefreshCw } from 'lucide-react'
 import {
   AIConfig, AIProvider, EmbeddingProvider,
   PROVIDER_LABELS, EMBEDDING_PROVIDER_LABELS,
@@ -13,8 +13,12 @@ interface AISettingsModalProps {
   onClose: () => void
 }
 
+// Fallback suggestions when Ollama can't be reached (e.g. not running yet)
+const FALLBACK_OLLAMA_CHAT_MODELS = ['llama3.2', 'llama3.1', 'mistral', 'phi3', 'gemma2', 'qwen2.5']
+const FALLBACK_OLLAMA_EMBED_MODELS = ['nomic-embed-text', 'mxbai-embed-large', 'all-minilm']
+
 const CHAT_MODEL_SUGGESTIONS: Record<AIProvider, string[]> = {
-  ollama:    ['llama3.2', 'llama3.1', 'mistral', 'phi3', 'gemma2', 'qwen2.5'],
+  ollama:    FALLBACK_OLLAMA_CHAT_MODELS,
   openai:    ['gpt-4o-mini', 'gpt-4o', 'gpt-4-turbo', 'gpt-3.5-turbo'],
   anthropic: ['claude-haiku-4-5-20251001', 'claude-sonnet-5', 'claude-opus-5'],
   gemini:    ['gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-2.0-flash'],
@@ -22,7 +26,7 @@ const CHAT_MODEL_SUGGESTIONS: Record<AIProvider, string[]> = {
 }
 
 const EMBED_MODEL_SUGGESTIONS: Record<EmbeddingProvider, string[]> = {
-  ollama: ['nomic-embed-text', 'mxbai-embed-large', 'all-minilm'],
+  ollama: FALLBACK_OLLAMA_EMBED_MODELS,
   openai: ['text-embedding-3-small', 'text-embedding-3-large', 'text-embedding-ada-002'],
   gemini: ['text-embedding-004'],
 }
@@ -35,7 +39,48 @@ export function AISettingsModal({ onClose }: AISettingsModalProps) {
   const [indexing,   setIndexing]   = useState(false)
   const [indexResult, setIndexResult] = useState<string | null>(null)
 
-  // Reset test result whenever draft changes
+  // Live list of models fetched from Ollama — replaces hardcoded suggestions when available
+  const [ollamaModels,     setOllamaModels]     = useState<string[]>([])
+  const [ollamaFetching,   setOllamaFetching]   = useState(false)
+  const [ollamaFetchError, setOllamaFetchError] = useState<string | null>(null)
+
+  // Fetch the list of models installed in Ollama directly from its REST API.
+  // This is a browser-side fetch to localhost — no server round-trip needed.
+  const fetchOllamaModels = useCallback(async (baseUrl: string) => {
+    setOllamaFetching(true)
+    setOllamaFetchError(null)
+    try {
+      const url = baseUrl.replace(/\/$/, '')
+      const res = await fetch(`${url}/api/tags`, { signal: AbortSignal.timeout(4000) })
+      if (!res.ok) throw new Error(`HTTP ${res.status}`)
+      const data: { models: Array<{ name: string }> } = await res.json()
+      const names = (data.models ?? []).map(m => m.name).filter(Boolean)
+      setOllamaModels(names)
+      // If the current chat model isn't in the installed list and there are real models,
+      // auto-select the first one so the user doesn't send a request for a non-existent model.
+      setDraft(prev => {
+        if (prev.provider !== 'ollama') return prev
+        if (names.length > 0 && !names.includes(prev.model)) {
+          return { ...prev, model: names[0] }
+        }
+        return prev
+      })
+    } catch (err) {
+      setOllamaFetchError(err instanceof Error ? err.message : 'Cannot reach Ollama')
+      setOllamaModels([])
+    } finally {
+      setOllamaFetching(false)
+    }
+  }, [])
+
+  // Auto-fetch on mount and whenever the Ollama base URL changes
+  useEffect(() => {
+    if (draft.provider === 'ollama') {
+      fetchOllamaModels(draft.baseUrl ?? 'http://localhost:11434')
+    }
+  }, [draft.provider, draft.baseUrl, fetchOllamaModels])
+
+  // Reset test result whenever connection-relevant fields change
   useEffect(() => { setTestResult(null) }, [draft.provider, draft.apiKey, draft.model, draft.baseUrl])
 
   const needsEmbedConfig = PROVIDERS_WITHOUT_EMBEDDINGS.includes(draft.provider)
@@ -165,12 +210,26 @@ export function AISettingsModal({ onClose }: AISettingsModalProps) {
             </>
           )}
 
-          <Label>Chat Model</Label>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', margin: '6px 0 2px' }}>
+            <Label>Chat Model</Label>
+            {draft.provider === 'ollama' && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                {ollamaFetching && <Loader2 size={11} color="var(--muted-foreground)" style={{ animation: 'spin 1s linear infinite' }} />}
+                {ollamaFetchError && <span style={{ fontSize: 10, color: '#f87171' }}>Ollama unreachable</span>}
+                {!ollamaFetching && ollamaModels.length > 0 && (
+                  <span style={{ fontSize: 10, color: '#4ade80' }}>{ollamaModels.length} model{ollamaModels.length !== 1 ? 's' : ''} installed</span>
+                )}
+                <button type="button" onClick={() => fetchOllamaModels(draft.baseUrl ?? 'http://localhost:11434')} title="Refresh model list" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted-foreground)', padding: 2, display: 'flex' }}>
+                  <RefreshCw size={10} />
+                </button>
+              </div>
+            )}
+          </div>
           <ModelInput
             value={draft.model}
-            suggestions={CHAT_MODEL_SUGGESTIONS[draft.provider]}
+            suggestions={draft.provider === 'ollama' && ollamaModels.length > 0 ? ollamaModels : CHAT_MODEL_SUGGESTIONS[draft.provider]}
             onChange={v => setDraft(p => ({ ...p, model: v }))}
-            placeholder={`e.g. ${DEFAULT_CHAT_MODELS[draft.provider]}`}
+            placeholder={draft.provider === 'ollama' && ollamaModels.length > 0 ? `choose from ${ollamaModels.length} installed models` : `e.g. ${DEFAULT_CHAT_MODELS[draft.provider]}`}
           />
         </Section>
 
@@ -213,9 +272,15 @@ export function AISettingsModal({ onClose }: AISettingsModalProps) {
           )}
 
           <Label>Embedding Model</Label>
+          {draft.embeddingProvider === 'ollama' && ollamaModels.length > 0 && !ollamaModels.includes(draft.embeddingModel) && (
+            <div style={{ padding: '6px 10px', borderRadius: 7, marginBottom: 4, fontSize: 11, color: '#fbbf24', backgroundColor: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.25)', display: 'flex', alignItems: 'flex-start', gap: 5 }}>
+              <AlertCircle size={11} style={{ flexShrink: 0, marginTop: 1 }} />
+              <span><strong>{draft.embeddingModel}</strong> is not in your Ollama installation. For embeddings, pull <code style={{ fontSize: 10 }}>nomic-embed-text</code> or pick an installed model below.</span>
+            </div>
+          )}
           <ModelInput
             value={draft.embeddingModel}
-            suggestions={EMBED_MODEL_SUGGESTIONS[draft.embeddingProvider]}
+            suggestions={draft.embeddingProvider === 'ollama' && ollamaModels.length > 0 ? ollamaModels : EMBED_MODEL_SUGGESTIONS[draft.embeddingProvider]}
             onChange={v => setDraft(p => ({ ...p, embeddingModel: v }))}
             placeholder={`e.g. ${DEFAULT_EMBEDDING_MODELS[draft.embeddingProvider]}`}
           />
