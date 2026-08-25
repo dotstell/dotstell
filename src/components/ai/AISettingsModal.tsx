@@ -77,6 +77,9 @@ export function AISettingsModal({ onClose }: AISettingsModalProps) {
   const [indexResult,  setIndexResult]  = useState<{ ok: boolean; message: string } | null>(null)
   const [showAdvanced, setShowAdvanced] = useState(false)
 
+  // True only inside the Tauri desktop app — Ollama (localhost) is unreachable from the web browser
+  const isTauri = typeof window !== 'undefined' && !!(window as unknown as { __TAURI__?: unknown }).__TAURI__
+
   // Live Ollama model list fetched server-side (browser can't reach localhost:11434 through corporate proxy)
   const [ollamaModels,   setOllamaModels]   = useState<Array<{ name: string; capabilities: string[] }>>([])
   const [ollamaFetching, setOllamaFetching] = useState(false)
@@ -145,10 +148,11 @@ export function AISettingsModal({ onClose }: AISettingsModalProps) {
   }, [])
 
   useEffect(() => {
+    if (!isTauri) return
     if (draft.provider === 'ollama' || draft.embeddingProvider === 'ollama') {
       fetchOllamaModels(draft.baseUrl ?? 'http://localhost:11434')
     }
-  }, [draft.provider, draft.embeddingProvider, draft.baseUrl, fetchOllamaModels])
+  }, [draft.provider, draft.embeddingProvider, draft.baseUrl, fetchOllamaModels, isTauri])
 
   useEffect(() => {
     if ((CLOUD_PROVIDERS as readonly string[]).includes(draft.provider) && draft.apiKey) {
@@ -292,9 +296,15 @@ export function AISettingsModal({ onClose }: AISettingsModalProps) {
             }))}
           />
           <p style={{ margin: '4px 0 0', fontSize: 11, color: 'var(--muted-foreground)' }}>{PROVIDER_NOTES[draft.provider]}</p>
+          {draft.provider === 'ollama' && !isTauri && (
+            <div style={{ marginTop: 8, padding: '8px 10px', borderRadius: 8, backgroundColor: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.25)', fontSize: 11, color: '#fbbf24', lineHeight: 1.5 }}>
+              <strong>Ollama requires the desktop app.</strong> The browser can&apos;t reach your local machine — only the Dotstell desktop app can connect to Ollama. Use <strong>OpenAI, Gemini or Groq</strong> to get AI in the browser, or{' '}
+              <a href="https://github.com/dotstell/dotstell/releases/latest" target="_blank" rel="noopener noreferrer" style={{ color: '#fbbf24', fontWeight: 600 }}>download the desktop app ↗</a>.
+            </div>
+          )}
         </Field>
 
-        {draft.provider === 'ollama' ? (
+        {draft.provider === 'ollama' && isTauri ? (
           <Field label="Ollama URL">
             <input
               value={draft.baseUrl ?? 'http://localhost:11434'}
@@ -302,7 +312,7 @@ export function AISettingsModal({ onClose }: AISettingsModalProps) {
               style={inputStyle}
             />
           </Field>
-        ) : (
+        ) : draft.provider !== 'ollama' ? (
           <Field label="API Key">
             <input
               type="password"
@@ -312,22 +322,24 @@ export function AISettingsModal({ onClose }: AISettingsModalProps) {
               style={inputStyle}
             />
           </Field>
-        )}
+        ) : null}
 
         <Field
           label="Model"
           aside={draft.provider === 'ollama' ? (
-            <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 10 }}>
-              {ollamaFetching
-                ? <><Loader2 size={10} style={{ animation: 'spin 1s linear infinite' }} color="var(--muted-foreground)" /> detecting…</>
-                : ollamaError
-                ? <span style={{ color: '#f87171' }}>Ollama not found — is it running?</span>
-                : <span style={{ color: '#4ade80' }}>{ollamaModels.length} model{ollamaModels.length !== 1 ? 's' : ''} installed</span>
-              }
-              <button type="button" onClick={() => fetchOllamaModels(draft.baseUrl ?? 'http://localhost:11434')} title="Refresh" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted-foreground)', padding: 1, display: 'flex' }}>
-                <RefreshCw size={9} />
-              </button>
-            </span>
+            isTauri ? (
+              <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 10 }}>
+                {ollamaFetching
+                  ? <><Loader2 size={10} style={{ animation: 'spin 1s linear infinite' }} color="var(--muted-foreground)" /> detecting…</>
+                  : ollamaError
+                  ? <span style={{ color: '#f87171' }}>Ollama not found — is it running?</span>
+                  : <span style={{ color: '#4ade80' }}>{ollamaModels.length} model{ollamaModels.length !== 1 ? 's' : ''} installed</span>
+                }
+                <button type="button" onClick={() => fetchOllamaModels(draft.baseUrl ?? 'http://localhost:11434')} title="Refresh" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted-foreground)', padding: 1, display: 'flex' }}>
+                  <RefreshCw size={9} />
+                </button>
+              </span>
+            ) : undefined
           ) : draft.apiKey ? (
             <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 10, color: 'var(--muted-foreground)' }}>
               {cloudFetching
@@ -395,7 +407,12 @@ export function AISettingsModal({ onClose }: AISettingsModalProps) {
           )}
 
           <Field label="Embedding model">
-            {draft.embeddingProvider === 'ollama' && ollamaNames.length > 0 && !ollamaNames.some(m => normalizeModel(m) === normalizeModel(draft.embeddingModel)) && (
+            {draft.embeddingProvider === 'ollama' && !isTauri && (
+              <Notice type="warning" style={{ marginBottom: 6 }}>
+                Ollama embedding only works in the desktop app. Switch to <strong>OpenAI</strong> or <strong>Gemini</strong> for semantic search in the browser.
+              </Notice>
+            )}
+            {draft.embeddingProvider === 'ollama' && isTauri && ollamaNames.length > 0 && !ollamaNames.some(m => normalizeModel(m) === normalizeModel(draft.embeddingModel)) && (
               <Notice type="warning" style={{ marginBottom: 6 }}>
                 <strong>{draft.embeddingModel}</strong> isn&apos;t installed. Run <code style={{ fontSize: 10, backgroundColor: 'rgba(0,0,0,0.2)', padding: '1px 4px', borderRadius: 3 }}>ollama pull nomic-embed-text</code> or pick an installed model below.
               </Notice>
