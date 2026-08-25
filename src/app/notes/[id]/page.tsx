@@ -436,24 +436,26 @@ ${note.content ?? ''}
             {focusMode ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
           </button>
 
-          {/* AI Chat */}
-          <button
-            type="button"
-            title={aiConfigured ? 'AI Chat — ask questions about your notes (RAG)' : 'AI not configured — click to set up'}
-            onClick={() => aiConfigured ? setChatOpen(c => !c) : setAISettingsOpen(true)}
-            style={{
-              display: 'flex', alignItems: 'center', gap: 5,
-              padding: '5px 10px', borderRadius: 7,
-              border: `1px solid ${chatOpen ? 'color-mix(in srgb, var(--primary) 40%, transparent)' : 'var(--border)'}`,
-              background: chatOpen ? 'color-mix(in srgb, var(--primary) 12%, transparent)' : 'none',
-              color: chatOpen ? 'var(--primary)' : 'var(--muted-foreground)', fontSize: 12, cursor: 'pointer',
-              transition: 'all 0.12s',
-            }}
-            onMouseEnter={e => { if (!chatOpen) { e.currentTarget.style.background = 'var(--accent)'; e.currentTarget.style.color = 'var(--foreground)' } }}
-            onMouseLeave={e => { if (!chatOpen) { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = 'var(--muted-foreground)' } }}
-          >
-            <Sparkles size={13} /> AI Chat
-          </button>
+          {/* AI Chat — only shown when AI is configured; discovery handled by the global AIStatusBadge */}
+          {aiConfigured && (
+            <button
+              type="button"
+              title="AI Chat — ask questions about your notes (RAG)"
+              onClick={() => setChatOpen(c => !c)}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 5,
+                padding: '5px 10px', borderRadius: 7,
+                border: `1px solid ${chatOpen ? 'color-mix(in srgb, var(--primary) 40%, transparent)' : 'var(--border)'}`,
+                background: chatOpen ? 'color-mix(in srgb, var(--primary) 12%, transparent)' : 'none',
+                color: chatOpen ? 'var(--primary)' : 'var(--muted-foreground)', fontSize: 12, cursor: 'pointer',
+                transition: 'all 0.12s',
+              }}
+              onMouseEnter={e => { if (!chatOpen) { e.currentTarget.style.background = 'var(--accent)'; e.currentTarget.style.color = 'var(--foreground)' } }}
+              onMouseLeave={e => { if (!chatOpen) { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = 'var(--muted-foreground)' } }}
+            >
+              <Sparkles size={13} /> AI Chat
+            </button>
+          )}
 
           {/* AI Inline Assist is now triggered by the floating bubble that appears on text selection — no header button needed */}
 
