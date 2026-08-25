@@ -34,7 +34,8 @@ export function AIGraphIntelPanel({ config, onOpenNote }: AIGraphIntelPanelProps
   const [ran,     setRan]     = useState(false)
 
   async function run(m: IntelMode) {
-    setMode(m); setResults([]); setError(null); setLoading(true); setRan(false)
+    // Clear results immediately so stale data from a different mode is never rendered
+    setMode(m); setResults([]); setError(null); setRan(false); setLoading(true)
     try {
       const res  = await fetch('/api/ai/graph-links', {
         method:  'POST',
@@ -109,7 +110,7 @@ export function AIGraphIntelPanel({ config, onOpenNote }: AIGraphIntelPanelProps
         </p>
       )}
 
-      {mode === 'missing' && (results as MissingLink[]).map((r, i) => (
+      {mode === 'missing' && (results as MissingLink[]).filter(r => r?.source && r?.target).map((r, i) => (
         <div key={i} style={{ padding: '10px 12px', borderRadius: 8, border: '1px solid var(--border)', backgroundColor: 'var(--muted)', display: 'flex', flexDirection: 'column', gap: 6 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <NoteButton title={r.source.title} id={r.source.id} onOpen={onOpenNote} />
@@ -122,21 +123,21 @@ export function AIGraphIntelPanel({ config, onOpenNote }: AIGraphIntelPanelProps
         </div>
       ))}
 
-      {mode === 'clusters' && (results as Cluster[]).map((c, i) => (
+      {mode === 'clusters' && (results as Cluster[]).filter(c => c?.label).map((c, i) => (
         <div key={i} style={{ padding: '10px 12px', borderRadius: 8, border: '1px solid var(--border)', backgroundColor: 'var(--muted)' }}>
           <p style={{ margin: '0 0 8px', fontSize: 12, fontWeight: 600, color: 'var(--foreground)' }}>
             <Layers size={11} style={{ verticalAlign: 'middle', marginRight: 4 }} />
             Cluster: {c.label}
           </p>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-            {c.notes.map(n => (
+            {(c.notes ?? []).map(n => (
               <NoteButton key={n.id} title={n.title} id={n.id} onOpen={onOpenNote} full />
             ))}
           </div>
         </div>
       ))}
 
-      {mode === 'gaps' && (results as Gap[]).map((g, i) => (
+      {mode === 'gaps' && (results as Gap[]).filter(g => g?.a && g?.b).map((g, i) => (
         <div key={i} style={{ padding: '10px 12px', borderRadius: 8, border: '1px solid var(--border)', backgroundColor: 'var(--muted)', display: 'flex', flexDirection: 'column', gap: 6 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <NoteButton title={g.a.title} id={g.a.id} onOpen={onOpenNote} />
