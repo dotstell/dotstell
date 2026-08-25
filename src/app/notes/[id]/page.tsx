@@ -6,6 +6,7 @@ import {
   X, Maximize2, Minimize2, Plus, FileText,
   ChevronRight, ArrowLeft, LayoutTemplate, Download,
   List, ChevronDown, Sparkles, MessageSquareText, Settings2,
+  AlignLeft, Loader2, RefreshCw,
 } from 'lucide-react'
 import type { Editor } from '@tiptap/react'
 import Link from 'next/link'
@@ -21,7 +22,7 @@ import { AISettingsModal } from '@/components/ai/AISettingsModal'
 import { useNoteTabs } from '@/hooks/useNoteTabs'
 import { notebookTag } from '@/hooks/useNotebooks'
 import { useAISettings } from '@/hooks/useAISettings'
-import { useAITitleSuggest, useAITagSuggest } from '@/hooks/useAI'
+import { useAITitleSuggest, useAITagSuggest, useAISummarize } from '@/hooks/useAI'
 import '@/components/editor/editor.css'
 
 type SaveStatus = 'saved' | 'saving' | 'unsaved' | null
@@ -63,6 +64,8 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
   const { suggest: suggestTitle, loading: titleLoading } = useAITitleSuggest(aiConfig)
   // Auto-tag suggestions — shown as dismissible chips below the tag input
   const { tags: suggestedTags, loading: tagsLoading, suggest: suggestTags, dismiss: dismissTag, setTags: setSuggestedTags } = useAITagSuggest(aiConfig)
+  // Note summarize — shown in the right sidebar
+  const { summary: noteSummary, loading: summaryLoading, summarize: summarizeNote, setSummary: setNoteSummary } = useAISummarize(aiConfig)
 
   const saveTimer    = useRef<ReturnType<typeof setTimeout> | null>(null)
   const wikiLinkIds  = useRef<string[]>([])
@@ -782,6 +785,60 @@ ${note.content ?? ''}
                 noteId={noteId}
                 onOpen={id => router.push(`/notes/${id}`)}
               />
+            )}
+
+            {/* AI Summary — one-click TL;DR for the current note */}
+            {aiConfigured && (
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                  <p style={{ margin: 0, fontSize: 11, fontWeight: 700, color: 'var(--muted-foreground)', textTransform: 'uppercase', letterSpacing: '0.07em', display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <AlignLeft size={10} /> Summary
+                  </p>
+                  <div style={{ display: 'flex', gap: 3 }}>
+                    {noteSummary && (
+                      <button type="button" title="Regenerate" onClick={() => { setNoteSummary(''); summarizeNote({ entityType: 'note', entityId: noteId, mode: 'bullets' }) }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted-foreground)', padding: 2, display: 'flex' }}>
+                        <RefreshCw size={10} />
+                      </button>
+                    )}
+                    {!noteSummary && (
+                      <button
+                        type="button"
+                        disabled={summaryLoading}
+                        onClick={() => summarizeNote({ entityType: 'note', entityId: noteId, mode: 'bullets' })}
+                        style={{
+                          display: 'flex', alignItems: 'center', gap: 3,
+                          padding: '2px 7px', borderRadius: 99, fontSize: 10, fontWeight: 600,
+                          border: '1px solid color-mix(in srgb, var(--primary) 30%, transparent)',
+                          backgroundColor: 'color-mix(in srgb, var(--primary) 8%, transparent)',
+                          color: 'var(--primary)', cursor: summaryLoading ? 'wait' : 'pointer',
+                          opacity: summaryLoading ? 0.6 : 1,
+                        }}
+                      >
+                        {summaryLoading
+                          ? <><Loader2 size={9} style={{ animation: 'spin 1s linear infinite' }} /> Summarizing…</>
+                          : <><Sparkles size={9} /> Summarize</>}
+                      </button>
+                    )}
+                  </div>
+                </div>
+                {summaryLoading && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    {[90, 75, 85, 60].map((w, i) => (
+                      <div key={i} style={{ height: 10, borderRadius: 5, backgroundColor: 'var(--muted)', width: `${w}%`, opacity: 0.6 }} />
+                    ))}
+                  </div>
+                )}
+                {noteSummary && !summaryLoading && (
+                  <p style={{ margin: 0, fontSize: 12, color: 'var(--muted-foreground)', lineHeight: 1.65, whiteSpace: 'pre-wrap' }}>
+                    {noteSummary}
+                  </p>
+                )}
+                {!noteSummary && !summaryLoading && (
+                  <p style={{ margin: 0, fontSize: 11, color: 'var(--muted-foreground)', opacity: 0.5 }}>
+                    Click Summarize for a bullet-point TL;DR
+                  </p>
+                )}
+              </div>
             )}
           </div>
         )}

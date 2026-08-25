@@ -8,9 +8,11 @@ import ReactFlow, {
   getBezierPath, BaseEdge, useReactFlow, ReactFlowProvider,
 } from 'reactflow'
 import 'reactflow/dist/style.css'
-import { X, ExternalLink, Link2, Trash2, FileText, Users, Bookmark, CheckSquare } from 'lucide-react'
+import { X, ExternalLink, Link2, Trash2, FileText, Users, Bookmark, CheckSquare, Sparkles } from 'lucide-react'
 import { AppLayout } from '@/components/layout/AppLayout'
 import { LinkableType } from '@/types'
+import { AIGraphIntelPanel } from '@/components/ai/AIGraphIntelPanel'
+import { useAISettings } from '@/hooks/useAISettings'
 
 interface GraphItem {
   id: string
@@ -112,6 +114,8 @@ function GraphPageInner() {
   const [loading, setLoading] = useState(true)
   const [filter,  setFilter]  = useState('all')
   const [selected, setSelected] = useState<GraphItem | null>(null)
+  const [aiPanelOpen, setAiPanelOpen] = useState(false)
+  const { config: aiConfig, loaded: aiLoaded } = useAISettings()
 
   const STORAGE_KEY = 'dotstell-graph-positions'
 
@@ -302,6 +306,24 @@ function GraphPageInner() {
               <span style={{ fontSize: 12, color: 'var(--muted-foreground)' }}>
                 {nodes.length} nodes · {edges.length} links
               </span>
+              {aiLoaded && aiConfig.provider && (
+                <button
+                  type="button"
+                  onClick={() => setAiPanelOpen(v => !v)}
+                  title="AI Graph Intelligence"
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 5,
+                    fontSize: 11, fontWeight: 600, cursor: 'pointer',
+                    border: `1px solid ${aiPanelOpen ? 'color-mix(in srgb, var(--primary) 50%, transparent)' : 'var(--border)'}`,
+                    borderRadius: 6, padding: '3px 10px',
+                    backgroundColor: aiPanelOpen ? 'color-mix(in srgb, var(--primary) 12%, transparent)' : 'none',
+                    color: aiPanelOpen ? 'var(--primary)' : 'var(--muted-foreground)',
+                    transition: 'all 0.15s',
+                  }}
+                >
+                  <Sparkles size={12} /> AI
+                </button>
+              )}
               <button
                 type="button"
                 onClick={() => {
@@ -399,6 +421,35 @@ function GraphPageInner() {
               </ReactFlow>
             )}
           </div>
+
+          {/* AI Graph Intelligence panel */}
+          {aiPanelOpen && aiConfig.provider && (
+            <div style={{
+              width: 300, flexShrink: 0,
+              backgroundColor: 'var(--card)',
+              borderLeft: '1px solid var(--border)',
+              display: 'flex', flexDirection: 'column',
+              overflow: 'hidden',
+            }}>
+              <div style={{ padding: '14px 16px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+                  <div style={{ width: 24, height: 24, borderRadius: 7, backgroundColor: 'color-mix(in srgb, var(--primary) 14%, transparent)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <Sparkles size={13} color="var(--primary)" />
+                  </div>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--foreground)' }}>Graph Intelligence</span>
+                </div>
+                <button type="button" onClick={() => setAiPanelOpen(false)} style={{ background: 'none', border: 'none', color: 'var(--muted-foreground)', cursor: 'pointer', padding: 4 }}>
+                  <X size={14} />
+                </button>
+              </div>
+              <div style={{ flex: 1, overflowY: 'auto', padding: 14 }}>
+                <AIGraphIntelPanel
+                  config={aiConfig}
+                  onOpenNote={id => { window.location.href = `/notes/${id}` }}
+                />
+              </div>
+            </div>
+          )}
 
           {/* Side panel */}
           {selected && (

@@ -4,7 +4,7 @@ import Link from 'next/link'
 import {
   ArrowRight, AlertCircle, TrendingUp, FileText, Bookmark,
   CheckSquare, Users, Plus, Zap, Clock, Activity,
-  AlignLeft, CheckCircle2, Circle, Timer,
+  AlignLeft, CheckCircle2, Circle, Timer, Sparkles, Loader2, RefreshCw,
 } from 'lucide-react'
 import { AppLayout } from '@/components/layout/AppLayout'
 import { Task, Note, Bookmark as BookmarkType } from '@/types'
@@ -12,6 +12,7 @@ import { formatDate, formatRelative } from '@/lib/utils'
 import { EmptyState } from '@/components/ui/empty-state'
 import { useTaskReminders } from '@/hooks/useTaskReminders'
 import { PageContainer } from '@/components/layout/PageContainer'
+import { useAISettings } from '@/hooks/useAISettings'
 
 const PRIORITY_COLOR: Record<string, string> = { low: '#10b981', medium: '#f59e0b', high: '#ef4444' }
 const STATUS_COLOR:   Record<string, string> = { todo: 'var(--muted-foreground)', in_progress: 'var(--primary)', done: '#10b981' }
@@ -129,6 +130,29 @@ export default function DashboardPage() {
   const [loading,   setLoading]   = useState(true)
   const [isMobile,  setIsMobile]  = useState(false)
   const [greeting,  setGreeting]  = useState('Hello')
+  const { config: aiConfig, isConfigured: aiConfigured } = useAISettings()
+  const [digest,        setDigest]        = useState('')
+  const [digestLoading, setDigestLoading] = useState(false)
+  const [digestError,   setDigestError]   = useState<string | null>(null)
+  const [digestPeriod,  setDigestPeriod]  = useState<'day' | 'week'>('week')
+
+  async function generateDigest(period: 'day' | 'week') {
+    setDigest(''); setDigestError(null); setDigestLoading(true)
+    try {
+      const res  = await fetch('/api/ai/digest', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ config: aiConfig, period }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error ?? 'Digest failed')
+      setDigest(data.digest)
+    } catch (err) {
+      setDigestError(err instanceof Error ? err.message : 'Failed')
+    } finally {
+      setDigestLoading(false)
+    }
+  }
 
   useEffect(() => {
     function check() { setIsMobile(window.innerWidth < 768) }
@@ -406,6 +430,69 @@ export default function DashboardPage() {
                 </Link>
               ))}
             </div>
+          </div>
+        )}
+
+        {/* ── AI Digest ── shown only when AI is configured */}
+        {aiConfigured && (
+          <div style={{ backgroundColor: 'var(--card)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden', marginBottom: 24 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', borderBottom: digest || digestLoading ? '1px solid var(--border)' : 'none' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <div style={{ width: 26, height: 26, borderRadius: 7, backgroundColor: 'color-mix(in srgb, var(--primary) 15%, transparent)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Sparkles size={13} color="var(--primary)" />
+                </div>
+                <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--foreground)' }}>AI Knowledge Digest</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                {/* Period toggle */}
+                <div style={{ display: 'flex', borderRadius: 7, overflow: 'hidden', border: '1px solid var(--border)' }}>
+                  {(['day', 'week'] as const).map(p => (
+                    <button key={p} type="button" onClick={() => setDigestPeriod(p)} style={{
+                      padding: '4px 10px', fontSize: 11, fontWeight: 600, border: 'none', cursor: 'pointer',
+                      backgroundColor: digestPeriod === p ? 'var(--primary)' : 'transparent',
+                      color: digestPeriod === p ? 'white' : 'var(--muted-foreground)',
+                      transition: 'all 0.12s',
+                    }}>
+                      {p === 'day' ? 'Today' : 'This week'}
+                    </button>
+                  ))}
+                </div>
+                {/* Generate / Refresh */}
+                <button type="button" onClick={() => generateDigest(digestPeriod)} disabled={digestLoading} style={{
+                  display: 'flex', alignItems: 'center', gap: 5,
+                  padding: '5px 11px', borderRadius: 7,
+                  border: '1px solid color-mix(in srgb, var(--primary) 30%, transparent)',
+                  backgroundColor: 'color-mix(in srgb, var(--primary) 8%, transparent)',
+                  color: 'var(--primary)', fontSize: 12, fontWeight: 600,
+                  cursor: digestLoading ? 'wait' : 'pointer', opacity: digestLoading ? 0.6 : 1,
+                }}>
+                  {digestLoading
+                    ? <><Loader2 size={11} style={{ animation: 'spin 1s linear infinite' }} /> Generating…</>
+                    : digest
+                    ? <><RefreshCw size={11} /> Regenerate</>
+                    : <><Sparkles size={11} /> Generate digest</>
+                  }
+                </button>
+              </div>
+            </div>
+
+            {digestError && (
+              <div style={{ padding: '10px 16px', fontSize: 12, color: '#f87171' }}>
+                {digestError}
+              </div>
+            )}
+
+            {digest && !digestLoading && (
+              <div style={{ padding: '14px 16px', fontSize: 13, lineHeight: 1.7, color: 'var(--foreground)', whiteSpace: 'pre-wrap' }}>
+                {digest}
+              </div>
+            )}
+
+            {!digest && !digestLoading && !digestError && (
+              <div style={{ padding: '16px', fontSize: 12, color: 'var(--muted-foreground)', textAlign: 'center' }}>
+                Click "Generate digest" for an AI summary of your recent note activity.
+              </div>
+            )}
           </div>
         )}
 
