@@ -1,6 +1,6 @@
 'use client'
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { X, Send, Bot, User, Loader2, ChevronDown, Trash2, Globe, FileText } from 'lucide-react'
+import { X, Send, Sparkles, User, Loader2, Trash2, Globe, FileText, MessageSquareText } from 'lucide-react'
 import { AIConfig, AIMessage } from '@/lib/ai/types'
 import { useAIStream } from '@/hooks/useAI'
 
@@ -122,7 +122,7 @@ export function AIChatPanel({ config, noteId, noteTitle, onClose }: AIChatPanelP
       <div style={{ padding: '14px 16px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <div style={{ width: 28, height: 28, borderRadius: 8, backgroundColor: 'color-mix(in srgb, var(--primary) 15%, transparent)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <Bot size={14} color="var(--primary)" />
+            <Sparkles size={14} color="var(--primary)" />
           </div>
           <div>
             <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: 'var(--foreground)' }}>AI Chat</p>
@@ -165,7 +165,7 @@ export function AIChatPanel({ config, noteId, noteTitle, onClose }: AIChatPanelP
           <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'flex-start', justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start' }}>
             {msg.role === 'assistant' && (
               <div style={{ width: 24, height: 24, borderRadius: 6, backgroundColor: 'color-mix(in srgb, var(--primary) 12%, transparent)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 2 }}>
-                <Bot size={12} color="var(--primary)" />
+                <Sparkles size={12} color="var(--primary)" />
               </div>
             )}
             <div style={{
@@ -245,7 +245,7 @@ export function AIChatPanel({ config, noteId, noteTitle, onClose }: AIChatPanelP
 function WelcomeMessage({ mode, noteTitle }: { mode: ChatMode; noteTitle?: string }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flex: 1, padding: '32px 16px', gap: 8, color: 'var(--muted-foreground)', textAlign: 'center' }}>
-      <Bot size={28} color="var(--primary)" style={{ opacity: 0.7 }} />
+      <Sparkles size={28} color="var(--primary)" style={{ opacity: 0.7 }} />
       <p style={{ margin: 0, fontSize: 14, fontWeight: 600, color: 'var(--foreground)' }}>
         {mode === 'note' && noteTitle ? `Chat about "${noteTitle}"` : 'Chat with your knowledge base'}
       </p>

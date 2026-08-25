@@ -718,19 +718,24 @@ export function RichTextEditor({
           {onAIAssist && (
             <button
               type="button"
-              title="AI Assist: rewrite, expand, shorten, fix, or outline selected text"
+              title="AI Assist: select text, then rewrite / expand / shorten / fix / outline"
               onClick={onAIAssist}
               style={{
-                display: 'flex', alignItems: 'center', gap: 4,
+                display: 'flex', alignItems: 'center', gap: 5,
                 padding: '4px 9px', borderRadius: 6, border: '1px solid var(--border)',
                 backgroundColor: 'transparent', color: 'var(--muted-foreground)',
                 fontSize: 11, fontWeight: 600, cursor: 'pointer', transition: 'all 0.15s',
                 whiteSpace: 'nowrap',
               }}
-              onMouseEnter={e => { e.currentTarget.style.backgroundColor = 'color-mix(in srgb, var(--primary) 12%, transparent)'; e.currentTarget.style.color = 'var(--primary)'; e.currentTarget.style.borderColor = 'var(--primary)' }}
+              onMouseEnter={e => { e.currentTarget.style.backgroundColor = 'color-mix(in srgb, var(--primary) 12%, transparent)'; e.currentTarget.style.color = 'var(--primary)'; e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--primary) 40%, transparent)' }}
               onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = 'var(--muted-foreground)'; e.currentTarget.style.borderColor = 'var(--border)' }}
             >
-              ✦ AI
+              {/* Wand2 from lucide-react is imported at the top of this file — inline SVG avoids an extra import */}
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="m15 4-1 1"/><path d="m19 4 1 1"/><path d="m9 8-1-1"/><path d="m19 8 1-1"/>
+                <path d="M3 21 17 7"/><path d="m17 7 3-3"/><path d="m15 4 4 4"/>
+              </svg>
+              AI Assist
             </button>
           )}
           {onFocusMode && (

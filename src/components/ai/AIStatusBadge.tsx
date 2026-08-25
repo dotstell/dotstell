@@ -1,5 +1,5 @@
 'use client'
-import { Bot, AlertCircle } from 'lucide-react'
+import { Sparkles, AlertCircle } from 'lucide-react'
 import { PROVIDER_LABELS } from '@/lib/ai/types'
 import { useAISettings } from '@/hooks/useAISettings'
 
@@ -34,7 +34,7 @@ export function AIStatusBadge({ onClick }: AIStatusBadgeProps) {
       onMouseEnter={e => { if (onClick) e.currentTarget.style.backgroundColor = 'var(--accent)' }}
       onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'var(--muted)' }}
     >
-      <Bot size={11} color={isConfigured ? 'var(--primary)' : 'var(--muted-foreground)'} />
+      <Sparkles size={11} color={isConfigured ? 'var(--primary)' : 'var(--muted-foreground)'} />
       <span>{isConfigured ? label : 'AI'}</span>
       <span style={{
         width: 6, height: 6, borderRadius: '50%',

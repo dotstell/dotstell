@@ -1,6 +1,6 @@
 'use client'
 import { useEffect, useState } from 'react'
-import { Link2, Loader2, AlertCircle, RefreshCw } from 'lucide-react'
+import { Sparkles, Loader2, AlertCircle, RefreshCw } from 'lucide-react'
 import { AIConfig } from '@/lib/ai/types'
 
 interface RelatedNote {
@@ -91,7 +91,7 @@ export function AIRelatedPanel({ config, noteId, onOpen }: AIRelatedPanelProps) 
     <div>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
         <p style={{ margin: 0, fontSize: 11, fontWeight: 700, color: 'var(--muted-foreground)', textTransform: 'uppercase', letterSpacing: '0.07em', display: 'flex', alignItems: 'center', gap: 4 }}>
-          <Link2 size={10} /> Related notes
+          <Sparkles size={10} /> Related notes
         </p>
         <button type="button" onClick={load} disabled={loading} title="Refresh" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted-foreground)', padding: 2, display: 'flex' }}>
           <RefreshCw size={11} style={loading ? { animation: 'spin 1s linear infinite' } : {}} />

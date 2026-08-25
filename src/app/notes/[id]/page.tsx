@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import {
   X, Maximize2, Minimize2, Plus, FileText,
   ChevronRight, ArrowLeft, LayoutTemplate, Download,
-  List, ChevronDown, Bot, MessageSquare, Settings,
+  List, ChevronDown, Sparkles, MessageSquareText, Settings2, Wand2,
 } from 'lucide-react'
 import type { Editor } from '@tiptap/react'
 import Link from 'next/link'
@@ -411,25 +411,26 @@ ${note.content ?? ''}
           {/* AI Chat */}
           <button
             type="button"
-            title={aiConfigured ? 'AI Chat (RAG over your notes)' : 'AI not configured — click to set up'}
+            title={aiConfigured ? 'AI Chat — ask questions about your notes (RAG)' : 'AI not configured — click to set up'}
             onClick={() => aiConfigured ? setChatOpen(c => !c) : setAISettingsOpen(true)}
             style={{
               display: 'flex', alignItems: 'center', gap: 5,
               padding: '5px 10px', borderRadius: 7,
-              border: '1px solid var(--border)', background: chatOpen ? 'color-mix(in srgb, var(--primary) 12%, transparent)' : 'none',
+              border: `1px solid ${chatOpen ? 'color-mix(in srgb, var(--primary) 40%, transparent)' : 'var(--border)'}`,
+              background: chatOpen ? 'color-mix(in srgb, var(--primary) 12%, transparent)' : 'none',
               color: chatOpen ? 'var(--primary)' : 'var(--muted-foreground)', fontSize: 12, cursor: 'pointer',
               transition: 'all 0.12s',
             }}
-            onMouseEnter={e => { e.currentTarget.style.background = 'var(--accent)'; e.currentTarget.style.color = 'var(--foreground)' }}
-            onMouseLeave={e => { e.currentTarget.style.background = chatOpen ? 'color-mix(in srgb, var(--primary) 12%, transparent)' : 'none'; e.currentTarget.style.color = chatOpen ? 'var(--primary)' : 'var(--muted-foreground)' }}
+            onMouseEnter={e => { if (!chatOpen) { e.currentTarget.style.background = 'var(--accent)'; e.currentTarget.style.color = 'var(--foreground)' } }}
+            onMouseLeave={e => { if (!chatOpen) { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = 'var(--muted-foreground)' } }}
           >
-            <MessageSquare size={13} /> AI
+            <Sparkles size={13} /> AI Chat
           </button>
 
-          {/* AI Inline Assist — only shown when there's an active editor selection */}
+          {/* AI Inline Assist — select text in the editor, then click to transform it */}
           <button
             type="button"
-            title="AI: rewrite, expand, shorten, outline, or explain selected text"
+            title="AI Assist: select text first, then rewrite / expand / shorten / fix / outline"
             onClick={() => {
               const editor = editorRef.current
               if (!editor) return
@@ -451,7 +452,7 @@ ${note.content ?? ''}
             onMouseEnter={e => { e.currentTarget.style.background = 'var(--accent)'; e.currentTarget.style.color = 'var(--foreground)' }}
             onMouseLeave={e => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = 'var(--muted-foreground)' }}
           >
-            <Bot size={13} /> Assist
+            <Wand2 size={13} /> Assist
           </button>
 
           {/* AI Settings shortcut */}
@@ -469,7 +470,7 @@ ${note.content ?? ''}
             onMouseEnter={e => { e.currentTarget.style.background = 'var(--accent)'; e.currentTarget.style.color = 'var(--foreground)' }}
             onMouseLeave={e => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = 'var(--muted-foreground)' }}
           >
-            <Settings size={13} />
+            <Settings2 size={13} />
           </button>
         </div>
 

@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect } from 'react'
-import { X, Bot, ChevronDown, Check, AlertCircle, Loader2, Wifi, WifiOff } from 'lucide-react'
+import { X, Sparkles, ChevronDown, Check, AlertCircle, Loader2, Wifi, Database } from 'lucide-react'
 import {
   AIConfig, AIProvider, EmbeddingProvider,
   PROVIDER_LABELS, EMBEDDING_PROVIDER_LABELS,
@@ -113,7 +113,7 @@ export function AISettingsModal({ onClose }: AISettingsModalProps) {
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <div style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: 'color-mix(in srgb, var(--primary) 15%, transparent)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Bot size={18} color="var(--primary)" />
+              <Sparkles size={18} color="var(--primary)" />
             </div>
             <div>
               <p style={{ margin: 0, fontSize: 16, fontWeight: 700, color: 'var(--foreground)' }}>AI Settings</p>
@@ -231,7 +231,7 @@ export function AISettingsModal({ onClose }: AISettingsModalProps) {
             {testing ? 'Testing…' : 'Test connection'}
           </button>
           <button type="button" onClick={reindexAll} disabled={indexing} style={{ ...btnStyle, flex: 1 }}>
-            {indexing ? <Loader2 size={13} style={{ animation: 'spin 1s linear infinite' }} /> : <Bot size={13} />}
+            {indexing ? <Loader2 size={13} style={{ animation: 'spin 1s linear infinite' }} /> : <Database size={13} />}
             {indexing ? 'Indexing…' : 'Re-index all'}
           </button>
         </div>

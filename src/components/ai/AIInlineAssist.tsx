@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { X, Loader2, Check, RefreshCw, ChevronDown } from 'lucide-react'
+import { X, Loader2, Check, RefreshCw, Wand2 } from 'lucide-react'
 import { AIConfig, AssistOperation, ASSIST_LABELS } from '@/lib/ai/types'
 import { useAIAssist } from '@/hooks/useAI'
 
@@ -108,8 +108,8 @@ export function AIInlineAssist({ config, selectedText, noteContext, anchorRect, 
       }}
     >
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-        <p style={{ margin: 0, fontSize: 11, fontWeight: 700, color: 'var(--muted-foreground)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
-          {operation ? ASSIST_LABELS[operation] : 'AI'}
+        <p style={{ margin: 0, fontSize: 11, fontWeight: 700, color: 'var(--muted-foreground)', textTransform: 'uppercase', letterSpacing: '0.07em', display: 'flex', alignItems: 'center', gap: 4 }}>
+          <Wand2 size={11} /> {operation ? ASSIST_LABELS[operation] : 'AI Assist'}
         </p>
         <div style={{ display: 'flex', gap: 4 }}>
           {!streaming && result && (
