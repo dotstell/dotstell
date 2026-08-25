@@ -430,7 +430,7 @@ export default function HelpPage() {
               <Tip icon="⚡" title="G-key navigation"
                 body={
                   <span style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                    <span>Press <Kbd>G</Kbd> from anywhere in the app (not while typing), then press a second key to jump to any section. A small hint badge appears at the bottom-right to confirm the first key was registered.</span>
+                    <span>Press <Kbd>G</Kbd> from anywhere in the app (not while typing), then press a second key to jump to any of the 8 sections. A small hint badge appears at the bottom-right to confirm the first key was registered.</span>
                     <span style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 2 }}>
                       <Tag>G D — Dashboard</Tag>
                       <Tag>G N — Notes</Tag>
@@ -438,6 +438,8 @@ export default function HelpPage() {
                       <Tag>G B — Bookmarks</Tag>
                       <Tag>G T — Tasks</Tag>
                       <Tag>G G — Graph</Tag>
+                      <Tag>G A — Tags</Tag>
+                      <Tag>G H — Help</Tag>
                     </span>
                   </span>
                 }
@@ -459,6 +461,8 @@ export default function HelpPage() {
                   { keys: ['G', 'B'],      desc: 'Go to Bookmarks' },
                   { keys: ['G', 'T'],      desc: 'Go to Tasks' },
                   { keys: ['G', 'G'],      desc: 'Go to Graph' },
+                  { keys: ['G', 'A'],      desc: 'Go to Tags' },
+                  { keys: ['G', 'H'],      desc: 'Go to Help' },
                 ]},
                 { category: 'Note editor', rows: [
                   { keys: ['Ctrl', 'Shift', ','],  desc: 'Open AI Settings' },

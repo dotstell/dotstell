@@ -17,6 +17,8 @@ const G_ROUTES: Record<string, string> = {
   b: '/bookmarks',
   t: '/tasks',
   g: '/graph',
+  a: '/tags',
+  h: '/help',
 }
 
 function isEditable(el: Element | null): boolean {
