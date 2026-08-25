@@ -165,10 +165,15 @@ export function AISettingsModal({ onClose }: AISettingsModalProps) {
 
   const needsSeparateEmbedProvider = PROVIDERS_WITHOUT_EMBEDDINGS.includes(draft.provider)
   const ollamaNames = ollamaModels.map(m => m.name)
+  // Merge static suggestions + live cloud models so the recommended model always appears
+  // even when the provider's API doesn't list it (e.g. Gemini omits gemini-2.0-flash-lite).
   const chatModels  = draft.provider === 'ollama' && ollamaNames.length > 0
     ? ollamaNames
     : cloudModels.length > 0
-    ? cloudModels
+    ? [
+        ...CHAT_MODEL_SUGGESTIONS[draft.provider].filter(s => !cloudModels.includes(s)),
+        ...cloudModels,
+      ]
     : CHAT_MODEL_SUGGESTIONS[draft.provider]
   const embedModels = draft.embeddingProvider === 'ollama' && ollamaNames.length > 0
     ? ollamaNames
