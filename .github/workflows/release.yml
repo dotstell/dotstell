@@ -76,10 +76,15 @@ jobs:
 
       # Extract the section for the current tag from CHANGELOG.md, append footer.
       - name: Extract changelog section
+        id: changelog
         run: |
           TAG="${{ github.ref_name }}"
-          awk "/^## \[${TAG}\]/{flag=1; next} /^## \[v[0-9]/{flag=0} flag" CHANGELOG.md > /tmp/release_body.md
-          cat .github/release_footer.md >> /tmp/release_body.md
+          {
+            echo 'body<<CHANGELOG_EOF'
+            awk "/^## \[${TAG}\]/{flag=1; next} /^## \[v[0-9]/{flag=0} flag" CHANGELOG.md
+            cat .github/release_footer.md
+            echo 'CHANGELOG_EOF'
+          } >> "$GITHUB_OUTPUT"
         shell: bash
 
       - name: Build and publish release
@@ -89,7 +94,7 @@ jobs:
         with:
           tagName: ${{ github.ref_name }}
           releaseName: 'Dotstell ${{ github.ref_name }}'
-          releaseBodyPath: /tmp/release_body.md
+          releaseBody: ${{ steps.changelog.outputs.body }}
           releaseDraft: true
           prerelease: false
           args: ${{ matrix.args }}
