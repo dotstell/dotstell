@@ -49,13 +49,9 @@ export function AIRelatedPanel({ config, noteId, onOpen }: AIRelatedPanelProps) 
     }
   }
 
-  // Load on mount and when the note changes
-  useEffect(() => {
-    setNotes([])
-    setLoaded(false)
-    load()
+  // Load on mount and when the note or AI config changes
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [noteId])
+  useEffect(() => { setNotes([]); setLoaded(false); load() }, [noteId, config.provider, config.model, config.embeddingProvider, config.embeddingModel])
 
   if (loading && !loaded) {
     return (

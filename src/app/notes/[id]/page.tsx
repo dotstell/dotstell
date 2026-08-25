@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import {
   X, Maximize2, Minimize2, Plus, FileText,
   ChevronRight, ArrowLeft, LayoutTemplate, Download,
-  List, ChevronDown, Sparkles, MessageSquareText, Settings2, Wand2,
+  List, ChevronDown, Sparkles, MessageSquareText, Settings2,
 } from 'lucide-react'
 import type { Editor } from '@tiptap/react'
 import Link from 'next/link'
@@ -427,33 +427,7 @@ ${note.content ?? ''}
             <Sparkles size={13} /> AI Chat
           </button>
 
-          {/* AI Inline Assist — select text in the editor, then click to transform it */}
-          <button
-            type="button"
-            title="AI Assist: select text first, then rewrite / expand / shorten / fix / outline"
-            onClick={() => {
-              const editor = editorRef.current
-              if (!editor) return
-              const { from, to } = editor.state.selection
-              if (from === to) return  // no selection
-              const text = editor.state.doc.textBetween(from, to, ' ').trim()
-              if (!text) return
-              const sel = window.getSelection()
-              const rect = sel?.rangeCount ? sel.getRangeAt(0).getBoundingClientRect() : null
-              if (rect) setAIAssist({ text, rect })
-            }}
-            style={{
-              display: 'flex', alignItems: 'center', gap: 5,
-              padding: '5px 10px', borderRadius: 7,
-              border: '1px solid var(--border)', background: 'none',
-              color: 'var(--muted-foreground)', fontSize: 12, cursor: 'pointer',
-              transition: 'all 0.12s',
-            }}
-            onMouseEnter={e => { e.currentTarget.style.background = 'var(--accent)'; e.currentTarget.style.color = 'var(--foreground)' }}
-            onMouseLeave={e => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = 'var(--muted-foreground)' }}
-          >
-            <Wand2 size={13} /> Assist
-          </button>
+          {/* AI Inline Assist is now triggered by the floating bubble that appears on text selection — no header button needed */}
 
           {/* AI Settings shortcut */}
           <button

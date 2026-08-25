@@ -136,8 +136,10 @@ async function embedEntity(
   }
 
   const result = await embed(config, text)
-  await supabase.from(type === 'note' ? 'notes' : 'bookmarks')
+  const { error: dbError } = await supabase
+    .from(type === 'note' ? 'notes' : 'bookmarks')
     .update({ embedding: result.embedding, embedding_model: result.model })
     .eq('id', id)
     .eq('user_id', userId)
+  if (dbError) throw new Error(`DB update failed: ${dbError.message}`)
 }

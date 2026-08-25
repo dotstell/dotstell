@@ -9,8 +9,13 @@ import { validateConfig } from '@/lib/ai/client'
 
 const STORAGE_KEY = 'dotstell-ai-config'
 
-// AI config is stored entirely in localStorage — API keys never leave the browser
-// except as part of API route requests (TLS-encrypted, never persisted server-side).
+/**
+ * Read and persist AI provider configuration from/to localStorage.
+ * API keys never leave the browser except as request bodies to Next.js API routes
+ * (TLS-encrypted, never logged or stored server-side).
+ * Returns `loaded: false` on first render (before localStorage is read); consumers
+ * should defer rendering provider-specific UI until `loaded` is true.
+ */
 export function useAISettings() {
   const [config, setConfigState] = useState<AIConfig>(DEFAULT_AI_CONFIG)
   const [loaded, setLoaded]      = useState(false)

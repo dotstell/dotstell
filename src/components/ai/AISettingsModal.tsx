@@ -1,6 +1,10 @@
 'use client'
 import { useState, useEffect, useCallback } from 'react'
-import { X, Sparkles, ChevronDown, Check, AlertCircle, Loader2, Wifi, Database, RefreshCw } from 'lucide-react'
+import {
+  X, Sparkles, ChevronDown, Check, AlertCircle, Loader2,
+  Wifi, Database, RefreshCw, MessageSquareText, Search, Wand2,
+  HelpCircle, ChevronRight,
+} from 'lucide-react'
 import {
   AIConfig, AIProvider, EmbeddingProvider,
   PROVIDER_LABELS, EMBEDDING_PROVIDER_LABELS,
@@ -13,80 +17,149 @@ interface AISettingsModalProps {
   onClose: () => void
 }
 
-// Fallback suggestions when Ollama can't be reached (e.g. not running yet)
-const FALLBACK_OLLAMA_CHAT_MODELS = ['llama3.2', 'llama3.1', 'mistral', 'phi3', 'gemma2', 'qwen2.5']
+// What each provider needs from the user
+const PROVIDER_NOTES: Record<AIProvider, string> = {
+  ollama:    'Free & private — runs entirely on your machine. No API key needed.',
+  openai:    'Requires an OpenAI account and API key. Usage is billed per request.',
+  anthropic: 'Requires an Anthropic account and API key. Usage is billed per request.',
+  gemini:    'Requires a Google AI Studio API key. Has a generous free tier.',
+  groq:      'Requires a Groq account. Very fast inference, generous free tier.',
+}
+
+const FALLBACK_OLLAMA_CHAT_MODELS  = ['llama3.2', 'llama3.1', 'mistral', 'phi3', 'gemma2', 'qwen2.5']
 const FALLBACK_OLLAMA_EMBED_MODELS = ['nomic-embed-text', 'mxbai-embed-large', 'all-minilm']
 
 const CHAT_MODEL_SUGGESTIONS: Record<AIProvider, string[]> = {
   ollama:    FALLBACK_OLLAMA_CHAT_MODELS,
   openai:    ['gpt-4o-mini', 'gpt-4o', 'gpt-4-turbo', 'gpt-3.5-turbo'],
   anthropic: ['claude-haiku-4-5-20251001', 'claude-sonnet-5', 'claude-opus-5'],
-  gemini:    ['gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-2.0-flash'],
+  gemini:    ['gemini-2.0-flash', 'gemini-2.5-flash', 'gemini-2.5-pro', 'gemini-1.5-flash'],
   groq:      ['llama-3.1-8b-instant', 'llama-3.3-70b-versatile', 'mixtral-8x7b-32768'],
 }
 
 const EMBED_MODEL_SUGGESTIONS: Record<EmbeddingProvider, string[]> = {
   ollama: FALLBACK_OLLAMA_EMBED_MODELS,
-  openai: ['text-embedding-3-small', 'text-embedding-3-large', 'text-embedding-ada-002'],
+  openai: ['text-embedding-3-small', 'text-embedding-3-large'],
   gemini: ['text-embedding-004'],
 }
 
+// Providers that have NO embedding API — user must choose a separate one
+const EMBED_PROVIDER_WHY_NOT: Partial<Record<AIProvider, string>> = {
+  anthropic: 'Anthropic doesn\'t offer an embedding API yet.',
+  groq:      'Groq doesn\'t offer an embedding API.',
+}
+
 export function AISettingsModal({ onClose }: AISettingsModalProps) {
-  const { config, saveConfig, isConfigured } = useAISettings()
-  const [draft,      setDraft]      = useState<AIConfig>(config)
-  const [testing,    setTesting]    = useState(false)
-  const [testResult, setTestResult] = useState<{ ok: boolean; message: string } | null>(null)
-  const [indexing,   setIndexing]   = useState(false)
-  const [indexResult, setIndexResult] = useState<string | null>(null)
+  const { config, saveConfig, loaded } = useAISettings()
+  const [draft,        setDraft]        = useState<AIConfig>(config)
 
-  // Live list of models fetched from Ollama — replaces hardcoded suggestions when available
-  const [ollamaModels,     setOllamaModels]     = useState<string[]>([])
-  const [ollamaFetching,   setOllamaFetching]   = useState(false)
-  const [ollamaFetchError, setOllamaFetchError] = useState<string | null>(null)
+  // useAISettings reads localStorage in a useEffect (async), so `config` starts as
+  // DEFAULT_AI_CONFIG on first render. Sync draft once the hook has loaded the real value.
+  useEffect(() => { if (loaded) setDraft(config) }, [loaded]) // eslint-disable-line react-hooks/exhaustive-deps
+  const [saved,        setSaved]         = useState(false)
+  const [testing,      setTesting]      = useState(false)
+  const [testResult,   setTestResult]   = useState<{ ok: boolean; message: string } | null>(null)
+  const [indexing,     setIndexing]     = useState(false)
+  const [indexResult,  setIndexResult]  = useState<{ ok: boolean; message: string } | null>(null)
+  const [showAdvanced, setShowAdvanced] = useState(false)
 
-  // Fetch installed Ollama models via the Next.js API route (server-side proxy).
-  // Direct browser fetch to localhost:11434 is blocked by corporate proxies,
-  // so we relay through the server which can reach localhost freely.
+  // Live Ollama model list fetched server-side (browser can't reach localhost:11434 through corporate proxy)
+  const [ollamaModels,   setOllamaModels]   = useState<Array<{ name: string; capabilities: string[] }>>([])
+  const [ollamaFetching, setOllamaFetching] = useState(false)
+  const [ollamaError,    setOllamaError]    = useState<string | null>(null)
+
   const fetchOllamaModels = useCallback(async (baseUrl: string) => {
     setOllamaFetching(true)
-    setOllamaFetchError(null)
+    setOllamaError(null)
     try {
       const params = new URLSearchParams({ baseUrl: baseUrl || 'http://localhost:11434' })
-      const res = await fetch(`/api/ai/ollama-models?${params}`)
+      const res  = await fetch(`/api/ai/ollama-models?${params}`)
       const data = await res.json()
       if (!res.ok) throw new Error(data.error ?? `HTTP ${res.status}`)
       const models: Array<{ name: string; capabilities: string[] }> = data.models ?? []
-      const names = models.map(m => m.name).filter(Boolean)
-      setOllamaModels(names)
-      // Auto-correct the chat model if it isn't actually installed
+      setOllamaModels(models)
+      // Auto-select the best available chat model if the current one isn't installed
       setDraft(prev => {
         if (prev.provider !== 'ollama') return prev
+        const names = models.map(m => m.name)
         if (names.length > 0 && !names.includes(prev.model)) {
-          // Prefer a model with 'completion' capability, fall back to first model
-          const chatModel = models.find(m => m.capabilities.includes('completion'))?.name ?? names[0]
-          return { ...prev, model: chatModel }
+          const best = models.find(m => m.capabilities.includes('completion'))?.name ?? names[0]
+          return { ...prev, model: best }
         }
         return prev
       })
     } catch (err) {
-      setOllamaFetchError(err instanceof Error ? err.message : 'Cannot reach Ollama')
+      setOllamaError(err instanceof Error ? err.message : 'Cannot reach Ollama')
       setOllamaModels([])
     } finally {
       setOllamaFetching(false)
     }
   }, [])
 
-  // Auto-fetch on mount and whenever the Ollama base URL changes
+  // Live model list for cloud providers (OpenAI, Anthropic, Groq, Gemini)
+  const [cloudModels,   setCloudModels]   = useState<string[]>([])
+  const [cloudFetching, setCloudFetching] = useState(false)
+
+  const CLOUD_PROVIDERS = ['openai', 'anthropic', 'groq', 'gemini'] as const
+
+  const fetchCloudModels = useCallback(async (provider: string, apiKey: string) => {
+    if (!apiKey) { setCloudModels([]); return }
+    setCloudFetching(true)
+    try {
+      const endpoint = provider === 'gemini' ? '/api/ai/gemini-models' : '/api/ai/cloud-models'
+      const payload  = provider === 'gemini' ? { apiKey } : { provider, apiKey }
+      const res  = await fetch(endpoint, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify(payload),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error ?? `HTTP ${res.status}`)
+      const models: string[] = data.models ?? []
+      setCloudModels(models)
+      // Auto-select first live model if current selection isn't in the live list
+      setDraft(prev => {
+        if (prev.provider !== provider) return prev
+        if (models.length > 0 && !models.includes(prev.model)) return { ...prev, model: models[0] }
+        return prev
+      })
+    } catch {
+      setCloudModels([]) // fall back to static suggestions on error
+    } finally {
+      setCloudFetching(false)
+    }
+  }, [])
+
   useEffect(() => {
-    if (draft.provider === 'ollama') {
+    if (draft.provider === 'ollama' || draft.embeddingProvider === 'ollama') {
       fetchOllamaModels(draft.baseUrl ?? 'http://localhost:11434')
     }
-  }, [draft.provider, draft.baseUrl, fetchOllamaModels])
+  }, [draft.provider, draft.embeddingProvider, draft.baseUrl, fetchOllamaModels])
 
-  // Reset test result whenever connection-relevant fields change
+  useEffect(() => {
+    if ((CLOUD_PROVIDERS as readonly string[]).includes(draft.provider) && draft.apiKey) {
+      fetchCloudModels(draft.provider, draft.apiKey)
+    } else {
+      setCloudModels([])
+    }
+  }, [draft.provider, draft.apiKey, fetchCloudModels])
+
   useEffect(() => { setTestResult(null) }, [draft.provider, draft.apiKey, draft.model, draft.baseUrl])
 
-  const needsEmbedConfig = PROVIDERS_WITHOUT_EMBEDDINGS.includes(draft.provider)
+  // Ollama returns model names with `:latest` tag (e.g. "nomic-embed-text:latest")
+  // but users typically save them without the tag. Normalise for comparison.
+  const normalizeModel = (m: string) => m.replace(/:latest$/, '')
+
+  const needsSeparateEmbedProvider = PROVIDERS_WITHOUT_EMBEDDINGS.includes(draft.provider)
+  const ollamaNames = ollamaModels.map(m => m.name)
+  const chatModels  = draft.provider === 'ollama' && ollamaNames.length > 0
+    ? ollamaNames
+    : cloudModels.length > 0
+    ? cloudModels
+    : CHAT_MODEL_SUGGESTIONS[draft.provider]
+  const embedModels = draft.embeddingProvider === 'ollama' && ollamaNames.length > 0
+    ? ollamaNames
+    : EMBED_MODEL_SUGGESTIONS[draft.embeddingProvider]
 
   async function testConnection() {
     setTesting(true)
@@ -95,30 +168,25 @@ export function AISettingsModal({ onClose }: AISettingsModalProps) {
       const res = await fetch('/api/ai/chat', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({
-          config:   draft,
-          messages: [{ role: 'user', content: 'Reply with exactly: OK' }],
-        }),
+        body:    JSON.stringify({ config: draft, messages: [{ role: 'user', content: 'Reply with exactly: OK' }] }),
       })
       if (!res.ok) {
         const err = await res.json().catch(() => ({ error: 'Connection failed' }))
         setTestResult({ ok: false, message: err.error ?? 'Connection failed' })
         return
       }
-      // Drain the stream to verify it works end-to-end
       const reader  = res.body!.getReader()
       const decoder = new TextDecoder()
       let   reply   = ''
       while (true) {
         const { done, value } = await reader.read()
         if (done) break
-        const text = decoder.decode(value)
-        for (const line of text.split('\n')) {
+        for (const line of decoder.decode(value).split('\n')) {
           if (!line.startsWith('data: ')) continue
           try { const c = JSON.parse(line.slice(6)); reply += c.delta ?? ''; if (c.done) break } catch {}
         }
       }
-      setTestResult({ ok: true, message: `Connected — model replied: "${reply.slice(0, 80)}"` })
+      setTestResult({ ok: true, message: `AI is ready — ${PROVIDER_LABELS[draft.provider]} replied successfully` })
     } catch (err) {
       setTestResult({ ok: false, message: err instanceof Error ? err.message : 'Connection failed' })
     } finally {
@@ -126,28 +194,26 @@ export function AISettingsModal({ onClose }: AISettingsModalProps) {
     }
   }
 
-  async function reindexAll() {
+  async function buildSearchIndex() {
     setIndexing(true)
     setIndexResult(null)
     try {
-      const res = await fetch('/api/ai/embed', {
+      const res  = await fetch('/api/ai/embed', {
         method:  'PUT',
         headers: { 'Content-Type': 'application/json' },
         body:    JSON.stringify({ config: draft }),
       })
       const data = await res.json()
-      if (!res.ok) { setIndexResult(`Error: ${data.error}`); return }
-      setIndexResult(`Indexed ${data.succeeded} items (${data.failed} failed) of ${data.total} total`)
+      if (!res.ok) { setIndexResult({ ok: false, message: data.error ?? 'Indexing failed' }); return }
+      const msg = data.total === 0
+        ? 'All notes are already indexed — nothing to do'
+        : `Done: indexed ${data.succeeded} of ${data.total} notes${data.failed > 0 ? ` (${data.failed} failed)` : ''}`
+      setIndexResult({ ok: true, message: msg })
     } catch (err) {
-      setIndexResult(err instanceof Error ? err.message : 'Indexing failed')
+      setIndexResult({ ok: false, message: err instanceof Error ? err.message : 'Indexing failed' })
     } finally {
       setIndexing(false)
     }
-  }
-
-  function handleSave() {
-    saveConfig(draft)
-    onClose()
   }
 
   return (
@@ -155,26 +221,43 @@ export function AISettingsModal({ onClose }: AISettingsModalProps) {
       style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)' }}
       onMouseDown={e => { if (e.target === e.currentTarget) onClose() }}
     >
-      <div style={{ backgroundColor: 'var(--card)', border: '1px solid var(--border)', borderRadius: 16, padding: 28, width: '100%', maxWidth: 540, maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 24px 64px rgba(0,0,0,0.6)' }}>
+      <div style={{ backgroundColor: 'var(--card)', border: '1px solid var(--border)', borderRadius: 16, padding: '24px 24px 20px', width: '100%', maxWidth: 520, maxHeight: '92vh', overflowY: 'auto', boxShadow: '0 24px 64px rgba(0,0,0,0.6)' }}>
 
-        {/* Header */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
+        {/* ── Header ── */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <div style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: 'color-mix(in srgb, var(--primary) 15%, transparent)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Sparkles size={18} color="var(--primary)" />
+            <div style={{ width: 34, height: 34, borderRadius: 10, background: 'color-mix(in srgb, var(--primary) 15%, transparent)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Sparkles size={16} color="var(--primary)" />
             </div>
             <div>
-              <p style={{ margin: 0, fontSize: 16, fontWeight: 700, color: 'var(--foreground)' }}>AI Settings</p>
-              <p style={{ margin: 0, fontSize: 12, color: 'var(--muted-foreground)' }}>Configure your AI provider and models</p>
+              <p style={{ margin: 0, fontSize: 15, fontWeight: 700, color: 'var(--foreground)' }}>AI Settings</p>
+              <p style={{ margin: 0, fontSize: 11, color: 'var(--muted-foreground)' }}>API keys are stored only in your browser — never sent to any server</p>
             </div>
           </div>
-          <button type="button" onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted-foreground)', padding: 4, borderRadius: 6, display: 'flex' }}>
-            <X size={16} />
-          </button>
+          <button type="button" onClick={onClose} style={iconBtn}><X size={15} /></button>
         </div>
 
-        <Section title="Chat Provider">
-          <Label>Provider</Label>
+        {/* ── What AI does in dotstell ── */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 6, marginBottom: 20 }}>
+          {[
+            { icon: <MessageSquareText size={13} color="var(--primary)" />, label: 'Chat',    desc: 'Ask questions about your notes' },
+            { icon: <Wand2            size={13} color="var(--primary)" />, label: 'Assist',  desc: 'Rewrite, expand, fix, outline text' },
+            { icon: <Search           size={13} color="var(--primary)" />, label: 'Search',  desc: 'Find notes by meaning, not just keywords' },
+          ].map(f => (
+            <div key={f.label} style={{ padding: '8px 10px', borderRadius: 8, backgroundColor: 'var(--muted)', border: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: 4 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                {f.icon}
+                <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--foreground)' }}>{f.label}</span>
+              </div>
+              <span style={{ fontSize: 10, color: 'var(--muted-foreground)', lineHeight: 1.4 }}>{f.desc}</span>
+            </div>
+          ))}
+        </div>
+
+        {/* ── Step 1: AI Model ── */}
+        <SectionHeader step={1} title="Choose your AI model" subtitle="Used for Chat, Assist, and all text generation" />
+
+        <Field label="Provider">
           <Select
             value={draft.provider}
             options={(Object.keys(PROVIDER_LABELS) as AIProvider[]).map(p => ({ value: p, label: PROVIDER_LABELS[p] }))}
@@ -182,151 +265,184 @@ export function AISettingsModal({ onClose }: AISettingsModalProps) {
               ...prev,
               provider:          v as AIProvider,
               model:             DEFAULT_CHAT_MODELS[v as AIProvider],
+              // Clear Ollama-specific baseUrl when switching to a cloud provider so
+              // openaiStream doesn't accidentally hit localhost:11434
+              baseUrl:           (v as AIProvider) === 'ollama' ? prev.baseUrl : undefined,
               embeddingProvider: PROVIDERS_WITHOUT_EMBEDDINGS.includes(v as AIProvider) ? prev.embeddingProvider : v as EmbeddingProvider,
               embeddingModel:    PROVIDERS_WITHOUT_EMBEDDINGS.includes(v as AIProvider) ? prev.embeddingModel : DEFAULT_EMBEDDING_MODELS[v as EmbeddingProvider] ?? prev.embeddingModel,
             }))}
           />
+          <p style={{ margin: '4px 0 0', fontSize: 11, color: 'var(--muted-foreground)' }}>{PROVIDER_NOTES[draft.provider]}</p>
+        </Field>
 
-          {draft.provider !== 'ollama' && (
-            <>
-              <Label>API Key</Label>
-              <input
-                type="password"
-                value={draft.apiKey ?? ''}
-                onChange={e => setDraft(p => ({ ...p, apiKey: e.target.value }))}
-                placeholder="sk-... or your provider key"
-                style={inputStyle}
-              />
-            </>
+        {draft.provider === 'ollama' ? (
+          <Field label="Ollama URL">
+            <input
+              value={draft.baseUrl ?? 'http://localhost:11434'}
+              onChange={e => setDraft(p => ({ ...p, baseUrl: e.target.value }))}
+              style={inputStyle}
+            />
+          </Field>
+        ) : (
+          <Field label="API Key">
+            <input
+              type="password"
+              value={draft.apiKey ?? ''}
+              onChange={e => setDraft(p => ({ ...p, apiKey: e.target.value }))}
+              placeholder="Paste your API key here"
+              style={inputStyle}
+            />
+          </Field>
+        )}
+
+        <Field
+          label="Model"
+          aside={draft.provider === 'ollama' ? (
+            <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 10 }}>
+              {ollamaFetching
+                ? <><Loader2 size={10} style={{ animation: 'spin 1s linear infinite' }} color="var(--muted-foreground)" /> detecting…</>
+                : ollamaError
+                ? <span style={{ color: '#f87171' }}>Ollama not found — is it running?</span>
+                : <span style={{ color: '#4ade80' }}>{ollamaModels.length} model{ollamaModels.length !== 1 ? 's' : ''} installed</span>
+              }
+              <button type="button" onClick={() => fetchOllamaModels(draft.baseUrl ?? 'http://localhost:11434')} title="Refresh" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted-foreground)', padding: 1, display: 'flex' }}>
+                <RefreshCw size={9} />
+              </button>
+            </span>
+          ) : draft.provider !== 'ollama' && draft.apiKey ? (
+            <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 10, color: 'var(--muted-foreground)' }}>
+              {cloudFetching
+                ? <><Loader2 size={10} style={{ animation: 'spin 1s linear infinite' }} /> fetching models…</>
+                : cloudModels.length > 0
+                ? <span style={{ color: '#4ade80' }}>{cloudModels.length} models available</span>
+                : null
+              }
+              <button type="button" onClick={() => fetchCloudModels(draft.provider, draft.apiKey ?? '')} title="Refresh" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted-foreground)', padding: 1, display: 'flex' }}>
+                <RefreshCw size={9} />
+              </button>
+            </span>
+          ) : undefined}
+        >
+          <ModelInput value={draft.model} suggestions={chatModels} onChange={v => setDraft(p => ({ ...p, model: v }))} />
+        </Field>
+
+        {/* ── Step 2: Semantic Search ── */}
+        <div style={{ borderTop: '1px solid var(--border)', paddingTop: 16, marginTop: 4 }}>
+          <SectionHeader step={2} title="Enable semantic search" subtitle="Powers Related Notes, AI Chat context, and search-by-meaning" />
+
+          {needsSeparateEmbedProvider && (
+            <Notice type="warning">
+              {EMBED_PROVIDER_WHY_NOT[draft.provider]} Choose a separate provider below to enable semantic search — this is only needed for indexing, so a free-tier account works fine.
+            </Notice>
           )}
 
-          {draft.provider === 'ollama' && (
-            <>
-              <Label>Ollama Base URL</Label>
-              <input
-                value={draft.baseUrl ?? 'http://localhost:11434'}
-                onChange={e => setDraft(p => ({ ...p, baseUrl: e.target.value }))}
-                placeholder="http://localhost:11434"
-                style={inputStyle}
-              />
-              <p style={{ fontSize: 11, color: 'var(--muted-foreground)', margin: '4px 0 0' }}>Ollama must be running locally. <a href="https://ollama.ai" target="_blank" rel="noreferrer" style={{ color: 'var(--primary)' }}>Install Ollama →</a></p>
-            </>
-          )}
-
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', margin: '6px 0 2px' }}>
-            <Label>Chat Model</Label>
-            {draft.provider === 'ollama' && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                {ollamaFetching && <Loader2 size={11} color="var(--muted-foreground)" style={{ animation: 'spin 1s linear infinite' }} />}
-                {ollamaFetchError && <span style={{ fontSize: 10, color: '#f87171' }}>Ollama unreachable</span>}
-                {!ollamaFetching && ollamaModels.length > 0 && (
-                  <span style={{ fontSize: 10, color: '#4ade80' }}>{ollamaModels.length} model{ollamaModels.length !== 1 ? 's' : ''} installed</span>
-                )}
-                <button type="button" onClick={() => fetchOllamaModels(draft.baseUrl ?? 'http://localhost:11434')} title="Refresh model list" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted-foreground)', padding: 2, display: 'flex' }}>
-                  <RefreshCw size={10} />
-                </button>
-              </div>
-            )}
-          </div>
-          <ModelInput
-            value={draft.model}
-            suggestions={draft.provider === 'ollama' && ollamaModels.length > 0 ? ollamaModels : CHAT_MODEL_SUGGESTIONS[draft.provider]}
-            onChange={v => setDraft(p => ({ ...p, model: v }))}
-            placeholder={draft.provider === 'ollama' && ollamaModels.length > 0 ? `choose from ${ollamaModels.length} installed models` : `e.g. ${DEFAULT_CHAT_MODELS[draft.provider]}`}
-          />
-        </Section>
-
-        <Section title={`Embedding Provider${needsEmbedConfig ? ' (required — your chat provider has no embedding API)' : ''}`}>
-          {needsEmbedConfig && (
-            <div style={{ padding: '8px 12px', borderRadius: 8, backgroundColor: 'rgba(251,191,36,0.1)', border: '1px solid rgba(251,191,36,0.3)', marginBottom: 12, fontSize: 12, color: '#fbbf24' }}>
-              {PROVIDER_LABELS[draft.provider]} has no embedding API. Choose a separate provider for semantic search and RAG.
-            </div>
-          )}
-          <Label>Embedding Provider</Label>
-          <Select
-            value={draft.embeddingProvider}
-            options={(Object.keys(EMBEDDING_PROVIDER_LABELS) as EmbeddingProvider[]).map(p => ({ value: p, label: EMBEDDING_PROVIDER_LABELS[p] }))}
-            onChange={v => setDraft(p => ({ ...p, embeddingProvider: v as EmbeddingProvider, embeddingModel: DEFAULT_EMBEDDING_MODELS[v as EmbeddingProvider] }))}
-          />
+          <Field label="Search engine provider">
+            <Select
+              value={draft.embeddingProvider}
+              options={(Object.keys(EMBEDDING_PROVIDER_LABELS) as EmbeddingProvider[]).map(p => ({ value: p, label: EMBEDDING_PROVIDER_LABELS[p] }))}
+              onChange={v => setDraft(p => ({ ...p, embeddingProvider: v as EmbeddingProvider, embeddingModel: DEFAULT_EMBEDDING_MODELS[v as EmbeddingProvider] }))}
+            />
+            <p style={{ margin: '4px 0 0', fontSize: 11, color: 'var(--muted-foreground)' }}>
+              Only Ollama, OpenAI, and Google Gemini offer embedding APIs — Anthropic and Groq don&apos;t provide them yet.
+            </p>
+          </Field>
 
           {draft.embeddingProvider !== 'ollama' && draft.embeddingProvider !== draft.provider && (
-            <>
-              <Label>Embedding API Key</Label>
+            <Field label="Search engine API Key">
               <input
                 type="password"
                 value={draft.embeddingApiKey ?? ''}
                 onChange={e => setDraft(p => ({ ...p, embeddingApiKey: e.target.value }))}
-                placeholder="API key for the embedding provider"
+                placeholder="API key for the search provider"
                 style={inputStyle}
               />
-            </>
+            </Field>
           )}
 
-          {draft.embeddingProvider === 'ollama' && (
-            <>
-              <Label>Ollama Embedding Base URL</Label>
-              <input
-                value={draft.embeddingBaseUrl ?? 'http://localhost:11434'}
-                onChange={e => setDraft(p => ({ ...p, embeddingBaseUrl: e.target.value }))}
-                placeholder="http://localhost:11434"
-                style={inputStyle}
-              />
-            </>
-          )}
-
-          <Label>Embedding Model</Label>
-          {draft.embeddingProvider === 'ollama' && ollamaModels.length > 0 && !ollamaModels.includes(draft.embeddingModel) && (
-            <div style={{ padding: '6px 10px', borderRadius: 7, marginBottom: 4, fontSize: 11, color: '#fbbf24', backgroundColor: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.25)', display: 'flex', alignItems: 'flex-start', gap: 5 }}>
-              <AlertCircle size={11} style={{ flexShrink: 0, marginTop: 1 }} />
-              <span><strong>{draft.embeddingModel}</strong> is not in your Ollama installation. For embeddings, pull <code style={{ fontSize: 10 }}>nomic-embed-text</code> or pick an installed model below.</span>
-            </div>
-          )}
-          <ModelInput
-            value={draft.embeddingModel}
-            suggestions={draft.embeddingProvider === 'ollama' && ollamaModels.length > 0 ? ollamaModels : EMBED_MODEL_SUGGESTIONS[draft.embeddingProvider]}
-            onChange={v => setDraft(p => ({ ...p, embeddingModel: v }))}
-            placeholder={`e.g. ${DEFAULT_EMBEDDING_MODELS[draft.embeddingProvider]}`}
-          />
-          <p style={{ fontSize: 11, color: 'var(--muted-foreground)', margin: '4px 0 0' }}>
-            Vector dimension: 768. Compatible with nomic-embed-text, text-embedding-3-small (dimensions: 768), text-embedding-004.
-          </p>
-        </Section>
-
-        {/* Test + index */}
-        <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
-          <button type="button" onClick={testConnection} disabled={testing} style={{ ...btnStyle, flex: 1 }}>
-            {testing ? <Loader2 size={13} style={{ animation: 'spin 1s linear infinite' }} /> : <Wifi size={13} />}
-            {testing ? 'Testing…' : 'Test connection'}
-          </button>
-          <button type="button" onClick={reindexAll} disabled={indexing} style={{ ...btnStyle, flex: 1 }}>
-            {indexing ? <Loader2 size={13} style={{ animation: 'spin 1s linear infinite' }} /> : <Database size={13} />}
-            {indexing ? 'Indexing…' : 'Re-index all'}
-          </button>
+          <Field label="Embedding model">
+            {draft.embeddingProvider === 'ollama' && ollamaNames.length > 0 && !ollamaNames.some(m => normalizeModel(m) === normalizeModel(draft.embeddingModel)) && (
+              <Notice type="warning" style={{ marginBottom: 6 }}>
+                <strong>{draft.embeddingModel}</strong> isn&apos;t installed. Run <code style={{ fontSize: 10, backgroundColor: 'rgba(0,0,0,0.2)', padding: '1px 4px', borderRadius: 3 }}>ollama pull nomic-embed-text</code> or pick an installed model below.
+              </Notice>
+            )}
+            <ModelInput value={draft.embeddingModel} suggestions={embedModels} onChange={v => setDraft(p => ({ ...p, embeddingModel: v }))} />
+          </Field>
         </div>
 
-        {testResult && (
-          <div style={{ padding: '8px 12px', borderRadius: 8, marginBottom: 12, fontSize: 12, display: 'flex', alignItems: 'flex-start', gap: 6,
-            backgroundColor: testResult.ok ? 'rgba(74,222,128,0.1)' : 'rgba(248,113,113,0.1)',
-            border: `1px solid ${testResult.ok ? 'rgba(74,222,128,0.3)' : 'rgba(248,113,113,0.3)'}`,
-            color: testResult.ok ? '#4ade80' : '#f87171',
-          }}>
-            {testResult.ok ? <Check size={13} style={{ flexShrink: 0, marginTop: 1 }} /> : <AlertCircle size={13} style={{ flexShrink: 0, marginTop: 1 }} />}
-            {testResult.message}
+        {/* ── Step 3: Build search index ── */}
+        <div style={{ borderTop: '1px solid var(--border)', paddingTop: 16, marginTop: 4 }}>
+          <SectionHeader step={3} title="Build the search index" subtitle="One-time step — converts your notes into a searchable format" />
+          <p style={{ fontSize: 12, color: 'var(--muted-foreground)', margin: '0 0 10px', lineHeight: 1.5 }}>
+            Click <strong>Build index</strong>{' '}after saving. dotstell will read each of your notes and create a compact numerical fingerprint (an &quot;embedding&quot;) that lets the AI find related notes by meaning. This runs once; new notes are indexed automatically as you write them.
+          </p>
+          <button
+            type="button"
+            onClick={buildSearchIndex}
+            disabled={indexing}
+            style={{ width: '100%', padding: '9px', borderRadius: 8, border: '1px solid var(--border)', backgroundColor: 'var(--muted)', color: 'var(--foreground)', fontSize: 12, cursor: indexing ? 'default' : 'pointer', fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
+          >
+            {indexing ? <><Loader2 size={13} style={{ animation: 'spin 1s linear infinite' }} /> Indexing your notes…</> : <><Database size={13} /> Build search index</>}
+          </button>
+          {indexResult && (
+            <Notice type={indexResult.ok ? 'success' : 'error'} style={{ marginTop: 8 }}>
+              {indexResult.message}
+            </Notice>
+          )}
+        </div>
+
+        {/* ── Advanced (collapsible) ── */}
+        {draft.provider === 'ollama' && (
+          <div style={{ borderTop: '1px solid var(--border)', paddingTop: 12, marginTop: 4 }}>
+            <button type="button" onClick={() => setShowAdvanced(v => !v)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted-foreground)', fontSize: 11, display: 'flex', alignItems: 'center', gap: 4, padding: 0, width: '100%' }}>
+              <ChevronRight size={11} style={{ transform: showAdvanced ? 'rotate(90deg)' : 'none', transition: 'transform 0.15s' }} />
+              Advanced — separate Ollama URL for embeddings
+            </button>
+            {showAdvanced && (
+              <Field label="Embedding Ollama URL" style={{ marginTop: 8 }}>
+                <input
+                  value={draft.embeddingBaseUrl ?? draft.baseUrl ?? 'http://localhost:11434'}
+                  onChange={e => setDraft(p => ({ ...p, embeddingBaseUrl: e.target.value }))}
+                  placeholder="http://localhost:11434"
+                  style={inputStyle}
+                />
+              </Field>
+            )}
           </div>
         )}
 
-        {indexResult && (
-          <div style={{ padding: '8px 12px', borderRadius: 8, marginBottom: 12, fontSize: 12, color: 'var(--muted-foreground)', backgroundColor: 'var(--muted)', border: '1px solid var(--border)' }}>
-            {indexResult}
-          </div>
-        )}
+        {/* ── Test connection ── */}
+        <div style={{ borderTop: '1px solid var(--border)', paddingTop: 16, marginTop: 4 }}>
+          <button
+            type="button"
+            onClick={testConnection}
+            disabled={testing}
+            style={{ width: '100%', padding: '9px', borderRadius: 8, border: '1px solid var(--border)', backgroundColor: 'transparent', color: 'var(--foreground)', fontSize: 12, cursor: testing ? 'default' : 'pointer', fontWeight: 500, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
+          >
+            {testing ? <><Loader2 size={13} style={{ animation: 'spin 1s linear infinite' }} /> Testing…</> : <><Wifi size={13} /> Test connection</>}
+          </button>
+          {testResult && (
+            <Notice type={testResult.ok ? 'success' : 'error'} style={{ marginTop: 8 }}>
+              {testResult.message}
+            </Notice>
+          )}
+        </div>
 
-        <div style={{ display: 'flex', gap: 8, paddingTop: 4 }}>
+        {/* ── Save / Cancel ── */}
+        <div style={{ display: 'flex', gap: 8, paddingTop: 16 }}>
           <button type="button" onClick={onClose} style={{ flex: 1, padding: '9px', borderRadius: 8, border: '1px solid var(--border)', backgroundColor: 'transparent', color: 'var(--foreground)', fontSize: 13, cursor: 'pointer', fontWeight: 500 }}>
             Cancel
           </button>
-          <button type="button" onClick={handleSave} style={{ flex: 2, padding: '9px', borderRadius: 8, border: 'none', backgroundColor: 'var(--primary)', color: 'white', fontSize: 13, cursor: 'pointer', fontWeight: 600 }}>
-            Save settings
+          <button
+            type="button"
+            disabled={saved}
+            onClick={() => {
+              saveConfig(draft)
+              setSaved(true)
+              setTimeout(onClose, 900)
+            }}
+            style={{ flex: 2, padding: '9px', borderRadius: 8, border: 'none', backgroundColor: saved ? '#22c55e' : 'var(--primary)', color: 'white', fontSize: 13, cursor: saved ? 'default' : 'pointer', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, transition: 'background-color 0.2s' }}
+          >
+            {saved ? <><Check size={14} /> Saved!</> : 'Save settings'}
           </button>
         </div>
       </div>
@@ -335,27 +451,72 @@ export function AISettingsModal({ onClose }: AISettingsModalProps) {
 }
 
 // ── Sub-components ────────────────────────────────────────────────────────────
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+function SectionHeader({ step, title, subtitle }: { step: number; title: string; subtitle: string }) {
   return (
-    <div style={{ marginBottom: 20 }}>
-      <p style={{ fontSize: 11, fontWeight: 700, color: 'var(--muted-foreground)', textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 10px' }}>{title}</p>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>{children}</div>
+    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: 12 }}>
+      <div style={{ width: 20, height: 20, borderRadius: '50%', backgroundColor: 'var(--primary)', color: 'white', fontSize: 10, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 1 }}>
+        {step}
+      </div>
+      <div>
+        <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: 'var(--foreground)' }}>{title}</p>
+        <p style={{ margin: 0, fontSize: 11, color: 'var(--muted-foreground)' }}>{subtitle}</p>
+      </div>
     </div>
   )
 }
 
-function Label({ children }: { children: React.ReactNode }) {
-  return <p style={{ margin: '6px 0 2px', fontSize: 12, color: 'var(--foreground)', fontWeight: 500 }}>{children}</p>
+function Field({ label, children, aside, style }: { label: string; children: React.ReactNode; aside?: React.ReactNode; style?: React.CSSProperties }) {
+  return (
+    <div style={{ marginBottom: 10, ...style }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+        <p style={{ margin: 0, fontSize: 12, fontWeight: 600, color: 'var(--foreground)' }}>{label}</p>
+        {aside}
+      </div>
+      {children}
+    </div>
+  )
+}
+
+function Notice({ type, children, style }: { type: 'success' | 'error' | 'warning'; children: React.ReactNode; style?: React.CSSProperties }) {
+  const colors = {
+    success: { bg: 'rgba(74,222,128,0.08)',   border: 'rgba(74,222,128,0.3)',   text: '#4ade80' },
+    error:   { bg: 'rgba(248,113,113,0.08)',  border: 'rgba(248,113,113,0.3)',  text: '#f87171' },
+    warning: { bg: 'rgba(251,191,36,0.08)',   border: 'rgba(251,191,36,0.3)',   text: '#fbbf24' },
+  }
+  const c    = colors[type]
+  const Icon = type === 'success' ? Check : AlertCircle
+
+  // Parse "message|||url|||link label" format emitted by providerError()
+  let message:   React.ReactNode = children
+  let helpUrl:   string | null   = null
+  let helpLabel: string | null   = null
+  if (typeof children === 'string' && children.includes('|||')) {
+    const parts = children.split('|||')
+    message   = parts[0]
+    helpUrl   = parts[1] ?? null
+    helpLabel = parts[2] ?? null
+  }
+
+  return (
+    <div style={{ padding: '8px 10px', borderRadius: 8, fontSize: 11, lineHeight: 1.5, display: 'flex', alignItems: 'flex-start', gap: 6, backgroundColor: c.bg, border: `1px solid ${c.border}`, color: c.text, ...style }}>
+      <Icon size={12} style={{ flexShrink: 0, marginTop: 1 }} />
+      <span>
+        {message}
+        {helpUrl && helpLabel && (
+          <a href={helpUrl} target="_blank" rel="noopener noreferrer"
+            style={{ display: 'block', marginTop: 4, fontSize: 10, fontWeight: 600, color: c.text, textDecoration: 'underline', opacity: 0.9 }}>
+            {helpLabel} ↗
+          </a>
+        )}
+      </span>
+    </div>
+  )
 }
 
 function Select({ value, options, onChange }: { value: string; options: { value: string; label: string }[]; onChange: (v: string) => void }) {
   return (
     <div style={{ position: 'relative' }}>
-      <select
-        value={value}
-        onChange={e => onChange(e.target.value)}
-        style={{ ...inputStyle, appearance: 'none', paddingRight: 32, cursor: 'pointer' }}
-      >
+      <select value={value} onChange={e => onChange(e.target.value)} style={{ ...inputStyle, appearance: 'none', paddingRight: 32, cursor: 'pointer' }}>
         {options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
       </select>
       <ChevronDown size={13} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: 'var(--muted-foreground)' }} />
@@ -363,9 +524,7 @@ function Select({ value, options, onChange }: { value: string; options: { value:
   )
 }
 
-function ModelInput({ value, suggestions, onChange, placeholder }: {
-  value: string; suggestions: string[]; onChange: (v: string) => void; placeholder?: string
-}) {
+function ModelInput({ value, suggestions, onChange }: { value: string; suggestions: string[]; onChange: (v: string) => void }) {
   const [open, setOpen] = useState(false)
   return (
     <div style={{ position: 'relative' }}>
@@ -374,18 +533,17 @@ function ModelInput({ value, suggestions, onChange, placeholder }: {
         onChange={e => onChange(e.target.value)}
         onFocus={() => setOpen(true)}
         onBlur={() => setTimeout(() => setOpen(false), 150)}
-        placeholder={placeholder}
         style={inputStyle}
       />
       {open && suggestions.length > 0 && (
-        <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 50, backgroundColor: 'var(--card)', border: '1px solid var(--border)', borderRadius: 8, marginTop: 2, boxShadow: '0 8px 24px rgba(0,0,0,0.4)', overflow: 'hidden' }}>
+        <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 50, backgroundColor: 'var(--card)', border: '1px solid var(--border)', borderRadius: 8, marginTop: 2, boxShadow: '0 8px 24px rgba(0,0,0,0.4)', overflow: 'hidden', maxHeight: 180, overflowY: 'auto' }}>
           {suggestions.map(s => (
             <button key={s} type="button" onMouseDown={() => { onChange(s); setOpen(false) }}
-              style={{ width: '100%', padding: '8px 12px', border: 'none', backgroundColor: 'transparent', color: 'var(--foreground)', fontSize: 13, cursor: 'pointer', textAlign: 'left', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
+              style={{ width: '100%', padding: '8px 12px', border: 'none', backgroundColor: 'transparent', color: 'var(--foreground)', fontSize: 12, cursor: 'pointer', textAlign: 'left', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
               onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'var(--accent)')}
               onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
             >
-              {s} {value === s && <Check size={12} color="var(--primary)" />}
+              {s} {value === s && <Check size={11} color="var(--primary)" />}
             </button>
           ))}
         </div>
@@ -401,9 +559,7 @@ const inputStyle: React.CSSProperties = {
   fontSize: 13, outline: 'none',
 }
 
-const btnStyle: React.CSSProperties = {
-  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-  padding: '8px', borderRadius: 8, border: '1px solid var(--border)',
-  backgroundColor: 'transparent', color: 'var(--foreground)',
-  fontSize: 12, cursor: 'pointer', fontWeight: 500,
+const iconBtn: React.CSSProperties = {
+  background: 'none', border: 'none', cursor: 'pointer',
+  color: 'var(--muted-foreground)', padding: 4, borderRadius: 6, display: 'flex',
 }

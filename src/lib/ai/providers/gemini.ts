@@ -1,10 +1,15 @@
-// Google Gemini — uses the Generative Language REST API (not OpenAI-compatible)
-// Chat: POST /v1beta/models/{model}:streamGenerateContent
-// Embed: POST /v1beta/models/{model}:embedContent
 import { AIConfig, AIMessage } from '../types'
+import { providerError, extractMessage } from '../error'
 
 const GEMINI_BASE = 'https://generativelanguage.googleapis.com/v1beta'
 
+/**
+ * Stream a chat response from the Google Gemini API.
+ * Uses the Generative Language REST API (not OpenAI-compatible):
+ * - Endpoint: POST /v1beta/models/{model}:streamGenerateContent?alt=sse
+ * - System prompt is a separate `systemInstruction` field
+ * - Role name for assistant turns is `'model'`, not `'assistant'`
+ */
 export async function geminiStream(
   config: AIConfig,
   messages: AIMessage[],
@@ -31,13 +36,17 @@ export async function geminiStream(
   })
 
   if (!res.ok) {
-    const err = await res.text().catch(() => res.statusText)
-    throw new Error(`Gemini error ${res.status}: ${err}`)
+    const raw = await res.text().catch(() => res.statusText)
+    throw providerError('Gemini', res.status, extractMessage(raw))
   }
 
   return transformGeminiStream(res.body!)
 }
 
+/**
+ * Generate an embedding vector using the Gemini Embedding API.
+ * Requests 768 dimensions via `outputDimensionality` to match the pgvector column size.
+ */
 export async function geminiEmbed(config: AIConfig, text: string): Promise<number[]> {
   const url = `${GEMINI_BASE}/models/${config.embeddingModel}:embedContent?key=${config.embeddingApiKey ?? config.apiKey ?? ''}`
 
@@ -51,9 +60,14 @@ export async function geminiEmbed(config: AIConfig, text: string): Promise<numbe
       outputDimensionality: 768,
     }),
   })
-  if (!res.ok) throw new Error(`Gemini embed error ${res.status}`)
-  const data = await res.json()
-  return data.embedding.values as number[]
+  if (!res.ok) {
+    const raw = await res.text().catch(() => res.statusText)
+    throw providerError('Gemini', res.status, extractMessage(raw))
+  }
+  const data   = await res.json()
+  const values = data?.embedding?.values
+  if (!Array.isArray(values) || values.length === 0) throw new Error('Gemini embed: empty or missing embedding in response')
+  return values as number[]
 }
 
 // ── SSE parser ────────────────────────────────────────────────────────────────

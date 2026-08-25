@@ -1,13 +1,9 @@
-// ── AI provider types ────────────────────────────────────────────────────────
-// All AI features route through a single AIConfig. The config is stored in
-// localStorage (never persisted server-side) and sent with every API request.
-
 export type AIProvider = 'ollama' | 'openai' | 'anthropic' | 'gemini' | 'groq'
 
-// Embedding is a separate concern — Anthropic and Groq have no embedding API,
-// so users must configure a fallback embedding provider independently.
+/** Anthropic and Groq have no embedding API — users configure a separate embedding provider. */
 export type EmbeddingProvider = 'ollama' | 'openai' | 'gemini'
 
+/** Single config object for all AI operations. Stored in localStorage; sent per-request, never persisted server-side. */
 export interface AIConfig {
   provider:          AIProvider
   apiKey?:           string   // not required for Ollama (local)
@@ -16,7 +12,7 @@ export interface AIConfig {
   embeddingProvider: EmbeddingProvider
   embeddingModel:    string
   embeddingApiKey?:  string   // only needed when embeddingProvider ≠ chat provider
-  embeddingBaseUrl?: string   // Ollama embedding endpoint if different
+  embeddingBaseUrl?: string   // Ollama embedding endpoint if different from baseUrl
 }
 
 export interface AIMessage {
@@ -24,10 +20,10 @@ export interface AIMessage {
   content: string
 }
 
-// Normalised SSE chunk emitted by all /api/ai/* streaming routes
+/** Normalised SSE chunk emitted by all /api/ai/* streaming routes. */
 export interface AIStreamChunk {
-  delta: string
-  done:  boolean
+  delta:  string
+  done:   boolean
   error?: string
 }
 
@@ -36,12 +32,11 @@ export interface EmbeddingResult {
   model:     string
 }
 
-// ── Default models per provider ──────────────────────────────────────────────
 export const DEFAULT_CHAT_MODELS: Record<AIProvider, string> = {
   ollama:    'llama3.2',
   openai:    'gpt-4o-mini',
   anthropic: 'claude-haiku-4-5-20251001',
-  gemini:    'gemini-1.5-flash',
+  gemini:    'gemini-3.6-flash',
   groq:      'llama-3.1-8b-instant',
 }
 
@@ -65,10 +60,9 @@ export const EMBEDDING_PROVIDER_LABELS: Record<EmbeddingProvider, string> = {
   gemini: 'Google Gemini',
 }
 
-// Groq and Anthropic have no embedding API — users must pick a separate provider
+/** Providers that have no embedding API — users must pick a separate embedding provider. */
 export const PROVIDERS_WITHOUT_EMBEDDINGS: AIProvider[] = ['anthropic', 'groq']
 
-// Default config used when nothing is configured yet
 export const DEFAULT_AI_CONFIG: AIConfig = {
   provider:          'ollama',
   baseUrl:           'http://localhost:11434',
@@ -78,15 +72,14 @@ export const DEFAULT_AI_CONFIG: AIConfig = {
   embeddingBaseUrl:  'http://localhost:11434',
 }
 
-// ── Assist operation types ────────────────────────────────────────────────────
 export type AssistOperation =
-  | 'rewrite'    // rephrase for clarity
-  | 'expand'     // add more detail
-  | 'shorten'    // make more concise
-  | 'fix'        // fix grammar and spelling
-  | 'outline'    // turn prose into a structured outline
-  | 'checklist'  // extract action items as a checklist
-  | 'explain'    // explain with context from knowledge base
+  | 'rewrite'
+  | 'expand'
+  | 'shorten'
+  | 'fix'
+  | 'outline'
+  | 'checklist'
+  | 'explain'
 
 export const ASSIST_LABELS: Record<AssistOperation, string> = {
   rewrite:   'Rewrite',

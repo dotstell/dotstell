@@ -1,6 +1,11 @@
-// OpenAI-compatible streaming chat — also used for Groq (same API format)
 import { AIConfig, AIMessage } from '../types'
+import { providerError, extractMessage } from '../error'
 
+/**
+ * Stream a chat completion from the OpenAI API (or any OpenAI-compatible endpoint).
+ * Used directly for OpenAI, and as the delegate for Ollama and Groq which share the same wire format.
+ * `config.baseUrl` overrides the default endpoint — used by Ollama and Groq.
+ */
 export async function openaiStream(
   config: AIConfig,
   messages: AIMessage[],
@@ -18,24 +23,18 @@ export async function openaiStream(
   })
 
   if (!res.ok) {
-    const raw = await res.text().catch(() => res.statusText)
-    // Try to extract a human-readable message from the JSON error body
-    let msg = raw
-    try {
-      const parsed = JSON.parse(raw)
-      msg = parsed?.error?.message ?? parsed?.error ?? parsed?.message ?? raw
-    } catch { /* not JSON — use raw text */ }
+    const raw   = await res.text().catch(() => res.statusText)
     const label = config.provider === 'ollama' ? 'Ollama'
                 : config.provider === 'groq'   ? 'Groq'
                 : 'OpenAI'
-    throw new Error(`${label} error ${res.status}: ${msg}`)
+    throw providerError(label, res.status, extractMessage(raw))
   }
 
   // Transform OpenAI SSE → normalised `delta` chunks
   return transformOpenAIStream(res.body!)
 }
 
-// Groq uses the OpenAI-compatible endpoint at a different base URL
+/** Stream from Groq — identical to OpenAI wire format, different base URL. */
 export async function groqStream(
   config: AIConfig,
   messages: AIMessage[],
@@ -46,7 +45,11 @@ export async function groqStream(
   )
 }
 
-// OpenAI embeddings — supports `dimensions` param (text-embedding-3-* models)
+/**
+ * Generate an embedding vector using the OpenAI Embeddings API.
+ * Requests 768 dimensions via the `dimensions` param (supported by text-embedding-3-* models)
+ * to match the pgvector column size used in the database.
+ */
 export async function openaiEmbed(config: AIConfig, text: string): Promise<number[]> {
   const baseUrl = config.embeddingBaseUrl?.replace(/\/$/, '') || 'https://api.openai.com/v1'
   const res = await fetch(`${baseUrl}/embeddings`, {
@@ -61,9 +64,15 @@ export async function openaiEmbed(config: AIConfig, text: string): Promise<numbe
       dimensions: 768, // request 768-dim output (text-embedding-3-* supports this natively)
     }),
   })
-  if (!res.ok) throw new Error(`OpenAI embed error ${res.status}`)
+  if (!res.ok) {
+    const raw   = await res.text().catch(() => res.statusText)
+    const label = config.embeddingProvider === 'ollama' ? 'Ollama' : 'OpenAI'
+    throw providerError(label, res.status, extractMessage(raw))
+  }
   const data = await res.json()
-  return data.data[0].embedding as number[]
+  const embedding = data?.data?.[0]?.embedding
+  if (!Array.isArray(embedding) || embedding.length === 0) throw new Error('OpenAI embed: empty or missing embedding in response')
+  return embedding as number[]
 }
 
 // ── SSE parser ───────────────────────────────────────────────────────────────

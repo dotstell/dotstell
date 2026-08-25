@@ -7,8 +7,13 @@ export async function GET(req: NextRequest) {
   const baseUrl = (req.nextUrl.searchParams.get('baseUrl') || 'http://localhost:11434')
     .replace(/\/v1\/?$/, '').replace(/\/$/, '')
 
-  // Only allow localhost/127.0.0.1 targets — prevent SSRF to internal network
-  const hostname = new URL(baseUrl).hostname
+  // Validate URL and enforce localhost-only — prevent SSRF to internal network
+  let hostname: string
+  try {
+    hostname = new URL(baseUrl).hostname
+  } catch {
+    return NextResponse.json({ error: 'Invalid Ollama URL' }, { status: 400 })
+  }
   if (!['localhost', '127.0.0.1', '::1'].includes(hostname)) {
     return NextResponse.json({ error: 'Only localhost Ollama instances are supported' }, { status: 400 })
   }

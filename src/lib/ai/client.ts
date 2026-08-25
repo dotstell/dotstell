@@ -1,15 +1,14 @@
-// ── AI Client — routes requests to the configured provider ───────────────────
-// This is the single entry point for all AI operations. Callers never import
-// provider-specific modules directly.
 import { AIConfig, AIMessage, EmbeddingResult } from './types'
 import { openaiStream, openaiEmbed, groqStream } from './providers/openai'
-import { anthropicStream, anthropicEmbed }       from './providers/anthropic'
+import { anthropicStream }                        from './providers/anthropic'
 import { geminiStream, geminiEmbed }             from './providers/gemini'
 import { ollamaStream, ollamaEmbed }             from './providers/ollama'
 
-// Returns a streaming ReadableStream that emits normalised SSE chunks:
-//   data: {"delta":"text","done":false}\n\n
-//   data: {"delta":"","done":true}\n\n
+/**
+ * Stream a chat response from the configured provider.
+ * Returns a ReadableStream of normalised SSE chunks:
+ *   `data: {"delta":"text","done":false}`  …  `data: {"delta":"","done":true}`
+ */
 export async function streamChat(
   config: AIConfig,
   messages: AIMessage[],
@@ -24,7 +23,7 @@ export async function streamChat(
   }
 }
 
-// Returns an embedding vector for the given text using the configured embedding provider.
+/** Generate an embedding vector for `text` using the configured embedding provider. */
 export async function embed(config: AIConfig, text: string): Promise<EmbeddingResult> {
   let embedding: number[]
   switch (config.embeddingProvider) {
@@ -33,37 +32,36 @@ export async function embed(config: AIConfig, text: string): Promise<EmbeddingRe
     case 'gemini': embedding = await geminiEmbed(config, text); break
     default:       throw new Error(`Unknown embedding provider: ${config.embeddingProvider}`)
   }
-  // Anthropic and Groq have no embedding API — anthropicEmbed() always throws,
-  // so this path only triggers if the caller set an invalid embeddingProvider.
   if (!embedding || embedding.length === 0) throw new Error('Empty embedding returned')
   return { embedding, model: config.embeddingModel }
 }
 
-// Non-streaming convenience: collect the full streamed response into a string.
-// Use for short tasks (summarize, title generation, auto-tag) where streaming
-// isn't needed in the UI.
+/**
+ * Collect a full streamed response into a single string.
+ * Use for short non-UI tasks (summarise, title generation, auto-tag).
+ */
 export async function complete(config: AIConfig, messages: AIMessage[]): Promise<string> {
-  const stream  = await streamChat(config, messages)
-  const reader  = stream.getReader()
-  const decoder = new TextDecoder()
-  let   result  = ''
-  while (true) {
+  const stream   = await streamChat(config, messages)
+  const reader   = stream.getReader()
+  const decoder  = new TextDecoder()
+  let   result   = ''
+  let   finished = false
+  while (!finished) {
     const { done, value } = await reader.read()
     if (done) break
-    const text = decoder.decode(value)
-    for (const line of text.split('\n')) {
+    for (const line of decoder.decode(value).split('\n')) {
       if (!line.startsWith('data: ')) continue
       try {
         const chunk = JSON.parse(line.slice(6))
-        if (chunk.delta) result += chunk.delta
-        if (chunk.done)  break
+        if (chunk.delta)  result += chunk.delta
+        if (chunk.done) { finished = true; break }
       } catch { /* skip malformed */ }
     }
   }
   return result.trim()
 }
 
-// Validate config before making any requests — returns an error string or null.
+/** Validate an AIConfig before making requests. Returns an error string, or null if valid. */
 export function validateConfig(config: Partial<AIConfig> | null): string | null {
   if (!config?.provider) return 'No AI provider configured'
   if (config.provider !== 'ollama' && !config.apiKey) return `API key required for ${config.provider}`

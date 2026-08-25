@@ -1,9 +1,13 @@
-// Anthropic Messages API — different format from OpenAI:
-// • system message is a top-level field, not a message in the array
-// • requires `max_tokens`
-// • streaming SSE uses `content_block_delta` events
 import { AIConfig, AIMessage } from '../types'
+import { providerError, extractMessage } from '../error'
 
+/**
+ * Stream a chat response from the Anthropic Messages API.
+ * Key differences from the OpenAI format:
+ * - System message is a top-level field, not an element of the messages array
+ * - `max_tokens` is required
+ * - Streaming SSE uses `content_block_delta` events (not `choices[0].delta.content`)
+ */
 export async function anthropicStream(
   config: AIConfig,
   messages: AIMessage[],
@@ -32,14 +36,14 @@ export async function anthropicStream(
   })
 
   if (!res.ok) {
-    const err = await res.text().catch(() => res.statusText)
-    throw new Error(`Anthropic error ${res.status}: ${err}`)
+    const raw = await res.text().catch(() => res.statusText)
+    throw providerError('Anthropic', res.status, extractMessage(raw))
   }
 
   return transformAnthropicStream(res.body!)
 }
 
-// Anthropic has no embedding API — callers must configure a separate embedding provider
+/** Placeholder that throws — Anthropic has no embedding API; callers must configure a separate provider. */
 export function anthropicEmbed(): never {
   throw new Error('Anthropic does not provide an embedding API. Configure a separate embedding provider (Ollama or OpenAI) in AI settings.')
 }

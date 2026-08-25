@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { rateLimit }    from '@/lib/ratelimit'
-import { AIConfig } from '@/lib/ai/types'
 
 // POST /api/ai/graph-links
 // Body: { config, mode: 'missing' | 'clusters' | 'gaps' }
@@ -18,7 +17,6 @@ export async function POST(req: NextRequest) {
   if (rl) return rl
 
   const body: {
-    config: AIConfig
     mode:   'missing' | 'clusters' | 'gaps'
     limit?: number
   } = await req.json()

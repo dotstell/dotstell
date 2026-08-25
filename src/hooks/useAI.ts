@@ -2,8 +2,11 @@
 import { useState, useCallback, useRef } from 'react'
 import { AIConfig, AIStreamChunk, AssistOperation } from '@/lib/ai/types'
 
-// Low-level hook for consuming AI streaming responses.
-// Handles the fetch → SSE parse → state update cycle.
+/**
+ * Low-level hook for consuming AI streaming responses.
+ * Handles the full fetch → SSE parse → state update cycle.
+ * Cancels any in-flight request before starting a new one via an AbortController.
+ */
 export function useAIStream() {
   const [text,      setText]      = useState('')
   const [streaming, setStreaming] = useState(false)
@@ -81,7 +84,7 @@ export function useAIStream() {
   return { text, streaming, error, stream, cancel, setText }
 }
 
-// Higher-level hook for specific AI features — wraps useAIStream with feature-specific logic.
+/** Wrap `useAIStream` with AI Assist specifics — wires the correct endpoint and body shape. */
 export function useAIAssist(config: AIConfig) {
   const { text, streaming, error, stream, cancel } = useAIStream()
 
@@ -103,6 +106,7 @@ export function useAIAssist(config: AIConfig) {
   return { result: text, streaming, error, assist, cancel }
 }
 
+/** Fetch a one-shot AI summary for a note, bookmark, or raw text block. */
 export function useAISummarize(config: AIConfig) {
   const [summary,    setSummary]    = useState('')
   const [loading,    setLoading]    = useState(false)
@@ -139,23 +143,33 @@ export function useAISummarize(config: AIConfig) {
   return { summary, loading, error, summarize, setSummary }
 }
 
+/** Scan a note for potential cross-links to other notes via the auto-link API. */
 export function useAIAutoLink() {
   const [suggestions, setSuggestions] = useState<Array<{ id: string; title: string }>>([])
   const [loading,     setLoading]     = useState(false)
+  const [error,       setError]       = useState<string | null>(null)
 
   const scan = useCallback(async (noteId: string) => {
     setLoading(true)
+    setError(null)
     try {
       const res = await fetch('/api/ai/auto-link', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
         body:    JSON.stringify({ noteId }),
       })
-      if (res.ok) setSuggestions(await res.json())
+      if (res.ok) {
+        setSuggestions(await res.json())
+      } else {
+        const data = await res.json().catch(() => ({}))
+        setError(data.error ?? `Auto-link failed (${res.status})`)
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Network error')
     } finally {
       setLoading(false)
     }
   }, [])
 
-  return { suggestions, loading, scan, setSuggestions }
+  return { suggestions, loading, error, scan, setSuggestions }
 }

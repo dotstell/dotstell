@@ -45,9 +45,12 @@ export function AIChatPanel({ config, noteId, noteTitle, onClose }: AIChatPanelP
     })
   }, [streamText])
 
+  const sendingRef = useRef(false)  // guards the RAG fetch gap before streaming starts
+
   async function send() {
     const text = input.trim()
-    if (!text || streaming) return
+    if (!text || streaming || sendingRef.current) return
+    sendingRef.current = true
     setInput('')
 
     const userMsg: ChatMessage = { role: 'user', content: text }
@@ -84,19 +87,21 @@ export function AIChatPanel({ config, noteId, noteTitle, onClose }: AIChatPanelP
     // History for the model (exclude the placeholder we just added)
     const history: AIMessage[] = messages.concat(userMsg).map(m => ({ role: m.role, content: m.content }))
 
-    const finalText = await stream('/api/ai/chat', { config, messages: history, context })
-    pendingRole.current = false
-
-    // Replace the streaming placeholder with the finished message
-    if (finalText !== undefined) {
-      setMessages(prev => {
-        const copy = [...prev]
-        const last = copy[copy.length - 1]
-        if (last?.role === 'assistant') copy[copy.length - 1] = { ...last, content: finalText }
-        return copy
-      })
+    try {
+      const finalText = await stream('/api/ai/chat', { config, messages: history, context })
+      if (finalText !== undefined) {
+        setMessages(prev => {
+          const copy = [...prev]
+          const last = copy[copy.length - 1]
+          if (last?.role === 'assistant') copy[copy.length - 1] = { ...last, content: finalText }
+          return copy
+        })
+      }
+      setText('')
+    } finally {
+      pendingRole.current = false
+      sendingRef.current  = false
     }
-    setText('')
   }
 
   function handleKey(e: React.KeyboardEvent<HTMLTextAreaElement>) {
