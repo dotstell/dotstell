@@ -18,12 +18,17 @@ export async function openaiStream(
   })
 
   if (!res.ok) {
-    const err = await res.text().catch(() => res.statusText)
-    // Use the provider name in the error so Ollama/Groq errors aren't labelled "OpenAI"
+    const raw = await res.text().catch(() => res.statusText)
+    // Try to extract a human-readable message from the JSON error body
+    let msg = raw
+    try {
+      const parsed = JSON.parse(raw)
+      msg = parsed?.error?.message ?? parsed?.error ?? parsed?.message ?? raw
+    } catch { /* not JSON — use raw text */ }
     const label = config.provider === 'ollama' ? 'Ollama'
                 : config.provider === 'groq'   ? 'Groq'
                 : 'OpenAI'
-    throw new Error(`${label} error ${res.status}: ${err}`)
+    throw new Error(`${label} error ${res.status}: ${msg}`)
   }
 
   // Transform OpenAI SSE → normalised `delta` chunks

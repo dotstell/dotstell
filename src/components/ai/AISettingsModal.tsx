@@ -44,24 +44,27 @@ export function AISettingsModal({ onClose }: AISettingsModalProps) {
   const [ollamaFetching,   setOllamaFetching]   = useState(false)
   const [ollamaFetchError, setOllamaFetchError] = useState<string | null>(null)
 
-  // Fetch the list of models installed in Ollama directly from its REST API.
-  // This is a browser-side fetch to localhost — no server round-trip needed.
+  // Fetch installed Ollama models via the Next.js API route (server-side proxy).
+  // Direct browser fetch to localhost:11434 is blocked by corporate proxies,
+  // so we relay through the server which can reach localhost freely.
   const fetchOllamaModels = useCallback(async (baseUrl: string) => {
     setOllamaFetching(true)
     setOllamaFetchError(null)
     try {
-      const url = baseUrl.replace(/\/$/, '')
-      const res = await fetch(`${url}/api/tags`, { signal: AbortSignal.timeout(4000) })
-      if (!res.ok) throw new Error(`HTTP ${res.status}`)
-      const data: { models: Array<{ name: string }> } = await res.json()
-      const names = (data.models ?? []).map(m => m.name).filter(Boolean)
+      const params = new URLSearchParams({ baseUrl: baseUrl || 'http://localhost:11434' })
+      const res = await fetch(`/api/ai/ollama-models?${params}`)
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error ?? `HTTP ${res.status}`)
+      const models: Array<{ name: string; capabilities: string[] }> = data.models ?? []
+      const names = models.map(m => m.name).filter(Boolean)
       setOllamaModels(names)
-      // If the current chat model isn't in the installed list and there are real models,
-      // auto-select the first one so the user doesn't send a request for a non-existent model.
+      // Auto-correct the chat model if it isn't actually installed
       setDraft(prev => {
         if (prev.provider !== 'ollama') return prev
         if (names.length > 0 && !names.includes(prev.model)) {
-          return { ...prev, model: names[0] }
+          // Prefer a model with 'completion' capability, fall back to first model
+          const chatModel = models.find(m => m.capabilities.includes('completion'))?.name ?? names[0]
+          return { ...prev, model: chatModel }
         }
         return prev
       })
