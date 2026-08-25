@@ -48,6 +48,17 @@ const SORT_OPTIONS: { value: SortMode; label: string }[] = [
   { value: 'manual',  label: 'Manual order' },
 ]
 
+const NOTE_COLORS = [
+  { label: 'Red',    value: '#ef4444' },
+  { label: 'Orange', value: '#f97316' },
+  { label: 'Yellow', value: '#eab308' },
+  { label: 'Green',  value: '#22c55e' },
+  { label: 'Teal',   value: '#14b8a6' },
+  { label: 'Blue',   value: '#3b82f6' },
+  { label: 'Purple', value: '#8b5cf6' },
+  { label: 'Pink',   value: '#ec4899' },
+]
+
 function getLS<T>(key: string, fallback: T): T {
   if (typeof window === 'undefined') return fallback
   return (localStorage.getItem(key) as T) ?? fallback
@@ -270,6 +281,21 @@ export default function NotesPage() {
       if (!res.ok) setNotes(prev => prev.map(n => n.id === note.id ? { ...n, tags: note.tags } : n))
     }).catch(() => {
       setNotes(prev => prev.map(n => n.id === note.id ? { ...n, tags: note.tags } : n))
+    })
+  }
+
+  function setNoteColor(note: Note, color: string | null) {
+    // State stores undefined for "no color" (omits the key); API expects null to clear it
+    setNotes(prev => prev.map(n => n.id === note.id ? { ...n, color: color ?? undefined } : n))
+    setCtxMenu(null)
+    fetch(`/api/notes/${note.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ color: color ?? null }),
+    }).then(res => {
+      if (!res.ok) setNotes(prev => prev.map(n => n.id === note.id ? { ...n, color: note.color } : n))
+    }).catch(() => {
+      setNotes(prev => prev.map(n => n.id === note.id ? { ...n, color: note.color } : n))
     })
   }
 
@@ -739,6 +765,45 @@ export default function NotesPage() {
             label={ctxMenu.note.pinned ? 'Unpin note' : 'Pin note'}
             onClick={() => { togglePin(ctxMenu.note); setCtxMenu(null) }}
           />
+
+          {/* Color label */}
+          <div style={{ padding: '6px 12px 6px', borderTop: '1px solid var(--border)', borderBottom: '1px solid var(--border)', margin: '2px 0' }}>
+            <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--muted-foreground)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>
+              Color
+            </div>
+            <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+              <button
+                type="button"
+                title="No color"
+                onClick={() => setNoteColor(ctxMenu.note, null)}
+                style={{
+                  width: 18, height: 18, borderRadius: '50%', flexShrink: 0,
+                  border: ctxMenu.note.color ? '2px solid var(--border)' : '2px solid var(--foreground)',
+                  background: 'transparent', cursor: 'pointer', position: 'relative',
+                }}
+              >
+                <span style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, color: 'var(--muted-foreground)', lineHeight: 1 }}>✕</span>
+              </button>
+              {NOTE_COLORS.map(c => (
+                <button
+                  key={c.value}
+                  type="button"
+                  title={c.label}
+                  onClick={() => setNoteColor(ctxMenu.note, c.value)}
+                  style={{
+                    width: 18, height: 18, borderRadius: '50%', flexShrink: 0,
+                    backgroundColor: c.value, cursor: 'pointer',
+                    border: ctxMenu.note.color === c.value ? '2.5px solid var(--foreground)' : '2px solid transparent',
+                    outline: ctxMenu.note.color === c.value ? `2px solid ${c.value}` : 'none',
+                    outlineOffset: 1,
+                    transition: 'transform 0.1s, border 0.1s',
+                  }}
+                  onMouseEnter={e => { (e.currentTarget as HTMLElement).style.transform = 'scale(1.2)' }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLElement).style.transform = 'scale(1)' }}
+                />
+              ))}
+            </div>
+          </div>
 
           {/* Move to notebook */}
           <div style={{ position: 'relative' }}>
