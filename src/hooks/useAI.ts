@@ -143,6 +143,113 @@ export function useAISummarize(config: AIConfig) {
   return { summary, loading, error, summarize, setSummary }
 }
 
+/**
+ * Suggest a concise, specific title for a note from its content.
+ * Pass `hint` if the user has started typing — the model will complete/improve it.
+ */
+export function useAITitleSuggest(config: AIConfig) {
+  const [title,   setTitle]   = useState('')
+  const [loading, setLoading] = useState(false)
+  const [error,   setError]   = useState<string | null>(null)
+
+  const suggest = useCallback(async (content: string, hint?: string) => {
+    setLoading(true)
+    setError(null)
+    try {
+      const res  = await fetch('/api/ai/title', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ config, content, hint }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error ?? 'Title generation failed')
+      setTitle(data.title)
+      return data.title as string
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed')
+    } finally {
+      setLoading(false)
+    }
+    return ''
+  }, [config])
+
+  return { title, loading, error, suggest, setTitle }
+}
+
+/**
+ * Suggest 3–6 relevant tags for a note based on its content.
+ * Already-applied tags are passed in so the model never suggests duplicates.
+ */
+export function useAITagSuggest(config: AIConfig) {
+  const [tags,    setTags]    = useState<string[]>([])
+  const [loading, setLoading] = useState(false)
+  const [error,   setError]   = useState<string | null>(null)
+
+  const suggest = useCallback(async (content: string, existingTags?: string[], title?: string) => {
+    setTags([])
+    setLoading(true)
+    setError(null)
+    try {
+      const res  = await fetch('/api/ai/tags', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ config, content, title, existingTags }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error ?? 'Tag generation failed')
+      setTags(data.tags ?? [])
+      return data.tags as string[]
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed')
+    } finally {
+      setLoading(false)
+    }
+    return []
+  }, [config])
+
+  const dismiss = useCallback((tag: string) => {
+    setTags(prev => prev.filter(t => t !== tag))
+  }, [])
+
+  return { tags, loading, error, suggest, dismiss, setTags }
+}
+
+/**
+ * Aggregate and summarise everything the user has written about a named person.
+ * Searches notes + bookmarks by name, then generates a structured intelligence brief.
+ */
+export function useAIPersonIntel(config: AIConfig) {
+  const [summary,  setSummary]  = useState('')
+  const [sources,  setSources]  = useState<Array<{ id: string; title: string; type: 'note' | 'bookmark'; updatedAt: string }>>([])
+  const [loading,  setLoading]  = useState(false)
+  const [error,    setError]    = useState<string | null>(null)
+
+  const search = useCallback(async (name: string) => {
+    setSummary('')
+    setSources([])
+    setLoading(true)
+    setError(null)
+    try {
+      const res  = await fetch('/api/ai/person', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ config, name }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error ?? 'Person lookup failed')
+      setSummary(data.summary)
+      setSources(data.sources ?? [])
+      return data
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed')
+    } finally {
+      setLoading(false)
+    }
+  }, [config])
+
+  return { summary, sources, loading, error, search }
+}
+
 /** Scan a note for potential cross-links to other notes via the auto-link API. */
 export function useAIAutoLink() {
   const [suggestions, setSuggestions] = useState<Array<{ id: string; title: string }>>([])

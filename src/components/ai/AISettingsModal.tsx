@@ -309,7 +309,7 @@ export function AISettingsModal({ onClose }: AISettingsModalProps) {
                 <RefreshCw size={9} />
               </button>
             </span>
-          ) : draft.provider !== 'ollama' && draft.apiKey ? (
+          ) : draft.apiKey ? (
             <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 10, color: 'var(--muted-foreground)' }}>
               {cloudFetching
                 ? <><Loader2 size={10} style={{ animation: 'spin 1s linear infinite' }} /> fetching models…</>

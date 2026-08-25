@@ -21,6 +21,7 @@ import { AISettingsModal } from '@/components/ai/AISettingsModal'
 import { useNoteTabs } from '@/hooks/useNoteTabs'
 import { notebookTag } from '@/hooks/useNotebooks'
 import { useAISettings } from '@/hooks/useAISettings'
+import { useAITitleSuggest, useAITagSuggest } from '@/hooks/useAI'
 import '@/components/editor/editor.css'
 
 type SaveStatus = 'saved' | 'saving' | 'unsaved' | null
@@ -58,6 +59,10 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
   const [aiSettingsOpen,  setAISettingsOpen]  = useState(false)
   // Inline assist state: set when the user triggers AI on a text selection
   const [aiAssist, setAIAssist] = useState<{ text: string; rect: DOMRect } | null>(null)
+  // Smart title suggestion
+  const { suggest: suggestTitle, loading: titleLoading } = useAITitleSuggest(aiConfig)
+  // Auto-tag suggestions — shown as dismissible chips below the tag input
+  const { tags: suggestedTags, loading: tagsLoading, suggest: suggestTags, dismiss: dismissTag, setTags: setSuggestedTags } = useAITagSuggest(aiConfig)
 
   const saveTimer    = useRef<ReturnType<typeof setTimeout> | null>(null)
   const wikiLinkIds  = useRef<string[]>([])
@@ -297,6 +302,26 @@ ${note.content ?? ''}
     setNote(updated); scheduleAutoSave(updated)
   }
 
+  async function handleSuggestTitle() {
+    const content = note.content ?? ''
+    if (!content || content === '<p></p>') return
+    const suggested = await suggestTitle(content, note.title || undefined)
+    if (suggested) handleTitleChange(suggested)
+  }
+
+  async function handleSuggestTags() {
+    const content = note.content ?? ''
+    if (!content || content === '<p></p>') return
+    await suggestTags(content, note.tags ?? [], note.title || undefined)
+  }
+
+  function acceptTag(tag: string) {
+    if (note.tags?.includes(tag)) { dismissTag(tag); return }
+    const updated = { ...note, tags: [...(note.tags ?? []), tag] }
+    setNote(updated); scheduleAutoSave(updated)
+    dismissTag(tag)
+  }
+
   if (loading) {
     return <div style={{ padding: 40, color: 'var(--muted-foreground)', fontSize: 14 }}>Loading…</div>
   }
@@ -448,64 +473,151 @@ ${note.content ?? ''}
           </button>
         </div>
 
-        {/* Row 2: title */}
-        <input
-          id="note-title"
-          name="note-title"
-          value={note.title ?? ''}
-          onChange={e => handleTitleChange(e.target.value)}
-          placeholder="Note title…"
-          style={{
-            width: '100%', background: 'none', border: 'none', outline: 'none',
-            fontSize: 22, fontWeight: 700, color: 'var(--foreground)',
-            fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
-            padding: '0 0 10px',
-          }}
-        />
+        {/* Row 2: title + optional AI suggest button */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <input
+            id="note-title"
+            name="note-title"
+            value={note.title ?? ''}
+            onChange={e => handleTitleChange(e.target.value)}
+            placeholder="Note title…"
+            style={{
+              flex: 1, background: 'none', border: 'none', outline: 'none',
+              fontSize: 22, fontWeight: 700, color: 'var(--foreground)',
+              fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+              padding: '0 0 10px',
+            }}
+          />
+          {/* Show when AI is on and there's content worth titling */}
+          {aiConfigured && editorText.length > 30 && (
+            <button
+              type="button"
+              title="Suggest a title from your note content"
+              onClick={handleSuggestTitle}
+              disabled={titleLoading}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 4,
+                padding: '3px 9px', borderRadius: 6, flexShrink: 0, marginBottom: 8,
+                border: '1px solid color-mix(in srgb, var(--primary) 30%, transparent)',
+                backgroundColor: 'color-mix(in srgb, var(--primary) 8%, transparent)',
+                color: 'var(--primary)', fontSize: 11, cursor: titleLoading ? 'wait' : 'pointer',
+                fontWeight: 500, opacity: titleLoading ? 0.6 : 1, transition: 'all 0.15s',
+              }}
+              onMouseEnter={e => { if (!titleLoading) e.currentTarget.style.backgroundColor = 'color-mix(in srgb, var(--primary) 15%, transparent)' }}
+              onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'color-mix(in srgb, var(--primary) 8%, transparent)' }}
+            >
+              <Sparkles size={11} />
+              {titleLoading ? 'Suggesting…' : 'Suggest title'}
+            </button>
+          )}
+        </div>
       </div>
 
       {/* ── Tags bar ── */}
       <div style={{
-        display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap',
+        display: 'flex', flexDirection: 'column',
         padding: '8px 20px',
         borderBottom: '1px solid var(--border)',
         backgroundColor: 'var(--background)',
         flexShrink: 0,
-        minHeight: 38,
+        gap: 6,
       }}>
-        {note.tags?.map(tag => (
-          <button
-            key={tag}
-            type="button"
-            onClick={() => removeTag(tag)}
-            title="Remove tag"
+        {/* Applied tags + input row */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', minHeight: 22 }}>
+          {note.tags?.map(tag => (
+            <button
+              key={tag}
+              type="button"
+              onClick={() => removeTag(tag)}
+              title="Remove tag"
+              style={{
+                display: 'flex', alignItems: 'center', gap: 4,
+                fontSize: 12, color: 'var(--primary)',
+                backgroundColor: 'color-mix(in srgb, var(--primary) 12%, transparent)',
+                border: '1px solid color-mix(in srgb, var(--primary) 25%, transparent)',
+                padding: '2px 8px', borderRadius: 99, cursor: 'pointer',
+                transition: 'all 0.12s',
+              }}
+              onMouseEnter={e => { e.currentTarget.style.backgroundColor = 'color-mix(in srgb, var(--primary) 20%, transparent)' }}
+              onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'color-mix(in srgb, var(--primary) 12%, transparent)' }}
+            >
+              {tag} <X size={9} />
+            </button>
+          ))}
+          <input
+            id="note-tag-input"
+            name="note-tag-input"
+            value={tagInput}
+            onChange={e => setTagInput(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && addTag()}
+            placeholder={note.tags?.length ? '+ add tag' : '+ add tag…'}
             style={{
-              display: 'flex', alignItems: 'center', gap: 4,
-              fontSize: 12, color: 'var(--primary)',
-              backgroundColor: 'color-mix(in srgb, var(--primary) 12%, transparent)',
-              border: '1px solid color-mix(in srgb, var(--primary) 25%, transparent)',
-              padding: '2px 8px', borderRadius: 99, cursor: 'pointer',
-              transition: 'all 0.12s',
+              background: 'none', border: 'none', outline: 'none',
+              fontSize: 12, color: 'var(--muted-foreground)',
+              width: note.tags?.length ? 80 : 100,
             }}
-            onMouseEnter={e => { e.currentTarget.style.backgroundColor = 'color-mix(in srgb, var(--primary) 20%, transparent)' }}
-            onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'color-mix(in srgb, var(--primary) 12%, transparent)' }}
-          >
-            {tag} <X size={9} />
-          </button>
-        ))}
-        <input
-          id="note-tag-input"
-          name="note-tag-input"
-          value={tagInput}
-          onChange={e => setTagInput(e.target.value)}
-          onKeyDown={e => e.key === 'Enter' && addTag()}
-          placeholder={note.tags?.length ? '+ add tag' : '+ add tag…'}
-          style={{
-            background: 'none', border: 'none', outline: 'none',
-            fontSize: 12, color: 'var(--muted-foreground)',
-            width: note.tags?.length ? 80 : 100,
-          }}
-        />
+          />
+          {/* AI tag suggestion trigger — only shown when AI is configured and note has content */}
+          {aiConfigured && editorText.length > 30 && (
+            <button
+              type="button"
+              title="Suggest tags from note content"
+              onClick={handleSuggestTags}
+              disabled={tagsLoading}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 3,
+                padding: '2px 7px', borderRadius: 99,
+                border: '1px solid var(--border)',
+                backgroundColor: 'transparent',
+                color: 'var(--muted-foreground)', fontSize: 11,
+                cursor: tagsLoading ? 'wait' : 'pointer',
+                opacity: tagsLoading ? 0.6 : 1, transition: 'all 0.15s',
+              }}
+              onMouseEnter={e => { if (!tagsLoading) { e.currentTarget.style.color = 'var(--primary)'; e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--primary) 40%, transparent)' } }}
+              onMouseLeave={e => { e.currentTarget.style.color = 'var(--muted-foreground)'; e.currentTarget.style.borderColor = 'var(--border)' }}
+            >
+              <Sparkles size={10} />
+              {tagsLoading ? 'Suggesting…' : 'AI tags'}
+            </button>
+          )}
+        </div>
+
+        {/* Suggested tags row — dashed chips, click to add, X to dismiss */}
+        {suggestedTags.length > 0 && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'wrap' }}>
+            <span style={{ fontSize: 10, color: 'var(--muted-foreground)', fontWeight: 500 }}>Suggested:</span>
+            {suggestedTags.map(tag => (
+              <button
+                key={tag}
+                type="button"
+                title={`Add tag "${tag}"`}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 4,
+                  fontSize: 11, padding: '2px 8px', borderRadius: 99,
+                  border: '1px dashed color-mix(in srgb, var(--primary) 50%, transparent)',
+                  backgroundColor: 'transparent',
+                  color: 'var(--muted-foreground)', cursor: 'pointer', transition: 'all 0.12s',
+                }}
+                onMouseEnter={e => { e.currentTarget.style.backgroundColor = 'color-mix(in srgb, var(--primary) 10%, transparent)'; e.currentTarget.style.color = 'var(--primary)' }}
+                onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = 'var(--muted-foreground)' }}
+              >
+                <span onClick={() => acceptTag(tag)}>+ {tag}</span>
+                <X
+                  size={8}
+                  style={{ flexShrink: 0, marginLeft: 2 }}
+                  onClick={ev => { ev.stopPropagation(); dismissTag(tag) }}
+                />
+              </button>
+            ))}
+            <button
+              type="button"
+              onClick={() => setSuggestedTags([])}
+              style={{ fontSize: 10, background: 'none', border: 'none', color: 'var(--muted-foreground)', cursor: 'pointer', opacity: 0.6, padding: '0 2px' }}
+            >
+              Dismiss all
+            </button>
+          </div>
+        )}
       </div>
 
 

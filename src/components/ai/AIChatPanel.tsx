@@ -1,8 +1,9 @@
 'use client'
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { X, Send, Sparkles, User, Loader2, Trash2, Globe, FileText, MessageSquareText } from 'lucide-react'
+import { X, Send, Sparkles, User, Loader2, Trash2, Globe, FileText, Users } from 'lucide-react'
 import { AIConfig, AIMessage } from '@/lib/ai/types'
 import { useAIStream } from '@/hooks/useAI'
+import { AIPersonPanel } from './AIPersonPanel'
 
 interface AIChatPanelProps {
   config:    AIConfig
@@ -17,8 +18,10 @@ interface ChatMessage {
 }
 
 type ChatMode = 'note' | 'global'
+type PanelTab = 'chat' | 'people'
 
 export function AIChatPanel({ config, noteId, noteTitle, onClose }: AIChatPanelProps) {
+  const [activeTab, setActiveTab] = useState<PanelTab>('chat')
   const [messages,  setMessages]  = useState<ChatMessage[]>([])
   const [input,     setInput]     = useState('')
   const [mode,      setMode]      = useState<ChatMode>(noteId ? 'note' : 'global')
@@ -124,30 +127,62 @@ export function AIChatPanel({ config, noteId, noteTitle, onClose }: AIChatPanelP
       boxShadow:       '-8px 0 32px rgba(0,0,0,0.3)',
     }}>
       {/* Header */}
-      <div style={{ padding: '14px 16px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <div style={{ width: 28, height: 28, borderRadius: 8, backgroundColor: 'color-mix(in srgb, var(--primary) 15%, transparent)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <Sparkles size={14} color="var(--primary)" />
+      <div style={{ padding: '14px 16px 0', borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div style={{ width: 28, height: 28, borderRadius: 8, backgroundColor: 'color-mix(in srgb, var(--primary) 15%, transparent)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Sparkles size={14} color="var(--primary)" />
+            </div>
+            <div>
+              <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: 'var(--foreground)' }}>
+                {activeTab === 'people' ? 'Person Intelligence' : 'AI Chat'}
+              </p>
+              {activeTab === 'chat' && mode === 'note' && noteTitle && (
+                <p style={{ margin: 0, fontSize: 10, color: 'var(--muted-foreground)' }}>{noteTitle}</p>
+              )}
+            </div>
           </div>
-          <div>
-            <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: 'var(--foreground)' }}>AI Chat</p>
-            {mode === 'note' && noteTitle && (
-              <p style={{ margin: 0, fontSize: 10, color: 'var(--muted-foreground)' }}>{noteTitle}</p>
+          <div style={{ display: 'flex', gap: 4 }}>
+            {activeTab === 'chat' && messages.length > 0 && (
+              <button type="button" title="Clear history" onClick={clearHistory} style={iconBtn}>
+                <Trash2 size={13} />
+              </button>
             )}
+            <button type="button" onClick={onClose} style={iconBtn}><X size={13} /></button>
           </div>
         </div>
-        <div style={{ display: 'flex', gap: 4 }}>
-          {messages.length > 0 && (
-            <button type="button" title="Clear history" onClick={clearHistory} style={iconBtn}>
-              <Trash2 size={13} />
+
+        {/* Tab bar — Chat / People */}
+        <div style={{ display: 'flex', gap: 0 }}>
+          {([['chat', 'Chat', Sparkles], ['people', 'People', Users]] as const).map(([tab, label, Icon]) => (
+            <button
+              key={tab}
+              type="button"
+              onClick={() => setActiveTab(tab)}
+              style={{
+                flex: 1, padding: '7px 0', fontSize: 12, fontWeight: 600,
+                border: 'none', background: 'none', cursor: 'pointer',
+                color: activeTab === tab ? 'var(--primary)' : 'var(--muted-foreground)',
+                borderBottom: `2px solid ${activeTab === tab ? 'var(--primary)' : 'transparent'}`,
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
+                transition: 'all 0.15s',
+              }}
+            >
+              <Icon size={12} /> {label}
             </button>
-          )}
-          <button type="button" onClick={onClose} style={iconBtn}><X size={13} /></button>
+          ))}
         </div>
       </div>
 
-      {/* Mode switcher (only shown when noteId is available) */}
-      {noteId && (
+      {/* Person intelligence tab */}
+      {activeTab === 'people' && (
+        <div style={{ flex: 1, overflowY: 'auto', padding: 14 }}>
+          <AIPersonPanel config={config} />
+        </div>
+      )}
+
+      {/* Mode switcher (only shown when noteId is available, chat tab only) */}
+      {activeTab === 'chat' && noteId && (
         <div style={{ padding: '8px 12px', borderBottom: '1px solid var(--border)', display: 'flex', gap: 4, flexShrink: 0 }}>
           {([['note', 'This note', FileText], ['global', 'All knowledge', Globe]] as const).map(([m, label, Icon]) => (
             <button key={m} type="button" onClick={() => setMode(m)} style={{
@@ -162,8 +197,8 @@ export function AIChatPanel({ config, noteId, noteTitle, onClose }: AIChatPanelP
         </div>
       )}
 
-      {/* Messages */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: '12px 12px 0', display: 'flex', flexDirection: 'column', gap: 10 }}>
+      {/* Messages — chat tab only */}
+      {activeTab === 'chat' && <div style={{ flex: 1, overflowY: 'auto', padding: '12px 12px 0', display: 'flex', flexDirection: 'column', gap: 10 }}>
         {isEmpty && <WelcomeMessage mode={mode} noteTitle={noteTitle} />}
 
         {messages.map((msg, i) => (
@@ -199,10 +234,10 @@ export function AIChatPanel({ config, noteId, noteTitle, onClose }: AIChatPanelP
           </div>
         )}
         <div ref={bottomRef} style={{ height: 12 }} />
-      </div>
+      </div>}
 
-      {/* RAG toggle */}
-      <div style={{ padding: '6px 12px', borderTop: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+      {/* RAG toggle — chat tab only */}
+      {activeTab === 'chat' && <div style={{ padding: '6px 12px', borderTop: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
         <button
           type="button"
           onClick={() => setRagActive(v => !v)}
@@ -213,10 +248,10 @@ export function AIChatPanel({ config, noteId, noteTitle, onClose }: AIChatPanelP
         <p style={{ margin: 0, fontSize: 10, color: 'var(--muted-foreground)' }}>
           {ragActive ? 'Answers grounded in your notes' : 'Direct model answers only'}
         </p>
-      </div>
+      </div>}
 
-      {/* Input */}
-      <div style={{ padding: '8px 12px 12px', borderTop: '1px solid var(--border)', display: 'flex', gap: 6, flexShrink: 0 }}>
+      {/* Input — chat tab only */}
+      {activeTab === 'chat' && <div style={{ padding: '8px 12px 12px', borderTop: '1px solid var(--border)', display: 'flex', gap: 6, flexShrink: 0 }}>
         <textarea
           ref={inputRef}
           value={input}
@@ -242,7 +277,7 @@ export function AIChatPanel({ config, noteId, noteTitle, onClose }: AIChatPanelP
         >
           {streaming ? <X size={13} /> : <Send size={13} />}
         </button>
-      </div>
+      </div>}
     </div>
   )
 }
