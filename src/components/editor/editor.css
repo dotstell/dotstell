@@ -14,23 +14,28 @@
 .tiptap-editor p:last-child { margin-bottom: 0; }
 
 /* ── Headings ─────────────────────────────────────────────── */
+/* No explicit `color` here — headings inherit from .tiptap-editor so that
+   TextStyle color marks on heading text (rendered as <span style="color:...">) win
+   via inline-style specificity. Setting color on the element itself would
+   force spans to fight a losing battle even with inline styles. */
 .tiptap-editor h1 {
   font-size: 28px; font-weight: 800; margin: 28px 0 10px;
-  color: var(--foreground); line-height: 1.25; letter-spacing: -0.5px;
+  line-height: 1.25; letter-spacing: -0.5px;
   border-bottom: 1px solid var(--border); padding-bottom: 8px;
 }
 .tiptap-editor h2 {
   font-size: 22px; font-weight: 700; margin: 24px 0 8px;
-  color: var(--foreground); line-height: 1.3; letter-spacing: -0.3px;
+  line-height: 1.3; letter-spacing: -0.3px;
 }
 .tiptap-editor h3 {
   font-size: 17px; font-weight: 700; margin: 20px 0 6px;
-  color: var(--foreground); line-height: 1.4;
+  line-height: 1.4;
 }
 
 /* ── Inline formatting ────────────────────────────────────── */
-.tiptap-editor strong { color: var(--foreground); font-weight: 700; }
-.tiptap-editor em     { font-style: italic; color: var(--foreground); opacity: 0.85; }
+/* No explicit color on strong/em — same reason as headings: inline color marks must win */
+.tiptap-editor strong { font-weight: 700; }
+.tiptap-editor em     { font-style: italic; opacity: 0.85; }
 .tiptap-editor u      { text-decoration: underline; text-decoration-color: color-mix(in srgb, var(--primary) 60%, transparent); }
 .tiptap-editor s      { text-decoration: line-through; color: var(--muted-foreground); }
 
