@@ -180,6 +180,8 @@ interface RichTextEditorProps {
   onWikiLinksChange?: (targetNoteIds: string[]) => void
   /** Called once the Tiptap editor instance is ready — use to drive ToC navigation from the parent */
   onEditorReady?: (editor: Editor) => void
+  /** Called when the user activates AI Assist from the toolbar — parent handles the selection + panel */
+  onAIAssist?: () => void
 }
 
 // ── Markdown converters (singleton) ─────────────────────────
@@ -219,7 +221,7 @@ function extractWikiLinkIdsFromDoc(editor: ReturnType<typeof useEditor>): string
 
 export function RichTextEditor({
   content, onChange, onTextChange, placeholder = 'Start writing… (type / for commands)',
-  onFocusMode, focusMode, onWikiLinksChange, onEditorReady,
+  onFocusMode, focusMode, onWikiLinksChange, onEditorReady, onAIAssist,
 }: RichTextEditorProps) {
   const [slashOpen,       setSlashOpen]       = useState(false)
   const [slashFilter,     setSlashFilter]     = useState('')
@@ -713,6 +715,24 @@ export function RichTextEditor({
             {sourceMode ? <Eye size={12} /> : <FileCode2 size={12} />}
             {sourceMode ? 'Rich text' : 'Markdown'}
           </button>
+          {onAIAssist && (
+            <button
+              type="button"
+              title="AI Assist: rewrite, expand, shorten, fix, or outline selected text"
+              onClick={onAIAssist}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 4,
+                padding: '4px 9px', borderRadius: 6, border: '1px solid var(--border)',
+                backgroundColor: 'transparent', color: 'var(--muted-foreground)',
+                fontSize: 11, fontWeight: 600, cursor: 'pointer', transition: 'all 0.15s',
+                whiteSpace: 'nowrap',
+              }}
+              onMouseEnter={e => { e.currentTarget.style.backgroundColor = 'color-mix(in srgb, var(--primary) 12%, transparent)'; e.currentTarget.style.color = 'var(--primary)'; e.currentTarget.style.borderColor = 'var(--primary)' }}
+              onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = 'var(--muted-foreground)'; e.currentTarget.style.borderColor = 'var(--border)' }}
+            >
+              ✦ AI
+            </button>
+          )}
           {onFocusMode && (
             <ToolBtn onClick={() => onFocusMode(!focusMode)} title={focusMode ? 'Exit focus mode' : 'Focus mode'}>
               {focusMode ? <Minimize2 size={14} /> : <Maximize2 size={14} />}

@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import {
   X, Maximize2, Minimize2, Plus, FileText,
   ChevronRight, ArrowLeft, LayoutTemplate, Download,
-  List, ChevronDown,
+  List, ChevronDown, Bot, MessageSquare, Settings,
 } from 'lucide-react'
 import type { Editor } from '@tiptap/react'
 import Link from 'next/link'
@@ -14,8 +14,13 @@ import { RichTextEditor } from '@/components/editor/RichTextEditor'
 import { NoteTemplateModal } from '@/components/editor/NoteTemplates'
 import { LinkPanel } from '@/components/links/LinkPanel'
 import { BacklinksPanel } from '@/components/notes/BacklinksPanel'
+import { AIChatPanel } from '@/components/ai/AIChatPanel'
+import { AIInlineAssist } from '@/components/ai/AIInlineAssist'
+import { AIRelatedPanel } from '@/components/ai/AIRelatedPanel'
+import { AISettingsModal } from '@/components/ai/AISettingsModal'
 import { useNoteTabs } from '@/hooks/useNoteTabs'
 import { notebookTag } from '@/hooks/useNotebooks'
+import { useAISettings } from '@/hooks/useAISettings'
 import '@/components/editor/editor.css'
 
 type SaveStatus = 'saved' | 'saving' | 'unsaved' | null
@@ -47,6 +52,13 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
   const [tocOpen, setTocOpen]         = useState(() =>
     typeof window !== 'undefined' ? localStorage.getItem('dotstell_toc_open') !== 'false' : true
   )
+  // AI features
+  const { config: aiConfig, isConfigured: aiConfigured } = useAISettings()
+  const [chatOpen,        setChatOpen]        = useState(false)
+  const [aiSettingsOpen,  setAISettingsOpen]  = useState(false)
+  // Inline assist state: set when the user triggers AI on a text selection
+  const [aiAssist, setAIAssist] = useState<{ text: string; rect: DOMRect } | null>(null)
+
   const saveTimer    = useRef<ReturnType<typeof setTimeout> | null>(null)
   const wikiLinkIds  = useRef<string[]>([])
   // Holds the live Tiptap editor instance so we can scroll to headings from the ToC
@@ -395,6 +407,70 @@ ${note.content ?? ''}
           >
             {focusMode ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
           </button>
+
+          {/* AI Chat */}
+          <button
+            type="button"
+            title={aiConfigured ? 'AI Chat (RAG over your notes)' : 'AI not configured — click to set up'}
+            onClick={() => aiConfigured ? setChatOpen(c => !c) : setAISettingsOpen(true)}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 5,
+              padding: '5px 10px', borderRadius: 7,
+              border: '1px solid var(--border)', background: chatOpen ? 'color-mix(in srgb, var(--primary) 12%, transparent)' : 'none',
+              color: chatOpen ? 'var(--primary)' : 'var(--muted-foreground)', fontSize: 12, cursor: 'pointer',
+              transition: 'all 0.12s',
+            }}
+            onMouseEnter={e => { e.currentTarget.style.background = 'var(--accent)'; e.currentTarget.style.color = 'var(--foreground)' }}
+            onMouseLeave={e => { e.currentTarget.style.background = chatOpen ? 'color-mix(in srgb, var(--primary) 12%, transparent)' : 'none'; e.currentTarget.style.color = chatOpen ? 'var(--primary)' : 'var(--muted-foreground)' }}
+          >
+            <MessageSquare size={13} /> AI
+          </button>
+
+          {/* AI Inline Assist — only shown when there's an active editor selection */}
+          <button
+            type="button"
+            title="AI: rewrite, expand, shorten, outline, or explain selected text"
+            onClick={() => {
+              const editor = editorRef.current
+              if (!editor) return
+              const { from, to } = editor.state.selection
+              if (from === to) return  // no selection
+              const text = editor.state.doc.textBetween(from, to, ' ').trim()
+              if (!text) return
+              const sel = window.getSelection()
+              const rect = sel?.rangeCount ? sel.getRangeAt(0).getBoundingClientRect() : null
+              if (rect) setAIAssist({ text, rect })
+            }}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 5,
+              padding: '5px 10px', borderRadius: 7,
+              border: '1px solid var(--border)', background: 'none',
+              color: 'var(--muted-foreground)', fontSize: 12, cursor: 'pointer',
+              transition: 'all 0.12s',
+            }}
+            onMouseEnter={e => { e.currentTarget.style.background = 'var(--accent)'; e.currentTarget.style.color = 'var(--foreground)' }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = 'var(--muted-foreground)' }}
+          >
+            <Bot size={13} /> Assist
+          </button>
+
+          {/* AI Settings shortcut */}
+          <button
+            type="button"
+            title="AI Settings (Ctrl+Shift+,)"
+            onClick={() => setAISettingsOpen(true)}
+            style={{
+              display: 'flex', alignItems: 'center',
+              padding: 6, borderRadius: 7,
+              border: '1px solid var(--border)', background: 'none',
+              color: 'var(--muted-foreground)', cursor: 'pointer',
+              transition: 'all 0.12s',
+            }}
+            onMouseEnter={e => { e.currentTarget.style.background = 'var(--accent)'; e.currentTarget.style.color = 'var(--foreground)' }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = 'var(--muted-foreground)' }}
+          >
+            <Settings size={13} />
+          </button>
         </div>
 
         {/* Row 2: title */}
@@ -472,6 +548,17 @@ ${note.content ?? ''}
             onFocusMode={setFocusMode}
             onWikiLinksChange={ids => { wikiLinkIds.current = ids }}
             onEditorReady={ed => { editorRef.current = ed }}
+            onAIAssist={aiConfigured ? () => {
+              const editor = editorRef.current
+              if (!editor) return
+              const { from, to } = editor.state.selection
+              if (from === to) return
+              const text = editor.state.doc.textBetween(from, to, ' ').trim()
+              if (!text) return
+              const sel = window.getSelection()
+              const rect = sel?.rangeCount ? sel.getRangeAt(0).getBoundingClientRect() : null
+              if (rect) setAIAssist({ text, rect })
+            } : undefined}
           />
         </div>
 
@@ -600,6 +687,15 @@ ${note.content ?? ''}
             </div>
 
             <BacklinksPanel noteId={noteId} noteTitle={note.title} syncCount={wikiSyncCount} />
+
+            {/* AI Related Notes — only shown when AI is configured and note is saved */}
+            {aiConfigured && (
+              <AIRelatedPanel
+                config={aiConfig}
+                noteId={noteId}
+                onOpen={id => router.push(`/notes/${id}`)}
+              />
+            )}
           </div>
         )}
       </div>
@@ -643,21 +739,56 @@ ${note.content ?? ''}
           setNote(prev => ({ ...prev, title: tmpl.title, content }))
         }}
       />
+
+      {/* AI Settings modal */}
+      {aiSettingsOpen && <AISettingsModal onClose={() => setAISettingsOpen(false)} />}
+
+      {/* AI Inline Assist — floating panel anchored to the text selection */}
+      {aiAssist && aiConfigured && (
+        <AIInlineAssist
+          config={aiConfig}
+          selectedText={aiAssist.text}
+          noteContext={editorText}
+          anchorRect={aiAssist.rect}
+          onApply={newText => {
+            const editor = editorRef.current
+            if (editor) editor.chain().focus().insertContent(newText).run()
+          }}
+          onClose={() => setAIAssist(null)}
+        />
+      )}
     </div>
+  )
+
+  // AI Chat panel is rendered outside editorContent so it overlays the full page
+  // (including focus mode) without being re-mounted when focusMode toggles.
+  const aiChatOverlay = chatOpen && aiConfigured && (
+    <AIChatPanel
+      config={aiConfig}
+      noteId={noteId ?? undefined}
+      noteTitle={note.title}
+      onClose={() => setChatOpen(false)}
+    />
   )
 
   if (focusMode) {
     return (
-      <div style={{ position: 'fixed', inset: 0, backgroundColor: 'var(--background)', zIndex: 100, display: 'flex', flexDirection: 'column' }}>
-        {editorContent}
-      </div>
+      <>
+        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'var(--background)', zIndex: 100, display: 'flex', flexDirection: 'column' }}>
+          {editorContent}
+        </div>
+        {aiChatOverlay}
+      </>
     )
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden', backgroundColor: 'var(--background)' }}>
-      {editorContent}
-    </div>
+    <>
+      <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden', backgroundColor: 'var(--background)' }}>
+        {editorContent}
+      </div>
+      {aiChatOverlay}
+    </>
   )
 }
 
