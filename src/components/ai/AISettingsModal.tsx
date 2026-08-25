@@ -42,9 +42,9 @@ const CHAT_MODEL_SUGGESTIONS: Record<AIProvider, string[]> = {
 // Kept generic — no specific model names — so it stays accurate as providers release new models.
 const MODEL_HINTS: Record<AIProvider, string> = {
   ollama:    'Models at 7B or below work well for all features. Larger models are slow without a dedicated GPU.',
-  openai:    'Mini or Turbo variants are recommended — fast, low cost, and ideal for summarisation, tagging and graph analysis.',
-  anthropic: 'Haiku is the fastest and most affordable tier — ideal for dotstell\'s short-task AI features.',
-  gemini:    'Flash or Lite models are recommended — they work on all free-tier API keys and are ideal for dotstell\'s features (summarisation, tagging, graph analysis) which need speed, not long-context reasoning.',
+  openai:    'Mini or Turbo variants are recommended — fast, low cost, and ideal for summarisation and tagging.',
+  anthropic: 'Haiku is the fastest and most affordable tier — ideal for summarisation and tagging.',
+  gemini:    'Flash or Lite models are recommended — fast, free-tier friendly, and ideal for summarisation and tagging.',
   groq:      'Instant or small models are recommended — Groq\'s free tier is generous and inference is extremely fast.',
 }
 
