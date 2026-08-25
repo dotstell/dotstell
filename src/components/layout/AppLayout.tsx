@@ -67,6 +67,8 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     return () => window.removeEventListener('resize', check)
   }, [])
 
+  // Poll localStorage every 150ms rather than using a storage event because storage
+  // events only fire in OTHER tabs — the tab that wrote the value never receives one.
   useEffect(() => {
     const sync = () => setCollapsed(localStorage.getItem('sidebar-collapsed') === 'true')
     sync()

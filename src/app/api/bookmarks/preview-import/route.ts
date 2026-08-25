@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { rateLimit } from '@/lib/ratelimit'
 
+// Stateless preview — parses the HTML file and returns folder/count stats without
+// writing anything to the database. The client shows this data in a confirmation UI
+// before the user commits to the actual import via /bookmarks/bulk-import.
 export async function POST(req: NextRequest) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()

@@ -21,7 +21,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'targetNoteIds must be strings' }, { status: 400 })
   }
 
-  // Delete existing wikilink edges from this source
+  // Delete-then-insert (replace-all) sync: the editor sends the complete current
+  // set of wikilinks, so stale edges are removed and new ones are added in one round trip.
+  // label='__wikilink__' distinguishes these auto-tracked edges from user-created manual links.
   await supabase
     .from('knowledge_links')
     .delete()

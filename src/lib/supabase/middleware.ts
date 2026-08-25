@@ -4,6 +4,10 @@ import { NextResponse, type NextRequest } from 'next/server'
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request })
 
+  // Cookies must be set on BOTH the request and the response:
+  // - request: so subsequent server-component reads within the same request see the refreshed token
+  // - response: so the browser stores the updated token for the next request
+  // Omitting either half causes session refresh to silently fail on the next page load.
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,

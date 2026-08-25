@@ -9,8 +9,10 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
   const body = await req.json()
   const allowed: Record<string, unknown> = {}
+  // Allowlist prevents mass-assignment — only these fields may be updated via PATCH
   const fields = ['title','description','status','priority','due_date','tags','person_id'] as const
   for (const f of fields) if (f in body) allowed[f] = body[f]
+  // Embed the linked person inline so the client doesn't need a follow-up GET /api/people/:id
   const { data, error } = await supabase.from('tasks').update(allowed).eq('id', id).eq('user_id', user.id).select('*, person:people(id,name)').single()
   if (error) return NextResponse.json({ error: 'An unexpected error occurred.' }, { status: 500 })
   return NextResponse.json(data)

@@ -80,7 +80,9 @@ export function TaskReminders() {
             changed = true
           }
 
-          // Overdue (past by up to 2 min) — notify once
+          // Separate key suffix for the overdue notification so a task gets two
+          // toasts at most: one "due in N minutes" and one "due now" — not the same
+          // toast fired twice, and not suppressed by the earlier REMIND_WINDOW check.
           const overdueKey = `${task.id}-overdue`
           if (diff < 0 && diff > -2 * 60_000 && !notified.has(overdueKey)) {
             fireNotification(task.id, task.title || 'Untitled task', 0)

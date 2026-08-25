@@ -34,6 +34,8 @@ export function truncate(text: string, length: number): string {
   return text.slice(0, length) + '...'
 }
 
+// Non-cryptographic ID for checklist items — these are never used as DB primary keys,
+// so collision risk is negligible. Use crypto.randomUUID() for anything DB-facing.
 export function generateId(): string {
   return Math.random().toString(36).slice(2) + Date.now().toString(36)
 }

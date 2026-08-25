@@ -1,5 +1,8 @@
 export type NoteType = 'plain' | 'markdown' | 'checklist'
 
+// tags: string[] serves dual purpose — user-visible labels AND notebook membership.
+// Notebook membership is encoded as 'nb:<slug>' (e.g. 'nb:my-notebook').
+// See useNotebooks.ts for the slug/tag convention and migration history.
 export interface Notebook {
   id: string
   name: string
@@ -88,6 +91,9 @@ export interface Task {
 
 export type LinkableType = 'note' | 'person' | 'bookmark' | 'task'
 
+// LinkedItem is a denormalized view computed by the API, not a DB column.
+// source_id/target_id in knowledge_links are untyped UUIDs — the app resolves
+// them to the appropriate table at query time using source_type/target_type.
 export interface LinkedItem {
   id: string
   type: LinkableType

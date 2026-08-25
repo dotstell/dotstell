@@ -78,7 +78,9 @@ export function BacklinksPanel({ noteId, noteTitle, syncCount }: Props) {
       })
       if (!patchRes.ok) throw new Error('patch failed')
 
-      // Sync wikilinks for the source note — collect existing wikilink IDs from its content
+      // Re-parse the new content to collect ALL wikilink IDs (existing + newly added) before
+      // syncing — the wikilinks endpoint does a replace-all, so sending only the new ID
+      // would delete the source note's other outgoing links.
       const parser = new DOMParser()
       const doc = parser.parseFromString(newContent, 'text/html')
       const wlNodes = doc.querySelectorAll('[data-wikilink]')

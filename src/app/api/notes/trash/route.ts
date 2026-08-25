@@ -8,6 +8,9 @@ export async function GET(_req: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
+  // Auto-purge is triggered on every GET rather than a scheduled job — simpler
+  // to operate (no cron required) and acceptable because trash is only checked
+  // when the user explicitly opens the Trash view.
   // Auto-purge notes that have been in trash longer than the TTL
   const expiry = new Date(Date.now() - TRASH_TTL_DAYS * 24 * 60 * 60 * 1000).toISOString()
   await supabase

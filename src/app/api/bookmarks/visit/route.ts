@@ -9,7 +9,9 @@ export async function POST(req: NextRequest) {
   const { id } = await req.json()
   if (!id) return NextResponse.json({ error: 'Missing id' }, { status: 400 })
 
-  // Increment visit count and update last_visited_at
+  // Read-then-increment: PostgREST has no atomic column increment (no UPDATE SET col = col + 1),
+  // so we fetch the current count first. Race condition is acceptable here — visit counts are
+  // a soft metric, not a financial counter.
   const { data: current } = await supabase
     .from('bookmarks')
     .select('visit_count')

@@ -12,6 +12,7 @@ export async function GET(req: NextRequest) {
 
   let query = supabase.from('people').select('*').eq('user_id', user.id).order('name')
   if (q) {
+    // Escape LIKE metacharacters before embedding in ilike pattern
     const safe = q.slice(0, 200).replace(/%/g, '\\%').replace(/_/g, '\\_')
     query = query.ilike('name', `%${safe}%`)
   }

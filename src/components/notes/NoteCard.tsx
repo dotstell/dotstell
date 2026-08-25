@@ -9,6 +9,8 @@ const TYPE_ICON  = { plain: AlignLeft, markdown: FileText, checklist: CheckSquar
 const TYPE_LABEL = { plain: 'Plain', markdown: 'Rich text', checklist: 'List' }
 const TYPE_COLOR = { plain: 'var(--muted-foreground)', markdown: 'var(--primary)', checklist: '#10b981' }
 
+// Extracts readable preview text from Tiptap HTML — intentionally lightweight
+// (regex-based, not DOMParser) since this runs on every render for each card.
 function htmlToText(html: string): string {
   return html
     .replace(/<(h[1-6])[^>]*>(.*?)<\/\1>/gi, '$2 ')

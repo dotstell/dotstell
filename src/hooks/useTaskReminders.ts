@@ -17,6 +17,7 @@ export function useTaskReminders() {
       if (!Array.isArray(tasks)) return
 
       const now = new Date()
+      // Normalise both dates to midnight so "today" works regardless of the task's time component
       const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
 
       const dueSoon = tasks.filter((t: { status: string; due_date: string | null; title: string }) => {
@@ -29,7 +30,9 @@ export function useTaskReminders() {
 
       if (dueSoon.length === 0) return
 
-      // Only notify once per session
+      // sessionStorage key is date-scoped so the user gets at most one notification
+      // per calendar day per browser tab. localStorage would survive a tab close;
+      // sessionStorage is intentionally ephemeral so a new session gets a fresh check.
       const key = 'dotstell-notified-' + today.toDateString()
       if (sessionStorage.getItem(key)) return
       sessionStorage.setItem(key, '1')

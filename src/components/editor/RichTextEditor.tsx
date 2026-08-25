@@ -271,6 +271,8 @@ export function RichTextEditor({
       Link.configure({
         openOnClick: false,
         HTMLAttributes: { class: 'tiptap-link' },
+        // validate blocks javascript: hrefs from being rendered as links — defence
+        // against XSS via malicious content pasted into the editor.
         validate: href => /^(https?:\/\/|mailto:|\/|#)/i.test(href),
       }),
       Table.configure({ resizable: true }),
@@ -301,6 +303,9 @@ export function RichTextEditor({
         }
         return false
       },
+      // Smart paste: strip unsafe elements and all non-semantic attributes while
+      // preserving structure (headings, lists, links, tables). Plain paste mode
+      // bypasses this entirely and inserts raw text.
       transformPastedHTML: (html) => {
         if (pasteModeRef.current === 'plain') return ''
         try {

@@ -20,6 +20,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
   const body = await req.json()
   const allowed: Record<string, unknown> = {}
+  // Allowlist prevents arbitrary column writes — user_id and id can never be overwritten via PATCH
   const fields = ['name','role','company','email','phone','tags','notes','avatar_url'] as const
   for (const f of fields) if (f in body) allowed[f] = body[f]
   const { data, error } = await supabase.from('people').update(allowed).eq('id', id).eq('user_id', user.id).select().single()

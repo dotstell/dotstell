@@ -7,6 +7,7 @@ export async function GET(req: NextRequest) {
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const q = new URL(req.url).searchParams.get('q') ?? ''
+  // Minimum 2 characters prevents unbounded full-table ilike scans on every keystroke
   if (!q || q.length < 2) return NextResponse.json([])
   if (q.length > 200) return NextResponse.json([])
 
@@ -21,6 +22,8 @@ export async function GET(req: NextRequest) {
     supabase.from('tasks').select('id,title,status,priority').eq('user_id', user.id).ilike('title', `%${safe}%`).limit(5),
   ])
 
+  // _type and _label normalise heterogeneous results so the UI doesn't need to
+  // know which entity type each result came from to render it uniformly.
   const results = [
     ...(notes.data ?? []).map(n => ({ ...n, _type: 'note', _label: n.title })),
     ...(people.data ?? []).map(p => ({ ...p, _type: 'person', _label: p.name })),

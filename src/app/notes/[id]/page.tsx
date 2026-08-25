@@ -125,6 +125,8 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ sourceNoteId, targetNoteIds: wikiLinkIds.current }),
     })
+    // Incrementing this counter causes BacklinksPanel to re-fetch its list
+    // without passing a callback prop — any change to the value triggers the effect.
     setWikiSyncCount(n => n + 1)
   }, [])
 
@@ -153,6 +155,8 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
           const saved = await res.json()
           setNoteId(saved.id)
           setSaveStatus('saved')
+          // Replace URL without a navigation event so the browser history and tab bar
+          // reflect the real note ID while the user keeps typing without interruption.
           window.history.replaceState({}, '', `/notes/${saved.id}`)
           syncWikiLinks(saved.id)
           openTab(saved.id, saved.title || 'Untitled')
@@ -250,6 +254,9 @@ ${note.content ?? ''}
     }
   }
 
+  // Debounce saves by 1.5s — every keystroke resets the timer; the API call only
+  // fires once the user pauses. This keeps network traffic low while still saving
+  // quickly enough that switching notes rarely loses content.
   function scheduleAutoSave(updates: Partial<Note>) {
     setSaveStatus('unsaved')
     if (saveTimer.current) clearTimeout(saveTimer.current)

@@ -39,6 +39,8 @@ export function NoteRow({ note, onClick, onDelete, onContextMenu, onPin }: NoteR
         display: 'flex', alignItems: 'center', gap: 12,
         padding: '10px 14px', borderRadius: 9,
         cursor: 'pointer', transition: 'background 0.12s',
+        // color-mix at 5% opacity gives a subtle tint that works in both light
+        // and dark themes without needing separate theme variables per color.
         backgroundColor: note.color
           ? `color-mix(in srgb, ${note.color} 5%, transparent)`
           : note.pinned ? 'color-mix(in srgb, var(--primary) 5%, transparent)' : 'transparent',

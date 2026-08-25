@@ -35,7 +35,9 @@ export async function GET(req: NextRequest) {
   const { data, error } = await query
   if (error) return NextResponse.json({ error: 'An unexpected error occurred.' }, { status: 500 })
 
-  // Attach sub-note counts when fetching root-level notes
+  // Attach sub-note counts in a separate query rather than a JOIN: Supabase's
+  // PostgREST .select() with aggregates requires specific schema setup, and a
+  // second flat query + in-memory group-by is simpler and fast enough at this scale.
   if (root_only === 'true' && data && data.length > 0) {
     const ids = data.map((n: { id: string }) => n.id)
     const { data: subs } = await supabase
