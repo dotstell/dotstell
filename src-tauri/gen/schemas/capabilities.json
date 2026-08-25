@@ -1,1 +1,1 @@
-{"default":{"identifier":"default","description":"Default capabilities for Dotstell desktop","local":true,"windows":["main"],"permissions":["core:default","shell:allow-open","dialog:default","notification:default","process:allow-exit","process:allow-restart"]}}
+{"default":{"identifier":"default","description":"Default capabilities for Dotstell desktop","local":true,"windows":["main"],"permissions":["core:default","shell:allow-open","dialog:default","process:allow-exit","process:allow-restart"]}}

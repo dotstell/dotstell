@@ -5,6 +5,8 @@ import { Sidebar } from './Sidebar'
 import { CommandPalette } from '@/components/command/CommandPalette'
 import { OnboardingFlow } from '@/components/onboarding/OnboardingFlow'
 import { TaskReminders } from '@/components/tasks/TaskReminders'
+import { AISettingsModal } from '@/components/ai/AISettingsModal'
+import { AIStatusBadge } from '@/components/ai/AIStatusBadge'
 import { createClient } from '@/lib/supabase/client'
 import { APP_VERSION, RELEASES_URL } from '@/lib/version'
 
@@ -15,6 +17,8 @@ const G_ROUTES: Record<string, string> = {
   b: '/bookmarks',
   t: '/tasks',
   g: '/graph',
+  a: '/tags',
+  h: '/help',
 }
 
 function isEditable(el: Element | null): boolean {
@@ -39,10 +43,11 @@ const USER_SCOPED_KEYS = [
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const router   = useRouter()
   const pathname = usePathname()
-  const [collapsed, setCollapsed]     = useState(false)
-  const [paletteOpen, setPaletteOpen] = useState(false)
-  const [isMobile, setIsMobile]       = useState(false)
-  const [gHint, setGHint]             = useState(false)
+  const [collapsed, setCollapsed]       = useState(false)
+  const [paletteOpen, setPaletteOpen]   = useState(false)
+  const [aiSettingsOpen, setAISettingsOpen] = useState(false)
+  const [isMobile, setIsMobile]         = useState(false)
+  const [gHint, setGHint]               = useState(false)
   const gTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const waitingRef = useRef(false)
 
@@ -81,6 +86,11 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
         e.preventDefault()
         setPaletteOpen(o => !o)
+      }
+      // Ctrl+Shift+, → AI Settings
+      if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === ',') {
+        e.preventDefault()
+        setAISettingsOpen(o => !o)
       }
     }
     window.addEventListener('keydown', handleKey)
@@ -139,6 +149,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         {children}
       </main>
       <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
+      {aiSettingsOpen && <AISettingsModal onClose={() => setAISettingsOpen(false)} />}
       {gHint && (
         <div style={{
           position: 'fixed', bottom: 48, right: 20, zIndex: 9999,
@@ -158,30 +169,32 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
             padding: '1px 7px', borderRadius: 4,
           }}>G</kbd>
           <span style={{ color: 'var(--muted-foreground)' }}>→</span>
-          <span style={{ color: 'var(--muted-foreground)', fontSize: 12 }}>D N P B T G</span>
+          <span style={{ color: 'var(--muted-foreground)', fontSize: 12 }}>D N P B T G A H</span>
         </div>
       )}
       <OnboardingFlow />
       <TaskReminders />
       {/* Hide on the note editor — its status bar occupies the same bottom-right corner */}
       {!/^\/notes\/.+/.test(pathname) && (
-        <a
-          href={RELEASES_URL}
-          target="_blank"
-          rel="noopener noreferrer"
-          style={{
-            position: 'fixed', bottom: 12, right: 16, zIndex: 10,
-            fontSize: 10, color: 'var(--muted-foreground)', letterSpacing: '0.04em',
-            textDecoration: 'none', opacity: 0.45,
-            transition: 'opacity 0.15s',
-            pointerEvents: 'auto',
-            userSelect: 'none',
-          }}
-          onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.opacity = '0.9' }}
-          onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.opacity = '0.45' }}
-        >
-          v{APP_VERSION}
-        </a>
+        <div style={{ position: 'fixed', bottom: 12, right: 16, zIndex: 10, display: 'flex', alignItems: 'center', gap: 8 }}>
+          <AIStatusBadge onClick={() => setAISettingsOpen(true)} />
+          <a
+            href={RELEASES_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              fontSize: 10, color: 'var(--muted-foreground)', letterSpacing: '0.04em',
+              textDecoration: 'none', opacity: 0.45,
+              transition: 'opacity 0.15s',
+              pointerEvents: 'auto',
+              userSelect: 'none',
+            }}
+            onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.opacity = '0.9' }}
+            onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.opacity = '0.45' }}
+          >
+            v{APP_VERSION}
+          </a>
+        </div>
       )}
     </div>
   )

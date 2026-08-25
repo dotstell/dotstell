@@ -12,7 +12,6 @@ pub fn run() {
         .plugin(tauri_plugin_process::init())
         .invoke_handler(tauri::generate_handler![app_version])
         .setup(|app| {
-            // Focus the main window on startup
             if let Some(window) = app.get_webview_window("main") {
                 window.set_focus().ok();
             }

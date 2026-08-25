@@ -180,6 +180,8 @@ interface RichTextEditorProps {
   onWikiLinksChange?: (targetNoteIds: string[]) => void
   /** Called once the Tiptap editor instance is ready — use to drive ToC navigation from the parent */
   onEditorReady?: (editor: Editor) => void
+  /** Called when the user activates AI Assist from the toolbar — parent handles the selection + panel */
+  onAIAssist?: () => void
 }
 
 // ── Markdown converters (singleton) ─────────────────────────
@@ -219,8 +221,11 @@ function extractWikiLinkIdsFromDoc(editor: ReturnType<typeof useEditor>): string
 
 export function RichTextEditor({
   content, onChange, onTextChange, placeholder = 'Start writing… (type / for commands)',
-  onFocusMode, focusMode, onWikiLinksChange, onEditorReady,
+  onFocusMode, focusMode, onWikiLinksChange, onEditorReady, onAIAssist,
 }: RichTextEditorProps) {
+  // Floating AI Assist bubble — appears above selected text when onAIAssist is wired up
+  const [assistBubble, setAssistBubble] = useState<{ x: number; y: number } | null>(null)
+
   const [slashOpen,       setSlashOpen]       = useState(false)
   const [slashFilter,     setSlashFilter]     = useState('')
   const [slashIdx,        setSlashIdx]        = useState(0)
@@ -260,6 +265,7 @@ export function RichTextEditor({
   const fontRef   = useRef<HTMLDivElement>(null)
 
   const editor = useEditor({
+    immediatelyRender: true,
     extensions: [
       StarterKit.configure({ codeBlock: false, link: false, underline: false }),
       Placeholder.configure({ placeholder }),
@@ -378,6 +384,19 @@ export function RichTextEditor({
       } else {
         setSlashOpen(false)
       }
+    },
+    onSelectionUpdate: ({ editor }) => {
+      if (!onAIAssist) { setAssistBubble(null); return }
+      const { from, to } = editor.state.selection
+      if (from === to) { setAssistBubble(null); return }
+      const text = editor.state.doc.textBetween(from, to, ' ').trim()
+      if (!text) { setAssistBubble(null); return }
+      // Position bubble above the selection using DOM range
+      const sel = window.getSelection()
+      if (!sel || sel.rangeCount === 0) { setAssistBubble(null); return }
+      const rect = sel.getRangeAt(0).getBoundingClientRect()
+      if (!rect.width) { setAssistBubble(null); return }
+      setAssistBubble({ x: rect.left + rect.width / 2, y: rect.top - 8 })
     },
   })
 
@@ -713,6 +732,7 @@ export function RichTextEditor({
             {sourceMode ? <Eye size={12} /> : <FileCode2 size={12} />}
             {sourceMode ? 'Rich text' : 'Markdown'}
           </button>
+          {/* AI Assist is now triggered via the floating bubble above selected text — no toolbar button needed */}
           {onFocusMode && (
             <ToolBtn onClick={() => onFocusMode(!focusMode)} title={focusMode ? 'Exit focus mode' : 'Focus mode'}>
               {focusMode ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
@@ -768,6 +788,37 @@ export function RichTextEditor({
           </div>
         ) : (
           <EditorContent editor={editor} style={{ height: '100%' }} />
+        )}
+
+        {/* ── AI Assist floating bubble (appears above selected text) ── */}
+        {assistBubble && onAIAssist && (
+          <div
+            onMouseDown={e => { e.preventDefault(); setAssistBubble(null); onAIAssist() }}
+            style={{
+              position:        'fixed',
+              left:            assistBubble.x,
+              top:             assistBubble.y,
+              transform:       'translate(-50%, -100%)',
+              zIndex:          9000,
+              display:         'flex', alignItems: 'center', gap: 5,
+              padding:         '5px 10px',
+              borderRadius:    20,
+              backgroundColor: 'var(--primary)',
+              color:           'white',
+              fontSize:        11, fontWeight: 700,
+              cursor:          'pointer',
+              boxShadow:       '0 4px 16px rgba(0,0,0,0.4)',
+              userSelect:      'none',
+              whiteSpace:      'nowrap',
+              pointerEvents:   'auto',
+            }}
+          >
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M15 4V2" /><path d="M15 16v-2" /><path d="M8 9h2" /><path d="M20 9h2" />
+              <path d="M17.8 11.8 19 13" /><path d="M15 9h0" /><path d="M17.8 6.2 19 5" /><path d="m3 21 9-9" /><path d="M12.2 6.2 11 5" />
+            </svg>
+            AI Assist
+          </div>
         )}
 
         {/* ── Wikilink picker [[ ── */}

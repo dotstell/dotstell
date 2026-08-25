@@ -13,12 +13,14 @@ import { CSS } from '@dnd-kit/utilities'
 import {
   Plus, Search, ChevronDown, ChevronRight, FileText, Tag,
   Pencil, Trash2, BookOpen, FolderPlus, X, StickyNote,
-  Pin, PinOff, Copy, ArrowDownUp, GripVertical,
+  Pin, PinOff, Copy, ArrowDownUp, GripVertical, Sparkles, Loader2,
 } from 'lucide-react'
 import { Note } from '@/types'
 import { useNotebooks, notebookTag, NOTEBOOK_TAG_PREFIX } from '@/hooks/useNotebooks'
 import { useNoteTabs } from '@/hooks/useNoteTabs'
 import { toast } from 'sonner'
+import { useAISettings } from '@/hooks/useAISettings'
+import { useAISummarize } from '@/hooks/useAI'
 
 interface Props {
   width?: number
@@ -192,6 +194,9 @@ export function NotesSidePane({ width = 220, activeNoteId }: Props) {
   const isCreatingNb     = useRef(false)
   // Adjusted display position — starts at click coords, shifted after render to stay in viewport
   const [ctxPos, setCtxPos] = useState({ x: 0, y: 0 })
+  const [nbSummaryModal, setNbSummaryModal] = useState<{ id: string; name: string } | null>(null)
+  const { config: aiConfig, loaded: aiLoaded } = useAISettings()
+  const { summary: nbSummary, loading: nbSummaryLoading, summarize: summarizeNb, setSummary: setNbSummary } = useAISummarize(aiConfig)
 
   // Mount DnD only client-side to avoid SSR hydration mismatch
   useEffect(() => setDndMounted(true), [])
@@ -841,6 +846,14 @@ export function NotesSidePane({ width = 220, activeNoteId }: Props) {
                   if (ctxNb) setRenameTarget({ id: ctxNb.id, value: ctxNb.name, type: 'notebook' })
                   setContextMenu(null)
                 }} />
+                {aiLoaded && aiConfig.provider && ctxNb && (
+                  <CtxItem icon={Sparkles} label="Summarize notebook" onClick={() => {
+                    setNbSummary('')
+                    setNbSummaryModal({ id: ctxNb.id, name: ctxNb.name })
+                    setContextMenu(null)
+                    summarizeNb({ entityType: 'notebook', entityId: ctxNb.id, mode: 'bullets' })
+                  }} />
+                )}
                 <ColorSwatches
                   current={ctxNb?.color}
                   onSelect={color => { setNotebookColor(contextMenu.id, color); setContextMenu(null) }}
@@ -929,6 +942,66 @@ export function NotesSidePane({ width = 220, activeNoteId }: Props) {
               </>
             )
           })()}
+        </div>
+      )}
+
+      {/* Notebook summary modal */}
+      {nbSummaryModal && (
+        <div
+          style={{ position: 'fixed', inset: 0, zIndex: 10000, backgroundColor: 'rgba(0,0,0,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          onClick={e => { if (e.target === e.currentTarget) setNbSummaryModal(null) }}
+        >
+          <div style={{
+            width: 440, maxHeight: '70vh', borderRadius: 14,
+            backgroundColor: 'var(--card)', border: '1px solid var(--border)',
+            boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
+            display: 'flex', flexDirection: 'column', overflow: 'hidden',
+          }}>
+            <div style={{ padding: '16px 18px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <div style={{ width: 28, height: 28, borderRadius: 8, backgroundColor: 'color-mix(in srgb, var(--primary) 14%, transparent)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Sparkles size={14} color="var(--primary)" />
+                </div>
+                <div>
+                  <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: 'var(--foreground)' }}>Notebook Summary</p>
+                  <p style={{ margin: 0, fontSize: 11, color: 'var(--muted-foreground)' }}>{nbSummaryModal.name}</p>
+                </div>
+              </div>
+              <button type="button" onClick={() => setNbSummaryModal(null)} style={{ background: 'none', border: 'none', color: 'var(--muted-foreground)', cursor: 'pointer', padding: 4 }}>
+                <X size={14} />
+              </button>
+            </div>
+            <div style={{ flex: 1, overflowY: 'auto', padding: 18 }}>
+              {nbSummaryLoading && !nbSummary && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--muted-foreground)', fontSize: 13 }}>
+                  <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> Summarising notebook…
+                </div>
+              )}
+              {nbSummary && (
+                <p style={{ margin: 0, fontSize: 13, color: 'var(--foreground)', lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>
+                  {nbSummary}
+                </p>
+              )}
+            </div>
+            <div style={{ padding: '10px 18px', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+              {nbSummary && !nbSummaryLoading && (
+                <button
+                  type="button"
+                  onClick={() => { setNbSummary(''); summarizeNb({ entityType: 'notebook', entityId: nbSummaryModal.id, mode: 'bullets' }) }}
+                  style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '6px 12px', borderRadius: 7, border: '1px solid var(--border)', background: 'none', color: 'var(--muted-foreground)', fontSize: 12, cursor: 'pointer' }}
+                >
+                  <Sparkles size={11} /> Regenerate
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => setNbSummaryModal(null)}
+                style={{ padding: '6px 14px', borderRadius: 7, border: 'none', backgroundColor: 'var(--primary)', color: 'white', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}
+              >
+                Done
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

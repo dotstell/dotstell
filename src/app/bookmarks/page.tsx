@@ -1,8 +1,11 @@
 'use client'
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { Plus, ExternalLink, Trash2, Search, Upload, X, Clock, Tag, Link2, LayoutList, Layers, Pencil, CheckSquare, Square, AlertTriangle, ChevronDown, ChevronRight, Settings2, ArrowUpDown } from 'lucide-react'
+import { Plus, ExternalLink, Trash2, Search, Upload, X, Clock, Tag, Link2, LayoutList, Layers, Pencil, CheckSquare, Square, AlertTriangle, ChevronDown, ChevronRight, Settings2, ArrowUpDown, Sparkles, Loader2, RefreshCw } from 'lucide-react'
 import { toast } from 'sonner'
 import { Bookmark } from '@/types'
+import { AIConfig } from '@/lib/ai/types'
+import { useAISettings } from '@/hooks/useAISettings'
+import { useAISummarize } from '@/hooks/useAI'
 import { AppLayout } from '@/components/layout/AppLayout'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { Button } from '@/components/ui/button'
@@ -115,6 +118,8 @@ export default function BookmarksPage() {
   const [confirmTarget, setConfirmTarget] = useState<{ ids: string[]; label: string } | null>(null)
   const [deleting,      setDeleting]      = useState(false)
   const [deleteProgress, setDeleteProgress] = useState<{ done: number; total: number } | null>(null)
+
+  const { config: aiConfig, loaded: aiLoaded } = useAISettings()
 
   const fetchBookmarks = useCallback(async () => {
     const res = await fetch('/api/bookmarks')
@@ -895,6 +900,7 @@ export default function BookmarksPage() {
             onSelectGroup={selectGroup}
             onDeleteGroup={(ids, label) => promptDelete(ids, label)}
             onVisit={trackVisit}
+            aiConfig={aiLoaded && aiConfig.provider ? aiConfig : undefined}
           />
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -909,6 +915,7 @@ export default function BookmarksPage() {
                 isSelected={selected.has(bm.id)}
                 onToggleSelect={() => toggleSelect(bm.id)}
                 onVisit={trackVisit}
+                aiConfig={aiLoaded && aiConfig.provider ? aiConfig : undefined}
               />
             ))}
           </div>
@@ -1176,7 +1183,7 @@ export default function BookmarksPage() {
                           border: checked ? '1px solid rgba(124,106,255,0.2)' : '1px solid transparent',
                           transition: 'all 0.1s',
                         }}
-                        onMouseEnter={e => { if (!checked) e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.03)' }}
+                        onMouseEnter={e => { if (!checked) e.currentTarget.style.backgroundColor = 'var(--accent)' }}
                         onMouseLeave={e => { if (!checked) e.currentTarget.style.backgroundColor = 'transparent' }}
                       >
                         {/* Checkbox */}
@@ -1290,7 +1297,7 @@ export default function BookmarksPage() {
 }
 
 // ── Bookmark card ────────────────────────────────────────────
-function BookmarkCard({ bookmark: bm, onEdit, onDelete, onTagClick, selectMode, isSelected, onToggleSelect, onVisit }: {
+function BookmarkCard({ bookmark: bm, onEdit, onDelete, onTagClick, selectMode, isSelected, onToggleSelect, onVisit, aiConfig }: {
   bookmark: Bookmark
   onEdit: () => void
   onDelete: () => void
@@ -1299,8 +1306,17 @@ function BookmarkCard({ bookmark: bm, onEdit, onDelete, onTagClick, selectMode, 
   isSelected?: boolean
   onToggleSelect?: () => void
   onVisit?: (id: string) => void
+  aiConfig?: AIConfig
 }) {
   const hostname = bm.hostname ?? (() => { try { return new URL(bm.url).hostname } catch { return bm.url } })()
+  const { summary, loading: summaryLoading, summarize, setSummary } = useAISummarize(aiConfig ?? {} as AIConfig)
+  const [summaryOpen, setSummaryOpen] = useState(false)
+
+  async function handleSummarize() {
+    if (summaryOpen && summary) { setSummaryOpen(false); return }
+    setSummaryOpen(true)
+    if (!summary) await summarize({ entityType: 'bookmark', entityId: bm.id, title: bm.title, mode: 'bullets' })
+  }
   const color = domainColor(hostname)
 
   return (
@@ -1380,6 +1396,24 @@ function BookmarkCard({ bookmark: bm, onEdit, onDelete, onTagClick, selectMode, 
 
           {/* Actions — always visible */}
           <div style={{ display: 'flex', gap: 2, flexShrink: 0 }}>
+            {aiConfig && (
+              <button type="button" onClick={handleSummarize}
+                title="AI summary"
+                style={{
+                  width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  background: 'none',
+                  border: `1px solid ${summaryOpen ? 'color-mix(in srgb, var(--primary) 40%, transparent)' : 'var(--border)'}`,
+                  borderRadius: 6,
+                  color: summaryOpen ? 'var(--primary)' : 'var(--muted-foreground)',
+                  backgroundColor: summaryOpen ? 'color-mix(in srgb, var(--primary) 10%, transparent)' : 'transparent',
+                  cursor: 'pointer', transition: 'all 0.15s',
+                }}
+                onMouseEnter={e => { if (!summaryOpen) { e.currentTarget.style.color = 'var(--primary)'; e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--primary) 40%, transparent)' } }}
+                onMouseLeave={e => { if (!summaryOpen) { e.currentTarget.style.color = 'var(--muted-foreground)'; e.currentTarget.style.borderColor = 'var(--border)' } }}
+              >
+                {summaryLoading ? <Loader2 size={12} style={{ animation: 'spin 1s linear infinite' }} /> : <Sparkles size={12} />}
+              </button>
+            )}
             <button type="button" onClick={onEdit}
               title="Edit"
               style={{
@@ -1427,13 +1461,44 @@ function BookmarkCard({ bookmark: bm, onEdit, onDelete, onTagClick, selectMode, 
             ))}
           </div>
         )}
+
+        {/* AI summary — expands when Sparkles button clicked */}
+        {summaryOpen && (
+          <div style={{ marginTop: 10, padding: '10px 12px', borderRadius: 8, backgroundColor: 'color-mix(in srgb, var(--primary) 6%, transparent)', border: '1px solid color-mix(in srgb, var(--primary) 20%, transparent)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+              <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--primary)', display: 'flex', alignItems: 'center', gap: 4 }}>
+                <Sparkles size={10} /> AI Summary
+              </span>
+              <div style={{ display: 'flex', gap: 4 }}>
+                {summary && (
+                  <button type="button" onClick={() => { setSummary(''); summarize({ entityType: 'bookmark', entityId: bm.id, title: bm.title, mode: 'bullets' }) }}
+                    title="Regenerate"
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted-foreground)', padding: 2 }}
+                  >
+                    <RefreshCw size={10} />
+                  </button>
+                )}
+              </div>
+            </div>
+            {summaryLoading && !summary && (
+              <div style={{ display: 'flex', gap: 6, alignItems: 'center', color: 'var(--muted-foreground)', fontSize: 12 }}>
+                <Loader2 size={11} style={{ animation: 'spin 1s linear infinite' }} /> Summarising…
+              </div>
+            )}
+            {summary && (
+              <p style={{ margin: 0, fontSize: 12, color: 'var(--foreground)', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>
+                {summary}
+              </p>
+            )}
+          </div>
+        )}
       </div>
     </div>
   )
 }
 
 // ── Collections view — grouped by tag ───────────────────────
-function CollectionsView({ bookmarks, allTags, onEdit, onDelete, onTagClick, selectMode, selected, onToggleSelect, onSelectGroup, onDeleteGroup, onVisit }: {
+function CollectionsView({ bookmarks, allTags, onEdit, onDelete, onTagClick, selectMode, selected, onToggleSelect, onSelectGroup, onDeleteGroup, onVisit, aiConfig }: {
   bookmarks: Bookmark[]
   allTags: string[]
   onEdit: (bm: Bookmark) => void
@@ -1445,6 +1510,7 @@ function CollectionsView({ bookmarks, allTags, onEdit, onDelete, onTagClick, sel
   onSelectGroup?: (ids: string[]) => void
   onDeleteGroup?: (ids: string[], label: string) => void
   onVisit?: (id: string) => void
+  aiConfig?: AIConfig
 }) {
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set())
 
@@ -1570,6 +1636,7 @@ function CollectionsView({ bookmarks, allTags, onEdit, onDelete, onTagClick, sel
                     isSelected={selected?.has(bm.id)}
                     onToggleSelect={() => onToggleSelect?.(bm.id)}
                     onVisit={onVisit}
+                    aiConfig={aiConfig}
                   />
                 ))}
               </div>
