@@ -79,7 +79,7 @@ export function validateServerConfig(config: Partial<AIConfig> | null): string |
   if (config?.provider === 'ollama') {
     const url = config.baseUrl ?? 'http://localhost:11434'
     if (/localhost|127\.0\.0\.1|::1/.test(url)) {
-      return 'Ollama (localhost) is only available from the desktop app. Switch to OpenAI, Gemini or Groq to use AI in the browser.'
+      return 'Ollama must be publicly reachable — AI runs server-side and cannot connect to localhost. Deploy Ollama on a server or use a tunnel (ngrok, Cloudflare Tunnel).'
     }
   }
   return null
