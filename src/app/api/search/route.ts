@@ -15,7 +15,7 @@ export async function GET(req: NextRequest) {
   const safe = q.replace(/%/g, '\\%').replace(/_/g, '\\_')
 
   const [notes, people, bookmarks, tasks] = await Promise.all([
-    supabase.from('notes').select('id,title,type,updated_at').eq('user_id', user.id).ilike('title', `%${safe}%`).limit(5),
+    supabase.from('notes').select('id,title,type,updated_at').eq('user_id', user.id).is('deleted_at', null).ilike('title', `%${safe}%`).limit(5),
     supabase.from('people').select('id,name,role').eq('user_id', user.id).ilike('name', `%${safe}%`).limit(5),
     supabase.from('bookmarks').select('id,title,url,description').eq('user_id', user.id)
       .ilike('title', `%${safe}%`).limit(5),

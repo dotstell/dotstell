@@ -215,8 +215,9 @@ export function NotesSidePane({ width = 220, activeNoteId }: Props) {
     setLoading(false)
   }, [sidebarSort])
 
-  useEffect(() => { fetchNotes() }, [fetchNotes])
-  useEffect(() => { fetchNotes() }, [pathname, fetchNotes])
+  // Single effect handles both initial load (fetchNotes dep) and
+  // route changes (pathname dep) — two separate effects would double-fetch on mount.
+  useEffect(() => { fetchNotes() }, [fetchNotes, pathname])
   useEffect(() => {
     window.addEventListener('dotstell:notes-updated', fetchNotes)
     return () => window.removeEventListener('dotstell:notes-updated', fetchNotes)
@@ -345,6 +346,9 @@ export function NotesSidePane({ width = 220, activeNoteId }: Props) {
     setContextMenu({ x: e.clientX, y: e.clientY, id, type })
   }
 
+  // Sidebar pin is localStorage-only for instant response — it does NOT patch the DB `pinned`
+  // column. The notes page uses a separate API-backed togglePin. Both sources are combined in
+  // the sort logic below (`pinnedIds.has || note.pinned`) so sidebar and page stay consistent.
   function togglePin(id: string) {
     setPinnedIds(prev => {
       const next = new Set(prev)
@@ -370,9 +374,10 @@ export function NotesSidePane({ width = 220, activeNoteId }: Props) {
     const oldIdx = notes.findIndex(n => n.id === active.id)
     const newIdx = notes.findIndex(n => n.id === over.id)
     if (oldIdx === -1 || newIdx === -1) return
-    const reordered = arrayMove([...notes], oldIdx, newIdx)
-    setNotes(reordered)
-    await Promise.all(
+    const original  = [...notes]
+    const reordered = arrayMove(original, oldIdx, newIdx)
+    setNotes(reordered) // optimistic update
+    const results = await Promise.all(
       reordered.map((n, i) =>
         fetch(`/api/notes/${n.id}`, {
           method: 'PATCH',
@@ -381,6 +386,7 @@ export function NotesSidePane({ width = 220, activeNoteId }: Props) {
         })
       )
     )
+    if (results.some(r => !r.ok)) { setNotes(original); return }
     window.dispatchEvent(new CustomEvent('dotstell:notes-updated'))
   }
 

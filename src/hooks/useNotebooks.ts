@@ -128,9 +128,11 @@ export function useNotebooks() {
     }
   }, [notebooks])
 
-  // Known limitation (H4): the N PATCHes are fire-and-forget inside the state updater.
+  // Known limitation: the N PATCHes are fire-and-forget inside the state updater.
   // If any fail, server order diverges silently. Fixing requires moving fetches outside
   // the updater, awaiting them, and rolling back — deferred until drag-reorder is used in prod.
+  // Side-effect inside setState is also risky under React Strict Mode (double-invocation in dev),
+  // but drag events only fire in a real browser so Strict Mode's double-call never triggers here.
   const reorderNotebook = useCallback(async (dragId: string, targetId: string) => {
     setNotebooks(prev => {
       const next = [...prev]

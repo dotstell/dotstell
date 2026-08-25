@@ -65,12 +65,20 @@ export async function GET(req: NextRequest) {
         'Accept': 'text/html,application/xhtml+xml',
         'Accept-Language': 'en-US,en;q=0.9',
       },
+      // 'error' prevents SSRF via open redirect — a URL that passes the DNS check
+      // could redirect to an internal IP. This drops the response instead of following.
+      redirect: 'error',
       signal: AbortSignal.timeout(8000),
     })
 
     if (!res.ok) return NextResponse.json(fallback(url))
 
+    // Cap response body at 2 MB to prevent OOM on large pages / malicious streams
+    const contentLength = Number(res.headers.get('content-length') ?? 0)
+    if (contentLength > 2_000_000) return NextResponse.json(fallback(url))
+
     const html = await res.text()
+    if (html.length > 2_000_000) return NextResponse.json(fallback(url))
     const origin = new URL(url).origin
     const hostname = new URL(url).hostname
 
@@ -89,8 +97,13 @@ export async function GET(req: NextRequest) {
 
     const favicon = extractFavicon(html, origin) ?? `https://www.google.com/s2/favicons?domain=${hostname}&sz=32`
 
-    // Rough reading time from og:article:read_time or word count
-    const bodyText = html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ')
+    // Rough reading time — strip script/style block bodies first (tag-only stripping
+    // would include their text content and vastly overstate reading time for SPAs).
+    const bodyText = html
+      .replace(/<script[\s\S]*?<\/script>/gi, ' ')
+      .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+      .replace(/<[^>]+>/g, ' ')
+      .replace(/\s+/g, ' ')
     const wordCount = bodyText.split(' ').filter(Boolean).length
     const readingTime = Math.max(1, Math.round(wordCount / 200))
 

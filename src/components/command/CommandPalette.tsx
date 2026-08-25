@@ -99,7 +99,8 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
     else if (e.key === 'ArrowUp')   { e.preventDefault(); setSelected(s => Math.max(s - 1, 0)) }
     else if (e.key === 'Enter')     { e.preventDefault(); handleSelect(selected) }
     else if (e.key === 'Escape')    { onClose() }
-  }, [items, selected, onClose])
+  // pathname must be in deps — handleSelect uses it for the "already on bookmarks" branch
+  }, [items, selected, onClose, pathname])
 
   useEffect(() => {
     const el = listRef.current?.querySelector(`[data-index="${selected}"]`) as HTMLElement

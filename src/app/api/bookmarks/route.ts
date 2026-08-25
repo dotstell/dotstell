@@ -30,6 +30,18 @@ export async function POST(req: NextRequest) {
   if (rl) return rl
 
   const body = await req.json()
+
+  // Validate URL: must be present, a string, and http(s) only (blocks javascript:, data: etc.)
+  if (!body.url || typeof body.url !== 'string') {
+    return NextResponse.json({ error: 'url is required' }, { status: 400 })
+  }
+  try {
+    const parsed = new URL(body.url)
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') throw new Error()
+  } catch {
+    return NextResponse.json({ error: 'Invalid URL — must be http or https' }, { status: 400 })
+  }
+
   const { data, error } = await supabase.from('bookmarks').insert({
     user_id:      user.id,
     title:        body.title,

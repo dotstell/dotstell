@@ -46,6 +46,7 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  // No rate limit here — soft-delete is idempotent and scoped to the user's own notes
 
   // Soft delete — moves to trash for 30-day recovery window
   const { error } = await supabase

@@ -165,6 +165,7 @@ export default function NotesPage() {
     if (sortMode === 'manual') params.set('sort', 'manual')
     params.set('root_only', 'true')
     const res = await fetch(`/api/notes?${params}`)
+    if (!res.ok) { setLoading(false); toast.error('Failed to load notes'); return }
     const data = await res.json()
     setNotes(Array.isArray(data) ? data : [])
     setLoading(false)
@@ -318,10 +319,6 @@ export default function NotesPage() {
   }
 
   // ── Drag-and-drop ────────────────────────────────────────────────────────
-  function handleDragStart(e: { active: { id: string | number } }) {
-    setActiveId(String(e.active.id))
-  }
-
   async function handleDragEnd(event: DragEndEvent) {
     setActiveId(null)
     const { active, over } = event
@@ -331,11 +328,12 @@ export default function NotesPage() {
     const newIdx = notes.findIndex(n => n.id === over.id)
     if (oldIdx === -1 || newIdx === -1) return
 
+    const original = notes
     const reordered = arrayMove(notes, oldIdx, newIdx)
     setNotes(reordered)
 
-    // Persist new sort_order for all notes
-    await Promise.all(
+    // Persist new sort_order for all notes; roll back on any failure
+    const results = await Promise.all(
       reordered.map((n, i) =>
         fetch(`/api/notes/${n.id}`, {
           method: 'PATCH',
@@ -344,7 +342,12 @@ export default function NotesPage() {
         })
       )
     )
-    window.dispatchEvent(new CustomEvent('dotstell:notes-updated'))
+    if (results.some(r => !r.ok)) {
+      setNotes(original)
+      toast.error('Failed to save order')
+    } else {
+      window.dispatchEvent(new CustomEvent('dotstell:notes-updated'))
+    }
   }
 
   // ── Sort and group ───────────────────────────────────────────────────────
@@ -747,7 +750,7 @@ export default function NotesPage() {
               >
                 Cancel
               </button>
-              <button type="button" onClick={() => { confirmState.onConfirm(); closeConfirm() }} style={{
+              <button type="button" onClick={async () => { await confirmState.onConfirm(); closeConfirm() }} style={{
                 padding: '7px 18px', borderRadius: 8, border: 'none',
                 backgroundColor: 'var(--destructive)', color: 'white',
                 fontSize: 13, cursor: 'pointer', fontWeight: 600,

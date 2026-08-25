@@ -38,7 +38,7 @@ const TYPE_ICON: Record<string, React.ElementType> = {
   note: FileText, person: Users, bookmark: Bookmark, task: CheckSquare,
 }
 const TYPE_HREF: Record<string, (id: string) => string> = {
-  note: () => '/notes', person: (id) => `/people/${id}`, bookmark: () => '/bookmarks', task: () => '/tasks',
+  note: (id) => `/notes/${id}`, person: (id) => `/people/${id}`, bookmark: () => '/bookmarks', task: () => '/tasks',
 }
 
 // ── Custom Node ──────────────────────────────────────────────
@@ -132,17 +132,19 @@ function GraphPageInner() {
   const [nodes, setNodes, onNodesChange] = useNodesState([])
   const [edges, setEdges, onEdgesChange] = useEdgesState([])
 
-  // Save positions whenever nodes are moved
+  // Persist node positions after any drag. useEffect reads the committed nodes list
+  // rather than calling savePositions inside the setState updater — state updaters
+  // must be pure (React may call them multiple times in Strict Mode).
   function handleNodesChange(changes: Parameters<typeof onNodesChange>[0]) {
     onNodesChange(changes)
-    // After applying changes, persist positions
-    setNodes(prev => {
-      savePositions(prev)
-      return prev
-    })
   }
+  useEffect(() => {
+    if (nodes.length > 0) savePositions(nodes)
+  }, [nodes])
 
   const fetchData = useCallback(async () => {
+    // Intentionally fetches all notes (including sub-notes) to show the full link graph.
+    // If graph density becomes a problem, add root_only=true and a "show sub-notes" toggle.
     const [nr, pr, br, tr, lr] = await Promise.all([
       fetch('/api/notes'), fetch('/api/people'), fetch('/api/bookmarks'),
       fetch('/api/tasks'), fetch('/api/links'),
@@ -254,11 +256,12 @@ function GraphPageInner() {
   async function handleDeleteEdge(edgeId: string) {
     const link = links.find(l => l.id === edgeId)
     if (!link) return
-    await fetch('/api/links', {
+    const res = await fetch('/api/links', {
       method: 'DELETE',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ source_id: link.source_id, target_id: link.target_id }),
     })
+    if (!res.ok) return  // keep edge visible on failure
     setLinks(prev => prev.filter(l => l.id !== edgeId))
     setEdges(prev => prev.filter(e => e.id !== edgeId))
   }
@@ -303,8 +306,9 @@ function GraphPageInner() {
                 type="button"
                 onClick={() => {
                   localStorage.removeItem(STORAGE_KEY)
-                  // Clear in-memory positions too, then rebuild from grid
                   setNodes([])
+                  // setNodes([]) needs to commit before the items-change effect re-runs
+                  // the layout algorithm. setTimeout(0) yields to React's batch first.
                   setTimeout(() => setItems(prev => [...prev]), 0)
                 }}
                 style={{

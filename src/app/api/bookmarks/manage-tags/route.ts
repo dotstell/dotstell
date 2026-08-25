@@ -16,12 +16,16 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ error: 'Tag name too long (max 100 chars)' }, { status: 400 })
   }
 
-  // Fetch all bookmarks that have the old tag
+  // Fetch bookmarks with the old tag. The .limit(500) caps round-trips for large
+  // libraries — a user with many bookmarks sharing one tag would otherwise issue
+  // N sequential UPDATEs. Users needing to rename across more than 500 bookmarks
+  // can re-run; a future Postgres RPC would do this in one query.
   const { data: bookmarks, error } = await supabase
     .from('bookmarks')
     .select('id, tags')
     .eq('user_id', user.id)
     .contains('tags', [oldTag])
+    .limit(500)
 
   if (error) return NextResponse.json({ error: 'An unexpected error occurred.' }, { status: 500 })
   if (!bookmarks || bookmarks.length === 0) return NextResponse.json({ updated: 0 })
@@ -51,11 +55,13 @@ export async function DELETE(req: NextRequest) {
   const { tag } = await req.json()
   if (!tag) return NextResponse.json({ error: 'Missing tag' }, { status: 400 })
 
+  // Same 500-row cap as PATCH — see comment above
   const { data: bookmarks, error } = await supabase
     .from('bookmarks')
     .select('id, tags')
     .eq('user_id', user.id)
     .contains('tags', [tag])
+    .limit(500)
 
   if (error) return NextResponse.json({ error: 'An unexpected error occurred.' }, { status: 500 })
   if (!bookmarks || bookmarks.length === 0) return NextResponse.json({ updated: 0 })
