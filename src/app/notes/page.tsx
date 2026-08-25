@@ -172,9 +172,19 @@ export default function NotesPage() {
 
   useEffect(() => { fetchNotes() }, [fetchNotes])
 
+  // Re-fetch when the sidebar (or any other component) mutates a note
+  useEffect(() => {
+    window.addEventListener('dotstell:notes-updated', fetchNotes)
+    return () => window.removeEventListener('dotstell:notes-updated', fetchNotes)
+  }, [fetchNotes])
+
   async function deleteNote(id: string) {
     const res = await fetch(`/api/notes/${id}`, { method: 'DELETE' })
-    if (res.ok) { setNotes(prev => prev.filter(n => n.id !== id)); toast.success('Moved to trash') }
+    if (res.ok) {
+      setNotes(prev => prev.filter(n => n.id !== id))
+      toast.success('Moved to trash')
+      window.dispatchEvent(new CustomEvent('dotstell:notes-updated'))
+    }
   }
 
   const fetchTrash = useCallback(async () => {
@@ -190,7 +200,11 @@ export default function NotesPage() {
 
   async function restoreNote(id: string) {
     const res = await fetch(`/api/notes/${id}/restore`, { method: 'POST' })
-    if (res.ok) { setTrashNotes(prev => prev.filter(n => n.id !== id)); toast.success('Note restored') }
+    if (res.ok) {
+      setTrashNotes(prev => prev.filter(n => n.id !== id))
+      toast.success('Note restored')
+      window.dispatchEvent(new CustomEvent('dotstell:notes-updated'))
+    }
   }
 
   async function permanentDeleteNote(id: string, title: string) {
@@ -242,6 +256,7 @@ export default function NotesPage() {
       body: JSON.stringify({ pinned }),
     }).then(res => {
       if (!res.ok) setNotes(prev => prev.map(n => n.id === note.id ? { ...n, pinned: note.pinned } : n))
+      else window.dispatchEvent(new CustomEvent('dotstell:notes-updated'))
     }).catch(() => {
       setNotes(prev => prev.map(n => n.id === note.id ? { ...n, pinned: note.pinned } : n))
     })
@@ -264,6 +279,7 @@ export default function NotesPage() {
       const created = await res.json()
       setNotes(prev => [created, ...prev])
       toast.success('Note duplicated')
+      window.dispatchEvent(new CustomEvent('dotstell:notes-updated'))
     }
   }
 
@@ -279,6 +295,7 @@ export default function NotesPage() {
       body: JSON.stringify({ tags: newTags }),
     }).then(res => {
       if (!res.ok) setNotes(prev => prev.map(n => n.id === note.id ? { ...n, tags: note.tags } : n))
+      else window.dispatchEvent(new CustomEvent('dotstell:notes-updated'))
     }).catch(() => {
       setNotes(prev => prev.map(n => n.id === note.id ? { ...n, tags: note.tags } : n))
     })
@@ -294,6 +311,7 @@ export default function NotesPage() {
       body: JSON.stringify({ color: color ?? null }),
     }).then(res => {
       if (!res.ok) setNotes(prev => prev.map(n => n.id === note.id ? { ...n, color: note.color } : n))
+      else window.dispatchEvent(new CustomEvent('dotstell:notes-updated'))
     }).catch(() => {
       setNotes(prev => prev.map(n => n.id === note.id ? { ...n, color: note.color } : n))
     })
@@ -326,6 +344,7 @@ export default function NotesPage() {
         })
       )
     )
+    window.dispatchEvent(new CustomEvent('dotstell:notes-updated'))
   }
 
   // ── Sort and group ───────────────────────────────────────────────────────

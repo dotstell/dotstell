@@ -381,6 +381,7 @@ export function NotesSidePane({ width = 220, activeNoteId }: Props) {
         })
       )
     )
+    window.dispatchEvent(new CustomEvent('dotstell:notes-updated'))
   }
 
   // ── Note context-menu actions ─────────────────────────────────────────────
@@ -395,6 +396,7 @@ export function NotesSidePane({ width = 220, activeNoteId }: Props) {
       body: JSON.stringify({ color: color ?? null }),
     }).then(res => {
       if (!res.ok) setNotes(ns => ns.map(n => n.id === noteId ? { ...n, color: prev?.color } : n))
+      else window.dispatchEvent(new CustomEvent('dotstell:notes-updated'))
     }).catch(() => {
       setNotes(ns => ns.map(n => n.id === noteId ? { ...n, color: prev?.color } : n))
     })
@@ -412,6 +414,7 @@ export function NotesSidePane({ width = 220, activeNoteId }: Props) {
       setNotes(prev => prev.map(n => n.id === note.id ? { ...n, tags: newTags } : n))
       toast.success(nbName ? `Moved to "${nbName}"` : 'Removed from notebook')
       setContextMenu(null)
+      window.dispatchEvent(new CustomEvent('dotstell:notes-updated'))
     }
   }
 
@@ -433,6 +436,7 @@ export function NotesSidePane({ width = 220, activeNoteId }: Props) {
       setNotes(prev => [created, ...prev])
       toast.success('Note duplicated')
       setContextMenu(null)
+      window.dispatchEvent(new CustomEvent('dotstell:notes-updated'))
     }
   }
 
@@ -909,9 +913,12 @@ export function NotesSidePane({ width = 220, activeNoteId }: Props) {
                 })()}
                 <CtxItem icon={Copy} label="Duplicate" onClick={() => ctxNote && duplicateNote(ctxNote)} />
                 <CtxItem icon={Trash2} label="Delete note" danger onClick={async () => {
-                  await fetch(`/api/notes/${contextMenu.id}`, { method: 'DELETE' })
-                  setNotes(prev => prev.filter(n => n.id !== contextMenu.id))
-                  setContextMenu(null)
+                  const res = await fetch(`/api/notes/${contextMenu.id}`, { method: 'DELETE' })
+                  if (res.ok) {
+                    setNotes(prev => prev.filter(n => n.id !== contextMenu.id))
+                    setContextMenu(null)
+                    window.dispatchEvent(new CustomEvent('dotstell:notes-updated'))
+                  }
                 }} />
               </>
             )
