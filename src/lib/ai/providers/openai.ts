@@ -19,7 +19,11 @@ export async function openaiStream(
 
   if (!res.ok) {
     const err = await res.text().catch(() => res.statusText)
-    throw new Error(`OpenAI error ${res.status}: ${err}`)
+    // Use the provider name in the error so Ollama/Groq errors aren't labelled "OpenAI"
+    const label = config.provider === 'ollama' ? 'Ollama'
+                : config.provider === 'groq'   ? 'Groq'
+                : 'OpenAI'
+    throw new Error(`${label} error ${res.status}: ${err}`)
   }
 
   // Transform OpenAI SSE → normalised `delta` chunks

@@ -7,16 +7,22 @@ export async function ollamaStream(
   config: AIConfig,
   messages: AIMessage[],
 ): Promise<ReadableStream<Uint8Array>> {
-  // Default to localhost if no baseUrl is configured
+  // Strip any trailing /v1 or / from the stored base URL, then always append /v1.
+  // This normalises both http://localhost:11434 and http://localhost:11434/v1
+  // to the same resolved endpoint (http://localhost:11434/v1/chat/completions).
+  const base = (config.baseUrl || 'http://localhost:11434')
+    .replace(/\/v1\/?$/, '')
+    .replace(/\/$/, '')
   return openaiStream(
-    { ...config, baseUrl: config.baseUrl || 'http://localhost:11434/v1', apiKey: config.apiKey || 'ollama' },
+    { ...config, baseUrl: `${base}/v1`, apiKey: config.apiKey || 'ollama' },
     messages,
   )
 }
 
 // Ollama embedding — uses the /api/embeddings endpoint (not OpenAI-compatible)
 export async function ollamaEmbed(config: AIConfig, text: string): Promise<number[]> {
-  const base = (config.embeddingBaseUrl || config.baseUrl || 'http://localhost:11434').replace(/\/$/, '')
+  const base = (config.embeddingBaseUrl || config.baseUrl || 'http://localhost:11434')
+    .replace(/\/v1\/?$/, '').replace(/\/$/, '')
   const res  = await fetch(`${base}/api/embeddings`, {
     method:  'POST',
     headers: { 'Content-Type': 'application/json' },
