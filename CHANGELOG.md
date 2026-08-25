@@ -4,6 +4,64 @@ All notable changes to Dotstell are documented here.
 
 ---
 
+## [v0.4.0] — Aug 2026
+
+The AI release — bring your own key and get intelligence across your entire knowledge graph.
+
+### ✨ AI Integration — multi-provider support
+
+- Connect **Ollama** (local), **OpenAI**, **Anthropic**, **Gemini** or **Groq** from the new AI Settings modal (`Ctrl+Shift+,`)
+- API keys are stored in your browser only — never sent to our servers
+- Per-provider model guidance and a **Recommended** badge in the model picker
+- Warning shown when a very large Ollama model is selected (70B+)
+
+### 📊 AI Digest — daily briefing on your dashboard
+
+- New Digest card on the dashboard generates a concise recap of your recent notes, due tasks, idle knowledge and what to focus on
+- Choose **Daily** or **Weekly** cadence; regenerate on demand
+
+### 📝 Note, bookmark & notebook summarisation
+
+- Summarise any note in **Bullets**, **Short** or **Detailed** mode from the right sidebar
+- Summarise an entire **notebook** (all its notes) via the notebook context menu
+- Summarise any **bookmark** inline with a single click
+
+### 🏷️ Smart titles & auto-tags
+
+- Generate a note title from its content with one click in the editor toolbar
+- Auto-suggest tags for any note, person, bookmark or task
+
+### 🔗 Related notes
+
+- Semantic search surfaces similar notes to the one you are reading
+- Powered by vector embeddings stored in pgvector
+
+### 🌐 Graph intelligence
+
+- **Missing links** — pairs of nodes that mention each other but have no edge
+- **Clusters** — natural topic groupings in your graph
+- **Knowledge gaps** — areas that have gone stale or underdeveloped
+- Accessible via the new AI panel on the Graph page
+
+### 💬 AI Chat with RAG
+
+- Ask questions about your notes; answers are grounded in your actual knowledge base via semantic retrieval
+- Available on every note editor page
+
+### 👤 Person intelligence
+
+- AI insights panel on every person page: topics discussed, relationship context, communication patterns
+
+### 🗺️ Navigation
+
+- `G A` — jump to Tags; `G H` — jump to Help (G-key navigation now covers all 8 pages)
+
+### 🎨 Theme fixes
+
+- Replaced all hardcoded dark-only hover colours (`rgba(255,255,255,0.03)`, `#14141f`) with theme-aware `var(--accent)` — all pages now look correct on light themes
+
+---
+
 ## [v0.3.0] — Aug 2026
 
 A productivity and safety release — note recovery with 30-day trash, smart paste, table of contents, PDF export, and richer templates.
