@@ -211,12 +211,12 @@ export function LinkPanel({ sourceId, sourceType }: LinkPanelProps) {
                     style={{
                       width: '100%', display: 'flex', alignItems: 'center', gap: 10,
                       padding: '9px 12px', border: 'none',
-                      backgroundColor: alreadyLinked ? 'rgba(255,255,255,0.02)' : 'transparent',
+                      backgroundColor: alreadyLinked ? 'var(--muted)' : 'transparent',
                       cursor: alreadyLinked ? 'default' : 'pointer',
                       textAlign: 'left',
                     }}
                     onMouseEnter={e => { if (!alreadyLinked) e.currentTarget.style.backgroundColor = 'rgba(124,106,255,0.08)' }}
-                    onMouseLeave={e => { e.currentTarget.style.backgroundColor = alreadyLinked ? 'rgba(255,255,255,0.02)' : 'transparent' }}
+                    onMouseLeave={e => { e.currentTarget.style.backgroundColor = alreadyLinked ? 'var(--muted)' : 'transparent' }}
                   >
                     <div style={{ width: 26, height: 26, borderRadius: 6, backgroundColor: color + '22', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                       <Icon size={13} color={color} />

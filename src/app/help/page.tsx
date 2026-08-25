@@ -87,6 +87,7 @@ const SECTIONS = [
   { id: 'bookmarks',        label: '🔖 Bookmarks' },
   { id: 'tasks',            label: '✅ Tasks' },
   { id: 'graph',            label: '🌐 Knowledge graph' },
+  { id: 'ai',               label: '✨ AI features' },
   { id: 'tags',             label: '🏷️ Tags' },
   { id: 'search',           label: '🔍 Search & command palette' },
   { id: 'shortcuts',        label: '⌨️ Keyboard shortcuts' },
@@ -173,6 +174,9 @@ export default function HelpPage() {
               <Tip icon="🕐" title="Activity feed"
                 body="The bottom of the dashboard shows your last 12 activities across 7 days — notes edited, bookmarks saved, tasks completed."
               />
+              <Tip icon="✨" title="AI Knowledge Digest"
+                body="When AI is configured, an AI Digest card appears on the dashboard. Choose Today or This Week and click Generate — the AI summarises your recent note activity into a concise digest. Regenerate at any time."
+              />
             </Section>
 
             {/* NOTES LIST */}
@@ -247,6 +251,18 @@ export default function HelpPage() {
               <Tip icon="📊" title="Word count and reading time"
                 body="The status bar at the bottom of the editor shows live word count, character count, and estimated reading time."
               />
+              <Tip icon="✨" title="AI: Inline Assist (selection bubble)"
+                body="Select any text in the editor — a small AI bubble appears above your selection. Click it to choose an operation: Fix grammar · Rewrite · Expand · Shorten · Convert to outline · Convert to checklist · Explain. The result streams into a panel; accept it to replace your selection or go back to choose another operation."
+              />
+              <Tip icon="✨" title="AI: Smart title"
+                body="After writing 30+ characters, a sparkle button appears next to the title input. Click it to auto-generate a concise 3–8 word title from the note content. If you've started typing a title it uses that as a hint."
+              />
+              <Tip icon="✨" title="AI: Auto-tagging"
+                body="The AI Tags sparkle button (appears after 30+ characters) suggests relevant kebab-case tags based on the note content. Tags you already have are excluded. Accept individual chips or dismiss ones you don't want."
+              />
+              <Tip icon="✨" title="AI: Note summary"
+                body="The right sidebar of any note includes a Summarize section. Click Summarize to get a bullet-point summary of the note. A refresh button regenerates it at any time."
+              />
             </Section>
 
             {/* WIKILINKS */}
@@ -307,6 +323,9 @@ export default function HelpPage() {
               <Tip icon="🏷️" title="Manage tags"
                 body="Open Manage Tags from the toolbar to rename or delete a tag across all bookmarks at once. Sort tags by usage, alphabetically, or by last saved."
               />
+              <Tip icon="✨" title="AI: Bookmark summary"
+                body="When AI is configured, a sparkle (✨) button appears on each bookmark card. Click it to expand an inline AI bullet summary. Click again to collapse. A regenerate button re-runs the summary."
+              />
             </Section>
 
             {/* TASKS */}
@@ -351,6 +370,43 @@ export default function HelpPage() {
               <Tip icon="🗺️" title="Minimap and layout reset"
                 body="A minimap in the bottom-right helps you navigate large graphs. Node positions are saved between sessions. If the layout gets messy, click Reset layout to reposition all nodes in a clean grid."
               />
+              <Tip icon="✨" title="AI: Graph intelligence"
+                body="When AI is configured, an AI button appears in the graph toolbar. Click it to open the Graph Intelligence panel with three modes — Missing links (semantically similar notes with no wikilink between them), Note clusters (orphaned notes grouped by topic), and Gap detection (notes that share many neighbours but no direct connection). Click any note button in the results to open it."
+              />
+            </Section>
+
+            {/* AI */}
+            <Section id="ai" title="✨ AI features">
+              <Tip icon="⚙️" title="Setting up AI"
+                body={<>Click the <strong>AI status badge</strong> in the top-right nav (shows an orange dot when unconfigured) or press <Keys keys={['Ctrl', 'Shift', ',']} /> to open AI Settings. Choose a provider — Ollama (local, free), OpenAI, Anthropic, Google Gemini, or Groq. Enter your API key, pick a model, and optionally configure an embedding provider for semantic search features. All keys are stored locally in your browser — they are never sent to dotstell servers.</>}
+              />
+              <Tip icon="💬" title="AI Chat"
+                body="Open AI Chat from the note editor toolbar. In This note mode the chat is scoped to the current note with RAG context from related notes. In All knowledge mode it searches your full note library for each question. RAG can be toggled off for direct model answers. Chat history clears with the trash button."
+              />
+              <Tip icon="👤" title="Person intelligence"
+                body="Switch to the People tab in the AI Chat panel and type a name. The AI searches across all your notes and bookmarks for mentions, then generates a structured brief — role, key topics, last mentioned. Useful before meetings or when picking up an old context."
+              />
+              <Tip icon="🖊️" title="Inline Assist"
+                body="Select text in any note — a small AI bubble appears above the selection. Click it to choose: Fix grammar · Rewrite · Expand · Shorten · Convert to outline · Convert to checklist · Explain. The result streams live; accept to replace your selection or go back to pick another operation."
+              />
+              <Tip icon="🏷️" title="Smart title & auto-tagging"
+                body="After writing 30+ characters in a note, two AI buttons appear: a title suggester (fills the title field with a specific 3–8 word title from the content) and an AI tags button (suggests kebab-case tags, skipping ones already applied). Accept or dismiss individual tag chips."
+              />
+              <Tip icon="📋" title="Summaries"
+                body={<>Summaries are available in three places: <strong>Notes</strong> — click Summarize in the right sidebar; <strong>Bookmarks</strong> — click the ✨ button on any bookmark card; <strong>Notebooks</strong> — right-click any notebook in the sidebar and choose Summarize notebook. All summaries use bullet points and can be regenerated.</>}
+              />
+              <Tip icon="📊" title="AI Digest"
+                body="The dashboard AI Digest card summarises your recent note activity. Choose Today or This Week and click Generate. Useful for a quick review of what you've been working on."
+              />
+              <Tip icon="🔎" title="Related notes (semantic search)"
+                body="The Related Notes panel in the note editor right sidebar uses vector embeddings to find semantically similar notes — not just keyword matches. Requires an embedding provider configured in AI Settings. Click Re-index all in settings to index all existing notes."
+              />
+              <Tip icon="🌐" title="Graph intelligence"
+                body="The Graph page AI panel (click the AI button in the toolbar) provides three analyses: Missing links surfaces highly similar unlinked note pairs; Note clusters groups orphaned notes by topic; Gap detection finds note pairs sharing many neighbours but no direct bridge — a candidate for a new connecting note."
+              />
+              <Tip icon="🔒" title="Privacy"
+                body="Your API keys are stored only in your browser's localStorage — they leave your device only as part of TLS-encrypted requests to your chosen AI provider (OpenAI, Anthropic, etc.), never to dotstell servers. Choosing Ollama keeps everything 100% local."
+              />
             </Section>
 
             {/* TAGS */}
@@ -374,7 +430,7 @@ export default function HelpPage() {
               <Tip icon="⚡" title="G-key navigation"
                 body={
                   <span style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                    <span>Press <Kbd>G</Kbd> from anywhere in the app (not while typing), then press a second key to jump to any section. A small hint badge appears at the bottom-right to confirm the first key was registered.</span>
+                    <span>Press <Kbd>G</Kbd> from anywhere in the app (not while typing), then press a second key to jump to any of the 8 sections. A small hint badge appears at the bottom-right to confirm the first key was registered.</span>
                     <span style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 2 }}>
                       <Tag>G D — Dashboard</Tag>
                       <Tag>G N — Notes</Tag>
@@ -382,6 +438,8 @@ export default function HelpPage() {
                       <Tag>G B — Bookmarks</Tag>
                       <Tag>G T — Tasks</Tag>
                       <Tag>G G — Graph</Tag>
+                      <Tag>G A — Tags</Tag>
+                      <Tag>G H — Help</Tag>
                     </span>
                   </span>
                 }
@@ -403,8 +461,11 @@ export default function HelpPage() {
                   { keys: ['G', 'B'],      desc: 'Go to Bookmarks' },
                   { keys: ['G', 'T'],      desc: 'Go to Tasks' },
                   { keys: ['G', 'G'],      desc: 'Go to Graph' },
+                  { keys: ['G', 'A'],      desc: 'Go to Tags' },
+                  { keys: ['G', 'H'],      desc: 'Go to Help' },
                 ]},
                 { category: 'Note editor', rows: [
+                  { keys: ['Ctrl', 'Shift', ','],  desc: 'Open AI Settings' },
                   { keys: ['/'],                   desc: 'Open slash command menu' },
                   { keys: ['[['],                  desc: 'Insert a wikilink' },
                   { keys: ['Ctrl', 'B'],           desc: 'Bold' },
@@ -442,11 +503,46 @@ export default function HelpPage() {
             {/* WHAT'S NEW */}
             <Section id="whats-new" title="✨ Changelog">
 
+              {/* v0.4.0 */}
+              <div style={{ marginBottom: 32 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--primary)', background: 'color-mix(in srgb, var(--primary) 10%, transparent)', border: '1px solid color-mix(in srgb, var(--primary) 25%, transparent)', padding: '3px 10px', borderRadius: 99 }}>v0.4.0</span>
+                  <span style={{ fontSize: 12, fontWeight: 600, color: '#10b981', background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.2)', padding: '2px 8px', borderRadius: 99 }}>Latest</span>
+                  <span style={{ fontSize: 12, color: 'var(--muted-foreground)' }}>Aug 2026</span>
+                </div>
+                <Tip icon="✨" title="Complete AI integration"
+                  body="Full AI layer across the product. Five provider options: Ollama (local), OpenAI, Anthropic, Google Gemini, Groq. API keys stored in browser only — never sent to dotstell servers."
+                />
+                <Tip icon="💬" title="AI Chat with RAG"
+                  body="Slide-out chat panel on every note. Semantic search grounds every answer in your actual notes. Toggle note-scoped vs. full-library mode. RAG can be turned off for direct model answers."
+                />
+                <Tip icon="👤" title="Person intelligence"
+                  body="People tab in the chat panel — search a name and get a structured brief assembled from everything you've written about that person across notes and bookmarks."
+                />
+                <Tip icon="🖊️" title="Inline Assist"
+                  body="Select text in any note to reveal a floating AI bubble. Seven operations: fix, rewrite, expand, shorten, explain, convert to outline, convert to checklist. Results stream live."
+                />
+                <Tip icon="🏷️" title="Smart title & auto-tagging"
+                  body="After 30+ characters, sparkle buttons appear: one suggests a specific title from the content, the other proposes kebab-case tags you don't already have. Accept or dismiss individually."
+                />
+                <Tip icon="📋" title="AI summaries everywhere"
+                  body="Bullet summaries on notes (right sidebar), bookmarks (inline expand), and notebooks (right-click context menu). All regeneratable."
+                />
+                <Tip icon="📊" title="AI Digest"
+                  body="Dashboard card summarises your Today or This Week note activity in a single click."
+                />
+                <Tip icon="🌐" title="Graph intelligence"
+                  body="AI panel on the graph page with three analyses: missing links, note clusters, and gap detection — surfaces connections and patterns invisible to manual browsing."
+                />
+                <Tip icon="🔗" title="Related notes & auto-link"
+                  body="Vector-embedding-powered Related Notes panel in the note editor. Auto-link suggestions scan note content for un-wikified references to other notes."
+                />
+              </div>
+
               {/* v0.3.0 */}
               <div style={{ marginBottom: 32 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
                   <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--primary)', background: 'color-mix(in srgb, var(--primary) 10%, transparent)', border: '1px solid color-mix(in srgb, var(--primary) 25%, transparent)', padding: '3px 10px', borderRadius: 99 }}>v0.3.0</span>
-                  <span style={{ fontSize: 12, fontWeight: 600, color: '#10b981', background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.2)', padding: '2px 8px', borderRadius: 99 }}>Latest</span>
                   <span style={{ fontSize: 12, color: 'var(--muted-foreground)' }}>Aug 2026</span>
                 </div>
                 <Tip icon="🗑" title="Trash — 30-day note recovery"

@@ -571,7 +571,7 @@ export default function NotesPage() {
                     fontSize: 13, cursor: 'pointer', fontWeight: sortMode === opt.value ? 600 : 400,
                     display: 'flex', flexDirection: 'column', gap: 1, alignItems: 'flex-start',
                   }}
-                    onMouseEnter={e => { if (sortMode !== opt.value) e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.04)' }}
+                    onMouseEnter={e => { if (sortMode !== opt.value) e.currentTarget.style.backgroundColor = 'var(--accent)' }}
                     onMouseLeave={e => { if (sortMode !== opt.value) e.currentTarget.style.backgroundColor = 'transparent' }}
                   >
                     <span>{opt.label}</span>
