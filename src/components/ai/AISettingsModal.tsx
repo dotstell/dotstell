@@ -34,7 +34,7 @@ const CHAT_MODEL_SUGGESTIONS: Record<AIProvider, string[]> = {
   ollama:    FALLBACK_OLLAMA_CHAT_MODELS,
   openai:    ['gpt-4o-mini', 'gpt-4o', 'gpt-4-turbo', 'gpt-3.5-turbo'],
   anthropic: ['claude-haiku-4-5-20251001', 'claude-sonnet-5', 'claude-opus-5'],
-  gemini:    ['gemini-2.0-flash-lite', 'gemini-2.0-flash', 'gemini-2.5-flash', 'gemini-2.5-pro', 'gemini-1.5-flash'],
+  gemini:    ['gemini-1.5-flash', 'gemini-2.0-flash', 'gemini-2.0-flash-lite-001', 'gemini-2.5-flash', 'gemini-2.5-pro', 'gemini-1.5-flash-8b'],
   groq:      ['llama-3.1-8b-instant', 'llama-3.3-70b-versatile', 'mixtral-8x7b-32768'],
 }
 
@@ -43,7 +43,7 @@ const MODEL_HINTS: Record<AIProvider, string> = {
   ollama:    '7B models (llama3.2, phi4-mini, qwen2.5:7b) work well for all features. Models above 13B are slow without a dedicated GPU.',
   openai:    'gpt-4o-mini is recommended — fast, low cost, and excellent for note intelligence tasks.',
   anthropic: 'claude-haiku-4-5 is the fastest and most affordable option for summarisation and tagging.',
-  gemini:    'gemini-2.0-flash-lite is recommended — fast, highly capable, and free-tier friendly.',
+  gemini:    "gemini-1.5-flash is recommended — works on all free-tier API keys and is ideal for dotstell's features (summarisation, tagging, graph analysis) which need speed, not long-context reasoning. Try gemini-2.0-flash-lite-001 if your key has access.",
   groq:      'llama-3.1-8b-instant is recommended — Groq\'s free tier is generous and inference is extremely fast.',
 }
 
