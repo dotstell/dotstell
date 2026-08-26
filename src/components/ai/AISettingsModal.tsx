@@ -12,7 +12,7 @@ import {
   PROVIDERS_WITHOUT_EMBEDDINGS,
 } from '@/lib/ai/types'
 import { useAISettings } from '@/hooks/useAISettings'
-import { fetchOllamaModelsBrowser, completeOllamaBrowser } from '@/lib/ai/ollama-browser'
+import { fetchOllamaModelsBrowser, completeOllamaBrowser, isLocalHostname } from '@/lib/ai/ollama-browser'
 
 interface AISettingsModalProps {
   onClose: () => void
@@ -87,7 +87,21 @@ export function AISettingsModal({ onClose }: AISettingsModalProps) {
     setOllamaFetching(true)
     setOllamaError(null)
     try {
-      const models = await fetchOllamaModelsBrowser(baseUrl || 'http://localhost:11434')
+      const resolvedUrl = baseUrl || 'http://localhost:11434'
+      let models: Array<{ name: string; capabilities: string[] }>
+      if (isLocalHostname()) {
+        // On localhost the corporate proxy can block direct browser→Ollama requests.
+        // Route through the Next.js dev server instead (server→Ollama, same machine).
+        const params = new URLSearchParams({ baseUrl: resolvedUrl })
+        const res    = await fetch(`/api/ai/ollama-models?${params}`)
+        const data   = await res.json()
+        if (!res.ok) throw new Error(data.error ?? `HTTP ${res.status}`)
+        models = data.models ?? []
+      } else {
+        // On the live app the Next.js server (Vercel) cannot reach the user's machine.
+        // Call Ollama directly from the browser — requires OLLAMA_ORIGINS=* on the user's Ollama.
+        models = await fetchOllamaModelsBrowser(resolvedUrl)
+      }
       setOllamaModels(models)
       // Auto-select the best available chat model if the current one isn't installed
       setDraft(prev => {
@@ -181,8 +195,8 @@ export function AISettingsModal({ onClose }: AISettingsModalProps) {
     setTesting(true)
     setTestResult(null)
     try {
-      if (draft.provider === 'ollama') {
-        // Call Ollama directly from the browser — server can't reach the user's localhost
+      if (draft.provider === 'ollama' && !isLocalHostname()) {
+        // On the live app: call Ollama directly from the browser (Vercel can't reach user's machine)
         await completeOllamaBrowser(draft, [{ role: 'user', content: 'Reply with exactly: OK' }])
         setTestResult({ ok: true, message: 'AI is ready — Ollama replied successfully' })
       } else {

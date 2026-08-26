@@ -1,7 +1,7 @@
 'use client'
 import { useState, useCallback, useRef } from 'react'
 import { AIConfig, AIStreamChunk, AssistOperation } from '@/lib/ai/types'
-import { streamOllamaBrowser, completeOllamaBrowser } from '@/lib/ai/ollama-browser'
+import { streamOllamaBrowser, completeOllamaBrowser, isLocalHostname } from '@/lib/ai/ollama-browser'
 import { buildAssistMessages, buildSummarizeMessages, buildTitleMessages, buildTagMessages } from '@/lib/ai/prompts'
 
 /**
@@ -130,9 +130,10 @@ export function useAIAssist(config: AIConfig) {
     noteContext?: string,
     onDone?:      (result: string) => void,
   ) => {
-    if (config.provider === 'ollama') {
-      // Call Ollama directly from the browser — avoids the Vercel server-side
-      // limitation where the server cannot reach the user's localhost:11434
+    if (config.provider === 'ollama' && !isLocalHostname()) {
+      // On the live app: call Ollama directly from the browser.
+      // On localhost: corporate proxies can block browser→Ollama; use the server route instead
+      // (Next.js dev server is on the same machine as Ollama and can reach it directly).
       await streamDirect(
         () => streamOllamaBrowser(config, buildAssistMessages(operation, selectedText, noteContext)),
         { onDone },
@@ -168,9 +169,9 @@ export function useAISummarize(config: AIConfig) {
     setLoading(true)
     setError(null)
     try {
-      // When Ollama + raw text: call directly from browser
-      // When entity ID is given: must go through server (DB access needed)
-      if (config.provider === 'ollama' && params.text) {
+      // On live app + Ollama + raw text: call directly from browser.
+      // On localhost or when entity ID is given: use server route.
+      if (config.provider === 'ollama' && params.text && !isLocalHostname()) {
         const content = params.text.slice(0, 12_000)
         const result  = await completeOllamaBrowser(
           config,
@@ -213,7 +214,7 @@ export function useAITitleSuggest(config: AIConfig) {
     setLoading(true)
     setError(null)
     try {
-      if (config.provider === 'ollama') {
+      if (config.provider === 'ollama' && !isLocalHostname()) {
         const plainText = content
           .replace(/<[^>]+>/g, ' ')
           .replace(/\s+/g, ' ')
@@ -259,7 +260,7 @@ export function useAITagSuggest(config: AIConfig) {
     setLoading(true)
     setError(null)
     try {
-      if (config.provider === 'ollama') {
+      if (config.provider === 'ollama' && !isLocalHostname()) {
         const plainText = content
           .replace(/<[^>]+>/g, ' ')
           .replace(/\s+/g, ' ')

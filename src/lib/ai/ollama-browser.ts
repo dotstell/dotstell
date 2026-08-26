@@ -4,6 +4,19 @@ import { AIConfig, AIMessage } from './types'
 
 const DEFAULT_BASE_URL = 'http://127.0.0.1:11434'
 
+/**
+ * Returns true when running on localhost.
+ * On localhost, corporate proxies often block direct browser→Ollama connections;
+ * the Next.js dev server bypasses this by proxying server-side instead.
+ * On the live app (dotstell.app) the Next.js server is on Vercel and cannot
+ * reach the user's machine, so browser-direct is the only option.
+ */
+export function isLocalHostname(): boolean {
+  if (typeof window === 'undefined') return true
+  const h = window.location.hostname
+  return h === 'localhost' || h === '127.0.0.1' || h === '::1'
+}
+
 // On Windows, browsers resolve `localhost` as ::1 (IPv6) but Ollama only listens
 // on 127.0.0.1 (IPv4), causing silent fetch failures. Normalise before every call.
 function normalizeBaseUrl(baseUrl: string): string {
