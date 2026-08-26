@@ -43,7 +43,7 @@ export const DEFAULT_CHAT_MODELS: Record<AIProvider, string> = {
 export const DEFAULT_EMBEDDING_MODELS: Record<EmbeddingProvider, string> = {
   ollama: 'nomic-embed-text',
   openai: 'text-embedding-3-small',
-  gemini: 'text-embedding-004',
+  gemini: 'embedding-001',
 }
 
 export const PROVIDER_LABELS: Record<AIProvider, string> = {
