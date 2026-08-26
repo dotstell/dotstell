@@ -785,6 +785,7 @@ ${note.content ?? ''}
               <AIRelatedPanel
                 config={aiConfig}
                 noteId={noteId}
+                isConfigured={aiConfigured}
                 onOpen={id => router.push(`/notes/${id}`)}
               />
             )}

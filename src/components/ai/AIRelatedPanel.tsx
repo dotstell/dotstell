@@ -10,12 +10,13 @@ interface RelatedNote {
 }
 
 interface AIRelatedPanelProps {
-  config:  AIConfig
-  noteId:  string
-  onOpen?: (noteId: string) => void
+  config:       AIConfig
+  noteId:       string
+  isConfigured: boolean
+  onOpen?:      (noteId: string) => void
 }
 
-export function AIRelatedPanel({ config, noteId, onOpen }: AIRelatedPanelProps) {
+export function AIRelatedPanel({ config, noteId, isConfigured, onOpen }: AIRelatedPanelProps) {
   const [notes,   setNotes]   = useState<RelatedNote[]>([])
   const [loading, setLoading] = useState(false)
   const [error,   setError]   = useState<string | null>(null)
@@ -49,9 +50,13 @@ export function AIRelatedPanel({ config, noteId, onOpen }: AIRelatedPanelProps) 
     }
   }
 
-  // Load on mount and when the note or AI config changes
+  // Load on mount and when the note or AI config changes.
+  // Guard on isConfigured so we never fire with the default unset config.
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => { setNotes([]); setLoaded(false); load() }, [noteId, config.provider, config.model, config.embeddingProvider, config.embeddingModel])
+  useEffect(() => {
+    if (!isConfigured) return
+    setNotes([]); setLoaded(false); load()
+  }, [noteId, config.provider, config.model, config.embeddingProvider, config.embeddingModel, isConfigured])
 
   if (loading && !loaded) {
     return (
