@@ -12,7 +12,7 @@ import {
   PROVIDERS_WITHOUT_EMBEDDINGS,
 } from '@/lib/ai/types'
 import { useAISettings } from '@/hooks/useAISettings'
-import { fetchOllamaModelsBrowser, completeOllamaBrowser, isLocalHostname } from '@/lib/ai/ollama-browser'
+import { fetchOllamaModelsBrowser, completeOllamaBrowser, checkLocalAgent, LOCAL_AGENT_BASE, isLocalHostname } from '@/lib/ai/ollama-browser'
 
 interface AISettingsModalProps {
   onClose: () => void
@@ -82,6 +82,13 @@ export function AISettingsModal({ onClose }: AISettingsModalProps) {
   const [ollamaModels,   setOllamaModels]   = useState<Array<{ name: string; capabilities: string[] }>>([])
   const [ollamaFetching, setOllamaFetching] = useState(false)
   const [ollamaError,    setOllamaError]    = useState<string | null>(null)
+
+  // Local Agent status — only relevant on the live app (not on localhost)
+  const [agentRunning,  setAgentRunning]  = useState<boolean | null>(null)
+  useEffect(() => {
+    if (draft.provider !== 'ollama' || isLocalHostname()) return
+    checkLocalAgent().then(setAgentRunning)
+  }, [draft.provider])
 
   const fetchOllamaModels = useCallback(async (baseUrl: string) => {
     setOllamaFetching(true)
@@ -196,9 +203,11 @@ export function AISettingsModal({ onClose }: AISettingsModalProps) {
     setTestResult(null)
     try {
       if (draft.provider === 'ollama' && !isLocalHostname()) {
-        // On the live app: call Ollama directly from the browser (Vercel can't reach user's machine)
+        // On the live app: route through Local Agent (adds PNA header), or direct browser call
+        const running = await checkLocalAgent()
+        setAgentRunning(running)
         await completeOllamaBrowser(draft, [{ role: 'user', content: 'Reply with exactly: OK' }])
-        setTestResult({ ok: true, message: 'AI is ready — Ollama replied successfully' })
+        setTestResult({ ok: true, message: running ? 'AI is ready — Ollama replied via Local Agent' : 'AI is ready — Ollama replied successfully' })
       } else {
         const res = await fetch('/api/ai/chat', {
           method:  'POST',
@@ -385,6 +394,22 @@ export function AISettingsModal({ onClose }: AISettingsModalProps) {
           {draft.provider === 'ollama' && ollamaError?.includes('CORS') && (
             <Notice type="warning" style={{ marginTop: 6 }}>
               {ollamaError}
+            </Notice>
+          )}
+          {/* Local Agent status — only shown on the live app when Ollama is selected */}
+          {draft.provider === 'ollama' && !isLocalHostname() && agentRunning === false && (
+            <Notice type="warning" style={{ marginTop: 6 }}>
+              Dotstell Local Agent not found on port 12345. Browser security (Private Network Access) blocks direct Ollama connections from dotstell.app.
+              Start the agent to fix this:{' '}
+              <code style={{ fontSize: 10, backgroundColor: 'rgba(0,0,0,0.2)', padding: '1px 4px', borderRadius: 3 }}>
+                node packages/agent/index.mjs
+              </code>
+              |||http://127.0.0.1:12345/health|||Check agent health ↗
+            </Notice>
+          )}
+          {draft.provider === 'ollama' && !isLocalHostname() && agentRunning === true && (
+            <Notice type="success" style={{ marginTop: 6 }}>
+              Dotstell Local Agent is running — Ollama connections are bridged correctly.
             </Notice>
           )}
         </Field>

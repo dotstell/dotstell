@@ -2,7 +2,24 @@
 
 import { AIConfig, AIMessage } from './types'
 
-const DEFAULT_BASE_URL = 'http://127.0.0.1:11434'
+const DEFAULT_BASE_URL  = 'http://127.0.0.1:11434'
+export const LOCAL_AGENT_BASE = 'http://127.0.0.1:12345'
+
+/**
+ * Returns true if the Dotstell Local AI Agent is running on port 12345.
+ * The agent adds the Private Network Access header that Ollama is missing,
+ * allowing dotstell.app to reach Ollama through the agent.
+ */
+export async function checkLocalAgent(): Promise<boolean> {
+  try {
+    const res = await fetch(`${LOCAL_AGENT_BASE}/health`, { signal: AbortSignal.timeout(1500) })
+    if (!res.ok) return false
+    const data = await res.json()
+    return data.status === 'ok'
+  } catch {
+    return false
+  }
+}
 
 /**
  * Returns true when running on localhost.
@@ -37,12 +54,25 @@ async function checkConnectivity(baseUrl: string): Promise<boolean> {
 
 /**
  * Fetch available Ollama models directly from the browser.
- * Throws a descriptive error distinguishing "not running" from "CORS blocked".
+ * On the live app, routes through the Local Agent (if running) to bypass PNA restrictions.
+ * Throws a descriptive error distinguishing "not running" from "CORS/PNA blocked".
  */
 export async function fetchOllamaModelsBrowser(
   baseUrl = DEFAULT_BASE_URL,
 ): Promise<Array<{ name: string; capabilities: string[] }>> {
   baseUrl = normalizeBaseUrl(baseUrl)
+
+  // On the live app, try the Local Agent first — it adds the PNA header Ollama is missing
+  if (!isLocalHostname()) {
+    const agentRunning = await checkLocalAgent()
+    if (agentRunning) {
+      const res = await fetch(`${LOCAL_AGENT_BASE}/api/tags`)
+      if (!res.ok) throw new Error(`Ollama returned ${res.status}`)
+      const data = await res.json()
+      return (data.models ?? []).map((m: { name: string }) => ({ name: m.name, capabilities: ['completion'] }))
+    }
+  }
+
   let res: Response
   try {
     res = await fetch(`${baseUrl}/api/tags`)
@@ -60,7 +90,7 @@ export async function fetchOllamaModelsBrowser(
     if (!isLocalHostname()) {
       throw new Error(
         `Browser security (Private Network Access) is blocking the connection to Ollama. ` +
-        `Use the dotstell desktop app for seamless local AI, or wait for Ollama to add PNA header support.|||` +
+        `Run the Dotstell Local Agent to fix this: node packages/agent/index.mjs|||` +
         `https://github.com/ollama/ollama/issues|||` +
         `Track Ollama PNA support ↗`,
       )
@@ -85,9 +115,17 @@ export async function streamOllamaBrowser(
   messages: AIMessage[],
 ): Promise<ReadableStream<Uint8Array>> {
   const baseUrl = normalizeBaseUrl(config.baseUrl ?? DEFAULT_BASE_URL)
+
+  // On the live app, prefer the Local Agent — it proxies Ollama with correct PNA headers
+  let targetUrl = `${baseUrl}/api/chat`
+  if (!isLocalHostname()) {
+    const agentRunning = await checkLocalAgent()
+    if (agentRunning) targetUrl = `${LOCAL_AGENT_BASE}/api/chat`
+  }
+
   let res: Response
   try {
-    res = await fetch(`${baseUrl}/api/chat`, {
+    res = await fetch(targetUrl, {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
       body:    JSON.stringify({
@@ -107,7 +145,7 @@ export async function streamOllamaBrowser(
     if (!isLocalHostname()) {
       throw new Error(
         `Browser security (Private Network Access) is blocking the connection to Ollama. ` +
-        `Use the dotstell desktop app for seamless local AI, or wait for Ollama to add PNA header support.`,
+        `Run the Dotstell Local Agent: node packages/agent/index.mjs`,
       )
     }
     throw new Error(`Cannot reach Ollama at ${baseUrl} — is it running?`)

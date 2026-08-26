@@ -1,0 +1,17 @@
+{
+  "name": "@dotstell/agent",
+  "version": "1.0.0",
+  "description": "Dotstell Local AI Agent — bridges dotstell.app to your local Ollama instance",
+  "type": "module",
+  "main": "index.mjs",
+  "bin": {
+    "dotstell-agent": "./index.mjs"
+  },
+  "scripts": {
+    "start": "node index.mjs",
+    "dev": "node --watch index.mjs"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
