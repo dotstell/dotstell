@@ -22,7 +22,7 @@ const nextConfig: NextConfig = {
               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
               "img-src 'self' data: https: blob:",
               "font-src 'self' data: https://fonts.gstatic.com",
-              "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://cloudflareinsights.com https://vitals.vercel-insights.com",
+              "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://cloudflareinsights.com https://vitals.vercel-insights.com http://127.0.0.1:12345 http://localhost:12345",
               "frame-ancestors 'none'",
             ].join("; "),
           },
