@@ -55,8 +55,9 @@ export async function geminiEmbed(config: AIConfig, text: string): Promise<numbe
     method:  'POST',
     headers: { 'Content-Type': 'application/json' },
     body:    JSON.stringify({
-      model:   `models/${config.embeddingModel}`,
-      content: { parts: [{ text }] },
+      model:                `models/${config.embeddingModel}`,
+      content:              { parts: [{ text }] },
+      outputDimensionality: 768,
     }),
   })
   if (!res.ok) {

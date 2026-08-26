@@ -55,7 +55,7 @@ const HEAVY_MODEL_PATTERN = /\b(70b|72b|405b|671b|110b|34b|32b)\b/i
 const EMBED_MODEL_SUGGESTIONS: Record<EmbeddingProvider, string[]> = {
   ollama: FALLBACK_OLLAMA_EMBED_MODELS,
   openai: ['text-embedding-3-small', 'text-embedding-3-large'],
-  gemini: ['embedding-001', 'text-embedding-004'],
+  gemini: ['gemini-embedding-001', 'text-embedding-004', 'embedding-001'],
 }
 
 // Providers that have NO embedding API — user must choose a separate one
