@@ -3,6 +3,7 @@ import { useState, useCallback, useRef } from 'react'
 import { AIConfig, AIStreamChunk, AssistOperation } from '@/lib/ai/types'
 import { streamOllamaBrowser, completeOllamaBrowser, isLocalHostname } from '@/lib/ai/ollama-browser'
 import { buildAssistMessages, buildSummarizeMessages, buildTitleMessages, buildTagMessages } from '@/lib/ai/prompts'
+import { createClient as createSupabaseBrowserClient } from '@/lib/supabase/client'
 
 /**
  * Low-level hook for consuming AI streaming responses.
@@ -169,16 +170,30 @@ export function useAISummarize(config: AIConfig) {
     setLoading(true)
     setError(null)
     try {
-      // On live app + Ollama + raw text: call directly from browser.
-      // On localhost or when entity ID is given: use server route.
-      if (config.provider === 'ollama' && params.text && !isLocalHostname()) {
-        const content = params.text.slice(0, 12_000)
-        const result  = await completeOllamaBrowser(
-          config,
-          buildSummarizeMessages(content, params.title, params.mode ?? 'bullets'),
-        )
-        setSummary(result)
-        return result
+      // On live app + Ollama: run entirely in the browser (Vercel server can't reach local Ollama).
+      // Fetch entity content browser-side when entityId is given; use params.text if already available.
+      if (config.provider === 'ollama' && !isLocalHostname()) {
+        let text = params.text ?? ''
+        if (!text && params.entityId && params.entityType && params.entityType !== 'notebook') {
+          const supabase = createSupabaseBrowserClient()
+          if (params.entityType === 'note') {
+            const { data } = await supabase.from('notes').select('title, content').eq('id', params.entityId).single()
+            if (data) text = `${data.title}\n${data.content.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()}`
+          } else if (params.entityType === 'bookmark') {
+            const { data } = await supabase.from('bookmarks').select('title, description').eq('id', params.entityId).single()
+            if (data) text = `${data.title}\n${data.description ?? ''}`
+          }
+        }
+        if (text) {
+          const content = text.slice(0, 12_000)
+          const result  = await completeOllamaBrowser(
+            config,
+            buildSummarizeMessages(content, params.title, params.mode ?? 'bullets'),
+          )
+          setSummary(result)
+          return result
+        }
+        // Fall through to server route for notebooks or when fetch returned no content
       }
 
       const res = await fetch('/api/ai/summarize', {
