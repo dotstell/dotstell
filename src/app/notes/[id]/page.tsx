@@ -914,6 +914,7 @@ ${note.content ?? ''}
       config={aiConfig}
       noteId={noteId ?? undefined}
       noteTitle={note.title}
+      noteContent={note.content}
       onClose={() => setChatOpen(false)}
     />
   )

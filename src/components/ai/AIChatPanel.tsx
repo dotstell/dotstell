@@ -7,10 +7,11 @@ import { streamOllamaBrowser, isLocalHostname } from '@/lib/ai/ollama-browser'
 import { AIPersonPanel } from './AIPersonPanel'
 
 interface AIChatPanelProps {
-  config:    AIConfig
-  noteId?:   string    // if set, the panel is scoped to a specific note
-  noteTitle?: string
-  onClose:   () => void
+  config:       AIConfig
+  noteId?:      string    // if set, the panel is scoped to a specific note
+  noteTitle?:   string
+  noteContent?: string    // raw note content (HTML); stripped and injected in "This note" mode
+  onClose:      () => void
 }
 
 interface ChatMessage {
@@ -21,7 +22,7 @@ interface ChatMessage {
 type ChatMode = 'note' | 'global'
 type PanelTab = 'chat' | 'people'
 
-export function AIChatPanel({ config, noteId, noteTitle, onClose }: AIChatPanelProps) {
+export function AIChatPanel({ config, noteId, noteTitle, noteContent, onClose }: AIChatPanelProps) {
   const [activeTab, setActiveTab] = useState<PanelTab>('chat')
   const [messages,  setMessages]  = useState<ChatMessage[]>([])
   const [input,     setInput]     = useState('')
@@ -62,8 +63,16 @@ export function AIChatPanel({ config, noteId, noteTitle, onClose }: AIChatPanelP
     setMessages(prev => [...prev, userMsg, placeholder])
     pendingRole.current = true
 
-    // Build context via RAG when enabled
+    // Build context — current note first (always in "This note" mode), then RAG results
     let context: string | undefined
+
+    // In "This note" mode, always inject the open note's content directly so the model
+    // has it regardless of whether semantic search also surfaces it.
+    if (mode === 'note' && noteContent && noteTitle) {
+      const plain = noteContent.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 4000)
+      context = `## ${noteTitle}\n${plain}`
+    }
+
     if (ragActive) {
       try {
         const ragRes = await fetch('/api/ai/semantic-search', {
@@ -73,7 +82,6 @@ export function AIChatPanel({ config, noteId, noteTitle, onClose }: AIChatPanelP
             config,
             query:      text,
             types:      ['note'],
-            // If in note mode, bias results toward the current note's neighbourhood
             noteId:     mode === 'note' ? noteId : undefined,
             limit:      3,
             threshold:  0.5,
@@ -81,8 +89,11 @@ export function AIChatPanel({ config, noteId, noteTitle, onClose }: AIChatPanelP
         })
         if (ragRes.ok) {
           const results: Array<{ title: string; content: string }> = await ragRes.json()
-          if (results.length) {
-            context = results.map(r => `## ${r.title}\n${r.content.replace(/<[^>]+>/g, ' ').trim().slice(0, 800)}`).join('\n\n')
+          // Filter out the current note (already injected above) so it isn't duplicated
+          const others = results.filter(r => r.title !== noteTitle)
+          if (others.length) {
+            const ragContext = others.map(r => `## ${r.title}\n${r.content.replace(/<[^>]+>/g, ' ').trim().slice(0, 800)}`).join('\n\n')
+            context = context ? `${context}\n\n${ragContext}` : ragContext
           }
         }
       } catch { /* RAG is best-effort — proceed without it */ }
