@@ -120,7 +120,9 @@ supabase/migrations/
 ├── 004_notes_parent.sql
 ├── 005_notes_sort_pin.sql
 ├── 006_notes_color.sql
-└── 007_notebooks_constraints.sql
+├── 007_notebooks_constraints.sql
+├── 008_ai_embeddings.sql          ← vector(768) columns on notes + bookmarks (AI semantic search)
+└── 009_ai_match_functions.sql     ← pgvector cosine similarity RPC functions
 ```
 
 3. Copy your project URL and anon key from **Settings → API**

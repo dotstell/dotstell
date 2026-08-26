@@ -629,7 +629,9 @@ supabase/migrations/
 ├── 004_notes_parent.sql           # parent_id for note hierarchy
 ├── 005_notes_sort_pin.sql         # sort_order + pinned columns
 ├── 006_notes_color.sql            # color column (hex string)
-└── 007_notebooks_constraints.sql  # unique (user_id, name) + explicit WITH CHECK policy
+├── 007_notebooks_constraints.sql  # unique (user_id, name) + explicit WITH CHECK policy
+├── 008_ai_embeddings.sql          # vector(768) columns on notes + bookmarks; enables pgvector
+└── 009_ai_match_functions.sql     # match_notes() + match_bookmarks() RPC functions for cosine similarity search
 ```
 
 > **Note on `007_notebooks_constraints.sql`:** This migration must be run manually in the Supabase SQL Editor. It adds the `UNIQUE(user_id, name)` constraint that prevents duplicate notebook names from producing colliding `nb:` tags. Without it, creating two notebooks with the same name will cause a 500 error instead of a clean 409 conflict response.
