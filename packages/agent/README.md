@@ -46,8 +46,8 @@ Verify it is running by visiting [http://127.0.0.1:12345/health](http://127.0.0.
 
 ## Usage with dotstell.app
 
-1. Start Ollama: `ollama serve`
-2. Pull a model: `ollama pull llama3.2` (or any model you want to use)
+1. Make sure Ollama is running. On Windows it usually auto-starts — check `http://127.0.0.1:11434` in a browser. If it shows "Ollama is running" you can skip `ollama serve`. If not: `ollama serve`
+2. Pull a model if you haven't: `ollama pull llama3.2` (or any model you want to use)
 3. Start the agent: `node packages/agent/index.mjs`
 4. Open [dotstell.app](https://dotstell.app) → AI Settings → choose **Ollama (Local)**
 5. The settings modal shows a green "Local Agent is running" badge when it detects the agent on port 12345
@@ -118,7 +118,8 @@ The agent is designed to be safe to run persistently in the background:
 
 | Symptom | Likely cause | Fix |
 |---|---|---|
-| Agent starts but "fetch failed" in app | Ollama is not running | Run `ollama serve` |
+| `ollama serve` → `bind: Only one usage of each socket address` | Ollama is already running (Windows auto-start) | This is fine — skip `ollama serve` and just start the agent |
+| Agent starts but "fetch failed" in app | Ollama is not running | Run `ollama serve` or check the system tray for the Ollama icon |
 | "model not found" error | Model not pulled | Run `ollama pull <model-name>` |
 | Agent not detected in AI Settings | Port 12345 in use | Set `DOTSTELL_AGENT_PORT=12346` and restart |
 | CORS error despite agent running | App is on a non-allowed origin (e.g. custom domain) | The origin allow-list only covers known dotstell origins; file a GitHub issue |

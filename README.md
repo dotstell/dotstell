@@ -181,12 +181,14 @@ API keys are stored only in your browser's `localStorage`. They are never sent t
 The hosted app at `dotstell.app` runs over `https://`. Modern browsers block `https://` pages from fetching `http://localhost` directly (Private Network Access spec). To use Ollama with the live app, run the **Dotstell Local AI Agent** — a tiny zero-dependency Node.js proxy that adds the required browser security headers:
 
 ```bash
-# Terminal 1 — Ollama
+# If Ollama is not already running (on Windows it usually auto-starts):
 ollama serve
 
-# Terminal 2 — Local Agent
+# Start the Local Agent
 node packages/agent/index.mjs
 ```
+
+> **Windows tip:** Ollama typically runs as a background service on Windows and starts automatically. If you see `bind: Only one usage of each socket address` when running `ollama serve`, Ollama is already up — skip that step and just start the agent.
 
 The agent runs on `http://127.0.0.1:12345`, is loopback-only (not reachable from outside your machine), and proxies all AI requests from the browser to your local Ollama. The settings modal shows a green badge when it detects the agent.
 
