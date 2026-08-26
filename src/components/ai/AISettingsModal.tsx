@@ -13,6 +13,7 @@ import {
 } from '@/lib/ai/types'
 import { useAISettings } from '@/hooks/useAISettings'
 import { fetchOllamaModelsBrowser, completeOllamaBrowser, checkLocalAgent, LOCAL_AGENT_BASE, isLocalHostname } from '@/lib/ai/ollama-browser'
+import { createClient as createSupabaseBrowserClient } from '@/lib/supabase/client'
 
 interface AISettingsModalProps {
   onClose: () => void
@@ -35,7 +36,7 @@ const CHAT_MODEL_SUGGESTIONS: Record<AIProvider, string[]> = {
   ollama:    FALLBACK_OLLAMA_CHAT_MODELS,
   openai:    ['gpt-4o-mini', 'gpt-4o', 'gpt-4-turbo', 'gpt-3.5-turbo'],
   anthropic: ['claude-haiku-4-5-20251001', 'claude-sonnet-5', 'claude-opus-5'],
-  gemini:    ['gemini-2.0-flash', 'gemini-1.5-flash-002', 'gemini-2.0-flash-lite-001', 'gemini-2.5-flash-preview-05-20', 'gemini-1.5-flash-8b'],
+  gemini:    ['gemini-3.6-flash', 'gemini-2.0-flash', 'gemini-2.0-flash-lite', 'gemini-1.5-flash-002', 'gemini-1.5-flash-8b'],
   groq:      ['llama-3.1-8b-instant', 'llama-3.3-70b-versatile', 'mixtral-8x7b-32768'],
 }
 
@@ -55,7 +56,7 @@ const HEAVY_MODEL_PATTERN = /\b(70b|72b|405b|671b|110b|34b|32b)\b/i
 const EMBED_MODEL_SUGGESTIONS: Record<EmbeddingProvider, string[]> = {
   ollama: FALLBACK_OLLAMA_EMBED_MODELS,
   openai: ['text-embedding-3-small', 'text-embedding-3-large'],
-  gemini: ['text-embedding-004'],
+  gemini: ['gemini-embedding-001', 'text-embedding-004', 'embedding-001'],
 }
 
 // Providers that have NO embedding API — user must choose a separate one
@@ -73,7 +74,7 @@ export function AISettingsModal({ onClose }: AISettingsModalProps) {
   useEffect(() => { if (loaded) setDraft(config) }, [loaded]) // eslint-disable-line react-hooks/exhaustive-deps
   const [saved,        setSaved]         = useState(false)
   const [testing,      setTesting]      = useState(false)
-  const [testResult,   setTestResult]   = useState<{ ok: boolean; message: string } | null>(null)
+  const [testResult,   setTestResult]   = useState<{ ok: boolean; chatOk: boolean; message: string; embedResult?: { ok: boolean; message: string } } | null>(null)
   const [indexing,     setIndexing]     = useState(false)
   const [indexResult,  setIndexResult]  = useState<{ ok: boolean; message: string } | null>(null)
   const [showAdvanced, setShowAdvanced] = useState(false)
@@ -86,9 +87,10 @@ export function AISettingsModal({ onClose }: AISettingsModalProps) {
   // Local Agent status — only relevant on the live app (not on localhost)
   const [agentRunning,  setAgentRunning]  = useState<boolean | null>(null)
   useEffect(() => {
-    if (draft.provider !== 'ollama' || isLocalHostname()) return
+    const needsAgent = (draft.provider === 'ollama' || draft.embeddingProvider === 'ollama') && !isLocalHostname()
+    if (!needsAgent) return
     checkLocalAgent().then(setAgentRunning)
-  }, [draft.provider])
+  }, [draft.provider, draft.embeddingProvider])
 
   const fetchOllamaModels = useCallback(async (baseUrl: string) => {
     setOllamaFetching(true)
@@ -129,13 +131,14 @@ export function AISettingsModal({ onClose }: AISettingsModalProps) {
   }, [])
 
   // Live model list for cloud providers (OpenAI, Anthropic, Groq, Gemini)
-  const [cloudModels,   setCloudModels]   = useState<string[]>([])
-  const [cloudFetching, setCloudFetching] = useState(false)
+  const [cloudModels,      setCloudModels]      = useState<string[]>([])
+  const [cloudEmbedModels, setCloudEmbedModels] = useState<string[]>([])
+  const [cloudFetching,    setCloudFetching]    = useState(false)
 
   const CLOUD_PROVIDERS = ['openai', 'anthropic', 'groq', 'gemini'] as const
 
   const fetchCloudModels = useCallback(async (provider: string, apiKey: string) => {
-    if (!apiKey) { setCloudModels([]); return }
+    if (!apiKey) { setCloudModels([]); setCloudEmbedModels([]); return }
     setCloudFetching(true)
     try {
       const endpoint = provider === 'gemini' ? '/api/ai/gemini-models' : '/api/ai/cloud-models'
@@ -147,19 +150,47 @@ export function AISettingsModal({ onClose }: AISettingsModalProps) {
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error ?? `HTTP ${res.status}`)
-      const models: string[] = data.models ?? []
+      const models: string[]      = data.models      ?? []
+      const embedModels: string[] = data.embedModels ?? []
       setCloudModels(models)
-      // Auto-select first live model if current selection isn't in the live list
+      setCloudEmbedModels(embedModels)
       setDraft(prev => {
-        if (prev.provider !== provider) return prev
-        if (models.length > 0 && !models.includes(prev.model)) return { ...prev, model: models[0] }
-        return prev
+        let next = prev
+        // Auto-select first live chat model if current isn't in the list
+        if (prev.provider === provider && models.length > 0 && !models.includes(prev.model)) {
+          next = { ...next, model: models[0] }
+        }
+        // Auto-select first live embedding model for Gemini if current isn't in the list
+        if (provider === 'gemini' && prev.embeddingProvider === 'gemini' && embedModels.length > 0 && !embedModels.includes(prev.embeddingModel)) {
+          next = { ...next, embeddingModel: embedModels[0] }
+        }
+        return next
       })
     } catch {
-      setCloudModels([]) // fall back to static suggestions on error
+      setCloudModels([])
+      setCloudEmbedModels([])
     } finally {
       setCloudFetching(false)
     }
+  }, [])
+
+  // Also fetch Gemini embedding models when embedding provider is Gemini but chat is not Gemini
+  const fetchGeminiEmbedModels = useCallback(async (apiKey: string) => {
+    if (!apiKey) { setCloudEmbedModels([]); return }
+    try {
+      const res  = await fetch('/api/ai/gemini-models', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ apiKey }) })
+      const data = await res.json()
+      if (!res.ok) return
+      const embedModels: string[] = data.embedModels ?? []
+      setCloudEmbedModels(embedModels)
+      if (embedModels.length > 0) {
+        setDraft(prev => {
+          if (prev.embeddingProvider !== 'gemini') return prev
+          if (embedModels.includes(prev.embeddingModel)) return prev
+          return { ...prev, embeddingModel: embedModels[0] }
+        })
+      }
+    } catch { /* fall back to static suggestions */ }
   }, [])
 
   useEffect(() => {
@@ -173,10 +204,14 @@ export function AISettingsModal({ onClose }: AISettingsModalProps) {
       fetchCloudModels(draft.provider, draft.apiKey)
     } else {
       setCloudModels([])
+      // Fetch Gemini embed models separately when chat provider is not Gemini
+      if (draft.embeddingProvider === 'gemini' && draft.embeddingApiKey) {
+        fetchGeminiEmbedModels(draft.embeddingApiKey)
+      }
     }
-  }, [draft.provider, draft.apiKey, fetchCloudModels])
+  }, [draft.provider, draft.apiKey, draft.embeddingProvider, draft.embeddingApiKey, fetchCloudModels, fetchGeminiEmbedModels])
 
-  useEffect(() => { setTestResult(null) }, [draft.provider, draft.apiKey, draft.model, draft.baseUrl])
+  useEffect(() => { setTestResult(null) }, [draft.provider, draft.apiKey, draft.model, draft.baseUrl, draft.embeddingProvider, draft.embeddingModel, draft.embeddingApiKey])
 
   // Ollama returns model names with `:latest` tag (e.g. "nomic-embed-text:latest")
   // but users typically save them without the tag. Normalise for comparison.
@@ -184,63 +219,113 @@ export function AISettingsModal({ onClose }: AISettingsModalProps) {
 
   const needsSeparateEmbedProvider = PROVIDERS_WITHOUT_EMBEDDINGS.includes(draft.provider)
   const ollamaNames = ollamaModels.map(m => m.name)
-  // Merge static suggestions + live cloud models so the recommended model always appears
-  // even when the provider's API doesn't list it (e.g. Gemini omits gemini-2.0-flash-lite).
+  // When live models are available, trust that list exclusively — never blend in the static
+  // fallback, which contains potentially deprecated model names. Static list is fallback only.
   const chatModels  = draft.provider === 'ollama' && ollamaNames.length > 0
     ? ollamaNames
     : cloudModels.length > 0
-    ? [
-        ...CHAT_MODEL_SUGGESTIONS[draft.provider].filter(s => !cloudModels.includes(s)),
-        ...cloudModels,
-      ]
+    ? cloudModels
     : CHAT_MODEL_SUGGESTIONS[draft.provider]
   const embedModels = draft.embeddingProvider === 'ollama' && ollamaNames.length > 0
     ? ollamaNames
+    : draft.embeddingProvider === 'gemini' && cloudEmbedModels.length > 0
+    ? cloudEmbedModels
     : EMBED_MODEL_SUGGESTIONS[draft.embeddingProvider]
+
+  async function testChatConnection(): Promise<{ ok: boolean; message: string }> {
+    if (draft.provider === 'ollama' && !isLocalHostname()) {
+      const running = await checkLocalAgent()
+      setAgentRunning(running)
+      await completeOllamaBrowser(draft, [{ role: 'user', content: 'Reply with exactly: OK' }])
+      return { ok: true, message: running ? 'Chat (Ollama via Agent): ready' : 'Chat (Ollama): ready' }
+    }
+    const res = await fetch('/api/ai/chat', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ config: draft, messages: [{ role: 'user', content: 'Reply with exactly: OK' }] }),
+    })
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ error: 'Connection failed' }))
+      throw new Error(err.error ?? 'Connection failed')
+    }
+    const reader  = res.body!.getReader()
+    const decoder = new TextDecoder()
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) break
+      for (const line of decoder.decode(value).split('\n')) {
+        if (!line.startsWith('data: ')) continue
+        try { const c = JSON.parse(line.slice(6)); if (c.done) break } catch {}
+      }
+    }
+    return { ok: true, message: `Chat (${PROVIDER_LABELS[draft.provider]}): ready` }
+  }
+
+  async function testEmbedConnection(): Promise<{ ok: boolean; message: string }> {
+    const ep = draft.embeddingProvider
+    if (ep === 'gemini') {
+      const apiKey = draft.embeddingApiKey ?? (draft.provider === 'gemini' ? draft.apiKey : '') ?? ''
+      if (!apiKey) return { ok: false, message: 'Embedding (Gemini): API key missing — add it under Search engine API Key' }
+      const GEMINI_BASE = 'https://generativelanguage.googleapis.com/v1beta'
+      const res = await fetch(`${GEMINI_BASE}/models/${draft.embeddingModel}:embedContent?key=${apiKey}`, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ model: `models/${draft.embeddingModel}`, content: { parts: [{ text: 'test' }] }, outputDimensionality: 768 }),
+        signal:  AbortSignal.timeout(8000),
+      })
+      if (!res.ok) {
+        const raw = await res.text().catch(() => res.statusText)
+        const msg = (() => { try { return JSON.parse(raw)?.error?.message ?? raw } catch { return raw } })()
+        return { ok: false, message: `Embedding (Gemini): ${res.status === 404 ? `model '${draft.embeddingModel}' not found — check the model name` : msg}` }
+      }
+      return { ok: true, message: `Embedding (${draft.embeddingModel}): ready` }
+    }
+    if (ep === 'ollama' && !isLocalHostname()) {
+      const running = await checkLocalAgent()
+      if (!running) return { ok: false, message: 'Embedding (Ollama): Local Agent not running on port 12345 — start it first' }
+      const res = await fetch(`${LOCAL_AGENT_BASE}/api/embeddings`, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ model: draft.embeddingModel, prompt: 'test' }),
+        signal:  AbortSignal.timeout(12000),
+      })
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: `HTTP ${res.status}` }))
+        return { ok: false, message: `Embedding (Ollama): ${err.error ?? 'failed'}` }
+      }
+      return { ok: true, message: `Embedding (${draft.embeddingModel} via agent): ready` }
+    }
+    // Same provider as chat, or Ollama on localhost — covered by the chat test
+    return { ok: true, message: `Embedding (${draft.embeddingModel}): ready` }
+  }
 
   async function testConnection() {
     setTesting(true)
     setTestResult(null)
     try {
-      if (draft.provider === 'ollama' && !isLocalHostname()) {
-        // On the live app: route through Local Agent (adds PNA header), or direct browser call
-        const running = await checkLocalAgent()
-        setAgentRunning(running)
-        await completeOllamaBrowser(draft, [{ role: 'user', content: 'Reply with exactly: OK' }])
-        setTestResult({ ok: true, message: running ? 'AI is ready — Ollama replied via Local Agent' : 'AI is ready — Ollama replied successfully' })
-      } else {
-        const res = await fetch('/api/ai/chat', {
-          method:  'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body:    JSON.stringify({ config: draft, messages: [{ role: 'user', content: 'Reply with exactly: OK' }] }),
-        })
-        if (!res.ok) {
-          const err = await res.json().catch(() => ({ error: 'Connection failed' }))
-          setTestResult({ ok: false, message: err.error ?? 'Connection failed' })
-          return
-        }
-        const reader  = res.body!.getReader()
-        const decoder = new TextDecoder()
-        let   reply   = ''
-        while (true) {
-          const { done, value } = await reader.read()
-          if (done) break
-          for (const line of decoder.decode(value).split('\n')) {
-            if (!line.startsWith('data: ')) continue
-            try { const c = JSON.parse(line.slice(6)); reply += c.delta ?? ''; if (c.done) break } catch {}
-          }
-        }
-        void reply
-        setTestResult({ ok: true, message: `AI is ready — ${PROVIDER_LABELS[draft.provider]} replied successfully` })
-      }
+      const chatResult = await testChatConnection()
+      // Only test embedding separately when it's a different provider from chat
+      const testEmbed = draft.embeddingProvider !== draft.provider ||
+        (draft.embeddingProvider === 'gemini' && !!draft.embeddingApiKey)
+      const embedResult = testEmbed ? await testEmbedConnection().catch(e => ({
+        ok: false, message: e instanceof Error ? e.message : 'Embedding test failed',
+      })) : undefined
+      const allOk = chatResult.ok && (!embedResult || embedResult.ok)
+      setTestResult({ ok: allOk, chatOk: chatResult.ok, message: chatResult.message, embedResult })
     } catch (err) {
-      setTestResult({ ok: false, message: err instanceof Error ? err.message : 'Connection failed' })
+      setTestResult({ ok: false, chatOk: false, message: err instanceof Error ? err.message : 'Connection failed' })
     } finally {
       setTesting(false)
     }
   }
 
   async function buildSearchIndex() {
+    // When embeddingProvider is Ollama on the live app, use a browser-side pipeline
+    // (the server-side route runs on Vercel and cannot reach the user's local Ollama)
+    if (draft.embeddingProvider === 'ollama' && !isLocalHostname()) {
+      await buildSearchIndexBrowserOllama()
+      return
+    }
     setIndexing(true)
     setIndexResult(null)
     try {
@@ -251,9 +336,89 @@ export function AISettingsModal({ onClose }: AISettingsModalProps) {
       })
       const data = await res.json()
       if (!res.ok) { setIndexResult({ ok: false, message: data.error ?? 'Indexing failed' }); return }
+      const already  = (data.grandTotal ?? data.total ?? 0) - (data.total ?? 0)
+      const alreadyMsg = already > 0 ? `, ${already} already up to date` : ''
       const msg = data.total === 0
-        ? 'All notes are already indexed — nothing to do'
-        : `Done: indexed ${data.succeeded} of ${data.total} notes${data.failed > 0 ? ` (${data.failed} failed)` : ''}`
+        ? `All ${data.grandTotal ?? 'notes'} notes are already indexed — nothing to do`
+        : `Done: indexed ${data.succeeded} of ${data.grandTotal ?? data.total} notes${alreadyMsg}${data.failed > 0 ? ` (${data.failed} failed${data.firstError ? `: ${data.firstError}` : ''})` : ''}`
+      setIndexResult({ ok: true, message: msg })
+    } catch (err) {
+      setIndexResult({ ok: false, message: err instanceof Error ? err.message : 'Indexing failed' })
+    } finally {
+      setIndexing(false)
+    }
+  }
+
+  async function buildSearchIndexBrowserOllama() {
+    setIndexing(true)
+    setIndexResult(null)
+    const agentRunning = await checkLocalAgent()
+    if (!agentRunning) {
+      setIndexResult({ ok: false, message: 'Local Agent not running on port 12345 — start it first: node packages/agent/index.mjs' })
+      setIndexing(false)
+      return
+    }
+    try {
+      const supabase = createSupabaseBrowserClient()
+      // Fetch notes and bookmarks without embeddings (limit 100 each) + total counts
+      const [
+        { data: notes, error: ne }, { data: bookmarks, error: be },
+        { count: totalNotes }, { count: totalBookmarks },
+      ] = await Promise.all([
+        supabase.from('notes').select('id, title, content').is('embedding', null).is('deleted_at', null).limit(100),
+        supabase.from('bookmarks').select('id, title, description').is('embedding', null).limit(100),
+        supabase.from('notes').select('*', { count: 'exact', head: true }).is('deleted_at', null),
+        supabase.from('bookmarks').select('*', { count: 'exact', head: true }),
+      ])
+      if (ne || be) throw new Error(`Failed to fetch items: ${ne?.message ?? be?.message}`)
+      const grandTotal = (totalNotes ?? 0) + (totalBookmarks ?? 0)
+
+      const items: Array<{ table: 'notes' | 'bookmarks'; id: string; text: string }> = [
+        ...(notes ?? []).map(n => ({
+          table: 'notes' as const,
+          id:    n.id,
+          text:  `${n.title}\n${n.content.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()}`.slice(0, 8000),
+        })),
+        ...(bookmarks ?? []).map(b => ({
+          table: 'bookmarks' as const,
+          id:    b.id,
+          text:  `${b.title}\n${b.description ?? ''}`.slice(0, 8000),
+        })),
+      ]
+
+      const total = items.length
+      let succeeded = 0, failed = 0, firstError = ''
+
+      for (const item of items) {
+        try {
+          const res = await fetch(`${LOCAL_AGENT_BASE}/api/embeddings`, {
+            method:  'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body:    JSON.stringify({ model: draft.embeddingModel, prompt: item.text }),
+          })
+          if (!res.ok) {
+            const err = await res.json().catch(() => ({ error: `HTTP ${res.status}` }))
+            throw new Error(err.error ?? `Ollama returned ${res.status}`)
+          }
+          const data      = await res.json()
+          const embedding = data.embedding as number[]
+          if (!Array.isArray(embedding) || embedding.length === 0) throw new Error('Empty embedding from Ollama')
+          const { error: dbError } = await supabase.from(item.table)
+            .update({ embedding, embedding_model: draft.embeddingModel })
+            .eq('id', item.id)
+          if (dbError) throw new Error(`DB update failed: ${dbError.message}`)
+          succeeded++
+        } catch (e) {
+          failed++
+          if (!firstError) firstError = e instanceof Error ? e.message : String(e)
+        }
+      }
+
+      const already    = grandTotal - total
+      const alreadyMsg = already > 0 ? `, ${already} already up to date` : ''
+      const msg = total === 0
+        ? `All ${grandTotal} notes are already indexed — nothing to do`
+        : `Done: indexed ${succeeded} of ${grandTotal} notes${alreadyMsg}${failed > 0 ? ` (${failed} failed${firstError ? `: ${firstError}` : ''})` : ''}`
       setIndexResult({ ok: true, message: msg })
     } catch (err) {
       setIndexResult({ ok: false, message: err instanceof Error ? err.message : 'Indexing failed' })
@@ -441,9 +606,12 @@ export function AISettingsModal({ onClose }: AISettingsModalProps) {
                 type="password"
                 value={draft.embeddingApiKey ?? ''}
                 onChange={e => setDraft(p => ({ ...p, embeddingApiKey: e.target.value }))}
-                placeholder="API key for the search provider"
+                placeholder={`API key for ${PROVIDER_LABELS[draft.embeddingProvider as AIProvider] ?? draft.embeddingProvider}`}
                 style={inputStyle}
               />
+              <p style={{ margin: '4px 0 0', fontSize: 11, color: 'var(--muted-foreground)' }}>
+                This is separate from your chat API key — paste your {PROVIDER_LABELS[draft.embeddingProvider as AIProvider] ?? draft.embeddingProvider} key here.
+              </p>
             </Field>
           )}
 
@@ -451,6 +619,13 @@ export function AISettingsModal({ onClose }: AISettingsModalProps) {
             {draft.embeddingProvider === 'ollama' && ollamaNames.length > 0 && !ollamaNames.some(m => normalizeModel(m) === normalizeModel(draft.embeddingModel)) && (
               <Notice type="warning" style={{ marginBottom: 6 }}>
                 <strong>{draft.embeddingModel}</strong> isn&apos;t installed. Run <code style={{ fontSize: 10, backgroundColor: 'rgba(0,0,0,0.2)', padding: '1px 4px', borderRadius: 3 }}>ollama pull nomic-embed-text</code> or pick an installed model below.
+              </Notice>
+            )}
+            {draft.embeddingProvider === 'ollama' && !isLocalHostname() && (
+              <Notice type={agentRunning === true ? 'success' : 'warning'} style={{ marginBottom: 6 }}>
+                {agentRunning === true
+                  ? 'Local Ollama embedding is active — Build index runs in your browser via the Local Agent.'
+                  : 'Local Ollama embedding requires the Local Agent on port 12345. Start it before building the search index: node packages/agent/index.mjs'}
               </Notice>
             )}
             <ModelInput value={draft.embeddingModel} suggestions={embedModels} onChange={v => setDraft(p => ({ ...p, embeddingModel: v }))} />
@@ -509,9 +684,16 @@ export function AISettingsModal({ onClose }: AISettingsModalProps) {
             {testing ? <><Loader2 size={13} style={{ animation: 'spin 1s linear infinite' }} /> Testing…</> : <><Wifi size={13} /> Test connection</>}
           </button>
           {testResult && (
-            <Notice type={testResult.ok ? 'success' : 'error'} style={{ marginTop: 8 }}>
-              {testResult.message}
-            </Notice>
+            <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <Notice type={testResult.chatOk ? 'success' : 'error'}>
+                {testResult.message}
+              </Notice>
+              {testResult.embedResult && (
+                <Notice type={testResult.embedResult.ok ? 'success' : 'error'}>
+                  {testResult.embedResult.message}
+                </Notice>
+              )}
+            </div>
           )}
         </div>
 

@@ -13,6 +13,8 @@ import { EmptyState } from '@/components/ui/empty-state'
 import { useTaskReminders } from '@/hooks/useTaskReminders'
 import { PageContainer } from '@/components/layout/PageContainer'
 import { useAISettings } from '@/hooks/useAISettings'
+import { isLocalHostname, completeOllamaBrowser } from '@/lib/ai/ollama-browser'
+import { createClient as createSupabaseBrowserClient } from '@/lib/supabase/client'
 
 const PRIORITY_COLOR: Record<string, string> = { low: '#10b981', medium: '#f59e0b', high: '#ef4444' }
 const STATUS_COLOR:   Record<string, string> = { todo: 'var(--muted-foreground)', in_progress: 'var(--primary)', done: '#10b981' }
@@ -139,6 +141,36 @@ export default function DashboardPage() {
   async function generateDigest(period: 'day' | 'week') {
     setDigest(''); setDigestError(null); setDigestLoading(true)
     try {
+      // On live app + Ollama: fetch notes browser-side and call Ollama through the Local Agent
+      if (aiConfig.provider === 'ollama' && !isLocalHostname()) {
+        const supabase = createSupabaseBrowserClient()
+        const since = new Date()
+        if (period === 'day') since.setDate(since.getDate() - 1)
+        else                  since.setDate(since.getDate() - 7)
+        const { data: recentNotes } = await supabase
+          .from('notes')
+          .select('title, content, updated_at')
+          .is('deleted_at', null)
+          .gte('updated_at', since.toISOString())
+          .order('updated_at', { ascending: false })
+          .limit(30)
+        if (!recentNotes?.length) {
+          setDigest(`No notes were updated in the last ${period === 'day' ? '24 hours' : '7 days'}.`)
+          return
+        }
+        const noteList = recentNotes.map(n =>
+          `• ${n.title || 'Untitled'} (updated ${new Date(n.updated_at).toLocaleDateString()}): ${
+            n.content.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').slice(0, 300)
+          }`
+        ).join('\n')
+        const result = await completeOllamaBrowser(aiConfig, [
+          { role: 'system', content: 'You are a personal knowledge assistant. Create a concise digest of the user\'s recent note activity. Highlight key themes, important topics, and any action items. Use 3–6 bullet points or short paragraphs. Be insightful, not just descriptive.' },
+          { role: 'user',   content: `Here are the notes I worked on in the last ${period === 'day' ? '24 hours' : 'week'}:\n\n${noteList}` },
+        ])
+        setDigest(result)
+        return
+      }
+      // Cloud providers: server-side route
       const res  = await fetch('/api/ai/digest', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },

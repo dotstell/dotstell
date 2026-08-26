@@ -33,6 +33,7 @@ export async function geminiStream(
     method:  'POST',
     headers: { 'Content-Type': 'application/json' },
     body:    JSON.stringify(body),
+    signal:  AbortSignal.timeout(30_000),
   })
 
   if (!res.ok) {
@@ -40,7 +41,8 @@ export async function geminiStream(
     throw providerError('Gemini', res.status, extractMessage(raw))
   }
 
-  return transformGeminiStream(res.body!)
+  if (!res.body) throw new Error('Gemini: empty response body')
+  return transformGeminiStream(res.body)
 }
 
 /**
@@ -48,15 +50,15 @@ export async function geminiStream(
  * Requests 768 dimensions via `outputDimensionality` to match the pgvector column size.
  */
 export async function geminiEmbed(config: AIConfig, text: string): Promise<number[]> {
-  const url = `${GEMINI_BASE}/models/${config.embeddingModel}:embedContent?key=${config.embeddingApiKey ?? config.apiKey ?? ''}`
-
+  const apiKey = config.embeddingApiKey ?? config.apiKey ?? ''
+  if (!apiKey) throw new Error('Gemini embedding API key is missing — enter your Google AI Studio key in AI Settings under "Search engine API Key"')
+  const url = `${GEMINI_BASE}/models/${config.embeddingModel}:embedContent?key=${apiKey}`
   const res = await fetch(url, {
     method:  'POST',
     headers: { 'Content-Type': 'application/json' },
     body:    JSON.stringify({
-      model:   `models/${config.embeddingModel}`,
-      content: { parts: [{ text }] },
-      // Request 768-dim output for compatibility with the pgvector column
+      model:                `models/${config.embeddingModel}`,
+      content:              { parts: [{ text }] },
       outputDimensionality: 768,
     }),
   })

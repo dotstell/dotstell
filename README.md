@@ -70,6 +70,7 @@ Every star, issue, and PR genuinely matters for an early-stage OSS project.
 | 🔍 | **Universal Search** | Ctrl+K command palette across all notes, people, tasks and bookmarks |
 | 🔗 | **Manual Linking** | Connect any entity to any other — note → person, bookmark → task, etc. |
 | 🏠 | **Dashboard** | Unified home screen: overdue alerts, task progress, recent notes and bookmarks |
+| ✨ | **AI — Chat, Assist & Search** | RAG-grounded chat, inline text assist (rewrite, expand, fix), smart titles, auto-tagging, note summaries, AI Digest, Person Intelligence, semantic Related Notes — works with Ollama (local/private), OpenAI, Anthropic, Gemini, or Groq |
 
 ---
 
@@ -119,7 +120,9 @@ supabase/migrations/
 ├── 004_notes_parent.sql
 ├── 005_notes_sort_pin.sql
 ├── 006_notes_color.sql
-└── 007_notebooks_constraints.sql
+├── 007_notebooks_constraints.sql
+├── 008_ai_embeddings.sql          ← vector(768) columns on notes + bookmarks (AI semantic search)
+└── 009_ai_match_functions.sql     ← pgvector cosine similarity RPC functions
 ```
 
 3. Copy your project URL and anon key from **Settings → API**
@@ -149,6 +152,52 @@ Open [http://localhost:3000](http://localhost:3000), create an account and start
 
 ---
 
+## AI Features
+
+Dotstell ships a complete AI layer. All features work with five provider options:
+
+| Provider | Chat | Embeddings | Notes |
+|---|---|---|---|
+| **Ollama (local)** | ✅ | ✅ | Free, private, runs on your machine |
+| **OpenAI** | ✅ | ✅ | GPT-4o, text-embedding-3-small |
+| **Anthropic** | ✅ | — | Claude models; use a separate embedding provider |
+| **Google Gemini** | ✅ | ✅ | Generous free tier |
+| **Groq** | ✅ | — | Extremely fast inference; use a separate embedding provider |
+
+**AI features:**
+- **AI Chat** — slide-out panel with RAG (semantic search grounds answers in your notes), "This note" and "All knowledge" modes, People tab for person intelligence
+- **Inline Assist** — select text → rewrite / expand / shorten / fix grammar / outline / checklist / explain
+- **Smart title & auto-tags** — suggest a title and up to 5 relevant tags as you write
+- **Note & bookmark summaries** — one-click summary in bullet or paragraph form
+- **AI Knowledge Digest** — dashboard panel summarising your latest notes activity
+- **Semantic Related Notes** — sidebar panel showing notes similar to the one you're reading
+- **Person Intelligence** — searches all your notes and bookmarks for mentions of a person and generates a structured brief
+- **Graph intelligence** — finds missing links, note clusters, and bridgeable gaps in your knowledge graph
+
+API keys are stored only in your browser's `localStorage`. They are never sent to dotstell servers — only to your chosen AI provider directly over TLS.
+
+### Using Ollama with the live app — Local AI Agent
+
+The hosted app at `dotstell.app` runs over `https://`. Modern browsers block `https://` pages from fetching `http://localhost` directly (Private Network Access spec). To use Ollama with the live app, run the **Dotstell Local AI Agent** — a tiny zero-dependency Node.js proxy that adds the required browser security headers:
+
+```bash
+# If Ollama is not already running (on Windows it usually auto-starts):
+ollama serve
+
+# Start the Local Agent
+node packages/agent/index.mjs
+```
+
+> **Windows tip:** Ollama typically runs as a background service on Windows and starts automatically. If you see `bind: Only one usage of each socket address` when running `ollama serve`, Ollama is already up — skip that step and just start the agent.
+
+The agent runs on `http://127.0.0.1:12345`, is loopback-only (not reachable from outside your machine), and proxies all AI requests from the browser to your local Ollama. The settings modal shows a green badge when it detects the agent.
+
+See [`packages/agent/README.md`](packages/agent/README.md) for full setup, environment variables, and security details.
+
+**You do not need the agent when running dotstell locally** (`localhost:3000`). PNA restrictions only apply when accessing the live `https://dotstell.app`.
+
+---
+
 ## Tech Stack
 
 | Layer | Technology |
@@ -173,6 +222,21 @@ See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for a full breakdown of the sys
 src/
 ├── app/
 │   ├── api/                          # Next.js API routes (server-side)
+│   │   ├── ai/                       # AI routes — all require auth + rate limiting
+│   │   │   ├── chat/                 # Streaming chat (SSE) — all providers
+│   │   │   ├── assist/               # Inline text operations (rewrite, expand, fix…)
+│   │   │   ├── summarize/            # Note / bookmark summary
+│   │   │   ├── title/                # Smart title suggestion
+│   │   │   ├── tags/                 # Auto-tag suggestion
+│   │   │   ├── embed/                # Single + bulk embedding (PUT = bulk re-index)
+│   │   │   ├── semantic-search/      # pgvector similarity search
+│   │   │   ├── related/[id]/         # Related notes for a given note
+│   │   │   ├── digest/               # AI Knowledge Digest (dashboard)
+│   │   │   ├── person/               # Person intelligence brief
+│   │   │   ├── graph-intel/          # Graph AI analysis (clusters, gaps)
+│   │   │   ├── cloud-models/         # Live model list (OpenAI / Anthropic / Groq)
+│   │   │   ├── gemini-models/        # Live model list (Gemini)
+│   │   │   └── ollama-models/        # Ollama installed model list (server proxy)
 │   │   ├── notes/                    # Notes list + create
 │   │   ├── notes/[id]/               # Note CRUD (soft delete)
 │   │   ├── notes/[id]/backlinks/     # Backlink lookup for a note
@@ -212,6 +276,11 @@ src/
 │   ├── search/                       # Global search results
 │   └── help/                         # Help & keyboard shortcuts
 ├── components/
+│   ├── ai/                           # AI UI components
+│   │   ├── AISettingsModal.tsx       # Provider/model picker, test connection, build index
+│   │   ├── AIChatPanel.tsx           # Slide-out chat panel with RAG + People tab
+│   │   ├── AIPersonPanel.tsx         # Person intelligence search + brief
+│   │   └── AIRelatedPanel.tsx        # Related notes sidebar panel
 │   ├── editor/                       # Tiptap editor + WikiLinkExtension node
 │   ├── layout/                       # Sidebar, AppLayout, PageHeader
 │   ├── command/                      # Ctrl+K command palette
@@ -224,9 +293,23 @@ src/
 │   ├── onboarding/                   # First-run onboarding flow
 │   ├── brand/                        # Logo and brand assets
 │   └── ui/                           # Design system: buttons, dialogs, inputs
-├── hooks/                            # useNotebooks, useMention, useTheme, etc.
+├── hooks/
+│   ├── useAI.ts                      # useAIStream, useAIAssist, useAISummarize, useAIPersonIntel…
+│   ├── useAISettings.ts              # AI config: load/save/sync across instances
+│   └── …                            # useNotebooks, useMention, useTheme, etc.
 ├── store/                            # Zustand global stores
 ├── lib/
+│   ├── ai/
+│   │   ├── client.ts                 # streamChat(), complete(), embed(), validateConfig()
+│   │   ├── types.ts                  # AIConfig, AIProvider, EmbeddingProvider, defaults
+│   │   ├── prompts.ts                # Prompt builders for each AI operation
+│   │   ├── error.ts                  # providerError() — normalises provider errors
+│   │   ├── ollama-browser.ts         # Browser-side Ollama client + Local Agent detection
+│   │   └── providers/
+│   │       ├── openai.ts             # OpenAI + Groq streaming (OpenAI-compatible format)
+│   │       ├── anthropic.ts          # Anthropic Messages API streaming
+│   │       ├── gemini.ts             # Gemini streamGenerateContent + embedContent
+│   │       └── ollama.ts             # Ollama /api/chat + /api/embeddings
 │   ├── supabase/                     # Browser + server Supabase clients
 │   ├── tiptap/                       # WikiLinkExtension (custom ProseMirror node)
 │   └── ratelimit.ts                  # In-memory rate limiter
@@ -236,7 +319,12 @@ src-tauri/
 └── tauri.conf.json                   # App metadata, permissions, updater config
 supabase/
 ├── schema.sql                        # Full schema: tables, RLS, indexes, triggers
-└── migrations/                       # Incremental SQL migrations (002 → 007)
+└── migrations/                       # Incremental SQL migrations (002 → 008)
+packages/
+└── agent/                            # Dotstell Local AI Agent v1.0.0
+    ├── index.mjs                     # Zero-dep Node.js CORS/PNA proxy for Ollama
+    ├── package.json
+    └── README.md                     # Setup guide and security notes
 ```
 
 ---
@@ -249,7 +337,8 @@ supabase/
 | Wikilinks + Backlinks | ✅ Live |
 | Knowledge Graph | ✅ Live |
 | Desktop app (Windows, macOS + Linux) | ✅ Live |
-| AI layer (auto-tagging, semantic search) | 🔜 Soon |
+| AI layer — Chat, Assist, Semantic Search, Person Intelligence, Summaries, Digest | ✅ Live (v0.4.0) |
+| Local AI via Ollama — works from both live app and local dev | ✅ Live (v0.4.0) |
 | Docs (per-project documentation) | 🔜 Soon |
 | Browser extension | 🔜 Planned |
 | Integrations (Slack, Teams, etc.) | 🔜 Planned |

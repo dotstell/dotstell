@@ -87,32 +87,43 @@ export async function PUT(req: NextRequest) {
   if (configError) return NextResponse.json({ error: configError }, { status: 400 })
 
   // Fetch IDs of entities without embeddings (limit 200 per bulk run to avoid timeout)
-  const [{ data: notes }, { data: bookmarks }] = await Promise.all([
+  // Also fetch total counts so the UI can show how many were already indexed.
+  const [{ data: notes }, { data: bookmarks }, { count: totalNotes }, { count: totalBookmarks }] = await Promise.all([
     supabase.from('notes').select('id').eq('user_id', user.id).is('embedding', null).is('deleted_at', null).limit(100),
     supabase.from('bookmarks').select('id').eq('user_id', user.id).is('embedding', null).limit(100),
+    supabase.from('notes').select('*', { count: 'exact', head: true }).eq('user_id', user.id).is('deleted_at', null),
+    supabase.from('bookmarks').select('*', { count: 'exact', head: true }).eq('user_id', user.id),
   ])
 
   const noteIds     = (notes     ?? []).map(n => n.id)
   const bookmarkIds = (bookmarks ?? []).map(b => b.id)
+  const grandTotal  = (totalNotes ?? 0) + (totalBookmarks ?? 0)
 
   // Embed sequentially to avoid rate-limit bursts on the upstream provider
-  let succeeded = 0
-  let failed    = 0
+  let succeeded  = 0
+  let failed     = 0
+  let firstError = ''
 
   for (const id of noteIds) {
     try {
       await embedEntity(supabase, body.config, 'note', id, user.id)
       succeeded++
-    } catch { failed++ }
+    } catch (e) {
+      failed++
+      if (!firstError) firstError = e instanceof Error ? e.message : String(e)
+    }
   }
   for (const id of bookmarkIds) {
     try {
       await embedEntity(supabase, body.config, 'bookmark', id, user.id)
       succeeded++
-    } catch { failed++ }
+    } catch (e) {
+      failed++
+      if (!firstError) firstError = e instanceof Error ? e.message : String(e)
+    }
   }
 
-  return NextResponse.json({ succeeded, failed, total: noteIds.length + bookmarkIds.length })
+  return NextResponse.json({ succeeded, failed, total: noteIds.length + bookmarkIds.length, grandTotal, firstError: firstError || undefined })
 }
 
 // Shared helper used by both the single-entity and bulk endpoints

@@ -53,7 +53,10 @@ function cleanRawMessage(raw: string): string {
 export function providerError(label: string, status: number, rawMsg: string): Error {
   const help     = HELP[label as ProviderName]?.[status]
   const fixedMsg = STATUS_MESSAGES[status]
-  const msg      = fixedMsg ?? `error ${status}: ${cleanRawMessage(rawMsg)}`
+  // For 404 include the raw provider message — it names the missing model/path for easier diagnosis
+  const msg      = status === 404
+    ? `${STATUS_MESSAGES[404]} (${cleanRawMessage(rawMsg)})`
+    : fixedMsg ?? `error ${status}: ${cleanRawMessage(rawMsg)}`
   const full     = help
     ? `${label} — ${msg}|||${help.url}|||${help.label}`
     : `${label} — ${msg}`

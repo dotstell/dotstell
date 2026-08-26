@@ -19,7 +19,8 @@ export async function openaiStream(
       'Content-Type': 'application/json',
       Authorization: `Bearer ${config.apiKey ?? ''}`,
     },
-    body: JSON.stringify({ model: config.model, messages, stream: true }),
+    body:   JSON.stringify({ model: config.model, messages, stream: true }),
+    signal: AbortSignal.timeout(30_000),
   })
 
   if (!res.ok) {
@@ -30,8 +31,8 @@ export async function openaiStream(
     throw providerError(label, res.status, extractMessage(raw))
   }
 
-  // Transform OpenAI SSE → normalised `delta` chunks
-  return transformOpenAIStream(res.body!)
+  if (!res.body) throw new Error('OpenAI: empty response body')
+  return transformOpenAIStream(res.body)
 }
 
 /** Stream from Groq — identical to OpenAI wire format, different base URL. */
@@ -72,6 +73,14 @@ export async function openaiEmbed(config: AIConfig, text: string): Promise<numbe
   const data = await res.json()
   const embedding = data?.data?.[0]?.embedding
   if (!Array.isArray(embedding) || embedding.length === 0) throw new Error('OpenAI embed: empty or missing embedding in response')
+  // ada-002 ignores the `dimensions` param and always returns 1536-dim vectors, which
+  // mismatches the pgvector(768) column — surface a clear error instead of a silent DB failure.
+  if (embedding.length !== 768) {
+    throw new Error(
+      `OpenAI model '${config.embeddingModel}' returned ${embedding.length} dimensions but the database expects 768. ` +
+      `Use 'text-embedding-3-small' or 'text-embedding-3-large' (both support 768-dim output).`
+    )
+  }
   return embedding as number[]
 }
 

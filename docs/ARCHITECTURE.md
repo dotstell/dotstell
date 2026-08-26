@@ -17,9 +17,15 @@ This document explains how Dotstell is built: the layers, the languages, the dat
    - [Notebook System](#notebook-system)
    - [Theme System](#theme-system)
    - [Task Reminders](#task-reminders)
-7. [Request Lifecycle](#request-lifecycle)
-8. [Desktop vs Web](#desktop-vs-web)
-9. [Database Migrations](#database-migrations)
+7. [AI Layer](#ai-layer)
+   - [Provider Architecture](#provider-architecture)
+   - [Request Routing — Server vs. Browser](#request-routing--server-vs-browser)
+   - [Local AI Agent](#local-ai-agent)
+   - [Embedding Pipeline](#embedding-pipeline)
+   - [AI Security Model](#ai-security-model)
+8. [Request Lifecycle](#request-lifecycle)
+9. [Desktop vs Web](#desktop-vs-web)
+10. [Database Migrations](#database-migrations)
 
 ---
 
@@ -394,7 +400,166 @@ React hydrates → useTheme() reads localStorage → matches server HTML
 
 ---
 
-## Request Lifecycle
+## AI Layer
+
+Dotstell's AI layer was introduced in v0.4.0. It provides: streaming chat with RAG, inline text assist, smart titles, auto-tagging, note and bookmark summaries, an AI Knowledge Digest, semantic Related Notes, Person Intelligence, and graph analysis.
+
+### Provider Architecture
+
+All AI operations are routed through a unified client in `src/lib/ai/client.ts` that dispatches to provider-specific implementations:
+
+| Provider | Chat / Assist | Embeddings | Wire Format |
+|---|---|---|---|
+| `ollama` | `ollamaStream` | `ollamaEmbed` | Ollama native REST + NDJSON streaming |
+| `openai` | `openaiStream` | `openaiEmbed` | OpenAI Chat Completions API + SSE |
+| `groq` | `groqStream` (wraps openaiStream) | — | OpenAI-compatible (different base URL) |
+| `anthropic` | `anthropicStream` | — | Anthropic Messages API + SSE |
+| `gemini` | `geminiStream` | `geminiEmbed` | Google Generative Language REST + SSE |
+
+**Streaming normalisation:** Every provider's SSE stream is transformed to a common format:
+
+```
+data: {"delta":"text fragment","done":false}
+…
+data: {"delta":"","done":true}
+```
+
+All downstream consumers (API routes, hooks, UI) read this single format regardless of provider. Provider differences (OpenAI `choices[0].delta.content`, Anthropic `content_block_delta`, Gemini `candidates[0].content.parts[0].text`) are handled entirely inside each provider's transform function.
+
+**AI API routes** (`src/app/api/ai/`):
+
+| Route | Method | Purpose |
+|---|---|---|
+| `/api/ai/chat` | POST | Streaming chat; prepends RAG context if `context` field present |
+| `/api/ai/assist` | POST | Inline text operations (rewrite, expand, shorten, fix, outline, checklist, explain) |
+| `/api/ai/summarize` | POST | Note or bookmark summary |
+| `/api/ai/title` | POST | Smart title suggestion |
+| `/api/ai/tags` | POST | Auto-tag suggestion (returns JSON array) |
+| `/api/ai/embed` | POST / PUT | Single embed (POST) or bulk re-index all un-indexed notes (PUT) |
+| `/api/ai/semantic-search` | POST | pgvector cosine similarity search; returns matching note/bookmark snippets |
+| `/api/ai/related/[id]` | POST | Related notes for a given note (wraps semantic-search) |
+| `/api/ai/digest` | POST | AI Knowledge Digest for dashboard |
+| `/api/ai/person` | POST | Person intelligence: search all notes/bookmarks by name, generate brief |
+| `/api/ai/graph-intel` | POST | Graph analysis: missing links, clusters, gap detection |
+| `/api/ai/cloud-models` | POST | Fetch live model list from OpenAI / Anthropic / Groq |
+| `/api/ai/gemini-models` | POST | Fetch live chat + embedding model list from Gemini |
+| `/api/ai/ollama-models` | GET | Proxy to local Ollama `/api/tags` (avoids corporate proxy issues on localhost) |
+
+All routes require authentication (`supabase.auth.getUser()`) and are rate-limited. The AI config (provider, model, API key) is sent in the POST body per request — it is never persisted server-side.
+
+---
+
+### Request Routing — Server vs. Browser
+
+Most AI operations run on the **Next.js server** (Vercel), which then calls the provider API. This works for all cloud providers (OpenAI, Anthropic, Gemini, Groq) but **not for Ollama when using the live hosted app** — Vercel's serverless functions cannot reach `http://localhost:11434` on the user's machine.
+
+For Ollama on the live app, all AI requests take a **browser-side path** — the browser calls Ollama (or the Local Agent proxy) directly:
+
+```
+Normal path (cloud providers, or Ollama on localhost dev):
+  Browser → POST /api/ai/chat → Vercel → Provider API → SSE back
+
+Ollama path on live app (dotstell.app):
+  Browser → POST http://127.0.0.1:12345/api/chat → Local Agent → Ollama → NDJSON back
+```
+
+**Which routes use the browser-side path when Ollama + live app is detected:**
+
+| Feature | Hook / Component | Browser-side path |
+|---|---|---|
+| AI Chat | `AIChatPanel` | `streamOllamaBrowser()` → Local Agent |
+| Inline Assist | `useAIAssist` | `streamOllamaBrowser()` → Local Agent |
+| Note/bookmark summary | `useAISummarize` | `completeOllamaBrowser()` → Local Agent |
+| Smart title | `useAITitleSuggest` | `completeOllamaBrowser()` → Local Agent |
+| Auto-tags | `useAITagSuggest` | `completeOllamaBrowser()` → Local Agent |
+| AI Digest (dashboard) | `generateDigest()` | `completeOllamaBrowser()` → Local Agent |
+| Person Intelligence | `useAIPersonIntel` | `completeOllamaBrowser()` → Local Agent |
+| Embeddings (build index) | `buildSearchIndexBrowserOllama()` | `fetch(LOCAL_AGENT_BASE/api/embeddings)` |
+
+Detection: `isLocalHostname()` (`src/lib/ai/ollama-browser.ts`) returns `true` when the page hostname is `localhost` or `127.0.0.1`. When false (live app), and the provider is Ollama, the browser-side path is used.
+
+---
+
+### Local AI Agent
+
+The Local AI Agent (`packages/agent/index.mjs`) solves the **Private Network Access (PNA)** browser security restriction.
+
+**The problem:** Chrome 115+ and Firefox 120+ block `https://` pages from fetching `http://127.0.0.1` unless the local server returns `Access-Control-Allow-Private-Network: true` in its CORS preflight response. Ollama does not return this header.
+
+**The solution:** The agent is a zero-dependency Node.js HTTP server that:
+1. Binds to `http://127.0.0.1:12345` (loopback only — not reachable from outside the machine)
+2. Validates the `Origin` header against a hard-coded allow-list (`dotstell.app`, `dotstell.com`, `*.vercel.app`, localhost)
+3. Returns correct PNA and CORS headers on OPTIONS preflight
+4. Forwards the request verbatim to Ollama (`127.0.0.1:11434` by default)
+5. Copies Ollama's streaming response back with its own CORS headers
+
+```
+Browser (dotstell.app)
+  │  OPTIONS http://127.0.0.1:12345/api/chat
+  │  ← Access-Control-Allow-Private-Network: true
+  │  ← Access-Control-Allow-Origin: https://dotstell.app
+  │
+  │  POST http://127.0.0.1:12345/api/chat
+  ▼
+Local Agent (127.0.0.1:12345)
+  │  forward (origin/referer headers stripped)
+  ▼
+Ollama (127.0.0.1:11434)
+  └── model inference → NDJSON stream back
+```
+
+The app detects the agent via `GET http://127.0.0.1:12345/health`. The AI Settings modal shows a live status badge. If the agent is not running, a warning is shown with the start command.
+
+---
+
+### Embedding Pipeline
+
+Semantic search (Related Notes, RAG context, AI Chat grounding) requires notes and bookmarks to have embeddings stored in the database.
+
+**Storage:** The `notes` and `bookmarks` tables each have an `embedding vector(768)` column (pgvector extension). All embedding models are configured to produce exactly 768 dimensions:
+
+| Provider | Embedding model | 768-dim mechanism |
+|---|---|---|
+| Ollama | `nomic-embed-text` | Native 768-dim model |
+| OpenAI | `text-embedding-3-small` | `dimensions: 768` param (Matryoshka) |
+| Gemini | `gemini-embedding-001` | `outputDimensionality: 768` param |
+
+> `text-embedding-ada-002` is not supported — it ignores the `dimensions` parameter and always returns 1536 dimensions, which mismatches the `vector(768)` column. The app rejects it with a clear error.
+
+**Indexing:** The `PUT /api/ai/embed` route (bulk) embeds all un-indexed notes and bookmarks sequentially (to avoid rate-limit bursts). For Ollama on the live app, `buildSearchIndexBrowserOllama()` runs the same pipeline entirely in the browser via the Local Agent.
+
+**Search:** `POST /api/ai/semantic-search` embeds the query and runs:
+
+```sql
+SELECT id, title, content, 1 - (embedding <=> query_vector) AS similarity
+FROM notes
+WHERE user_id = $1
+  AND deleted_at IS NULL
+  AND embedding IS NOT NULL
+  AND 1 - (embedding <=> query_vector) > threshold
+ORDER BY similarity DESC
+LIMIT limit
+```
+
+The `<=>` operator is pgvector's cosine distance. Results above the threshold are returned as context chunks.
+
+---
+
+### AI Security Model
+
+| Concern | Approach |
+|---|---|
+| API key storage | Browser `localStorage` only — never sent to dotstell servers, never persisted in the database |
+| API key transmission | Sent in POST body (not query params) over TLS to the provider directly from the browser, or server-side to cloud providers |
+| Gemini key in URL | Gemini REST API requires `?key=` query param — this is a known limitation of that API's design |
+| Ollama key-free access | Ollama requires no API key; `isConfigured` requires localStorage to contain a saved config to prevent the default Ollama config being treated as "configured" |
+| Rate limiting | All `/api/ai/*` routes are rate-limited (60–120 req/min depending on route) |
+| Local Agent SSRF | Agent only proxies to a fixed `OLLAMA_HOST:OLLAMA_PORT` — the target is not controllable by the browser request |
+| Local Agent origin gate | Non-allow-listed origins receive 403; `*` is never returned as `Access-Control-Allow-Origin` |
+
+---
+
+
 
 A typical note save (PATCH) follows this path:
 
@@ -464,7 +629,9 @@ supabase/migrations/
 ├── 004_notes_parent.sql           # parent_id for note hierarchy
 ├── 005_notes_sort_pin.sql         # sort_order + pinned columns
 ├── 006_notes_color.sql            # color column (hex string)
-└── 007_notebooks_constraints.sql  # unique (user_id, name) + explicit WITH CHECK policy
+├── 007_notebooks_constraints.sql  # unique (user_id, name) + explicit WITH CHECK policy
+├── 008_ai_embeddings.sql          # vector(768) columns on notes + bookmarks; enables pgvector
+└── 009_ai_match_functions.sql     # match_notes() + match_bookmarks() RPC functions for cosine similarity search
 ```
 
 > **Note on `007_notebooks_constraints.sql`:** This migration must be run manually in the Supabase SQL Editor. It adds the `UNIQUE(user_id, name)` constraint that prevents duplicate notebook names from producing colliding `nb:` tags. Without it, creating two notebooks with the same name will cause a 500 error instead of a clean 409 conflict response.

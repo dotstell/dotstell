@@ -3,13 +3,16 @@ import { useState, useRef, useEffect, useCallback } from 'react'
 import { X, Send, Sparkles, User, Loader2, Trash2, Globe, FileText, Users } from 'lucide-react'
 import { AIConfig, AIMessage } from '@/lib/ai/types'
 import { useAIStream } from '@/hooks/useAI'
+import { streamOllamaBrowser, isLocalHostname } from '@/lib/ai/ollama-browser'
+import { createClient as createSupabaseBrowserClient } from '@/lib/supabase/client'
 import { AIPersonPanel } from './AIPersonPanel'
 
 interface AIChatPanelProps {
-  config:    AIConfig
-  noteId?:   string    // if set, the panel is scoped to a specific note
-  noteTitle?: string
-  onClose:   () => void
+  config:       AIConfig
+  noteId?:      string    // if set, the panel is scoped to a specific note
+  noteTitle?:   string
+  noteContent?: string    // raw note content (HTML); stripped and injected in "This note" mode
+  onClose:      () => void
 }
 
 interface ChatMessage {
@@ -20,13 +23,13 @@ interface ChatMessage {
 type ChatMode = 'note' | 'global'
 type PanelTab = 'chat' | 'people'
 
-export function AIChatPanel({ config, noteId, noteTitle, onClose }: AIChatPanelProps) {
+export function AIChatPanel({ config, noteId, noteTitle, noteContent, onClose }: AIChatPanelProps) {
   const [activeTab, setActiveTab] = useState<PanelTab>('chat')
   const [messages,  setMessages]  = useState<ChatMessage[]>([])
   const [input,     setInput]     = useState('')
   const [mode,      setMode]      = useState<ChatMode>(noteId ? 'note' : 'global')
   const [ragActive, setRagActive] = useState(true)
-  const { text: streamText, streaming, error, stream, cancel, setText } = useAIStream()
+  const { text: streamText, streaming, error, stream, streamDirect, cancel, setText } = useAIStream()
   const bottomRef   = useRef<HTMLDivElement>(null)
   const inputRef    = useRef<HTMLTextAreaElement>(null)
   const pendingRole = useRef(false)   // true while assistant message slot is being filled
@@ -61,8 +64,16 @@ export function AIChatPanel({ config, noteId, noteTitle, onClose }: AIChatPanelP
     setMessages(prev => [...prev, userMsg, placeholder])
     pendingRole.current = true
 
-    // Build context via RAG when enabled
+    // Build context — current note first (always in "This note" mode), then RAG results
     let context: string | undefined
+
+    // In "This note" mode, always inject the open note's content directly so the model
+    // has it regardless of whether semantic search also surfaces it.
+    if (mode === 'note' && noteContent && noteTitle) {
+      const plain = noteContent.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 4000)
+      context = `## ${noteTitle}\n${plain}`
+    }
+
     if (ragActive) {
       try {
         const ragRes = await fetch('/api/ai/semantic-search', {
@@ -72,7 +83,6 @@ export function AIChatPanel({ config, noteId, noteTitle, onClose }: AIChatPanelP
             config,
             query:      text,
             types:      ['note'],
-            // If in note mode, bias results toward the current note's neighbourhood
             noteId:     mode === 'note' ? noteId : undefined,
             limit:      3,
             threshold:  0.5,
@@ -80,23 +90,58 @@ export function AIChatPanel({ config, noteId, noteTitle, onClose }: AIChatPanelP
         })
         if (ragRes.ok) {
           const results: Array<{ title: string; content: string }> = await ragRes.json()
-          if (results.length) {
-            context = results.map(r => `## ${r.title}\n${r.content.replace(/<[^>]+>/g, ' ').trim().slice(0, 800)}`).join('\n\n')
+          // Filter out the current note (already injected above) so it isn't duplicated
+          const others = results.filter(r => r.title !== noteTitle)
+          if (others.length) {
+            const ragContext = others.map(r => `## ${r.title}\n${r.content.replace(/<[^>]+>/g, ' ').trim().slice(0, 800)}`).join('\n\n')
+            context = context ? `${context}\n\n${ragContext}` : ragContext
           }
         }
       } catch { /* RAG is best-effort — proceed without it */ }
+    }
+
+    // In "All knowledge" mode, if RAG returned nothing (no embeddings yet, or a meta-question
+    // like "summarize all my notes"), fall back to the 5 most recently updated notes so the
+    // model always has some grounding rather than asking the user to paste their notes.
+    if (mode === 'global' && !context) {
+      try {
+        const supabase = createSupabaseBrowserClient()
+        const { data: recent } = await supabase
+          .from('notes')
+          .select('title, content, updated_at')
+          .is('deleted_at', null)
+          .order('updated_at', { ascending: false })
+          .limit(5)
+        if (recent?.length) {
+          context = recent
+            .map(n => `## ${n.title || 'Untitled'}\n${n.content.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 800)}`)
+            .join('\n\n')
+        }
+      } catch { /* fallback is best-effort */ }
     }
 
     // History for the model (exclude the placeholder we just added)
     const history: AIMessage[] = messages.concat(userMsg).map(m => ({ role: m.role, content: m.content }))
 
     try {
-      const finalText = await stream('/api/ai/chat', { config, messages: history, context })
+      let finalText: string | undefined
+
+      if (config.provider === 'ollama' && !isLocalHostname()) {
+        // On the live app Vercel can't reach local Ollama — stream directly through the Local Agent.
+        // Inject context as a system message the same way the server route does.
+        const ollamaMessages: AIMessage[] = context
+          ? [{ role: 'system', content: `Use the following context from the user's notes to answer their question. Cite specific notes by name when relevant.\n\nContext:\n${context}` }, ...history]
+          : history
+        finalText = await streamDirect(() => streamOllamaBrowser(config, ollamaMessages))
+      } else {
+        finalText = await stream('/api/ai/chat', { config, messages: history, context })
+      }
+
       if (finalText !== undefined) {
         setMessages(prev => {
           const copy = [...prev]
           const last = copy[copy.length - 1]
-          if (last?.role === 'assistant') copy[copy.length - 1] = { ...last, content: finalText }
+          if (last?.role === 'assistant') copy[copy.length - 1] = { ...last, content: finalText! }
           return copy
         })
       }

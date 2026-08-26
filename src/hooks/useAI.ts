@@ -3,6 +3,7 @@ import { useState, useCallback, useRef } from 'react'
 import { AIConfig, AIStreamChunk, AssistOperation } from '@/lib/ai/types'
 import { streamOllamaBrowser, completeOllamaBrowser, isLocalHostname } from '@/lib/ai/ollama-browser'
 import { buildAssistMessages, buildSummarizeMessages, buildTitleMessages, buildTagMessages } from '@/lib/ai/prompts'
+import { createClient as createSupabaseBrowserClient } from '@/lib/supabase/client'
 
 /**
  * Low-level hook for consuming AI streaming responses.
@@ -169,16 +170,30 @@ export function useAISummarize(config: AIConfig) {
     setLoading(true)
     setError(null)
     try {
-      // On live app + Ollama + raw text: call directly from browser.
-      // On localhost or when entity ID is given: use server route.
-      if (config.provider === 'ollama' && params.text && !isLocalHostname()) {
-        const content = params.text.slice(0, 12_000)
-        const result  = await completeOllamaBrowser(
-          config,
-          buildSummarizeMessages(content, params.title, params.mode ?? 'bullets'),
-        )
-        setSummary(result)
-        return result
+      // On live app + Ollama: run entirely in the browser (Vercel server can't reach local Ollama).
+      // Fetch entity content browser-side when entityId is given; use params.text if already available.
+      if (config.provider === 'ollama' && !isLocalHostname()) {
+        let text = params.text ?? ''
+        if (!text && params.entityId && params.entityType && params.entityType !== 'notebook') {
+          const supabase = createSupabaseBrowserClient()
+          if (params.entityType === 'note') {
+            const { data } = await supabase.from('notes').select('title, content').eq('id', params.entityId).single()
+            if (data) text = `${data.title}\n${data.content.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()}`
+          } else if (params.entityType === 'bookmark') {
+            const { data } = await supabase.from('bookmarks').select('title, description').eq('id', params.entityId).single()
+            if (data) text = `${data.title}\n${data.description ?? ''}`
+          }
+        }
+        if (text) {
+          const content = text.slice(0, 12_000)
+          const result  = await completeOllamaBrowser(
+            config,
+            buildSummarizeMessages(content, params.title, params.mode ?? 'bullets'),
+          )
+          setSummary(result)
+          return result
+        }
+        // Fall through to server route for notebooks or when fetch returned no content
       }
 
       const res = await fetch('/api/ai/summarize', {
@@ -320,6 +335,48 @@ export function useAIPersonIntel(config: AIConfig) {
     setLoading(true)
     setError(null)
     try {
+      // On the live app with Ollama, Vercel cannot reach local Ollama.
+      // Fetch notes/bookmarks from Supabase browser client, build context, call Ollama directly.
+      if (config.provider === 'ollama' && !isLocalHostname()) {
+        const supabase = createSupabaseBrowserClient()
+        const pattern  = `%${name}%`
+        const [notesRes, bookmarksRes] = await Promise.all([
+          supabase.from('notes').select('id, title, content, updated_at')
+            .is('deleted_at', null)
+            .or(`title.ilike.${pattern},content.ilike.${pattern}`)
+            .order('updated_at', { ascending: false }).limit(20),
+          supabase.from('bookmarks').select('id, title, description, url, updated_at')
+            .or(`title.ilike.${pattern},description.ilike.${pattern}`)
+            .order('updated_at', { ascending: false }).limit(10),
+        ])
+        const notes     = notesRes.data     ?? []
+        const bookmarks = bookmarksRes.data ?? []
+        if (notes.length === 0 && bookmarks.length === 0) {
+          setSummary(`No notes or bookmarks found that mention "${name}".`)
+          setSources([])
+          return
+        }
+        const sourcesData = [
+          ...notes.map(n => ({
+            id: n.id, title: n.title || 'Untitled', type: 'note' as const, updatedAt: n.updated_at,
+            snippet: n.content.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 600),
+          })),
+          ...bookmarks.map(b => ({
+            id: b.id, title: b.title || b.url, type: 'bookmark' as const, updatedAt: b.updated_at,
+            snippet: (b.description ?? '').replace(/\s+/g, ' ').trim().slice(0, 400),
+          })),
+        ]
+        const context = sourcesData.map(s => `[${s.type.toUpperCase()} — ${s.title}]\n${s.snippet}`).join('\n\n---\n\n')
+        const messages = [
+          { role: 'system' as const, content: `You are a personal intelligence assistant. The user has notes and bookmarks about "${name}". Produce a structured summary covering: 1. Who they are 2. Key facts, decisions, or interactions 3. Open items or follow-ups if any 4. Overall relationship or status summary. Be concise (150–250 words). Use short paragraphs. Write in second person ("You met…", "They mentioned…"). If the sources are thin, say so honestly.` },
+          { role: 'user'   as const, content: `Everything I have about "${name}":\n\n${context}` },
+        ]
+        const summary = await completeOllamaBrowser(config, messages)
+        setSummary(summary)
+        setSources(sourcesData.map(({ id, title, type, updatedAt }) => ({ id, title, type, updatedAt })))
+        return
+      }
+
       const res  = await fetch('/api/ai/person', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },

@@ -49,6 +49,10 @@ export async function ollamaEmbed(config: AIConfig, text: string): Promise<numbe
     const raw = await res.text().catch(() => res.statusText)
     throw providerError('Ollama', res.status, extractMessage(raw))
   }
-  const data = await res.json()
-  return data.embedding as number[]
+  const data      = await res.json()
+  const embedding = data.embedding
+  if (!Array.isArray(embedding) || embedding.length === 0) {
+    throw new Error(`Ollama: model '${config.embeddingModel}' returned no embedding — is it an embedding model? Try: ollama pull nomic-embed-text`)
+  }
+  return embedding as number[]
 }

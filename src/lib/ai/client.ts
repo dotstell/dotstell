@@ -64,7 +64,7 @@ export async function complete(config: AIConfig, messages: AIMessage[]): Promise
 /** Validate an AIConfig before making requests. Returns an error string, or null if valid. */
 export function validateConfig(config: Partial<AIConfig> | null): string | null {
   if (!config?.provider) return 'No AI provider configured'
-  if (config.provider !== 'ollama' && !config.apiKey) return `API key required for ${config.provider}`
+  if (config.provider !== 'ollama' && !config.apiKey?.trim()) return `API key required for ${config.provider}`
   if (!config.model)   return 'No model selected'
   return null
 }

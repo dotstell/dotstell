@@ -785,6 +785,7 @@ ${note.content ?? ''}
               <AIRelatedPanel
                 config={aiConfig}
                 noteId={noteId}
+                isConfigured={aiConfigured}
                 onOpen={id => router.push(`/notes/${id}`)}
               />
             )}
@@ -913,6 +914,7 @@ ${note.content ?? ''}
       config={aiConfig}
       noteId={noteId ?? undefined}
       noteTitle={note.title}
+      noteContent={note.content}
       onClose={() => setChatOpen(false)}
     />
   )
