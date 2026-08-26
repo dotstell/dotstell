@@ -12,6 +12,7 @@ import {
   PROVIDERS_WITHOUT_EMBEDDINGS,
 } from '@/lib/ai/types'
 import { useAISettings } from '@/hooks/useAISettings'
+import { fetchOllamaModelsBrowser, completeOllamaBrowser } from '@/lib/ai/ollama-browser'
 
 interface AISettingsModalProps {
   onClose: () => void
@@ -77,7 +78,7 @@ export function AISettingsModal({ onClose }: AISettingsModalProps) {
   const [indexResult,  setIndexResult]  = useState<{ ok: boolean; message: string } | null>(null)
   const [showAdvanced, setShowAdvanced] = useState(false)
 
-  // Live Ollama model list fetched server-side (browser can't reach localhost:11434 through corporate proxy)
+  // Live Ollama model list — fetched directly from the browser (Ollama runs on the user's machine)
   const [ollamaModels,   setOllamaModels]   = useState<Array<{ name: string; capabilities: string[] }>>([])
   const [ollamaFetching, setOllamaFetching] = useState(false)
   const [ollamaError,    setOllamaError]    = useState<string | null>(null)
@@ -86,11 +87,7 @@ export function AISettingsModal({ onClose }: AISettingsModalProps) {
     setOllamaFetching(true)
     setOllamaError(null)
     try {
-      const params = new URLSearchParams({ baseUrl: baseUrl || 'http://localhost:11434' })
-      const res  = await fetch(`/api/ai/ollama-models?${params}`)
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error ?? `HTTP ${res.status}`)
-      const models: Array<{ name: string; capabilities: string[] }> = data.models ?? []
+      const models = await fetchOllamaModelsBrowser(baseUrl || 'http://localhost:11434')
       setOllamaModels(models)
       // Auto-select the best available chat model if the current one isn't installed
       setDraft(prev => {
@@ -184,28 +181,35 @@ export function AISettingsModal({ onClose }: AISettingsModalProps) {
     setTesting(true)
     setTestResult(null)
     try {
-      const res = await fetch('/api/ai/chat', {
-        method:  'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ config: draft, messages: [{ role: 'user', content: 'Reply with exactly: OK' }] }),
-      })
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({ error: 'Connection failed' }))
-        setTestResult({ ok: false, message: err.error ?? 'Connection failed' })
-        return
-      }
-      const reader  = res.body!.getReader()
-      const decoder = new TextDecoder()
-      let   reply   = ''
-      while (true) {
-        const { done, value } = await reader.read()
-        if (done) break
-        for (const line of decoder.decode(value).split('\n')) {
-          if (!line.startsWith('data: ')) continue
-          try { const c = JSON.parse(line.slice(6)); reply += c.delta ?? ''; if (c.done) break } catch {}
+      if (draft.provider === 'ollama') {
+        // Call Ollama directly from the browser — server can't reach the user's localhost
+        await completeOllamaBrowser(draft, [{ role: 'user', content: 'Reply with exactly: OK' }])
+        setTestResult({ ok: true, message: 'AI is ready — Ollama replied successfully' })
+      } else {
+        const res = await fetch('/api/ai/chat', {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body:    JSON.stringify({ config: draft, messages: [{ role: 'user', content: 'Reply with exactly: OK' }] }),
+        })
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({ error: 'Connection failed' }))
+          setTestResult({ ok: false, message: err.error ?? 'Connection failed' })
+          return
         }
+        const reader  = res.body!.getReader()
+        const decoder = new TextDecoder()
+        let   reply   = ''
+        while (true) {
+          const { done, value } = await reader.read()
+          if (done) break
+          for (const line of decoder.decode(value).split('\n')) {
+            if (!line.startsWith('data: ')) continue
+            try { const c = JSON.parse(line.slice(6)); reply += c.delta ?? ''; if (c.done) break } catch {}
+          }
+        }
+        void reply
+        setTestResult({ ok: true, message: `AI is ready — ${PROVIDER_LABELS[draft.provider]} replied successfully` })
       }
-      setTestResult({ ok: true, message: `AI is ready — ${PROVIDER_LABELS[draft.provider]} replied successfully` })
     } catch (err) {
       setTestResult({ ok: false, message: err instanceof Error ? err.message : 'Connection failed' })
     } finally {
@@ -321,7 +325,9 @@ export function AISettingsModal({ onClose }: AISettingsModalProps) {
               {ollamaFetching
                 ? <><Loader2 size={10} style={{ animation: 'spin 1s linear infinite' }} color="var(--muted-foreground)" /> detecting…</>
                 : ollamaError
-                ? <span style={{ color: '#f87171' }}>Ollama not found — is it running?</span>
+                ? <span style={{ color: '#f87171' }}>
+                    {ollamaError.includes('CORS') ? 'CORS not configured — see below' : 'Ollama not found — is it running?'}
+                  </span>
                 : <span style={{ color: '#4ade80' }}>{ollamaModels.length} model{ollamaModels.length !== 1 ? 's' : ''} installed</span>
               }
               <button type="button" onClick={() => fetchOllamaModels(draft.baseUrl ?? 'http://localhost:11434')} title="Refresh" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted-foreground)', padding: 1, display: 'flex' }}>
@@ -358,6 +364,12 @@ export function AISettingsModal({ onClose }: AISettingsModalProps) {
               <AlertCircle size={11} style={{ flexShrink: 0, marginTop: 1 }} />
               Large model detected — this will be slow without a powerful dedicated GPU. Consider a 7B model for a better experience.
             </div>
+          )}
+          {/* CORS notice — shown when Ollama is running but browser access isn't enabled */}
+          {draft.provider === 'ollama' && ollamaError?.includes('CORS') && (
+            <Notice type="warning" style={{ marginTop: 6 }}>
+              {ollamaError}
+            </Notice>
           )}
         </Field>
 

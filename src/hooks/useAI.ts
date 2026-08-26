@@ -1,6 +1,8 @@
 'use client'
 import { useState, useCallback, useRef } from 'react'
 import { AIConfig, AIStreamChunk, AssistOperation } from '@/lib/ai/types'
+import { streamOllamaBrowser, completeOllamaBrowser } from '@/lib/ai/ollama-browser'
+import { buildAssistMessages, buildSummarizeMessages, buildTitleMessages, buildTagMessages } from '@/lib/ai/prompts'
 
 /**
  * Low-level hook for consuming AI streaming responses.
@@ -13,19 +15,55 @@ export function useAIStream() {
   const [error,     setError]     = useState<string | null>(null)
   const abortRef = useRef<AbortController | null>(null)
 
+  // Core SSE processor shared by stream() and streamDirect()
+  const processSseStream = useCallback(async (
+    readable: ReadableStream<Uint8Array>,
+    signal:   AbortSignal,
+    options?: { onChunk?: (delta: string) => void; onDone?: (full: string) => void },
+  ): Promise<string> => {
+    const reader  = readable.getReader()
+    const decoder = new TextDecoder()
+    let   buf     = ''
+    let   full    = ''
+
+    while (true) {
+      if (signal.aborted) break
+      const { done, value } = await reader.read()
+      if (done) break
+      buf += decoder.decode(value, { stream: true })
+      const lines = buf.split('\n')
+      buf = lines.pop() ?? ''
+      for (const line of lines) {
+        if (!line.startsWith('data: ')) continue
+        try {
+          const chunk: AIStreamChunk = JSON.parse(line.slice(6))
+          if (chunk.error) throw new Error(chunk.error)
+          if (chunk.delta) {
+            full += chunk.delta
+            setText(full)
+            options?.onChunk?.(chunk.delta)
+          }
+          if (chunk.done) { options?.onDone?.(full); return full }
+        } catch (parseErr) {
+          if (parseErr instanceof Error && parseErr.message !== 'Unexpected end') throw parseErr
+        }
+      }
+    }
+    return full
+  }, [])
+
+  /** Fetch from a server-side SSE endpoint. */
   const stream = useCallback(async (
     endpoint: string,
     body:     Record<string, unknown>,
     options?: { onChunk?: (delta: string) => void; onDone?: (full: string) => void }
   ) => {
-    // Cancel any in-flight request before starting a new one
     abortRef.current?.abort()
     abortRef.current = new AbortController()
 
     setText('')
     setError(null)
     setStreaming(true)
-    let full = ''
 
     try {
       const res = await fetch(endpoint, {
@@ -40,68 +78,75 @@ export function useAIStream() {
       }
       if (!res.body) throw new Error('No response body')
 
-      const reader  = res.body.getReader()
-      const decoder = new TextDecoder()
-      let   buf     = ''
-
-      while (true) {
-        const { done, value } = await reader.read()
-        if (done) break
-        buf += decoder.decode(value, { stream: true })
-        const lines = buf.split('\n')
-        buf = lines.pop() ?? ''
-        for (const line of lines) {
-          if (!line.startsWith('data: ')) continue
-          try {
-            const chunk: AIStreamChunk = JSON.parse(line.slice(6))
-            if (chunk.error) throw new Error(chunk.error)
-            if (chunk.delta) {
-              full += chunk.delta
-              setText(full)
-              options?.onChunk?.(chunk.delta)
-            }
-            if (chunk.done) { options?.onDone?.(full); break }
-          } catch (parseErr) {
-            if (parseErr instanceof Error && parseErr.message !== 'Unexpected end') throw parseErr
-          }
-        }
-      }
+      const full = await processSseStream(res.body, abortRef.current.signal, options)
+      return full
     } catch (err) {
       if (err instanceof Error && err.name === 'AbortError') return
       setError(err instanceof Error ? err.message : 'Unknown error')
     } finally {
       setStreaming(false)
     }
+  }, [processSseStream])
 
-    return full
-  }, [])
+  /** Process a pre-built ReadableStream (e.g. from Ollama browser calls) through the same SSE parser. */
+  const streamDirect = useCallback(async (
+    getStream: () => Promise<ReadableStream<Uint8Array>>,
+    options?:  { onChunk?: (delta: string) => void; onDone?: (full: string) => void },
+  ) => {
+    abortRef.current?.abort()
+    abortRef.current = new AbortController()
+
+    setText('')
+    setError(null)
+    setStreaming(true)
+
+    try {
+      const readable = await getStream()
+      const full = await processSseStream(readable, abortRef.current.signal, options)
+      return full
+    } catch (err) {
+      if (err instanceof Error && err.name === 'AbortError') return
+      setError(err instanceof Error ? err.message : 'Unknown error')
+    } finally {
+      setStreaming(false)
+    }
+  }, [processSseStream])
 
   const cancel = useCallback(() => {
     abortRef.current?.abort()
     setStreaming(false)
   }, [])
 
-  return { text, streaming, error, stream, cancel, setText }
+  return { text, streaming, error, stream, streamDirect, cancel, setText }
 }
 
 /** Wrap `useAIStream` with AI Assist specifics — wires the correct endpoint and body shape. */
 export function useAIAssist(config: AIConfig) {
-  const { text, streaming, error, stream, cancel } = useAIStream()
+  const { text, streaming, error, stream, streamDirect, cancel } = useAIStream()
 
   const assist = useCallback(async (
-    operation: AssistOperation,
+    operation:   AssistOperation,
     selectedText: string,
     noteContext?: string,
-    onDone?: (result: string) => void,
+    onDone?:      (result: string) => void,
   ) => {
-    await stream('/api/ai/assist', {
-      config,
-      operation,
-      text:        selectedText,
-      noteContext,
-      stream:      true,
-    }, { onDone })
-  }, [config, stream])
+    if (config.provider === 'ollama') {
+      // Call Ollama directly from the browser — avoids the Vercel server-side
+      // limitation where the server cannot reach the user's localhost:11434
+      await streamDirect(
+        () => streamOllamaBrowser(config, buildAssistMessages(operation, selectedText, noteContext)),
+        { onDone },
+      )
+    } else {
+      await stream('/api/ai/assist', {
+        config,
+        operation,
+        text:        selectedText,
+        noteContext,
+        stream:      true,
+      }, { onDone })
+    }
+  }, [config, stream, streamDirect])
 
   return { result: text, streaming, error, assist, cancel }
 }
@@ -123,6 +168,18 @@ export function useAISummarize(config: AIConfig) {
     setLoading(true)
     setError(null)
     try {
+      // When Ollama + raw text: call directly from browser
+      // When entity ID is given: must go through server (DB access needed)
+      if (config.provider === 'ollama' && params.text) {
+        const content = params.text.slice(0, 12_000)
+        const result  = await completeOllamaBrowser(
+          config,
+          buildSummarizeMessages(content, params.title, params.mode ?? 'bullets'),
+        )
+        setSummary(result)
+        return result
+      }
+
       const res = await fetch('/api/ai/summarize', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -156,6 +213,18 @@ export function useAITitleSuggest(config: AIConfig) {
     setLoading(true)
     setError(null)
     try {
+      if (config.provider === 'ollama') {
+        const plainText = content
+          .replace(/<[^>]+>/g, ' ')
+          .replace(/\s+/g, ' ')
+          .trim()
+          .slice(0, 2000)
+        const result = await completeOllamaBrowser(config, buildTitleMessages(plainText, hint))
+        const clean  = result.replace(/^["']|["']$/g, '').trim()
+        setTitle(clean)
+        return clean
+      }
+
       const res  = await fetch('/api/ai/title', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -190,6 +259,25 @@ export function useAITagSuggest(config: AIConfig) {
     setLoading(true)
     setError(null)
     try {
+      if (config.provider === 'ollama') {
+        const plainText = content
+          .replace(/<[^>]+>/g, ' ')
+          .replace(/\s+/g, ' ')
+          .trim()
+          .slice(0, 3000)
+        const raw     = await completeOllamaBrowser(config, buildTagMessages(plainText, title, existingTags))
+        const cleaned = raw.replace(/```[a-z]*\n?/g, '').trim()
+        const parsed  = JSON.parse(cleaned)
+        if (!Array.isArray(parsed)) throw new Error('Model did not return an array')
+        const result = parsed
+          .filter((t): t is string => typeof t === 'string')
+          .map(t => t.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, ''))
+          .filter(t => t.length > 0 && t.length < 40)
+          .filter(t => !existingTags?.includes(t))
+        setTags(result)
+        return result
+      }
+
       const res  = await fetch('/api/ai/tags', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -217,6 +305,7 @@ export function useAITagSuggest(config: AIConfig) {
 /**
  * Aggregate and summarise everything the user has written about a named person.
  * Searches notes + bookmarks by name, then generates a structured intelligence brief.
+ * Note: requires server-side DB access — always goes through the API route.
  */
 export function useAIPersonIntel(config: AIConfig) {
   const [summary,  setSummary]  = useState('')
