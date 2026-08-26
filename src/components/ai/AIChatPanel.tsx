@@ -3,6 +3,7 @@ import { useState, useRef, useEffect, useCallback } from 'react'
 import { X, Send, Sparkles, User, Loader2, Trash2, Globe, FileText, Users } from 'lucide-react'
 import { AIConfig, AIMessage } from '@/lib/ai/types'
 import { useAIStream } from '@/hooks/useAI'
+import { streamOllamaBrowser, isLocalHostname } from '@/lib/ai/ollama-browser'
 import { AIPersonPanel } from './AIPersonPanel'
 
 interface AIChatPanelProps {
@@ -26,7 +27,7 @@ export function AIChatPanel({ config, noteId, noteTitle, onClose }: AIChatPanelP
   const [input,     setInput]     = useState('')
   const [mode,      setMode]      = useState<ChatMode>(noteId ? 'note' : 'global')
   const [ragActive, setRagActive] = useState(true)
-  const { text: streamText, streaming, error, stream, cancel, setText } = useAIStream()
+  const { text: streamText, streaming, error, stream, streamDirect, cancel, setText } = useAIStream()
   const bottomRef   = useRef<HTMLDivElement>(null)
   const inputRef    = useRef<HTMLTextAreaElement>(null)
   const pendingRole = useRef(false)   // true while assistant message slot is being filled
@@ -91,12 +92,24 @@ export function AIChatPanel({ config, noteId, noteTitle, onClose }: AIChatPanelP
     const history: AIMessage[] = messages.concat(userMsg).map(m => ({ role: m.role, content: m.content }))
 
     try {
-      const finalText = await stream('/api/ai/chat', { config, messages: history, context })
+      let finalText: string | undefined
+
+      if (config.provider === 'ollama' && !isLocalHostname()) {
+        // On the live app Vercel can't reach local Ollama — stream directly through the Local Agent.
+        // Inject context as a system message the same way the server route does.
+        const ollamaMessages: AIMessage[] = context
+          ? [{ role: 'system', content: `Use the following context from the user's notes to answer their question. Cite specific notes by name when relevant.\n\nContext:\n${context}` }, ...history]
+          : history
+        finalText = await streamDirect(() => streamOllamaBrowser(config, ollamaMessages))
+      } else {
+        finalText = await stream('/api/ai/chat', { config, messages: history, context })
+      }
+
       if (finalText !== undefined) {
         setMessages(prev => {
           const copy = [...prev]
           const last = copy[copy.length - 1]
-          if (last?.role === 'assistant') copy[copy.length - 1] = { ...last, content: finalText }
+          if (last?.role === 'assistant') copy[copy.length - 1] = { ...last, content: finalText! }
           return copy
         })
       }
