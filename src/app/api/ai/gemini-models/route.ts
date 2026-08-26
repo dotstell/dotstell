@@ -20,11 +20,16 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: err.message }, { status: res.status })
     }
     const data: { models: Array<{ name: string; supportedGenerationMethods: string[] }> } = await res.json()
-    const chatModels = (data.models ?? [])
+    const all = data.models ?? []
+    const chatModels  = all
       .filter(m => m.supportedGenerationMethods?.includes('generateContent'))
       .map(m => m.name.replace('models/', ''))
       .filter(Boolean)
-    return NextResponse.json({ models: chatModels })
+    const embedModels = all
+      .filter(m => m.supportedGenerationMethods?.includes('embedContent'))
+      .map(m => m.name.replace('models/', ''))
+      .filter(Boolean)
+    return NextResponse.json({ models: chatModels, embedModels })
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Failed to fetch Gemini models'
     return NextResponse.json({ error: msg }, { status: 502 })

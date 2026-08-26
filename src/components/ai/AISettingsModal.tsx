@@ -129,13 +129,14 @@ export function AISettingsModal({ onClose }: AISettingsModalProps) {
   }, [])
 
   // Live model list for cloud providers (OpenAI, Anthropic, Groq, Gemini)
-  const [cloudModels,   setCloudModels]   = useState<string[]>([])
-  const [cloudFetching, setCloudFetching] = useState(false)
+  const [cloudModels,      setCloudModels]      = useState<string[]>([])
+  const [cloudEmbedModels, setCloudEmbedModels] = useState<string[]>([])
+  const [cloudFetching,    setCloudFetching]    = useState(false)
 
   const CLOUD_PROVIDERS = ['openai', 'anthropic', 'groq', 'gemini'] as const
 
   const fetchCloudModels = useCallback(async (provider: string, apiKey: string) => {
-    if (!apiKey) { setCloudModels([]); return }
+    if (!apiKey) { setCloudModels([]); setCloudEmbedModels([]); return }
     setCloudFetching(true)
     try {
       const endpoint = provider === 'gemini' ? '/api/ai/gemini-models' : '/api/ai/cloud-models'
@@ -147,19 +148,47 @@ export function AISettingsModal({ onClose }: AISettingsModalProps) {
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error ?? `HTTP ${res.status}`)
-      const models: string[] = data.models ?? []
+      const models: string[]      = data.models      ?? []
+      const embedModels: string[] = data.embedModels ?? []
       setCloudModels(models)
-      // Auto-select first live model if current selection isn't in the live list
+      setCloudEmbedModels(embedModels)
       setDraft(prev => {
-        if (prev.provider !== provider) return prev
-        if (models.length > 0 && !models.includes(prev.model)) return { ...prev, model: models[0] }
-        return prev
+        let next = prev
+        // Auto-select first live chat model if current isn't in the list
+        if (prev.provider === provider && models.length > 0 && !models.includes(prev.model)) {
+          next = { ...next, model: models[0] }
+        }
+        // Auto-select first live embedding model for Gemini if current isn't in the list
+        if (provider === 'gemini' && prev.embeddingProvider === 'gemini' && embedModels.length > 0 && !embedModels.includes(prev.embeddingModel)) {
+          next = { ...next, embeddingModel: embedModels[0] }
+        }
+        return next
       })
     } catch {
-      setCloudModels([]) // fall back to static suggestions on error
+      setCloudModels([])
+      setCloudEmbedModels([])
     } finally {
       setCloudFetching(false)
     }
+  }, [])
+
+  // Also fetch Gemini embedding models when embedding provider is Gemini but chat is not Gemini
+  const fetchGeminiEmbedModels = useCallback(async (apiKey: string) => {
+    if (!apiKey) { setCloudEmbedModels([]); return }
+    try {
+      const res  = await fetch('/api/ai/gemini-models', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ apiKey }) })
+      const data = await res.json()
+      if (!res.ok) return
+      const embedModels: string[] = data.embedModels ?? []
+      setCloudEmbedModels(embedModels)
+      if (embedModels.length > 0) {
+        setDraft(prev => {
+          if (prev.embeddingProvider !== 'gemini') return prev
+          if (embedModels.includes(prev.embeddingModel)) return prev
+          return { ...prev, embeddingModel: embedModels[0] }
+        })
+      }
+    } catch { /* fall back to static suggestions */ }
   }, [])
 
   useEffect(() => {
@@ -173,8 +202,12 @@ export function AISettingsModal({ onClose }: AISettingsModalProps) {
       fetchCloudModels(draft.provider, draft.apiKey)
     } else {
       setCloudModels([])
+      // Fetch Gemini embed models separately when chat provider is not Gemini
+      if (draft.embeddingProvider === 'gemini' && draft.embeddingApiKey) {
+        fetchGeminiEmbedModels(draft.embeddingApiKey)
+      }
     }
-  }, [draft.provider, draft.apiKey, fetchCloudModels])
+  }, [draft.provider, draft.apiKey, draft.embeddingProvider, draft.embeddingApiKey, fetchCloudModels, fetchGeminiEmbedModels])
 
   useEffect(() => { setTestResult(null) }, [draft.provider, draft.apiKey, draft.model, draft.baseUrl])
 
@@ -196,6 +229,8 @@ export function AISettingsModal({ onClose }: AISettingsModalProps) {
     : CHAT_MODEL_SUGGESTIONS[draft.provider]
   const embedModels = draft.embeddingProvider === 'ollama' && ollamaNames.length > 0
     ? ollamaNames
+    : draft.embeddingProvider === 'gemini' && cloudEmbedModels.length > 0
+    ? cloudEmbedModels
     : EMBED_MODEL_SUGGESTIONS[draft.embeddingProvider]
 
   async function testConnection() {
