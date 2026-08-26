@@ -4,6 +4,7 @@ import { X, Send, Sparkles, User, Loader2, Trash2, Globe, FileText, Users } from
 import { AIConfig, AIMessage } from '@/lib/ai/types'
 import { useAIStream } from '@/hooks/useAI'
 import { streamOllamaBrowser, isLocalHostname } from '@/lib/ai/ollama-browser'
+import { createClient as createSupabaseBrowserClient } from '@/lib/supabase/client'
 import { AIPersonPanel } from './AIPersonPanel'
 
 interface AIChatPanelProps {
@@ -97,6 +98,26 @@ export function AIChatPanel({ config, noteId, noteTitle, noteContent, onClose }:
           }
         }
       } catch { /* RAG is best-effort — proceed without it */ }
+    }
+
+    // In "All knowledge" mode, if RAG returned nothing (no embeddings yet, or a meta-question
+    // like "summarize all my notes"), fall back to the 5 most recently updated notes so the
+    // model always has some grounding rather than asking the user to paste their notes.
+    if (mode === 'global' && !context) {
+      try {
+        const supabase = createSupabaseBrowserClient()
+        const { data: recent } = await supabase
+          .from('notes')
+          .select('title, content, updated_at')
+          .is('deleted_at', null)
+          .order('updated_at', { ascending: false })
+          .limit(5)
+        if (recent?.length) {
+          context = recent
+            .map(n => `## ${n.title || 'Untitled'}\n${n.content.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 800)}`)
+            .join('\n\n')
+        }
+      } catch { /* fallback is best-effort */ }
     }
 
     // History for the model (exclude the placeholder we just added)
