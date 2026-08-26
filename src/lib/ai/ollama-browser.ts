@@ -57,6 +57,14 @@ export async function fetchOllamaModelsBrowser(
         `Ollama CORS setup guide ↗`,
       )
     }
+    if (!isLocalHostname()) {
+      throw new Error(
+        `Browser security (Private Network Access) is blocking the connection to Ollama. ` +
+        `Use the dotstell desktop app for seamless local AI, or wait for Ollama to add PNA header support.|||` +
+        `https://github.com/ollama/ollama/issues|||` +
+        `Track Ollama PNA support ↗`,
+      )
+    }
     throw new Error(`Cannot reach Ollama at ${baseUrl} — is it running?`)
   }
   if (!res.ok) throw new Error(`Ollama returned ${res.status}`)
@@ -94,6 +102,12 @@ export async function streamOllamaBrowser(
       throw new Error(
         `Ollama is running but CORS is not configured for browser access. ` +
         `Set OLLAMA_ORIGINS=* and restart Ollama, then try again.`,
+      )
+    }
+    if (!isLocalHostname()) {
+      throw new Error(
+        `Browser security (Private Network Access) is blocking the connection to Ollama. ` +
+        `Use the dotstell desktop app for seamless local AI, or wait for Ollama to add PNA header support.`,
       )
     }
     throw new Error(`Cannot reach Ollama at ${baseUrl} — is it running?`)

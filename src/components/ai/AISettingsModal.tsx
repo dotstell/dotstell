@@ -340,7 +340,9 @@ export function AISettingsModal({ onClose }: AISettingsModalProps) {
                 ? <><Loader2 size={10} style={{ animation: 'spin 1s linear infinite' }} color="var(--muted-foreground)" /> detecting…</>
                 : ollamaError
                 ? <span style={{ color: '#f87171' }}>
-                    {ollamaError.includes('CORS') ? 'CORS not configured — see below' : 'Ollama not found — is it running?'}
+                    {ollamaError.includes('CORS') ? 'CORS not configured — see below'
+                      : ollamaError.includes('Private Network') ? 'Browser security blocks Ollama — see below'
+                      : 'Ollama not found — is it running?'}
                   </span>
                 : <span style={{ color: '#4ade80' }}>{ollamaModels.length} model{ollamaModels.length !== 1 ? 's' : ''} installed</span>
               }
