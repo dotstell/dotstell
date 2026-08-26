@@ -35,14 +35,8 @@ export function useAIStream() {
         signal:  abortRef.current.signal,
       })
       if (!res.ok) {
-        let msg = `Request failed (${res.status})`
-        try {
-          const body = await res.text()
-          if (body) {
-            try { const j = JSON.parse(body); msg = j.error ?? j.message ?? msg } catch { /* HTML body — keep status message */ }
-          }
-        } catch { /* ignore read error */ }
-        throw new Error(msg)
+        const err = await res.json().catch(() => ({ error: 'Request failed' }))
+        throw new Error(err.error ?? 'Request failed')
       }
       if (!res.body) throw new Error('No response body')
 

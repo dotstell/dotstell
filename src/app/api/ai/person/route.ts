@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { rateLimit }    from '@/lib/ratelimit'
-import { complete, validateServerConfig } from '@/lib/ai/client'
+import { complete, validateConfig } from '@/lib/ai/client'
 import { AIConfig, AIMessage } from '@/lib/ai/types'
 
 /**
@@ -23,7 +23,7 @@ export async function POST(req: NextRequest) {
   if (rl) return rl
 
   const body: { config: AIConfig; name: string } = await req.json()
-  const configError = validateServerConfig(body.config)
+  const configError = validateConfig(body.config)
   if (configError) return NextResponse.json({ error: configError }, { status: 400 })
 
   const name = body.name?.trim()

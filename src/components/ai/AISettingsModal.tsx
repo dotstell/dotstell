@@ -19,7 +19,7 @@ interface AISettingsModalProps {
 
 // What each provider needs from the user
 const PROVIDER_NOTES: Record<AIProvider, string> = {
-  ollama:    'Free & open source — no API key needed. Requires a publicly accessible server URL.',
+  ollama:    'Free & private — runs entirely on your machine. No API key needed.',
   openai:    'Requires an OpenAI account and API key. Usage is billed per request.',
   anthropic: 'Requires an Anthropic account and API key. Usage is billed per request.',
   gemini:    'Requires a Google AI Studio API key. Has a generous free tier.',
@@ -292,11 +292,6 @@ export function AISettingsModal({ onClose }: AISettingsModalProps) {
             }))}
           />
           <p style={{ margin: '4px 0 0', fontSize: 11, color: 'var(--muted-foreground)' }}>{PROVIDER_NOTES[draft.provider]}</p>
-          {draft.provider === 'ollama' && (
-            <div style={{ marginTop: 8, padding: '8px 10px', borderRadius: 8, backgroundColor: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.25)', fontSize: 11, color: '#fbbf24', lineHeight: 1.5 }}>
-              <strong>Ollama must be publicly reachable.</strong> AI features run server-side and cannot connect to localhost. Deploy Ollama on a server or expose it via a tunnel (ngrok, Cloudflare Tunnel). Use <strong>OpenAI, Gemini or Groq</strong> for the easiest setup.
-            </div>
-          )}
         </Field>
 
         {draft.provider === 'ollama' ? (
@@ -304,7 +299,6 @@ export function AISettingsModal({ onClose }: AISettingsModalProps) {
             <input
               value={draft.baseUrl ?? 'http://localhost:11434'}
               onChange={e => setDraft(p => ({ ...p, baseUrl: e.target.value }))}
-              placeholder="https://your-ollama.example.com"
               style={inputStyle}
             />
           </Field>
@@ -327,10 +321,8 @@ export function AISettingsModal({ onClose }: AISettingsModalProps) {
               {ollamaFetching
                 ? <><Loader2 size={10} style={{ animation: 'spin 1s linear infinite' }} color="var(--muted-foreground)" /> detecting…</>
                 : ollamaError
-                ? <span style={{ color: '#f87171' }}>Cannot reach Ollama</span>
-                : ollamaModels.length > 0
-                ? <span style={{ color: '#4ade80' }}>{ollamaModels.length} model{ollamaModels.length !== 1 ? 's' : ''} found</span>
-                : undefined
+                ? <span style={{ color: '#f87171' }}>Ollama not found — is it running?</span>
+                : <span style={{ color: '#4ade80' }}>{ollamaModels.length} model{ollamaModels.length !== 1 ? 's' : ''} installed</span>
               }
               <button type="button" onClick={() => fetchOllamaModels(draft.baseUrl ?? 'http://localhost:11434')} title="Refresh" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted-foreground)', padding: 1, display: 'flex' }}>
                 <RefreshCw size={9} />
@@ -405,7 +397,7 @@ export function AISettingsModal({ onClose }: AISettingsModalProps) {
           <Field label="Embedding model">
             {draft.embeddingProvider === 'ollama' && ollamaNames.length > 0 && !ollamaNames.some(m => normalizeModel(m) === normalizeModel(draft.embeddingModel)) && (
               <Notice type="warning" style={{ marginBottom: 6 }}>
-                <strong>{draft.embeddingModel}</strong> not found on your Ollama server. Check the model name or pull it first.
+                <strong>{draft.embeddingModel}</strong> isn&apos;t installed. Run <code style={{ fontSize: 10, backgroundColor: 'rgba(0,0,0,0.2)', padding: '1px 4px', borderRadius: 3 }}>ollama pull nomic-embed-text</code> or pick an installed model below.
               </Notice>
             )}
             <ModelInput value={draft.embeddingModel} suggestions={embedModels} onChange={v => setDraft(p => ({ ...p, embeddingModel: v }))} />
