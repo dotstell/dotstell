@@ -96,23 +96,30 @@ export async function PUT(req: NextRequest) {
   const bookmarkIds = (bookmarks ?? []).map(b => b.id)
 
   // Embed sequentially to avoid rate-limit bursts on the upstream provider
-  let succeeded = 0
-  let failed    = 0
+  let succeeded  = 0
+  let failed     = 0
+  let firstError = ''
 
   for (const id of noteIds) {
     try {
       await embedEntity(supabase, body.config, 'note', id, user.id)
       succeeded++
-    } catch { failed++ }
+    } catch (e) {
+      failed++
+      if (!firstError) firstError = e instanceof Error ? e.message : String(e)
+    }
   }
   for (const id of bookmarkIds) {
     try {
       await embedEntity(supabase, body.config, 'bookmark', id, user.id)
       succeeded++
-    } catch { failed++ }
+    } catch (e) {
+      failed++
+      if (!firstError) firstError = e instanceof Error ? e.message : String(e)
+    }
   }
 
-  return NextResponse.json({ succeeded, failed, total: noteIds.length + bookmarkIds.length })
+  return NextResponse.json({ succeeded, failed, total: noteIds.length + bookmarkIds.length, firstError: firstError || undefined })
 }
 
 // Shared helper used by both the single-entity and bulk endpoints

@@ -253,7 +253,7 @@ export function AISettingsModal({ onClose }: AISettingsModalProps) {
       if (!res.ok) { setIndexResult({ ok: false, message: data.error ?? 'Indexing failed' }); return }
       const msg = data.total === 0
         ? 'All notes are already indexed — nothing to do'
-        : `Done: indexed ${data.succeeded} of ${data.total} notes${data.failed > 0 ? ` (${data.failed} failed)` : ''}`
+        : `Done: indexed ${data.succeeded} of ${data.total} notes${data.failed > 0 ? ` (${data.failed} failed${data.firstError ? `: ${data.firstError}` : ''})` : ''}`
       setIndexResult({ ok: true, message: msg })
     } catch (err) {
       setIndexResult({ ok: false, message: err instanceof Error ? err.message : 'Indexing failed' })
