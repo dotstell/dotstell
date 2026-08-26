@@ -36,7 +36,7 @@ const CHAT_MODEL_SUGGESTIONS: Record<AIProvider, string[]> = {
   ollama:    FALLBACK_OLLAMA_CHAT_MODELS,
   openai:    ['gpt-4o-mini', 'gpt-4o', 'gpt-4-turbo', 'gpt-3.5-turbo'],
   anthropic: ['claude-haiku-4-5-20251001', 'claude-sonnet-5', 'claude-opus-5'],
-  gemini:    ['gemini-2.0-flash', 'gemini-1.5-flash-002', 'gemini-2.0-flash-lite-001', 'gemini-2.5-flash-preview-05-20', 'gemini-1.5-flash-8b'],
+  gemini:    ['gemini-3.6-flash', 'gemini-2.0-flash', 'gemini-2.0-flash-lite', 'gemini-1.5-flash-002', 'gemini-1.5-flash-8b'],
   groq:      ['llama-3.1-8b-instant', 'llama-3.3-70b-versatile', 'mixtral-8x7b-32768'],
 }
 
@@ -339,9 +339,11 @@ export function AISettingsModal({ onClose }: AISettingsModalProps) {
       })
       const data = await res.json()
       if (!res.ok) { setIndexResult({ ok: false, message: data.error ?? 'Indexing failed' }); return }
+      const already  = (data.grandTotal ?? data.total ?? 0) - (data.total ?? 0)
+      const alreadyMsg = already > 0 ? `, ${already} already up to date` : ''
       const msg = data.total === 0
-        ? 'All notes are already indexed — nothing to do'
-        : `Done: indexed ${data.succeeded} of ${data.total} notes${data.failed > 0 ? ` (${data.failed} failed${data.firstError ? `: ${data.firstError}` : ''})` : ''}`
+        ? `All ${data.grandTotal ?? 'notes'} notes are already indexed — nothing to do`
+        : `Done: indexed ${data.succeeded} of ${data.grandTotal ?? data.total} notes${alreadyMsg}${data.failed > 0 ? ` (${data.failed} failed${data.firstError ? `: ${data.firstError}` : ''})` : ''}`
       setIndexResult({ ok: true, message: msg })
     } catch (err) {
       setIndexResult({ ok: false, message: err instanceof Error ? err.message : 'Indexing failed' })
@@ -361,12 +363,18 @@ export function AISettingsModal({ onClose }: AISettingsModalProps) {
     }
     try {
       const supabase = createSupabaseBrowserClient()
-      // Fetch notes and bookmarks without embeddings (limit 100 each)
-      const [{ data: notes, error: ne }, { data: bookmarks, error: be }] = await Promise.all([
+      // Fetch notes and bookmarks without embeddings (limit 100 each) + total counts
+      const [
+        { data: notes, error: ne }, { data: bookmarks, error: be },
+        { count: totalNotes }, { count: totalBookmarks },
+      ] = await Promise.all([
         supabase.from('notes').select('id, title, content').is('embedding', null).is('deleted_at', null).limit(100),
         supabase.from('bookmarks').select('id, title, description').is('embedding', null).limit(100),
+        supabase.from('notes').select('*', { count: 'exact', head: true }).is('deleted_at', null),
+        supabase.from('bookmarks').select('*', { count: 'exact', head: true }),
       ])
       if (ne || be) throw new Error(`Failed to fetch items: ${ne?.message ?? be?.message}`)
+      const grandTotal = (totalNotes ?? 0) + (totalBookmarks ?? 0)
 
       const items: Array<{ table: 'notes' | 'bookmarks'; id: string; text: string }> = [
         ...(notes ?? []).map(n => ({
@@ -409,9 +417,11 @@ export function AISettingsModal({ onClose }: AISettingsModalProps) {
         }
       }
 
+      const already    = grandTotal - total
+      const alreadyMsg = already > 0 ? `, ${already} already up to date` : ''
       const msg = total === 0
-        ? 'All notes are already indexed — nothing to do'
-        : `Done: indexed ${succeeded} of ${total} notes${failed > 0 ? ` (${failed} failed${firstError ? `: ${firstError}` : ''})` : ''}`
+        ? `All ${grandTotal} notes are already indexed — nothing to do`
+        : `Done: indexed ${succeeded} of ${grandTotal} notes${alreadyMsg}${failed > 0 ? ` (${failed} failed${firstError ? `: ${firstError}` : ''})` : ''}`
       setIndexResult({ ok: true, message: msg })
     } catch (err) {
       setIndexResult({ ok: false, message: err instanceof Error ? err.message : 'Indexing failed' })
