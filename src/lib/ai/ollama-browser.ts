@@ -2,7 +2,13 @@
 
 import { AIConfig, AIMessage } from './types'
 
-const DEFAULT_BASE_URL = 'http://localhost:11434'
+const DEFAULT_BASE_URL = 'http://127.0.0.1:11434'
+
+// On Windows, browsers resolve `localhost` as ::1 (IPv6) but Ollama only listens
+// on 127.0.0.1 (IPv4), causing silent fetch failures. Normalise before every call.
+function normalizeBaseUrl(baseUrl: string): string {
+  return baseUrl.replace(/^(https?:\/\/)localhost(:\d+)?/, (_, proto, port) => `${proto}127.0.0.1${port ?? ''}`)
+}
 
 // Probe reachability using no-cors mode (bypasses CORS headers, returns opaque response).
 // If Ollama is running but CORS is blocked, this still resolves.
@@ -23,6 +29,7 @@ async function checkConnectivity(baseUrl: string): Promise<boolean> {
 export async function fetchOllamaModelsBrowser(
   baseUrl = DEFAULT_BASE_URL,
 ): Promise<Array<{ name: string; capabilities: string[] }>> {
+  baseUrl = normalizeBaseUrl(baseUrl)
   let res: Response
   try {
     res = await fetch(`${baseUrl}/api/tags`)
@@ -56,7 +63,7 @@ export async function streamOllamaBrowser(
   config: AIConfig,
   messages: AIMessage[],
 ): Promise<ReadableStream<Uint8Array>> {
-  const baseUrl = config.baseUrl ?? DEFAULT_BASE_URL
+  const baseUrl = normalizeBaseUrl(config.baseUrl ?? DEFAULT_BASE_URL)
   let res: Response
   try {
     res = await fetch(`${baseUrl}/api/chat`, {
