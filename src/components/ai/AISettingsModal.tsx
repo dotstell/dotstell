@@ -441,9 +441,12 @@ export function AISettingsModal({ onClose }: AISettingsModalProps) {
                 type="password"
                 value={draft.embeddingApiKey ?? ''}
                 onChange={e => setDraft(p => ({ ...p, embeddingApiKey: e.target.value }))}
-                placeholder="API key for the search provider"
+                placeholder={`API key for ${PROVIDER_LABELS[draft.embeddingProvider as AIProvider] ?? draft.embeddingProvider}`}
                 style={inputStyle}
               />
+              <p style={{ margin: '4px 0 0', fontSize: 11, color: 'var(--muted-foreground)' }}>
+                This is separate from your chat API key — paste your {PROVIDER_LABELS[draft.embeddingProvider as AIProvider] ?? draft.embeddingProvider} key here.
+              </p>
             </Field>
           )}
 
