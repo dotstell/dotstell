@@ -13,6 +13,7 @@ import {
 } from '@/lib/ai/types'
 import { useAISettings } from '@/hooks/useAISettings'
 import { fetchOllamaModelsBrowser, completeOllamaBrowser, checkLocalAgent, LOCAL_AGENT_BASE, isLocalHostname } from '@/lib/ai/ollama-browser'
+import { createClient as createSupabaseBrowserClient } from '@/lib/supabase/client'
 
 interface AISettingsModalProps {
   onClose: () => void
@@ -73,7 +74,7 @@ export function AISettingsModal({ onClose }: AISettingsModalProps) {
   useEffect(() => { if (loaded) setDraft(config) }, [loaded]) // eslint-disable-line react-hooks/exhaustive-deps
   const [saved,        setSaved]         = useState(false)
   const [testing,      setTesting]      = useState(false)
-  const [testResult,   setTestResult]   = useState<{ ok: boolean; message: string } | null>(null)
+  const [testResult,   setTestResult]   = useState<{ ok: boolean; chatOk: boolean; message: string; embedResult?: { ok: boolean; message: string } } | null>(null)
   const [indexing,     setIndexing]     = useState(false)
   const [indexResult,  setIndexResult]  = useState<{ ok: boolean; message: string } | null>(null)
   const [showAdvanced, setShowAdvanced] = useState(false)
@@ -86,9 +87,10 @@ export function AISettingsModal({ onClose }: AISettingsModalProps) {
   // Local Agent status — only relevant on the live app (not on localhost)
   const [agentRunning,  setAgentRunning]  = useState<boolean | null>(null)
   useEffect(() => {
-    if (draft.provider !== 'ollama' || isLocalHostname()) return
+    const needsAgent = (draft.provider === 'ollama' || draft.embeddingProvider === 'ollama') && !isLocalHostname()
+    if (!needsAgent) return
     checkLocalAgent().then(setAgentRunning)
-  }, [draft.provider])
+  }, [draft.provider, draft.embeddingProvider])
 
   const fetchOllamaModels = useCallback(async (baseUrl: string) => {
     setOllamaFetching(true)
@@ -209,7 +211,7 @@ export function AISettingsModal({ onClose }: AISettingsModalProps) {
     }
   }, [draft.provider, draft.apiKey, draft.embeddingProvider, draft.embeddingApiKey, fetchCloudModels, fetchGeminiEmbedModels])
 
-  useEffect(() => { setTestResult(null) }, [draft.provider, draft.apiKey, draft.model, draft.baseUrl])
+  useEffect(() => { setTestResult(null) }, [draft.provider, draft.apiKey, draft.model, draft.baseUrl, draft.embeddingProvider, draft.embeddingModel, draft.embeddingApiKey])
 
   // Ollama returns model names with `:latest` tag (e.g. "nomic-embed-text:latest")
   // but users typically save them without the tag. Normalise for comparison.
@@ -233,49 +235,100 @@ export function AISettingsModal({ onClose }: AISettingsModalProps) {
     ? cloudEmbedModels
     : EMBED_MODEL_SUGGESTIONS[draft.embeddingProvider]
 
+  async function testChatConnection(): Promise<{ ok: boolean; message: string }> {
+    if (draft.provider === 'ollama' && !isLocalHostname()) {
+      const running = await checkLocalAgent()
+      setAgentRunning(running)
+      await completeOllamaBrowser(draft, [{ role: 'user', content: 'Reply with exactly: OK' }])
+      return { ok: true, message: running ? 'Chat (Ollama via Agent): ready' : 'Chat (Ollama): ready' }
+    }
+    const res = await fetch('/api/ai/chat', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ config: draft, messages: [{ role: 'user', content: 'Reply with exactly: OK' }] }),
+    })
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ error: 'Connection failed' }))
+      throw new Error(err.error ?? 'Connection failed')
+    }
+    const reader  = res.body!.getReader()
+    const decoder = new TextDecoder()
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) break
+      for (const line of decoder.decode(value).split('\n')) {
+        if (!line.startsWith('data: ')) continue
+        try { const c = JSON.parse(line.slice(6)); if (c.done) break } catch {}
+      }
+    }
+    return { ok: true, message: `Chat (${PROVIDER_LABELS[draft.provider]}): ready` }
+  }
+
+  async function testEmbedConnection(): Promise<{ ok: boolean; message: string }> {
+    const ep = draft.embeddingProvider
+    if (ep === 'gemini') {
+      const apiKey = draft.embeddingApiKey ?? (draft.provider === 'gemini' ? draft.apiKey : '') ?? ''
+      if (!apiKey) return { ok: false, message: 'Embedding (Gemini): API key missing — add it under Search engine API Key' }
+      const GEMINI_BASE = 'https://generativelanguage.googleapis.com/v1beta'
+      const res = await fetch(`${GEMINI_BASE}/models/${draft.embeddingModel}:embedContent?key=${apiKey}`, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ model: `models/${draft.embeddingModel}`, content: { parts: [{ text: 'test' }] }, outputDimensionality: 768 }),
+        signal:  AbortSignal.timeout(8000),
+      })
+      if (!res.ok) {
+        const raw = await res.text().catch(() => res.statusText)
+        const msg = (() => { try { return JSON.parse(raw)?.error?.message ?? raw } catch { return raw } })()
+        return { ok: false, message: `Embedding (Gemini): ${res.status === 404 ? `model '${draft.embeddingModel}' not found — check the model name` : msg}` }
+      }
+      return { ok: true, message: `Embedding (${draft.embeddingModel}): ready` }
+    }
+    if (ep === 'ollama' && !isLocalHostname()) {
+      const running = await checkLocalAgent()
+      if (!running) return { ok: false, message: 'Embedding (Ollama): Local Agent not running on port 12345 — start it first' }
+      const res = await fetch(`${LOCAL_AGENT_BASE}/api/embeddings`, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ model: draft.embeddingModel, prompt: 'test' }),
+        signal:  AbortSignal.timeout(12000),
+      })
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: `HTTP ${res.status}` }))
+        return { ok: false, message: `Embedding (Ollama): ${err.error ?? 'failed'}` }
+      }
+      return { ok: true, message: `Embedding (${draft.embeddingModel} via agent): ready` }
+    }
+    // Same provider as chat, or Ollama on localhost — covered by the chat test
+    return { ok: true, message: `Embedding (${draft.embeddingModel}): ready` }
+  }
+
   async function testConnection() {
     setTesting(true)
     setTestResult(null)
     try {
-      if (draft.provider === 'ollama' && !isLocalHostname()) {
-        // On the live app: route through Local Agent (adds PNA header), or direct browser call
-        const running = await checkLocalAgent()
-        setAgentRunning(running)
-        await completeOllamaBrowser(draft, [{ role: 'user', content: 'Reply with exactly: OK' }])
-        setTestResult({ ok: true, message: running ? 'AI is ready — Ollama replied via Local Agent' : 'AI is ready — Ollama replied successfully' })
-      } else {
-        const res = await fetch('/api/ai/chat', {
-          method:  'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body:    JSON.stringify({ config: draft, messages: [{ role: 'user', content: 'Reply with exactly: OK' }] }),
-        })
-        if (!res.ok) {
-          const err = await res.json().catch(() => ({ error: 'Connection failed' }))
-          setTestResult({ ok: false, message: err.error ?? 'Connection failed' })
-          return
-        }
-        const reader  = res.body!.getReader()
-        const decoder = new TextDecoder()
-        let   reply   = ''
-        while (true) {
-          const { done, value } = await reader.read()
-          if (done) break
-          for (const line of decoder.decode(value).split('\n')) {
-            if (!line.startsWith('data: ')) continue
-            try { const c = JSON.parse(line.slice(6)); reply += c.delta ?? ''; if (c.done) break } catch {}
-          }
-        }
-        void reply
-        setTestResult({ ok: true, message: `AI is ready — ${PROVIDER_LABELS[draft.provider]} replied successfully` })
-      }
+      const chatResult = await testChatConnection()
+      // Only test embedding separately when it's a different provider from chat
+      const testEmbed = draft.embeddingProvider !== draft.provider ||
+        (draft.embeddingProvider === 'gemini' && !!draft.embeddingApiKey)
+      const embedResult = testEmbed ? await testEmbedConnection().catch(e => ({
+        ok: false, message: e instanceof Error ? e.message : 'Embedding test failed',
+      })) : undefined
+      const allOk = chatResult.ok && (!embedResult || embedResult.ok)
+      setTestResult({ ok: allOk, chatOk: chatResult.ok, message: chatResult.message, embedResult })
     } catch (err) {
-      setTestResult({ ok: false, message: err instanceof Error ? err.message : 'Connection failed' })
+      setTestResult({ ok: false, chatOk: false, message: err instanceof Error ? err.message : 'Connection failed' })
     } finally {
       setTesting(false)
     }
   }
 
   async function buildSearchIndex() {
+    // When embeddingProvider is Ollama on the live app, use a browser-side pipeline
+    // (the server-side route runs on Vercel and cannot reach the user's local Ollama)
+    if (draft.embeddingProvider === 'ollama' && !isLocalHostname()) {
+      await buildSearchIndexBrowserOllama()
+      return
+    }
     setIndexing(true)
     setIndexResult(null)
     try {
@@ -289,6 +342,76 @@ export function AISettingsModal({ onClose }: AISettingsModalProps) {
       const msg = data.total === 0
         ? 'All notes are already indexed — nothing to do'
         : `Done: indexed ${data.succeeded} of ${data.total} notes${data.failed > 0 ? ` (${data.failed} failed${data.firstError ? `: ${data.firstError}` : ''})` : ''}`
+      setIndexResult({ ok: true, message: msg })
+    } catch (err) {
+      setIndexResult({ ok: false, message: err instanceof Error ? err.message : 'Indexing failed' })
+    } finally {
+      setIndexing(false)
+    }
+  }
+
+  async function buildSearchIndexBrowserOllama() {
+    setIndexing(true)
+    setIndexResult(null)
+    const agentRunning = await checkLocalAgent()
+    if (!agentRunning) {
+      setIndexResult({ ok: false, message: 'Local Agent not running on port 12345 — start it first: node packages/agent/index.mjs' })
+      setIndexing(false)
+      return
+    }
+    try {
+      const supabase = createSupabaseBrowserClient()
+      // Fetch notes and bookmarks without embeddings (limit 100 each)
+      const [{ data: notes, error: ne }, { data: bookmarks, error: be }] = await Promise.all([
+        supabase.from('notes').select('id, title, content').is('embedding', null).is('deleted_at', null).limit(100),
+        supabase.from('bookmarks').select('id, title, description').is('embedding', null).limit(100),
+      ])
+      if (ne || be) throw new Error(`Failed to fetch items: ${ne?.message ?? be?.message}`)
+
+      const items: Array<{ table: 'notes' | 'bookmarks'; id: string; text: string }> = [
+        ...(notes ?? []).map(n => ({
+          table: 'notes' as const,
+          id:    n.id,
+          text:  `${n.title}\n${n.content.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()}`.slice(0, 8000),
+        })),
+        ...(bookmarks ?? []).map(b => ({
+          table: 'bookmarks' as const,
+          id:    b.id,
+          text:  `${b.title}\n${b.description ?? ''}`.slice(0, 8000),
+        })),
+      ]
+
+      const total = items.length
+      let succeeded = 0, failed = 0, firstError = ''
+
+      for (const item of items) {
+        try {
+          const res = await fetch(`${LOCAL_AGENT_BASE}/api/embeddings`, {
+            method:  'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body:    JSON.stringify({ model: draft.embeddingModel, prompt: item.text }),
+          })
+          if (!res.ok) {
+            const err = await res.json().catch(() => ({ error: `HTTP ${res.status}` }))
+            throw new Error(err.error ?? `Ollama returned ${res.status}`)
+          }
+          const data      = await res.json()
+          const embedding = data.embedding as number[]
+          if (!Array.isArray(embedding) || embedding.length === 0) throw new Error('Empty embedding from Ollama')
+          const { error: dbError } = await supabase.from(item.table)
+            .update({ embedding, embedding_model: draft.embeddingModel })
+            .eq('id', item.id)
+          if (dbError) throw new Error(`DB update failed: ${dbError.message}`)
+          succeeded++
+        } catch (e) {
+          failed++
+          if (!firstError) firstError = e instanceof Error ? e.message : String(e)
+        }
+      }
+
+      const msg = total === 0
+        ? 'All notes are already indexed — nothing to do'
+        : `Done: indexed ${succeeded} of ${total} notes${failed > 0 ? ` (${failed} failed${firstError ? `: ${firstError}` : ''})` : ''}`
       setIndexResult({ ok: true, message: msg })
     } catch (err) {
       setIndexResult({ ok: false, message: err instanceof Error ? err.message : 'Indexing failed' })
@@ -491,6 +614,13 @@ export function AISettingsModal({ onClose }: AISettingsModalProps) {
                 <strong>{draft.embeddingModel}</strong> isn&apos;t installed. Run <code style={{ fontSize: 10, backgroundColor: 'rgba(0,0,0,0.2)', padding: '1px 4px', borderRadius: 3 }}>ollama pull nomic-embed-text</code> or pick an installed model below.
               </Notice>
             )}
+            {draft.embeddingProvider === 'ollama' && !isLocalHostname() && (
+              <Notice type={agentRunning === true ? 'success' : 'warning'} style={{ marginBottom: 6 }}>
+                {agentRunning === true
+                  ? 'Local Ollama embedding is active — Build index runs in your browser via the Local Agent.'
+                  : 'Local Ollama embedding requires the Local Agent on port 12345. Start it before building the search index: node packages/agent/index.mjs'}
+              </Notice>
+            )}
             <ModelInput value={draft.embeddingModel} suggestions={embedModels} onChange={v => setDraft(p => ({ ...p, embeddingModel: v }))} />
           </Field>
         </div>
@@ -547,9 +677,16 @@ export function AISettingsModal({ onClose }: AISettingsModalProps) {
             {testing ? <><Loader2 size={13} style={{ animation: 'spin 1s linear infinite' }} /> Testing…</> : <><Wifi size={13} /> Test connection</>}
           </button>
           {testResult && (
-            <Notice type={testResult.ok ? 'success' : 'error'} style={{ marginTop: 8 }}>
-              {testResult.message}
-            </Notice>
+            <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <Notice type={testResult.chatOk ? 'success' : 'error'}>
+                {testResult.message}
+              </Notice>
+              {testResult.embedResult && (
+                <Notice type={testResult.embedResult.ok ? 'success' : 'error'}>
+                  {testResult.embedResult.message}
+                </Notice>
+              )}
+            </div>
           )}
         </div>
 
