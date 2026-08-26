@@ -48,7 +48,9 @@ export async function geminiStream(
  * Requests 768 dimensions via `outputDimensionality` to match the pgvector column size.
  */
 export async function geminiEmbed(config: AIConfig, text: string): Promise<number[]> {
-  const url = `${GEMINI_BASE}/models/${config.embeddingModel}:embedContent?key=${config.embeddingApiKey ?? config.apiKey ?? ''}`
+  // text-embedding-004 is available on v1 (stable), not v1beta
+  const embedBase = 'https://generativelanguage.googleapis.com/v1'
+  const url = `${embedBase}/models/${config.embeddingModel}:embedContent?key=${config.embeddingApiKey ?? config.apiKey ?? ''}`
 
   const res = await fetch(url, {
     method:  'POST',
