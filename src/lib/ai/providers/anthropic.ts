@@ -33,6 +33,7 @@ export async function anthropicStream(
       max_tokens: 4096,
       stream:     true,
     }),
+    signal: AbortSignal.timeout(30_000),
   })
 
   if (!res.ok) {
@@ -40,7 +41,8 @@ export async function anthropicStream(
     throw providerError('Anthropic', res.status, extractMessage(raw))
   }
 
-  return transformAnthropicStream(res.body!)
+  if (!res.body) throw new Error('Anthropic: empty response body')
+  return transformAnthropicStream(res.body)
 }
 
 /** Placeholder that throws — Anthropic has no embedding API; callers must configure a separate provider. */
@@ -78,6 +80,7 @@ function transformAnthropicStream(source: ReadableStream<Uint8Array>): ReadableS
               if (delta) controller.enqueue(encoder.encode(`data: ${JSON.stringify({ delta, done: false })}\n\n`))
             } else if (parsed.type === 'message_stop') {
               controller.enqueue(encoder.encode('data: {"delta":"","done":true}\n\n'))
+              reader.cancel()
               controller.close()
               return
             }

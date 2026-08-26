@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { rateLimit }    from '@/lib/ratelimit'
 import { streamChat, complete, validateConfig } from '@/lib/ai/client'
-import { AIConfig, AIMessage, AssistOperation } from '@/lib/ai/types'
+import { AIConfig, AIMessage, AssistOperation, ASSIST_LABELS } from '@/lib/ai/types'
 
 // POST /api/ai/assist
 // Body: { config, operation, text, stream?, noteContext? }
@@ -28,6 +28,9 @@ export async function POST(req: NextRequest) {
   if (configError) return NextResponse.json({ error: configError }, { status: 400 })
 
   if (!body.text?.trim()) return NextResponse.json({ error: 'text is required' }, { status: 400 })
+  if (!body.operation || !(body.operation in ASSIST_LABELS)) {
+    return NextResponse.json({ error: `Unknown operation: ${body.operation}` }, { status: 400 })
+  }
 
   // Word count of the selected text — used to calibrate expected output length
   const wordCount  = body.text.trim().split(/\s+/).length

@@ -33,6 +33,7 @@ export async function geminiStream(
     method:  'POST',
     headers: { 'Content-Type': 'application/json' },
     body:    JSON.stringify(body),
+    signal:  AbortSignal.timeout(30_000),
   })
 
   if (!res.ok) {
@@ -40,7 +41,8 @@ export async function geminiStream(
     throw providerError('Gemini', res.status, extractMessage(raw))
   }
 
-  return transformGeminiStream(res.body!)
+  if (!res.body) throw new Error('Gemini: empty response body')
+  return transformGeminiStream(res.body)
 }
 
 /**

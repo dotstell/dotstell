@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { createClient } from '@/lib/supabase/server'
+import { rateLimit }    from '@/lib/ratelimit'
 import { providerError, extractMessage } from '@/lib/ai/error'
 
 // POST /api/ai/cloud-models
@@ -21,12 +23,23 @@ const ENDPOINTS: Record<string, { url: string; headers: (key: string) => Record<
 }
 
 const CHAT_PREFIXES: Record<string, string[]> = {
-  openai:    ['gpt-'],
+  openai:    ['gpt-', 'o1', 'o3', 'o4'],
   groq:      ['llama', 'mixtral', 'gemma', 'mistral', 'qwen', 'deepseek'],
   anthropic: ['claude-'],
 }
 
+const EMBED_PREFIXES: Record<string, string[]> = {
+  openai: ['text-embedding-'],
+}
+
 export async function POST(req: NextRequest) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  const rl = rateLimit(`ai-cloud-models:${user.id}`, 20, 60_000)
+  if (rl) return rl
+
   const body: { provider?: string; apiKey?: string } = await req.json().catch(() => ({}))
   const provider = body.provider ?? ''
   const apiKey   = body.apiKey   ?? ''
@@ -53,9 +66,14 @@ export async function POST(req: NextRequest) {
 
     const data  = await res.json()
     const allIds: string[] = (data.data ?? []).map((m: { id: string }) => m.id).filter(Boolean)
-    const prefixes = CHAT_PREFIXES[provider] ?? []
-    const models   = allIds.filter(id => prefixes.some(p => id.toLowerCase().startsWith(p)))
-    return NextResponse.json({ models })
+
+    const chatPrefixes  = CHAT_PREFIXES[provider]  ?? []
+    const embedPrefixes = EMBED_PREFIXES[provider] ?? []
+
+    const models      = allIds.filter(id => chatPrefixes.some(p  => id.toLowerCase().startsWith(p)))
+    const embedModels = allIds.filter(id => embedPrefixes.some(p => id.toLowerCase().startsWith(p)))
+
+    return NextResponse.json({ models, embedModels })
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Failed to fetch models'
     return NextResponse.json({ error: msg }, { status: 502 })
