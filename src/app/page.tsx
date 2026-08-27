@@ -37,7 +37,7 @@ const FEATURES = [
   {
     icon: '✨',
     title: 'AI Intelligence',
-    desc: 'Bring your own key — Ollama, OpenAI, Anthropic, Gemini or Groq. Daily digest, note summaries, auto-tags, smart titles, graph analysis and AI chat across your entire knowledge base.',
+    desc: 'Bring your own key — Ollama, OpenAI, Anthropic, Gemini or Groq. Draft and improve notes with the AI Writing Assistant, get a daily digest, note summaries, auto-tags, smart titles, person intelligence, graph analysis, and AI chat across your entire knowledge base.',
   },
 ]
 
@@ -275,7 +275,7 @@ export default function LandingPage() {
           </div>
           <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '4px 14px', borderRadius: 999, marginBottom: 24, border: '1px solid color-mix(in srgb, var(--primary) 35%, transparent)', background: 'color-mix(in srgb, var(--primary) 8%, transparent)', color: 'var(--primary)', fontSize: 12 }}>
             <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--primary)', flexShrink: 0, animation: 'pulse 2s cubic-bezier(0.4,0,0.6,1) infinite' }} />
-            v0.4.0 · AI layer live · Open source
+            v0.5.0 · AI Writing Assistant · Open source
           </div>
           <h1 style={{ fontSize: 'clamp(28px, 6vw, 48px)', fontWeight: 700, letterSpacing: '-0.5px', lineHeight: 1.15, marginBottom: 20 }}>
             Your knowledge is scattered.<br />
