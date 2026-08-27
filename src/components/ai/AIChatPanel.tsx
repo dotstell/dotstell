@@ -1,6 +1,7 @@
 'use client'
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { X, Send, Sparkles, User, Loader2, Trash2, Globe, FileText, Users, Copy, Check } from 'lucide-react'
+import { useRouter } from 'next/navigation'
 import { AIConfig, AIMessage } from '@/lib/ai/types'
 import { useAIStream } from '@/hooks/useAI'
 import { streamOllamaBrowser, isLocalHostname } from '@/lib/ai/ollama-browser'
@@ -25,6 +26,7 @@ type ChatMode = 'note' | 'global'
 type PanelTab = 'chat' | 'people'
 
 export function AIChatPanel({ config, noteId, noteTitle, noteContent, onClose }: AIChatPanelProps) {
+  const router = useRouter()
   const [activeTab,  setActiveTab]  = useState<PanelTab>('chat')
   const [messages,   setMessages]   = useState<ChatMessage[]>([])
   const [input,      setInput]      = useState('')
@@ -237,7 +239,7 @@ export function AIChatPanel({ config, noteId, noteTitle, noteContent, onClose }:
       {/* Person intelligence tab */}
       {activeTab === 'people' && (
         <div style={{ flex: 1, overflowY: 'auto', padding: 14 }}>
-          <AIPersonPanel config={config} />
+          <AIPersonPanel config={config} onOpenNote={id => router.push(`/notes/${id}`)} />
         </div>
       )}
 

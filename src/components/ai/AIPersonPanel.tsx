@@ -1,6 +1,6 @@
 'use client'
 import { useState, useRef } from 'react'
-import { Sparkles, Search, FileText, Bookmark, Loader2, AlertCircle, User } from 'lucide-react'
+import { Sparkles, Search, FileText, Bookmark, Loader2, AlertCircle, User, ArrowRight } from 'lucide-react'
 import { AIConfig } from '@/lib/ai/types'
 import { useAIPersonIntel } from '@/hooks/useAI'
 import { MarkdownContent } from '@/components/ui/MarkdownContent'
@@ -127,13 +127,21 @@ export function AIPersonPanel({ config, initialName = '', onOpenNote }: AIPerson
                     style={{
                       display: 'flex', alignItems: 'center', gap: 8,
                       padding: '6px 10px', borderRadius: 7,
-                      border: '1px solid var(--border)',
+                      border: `1px solid ${s.type === 'note' && onOpenNote ? 'var(--border)' : 'var(--border)'}`,
                       backgroundColor: 'var(--muted)',
                       cursor: s.type === 'note' && onOpenNote ? 'pointer' : 'default',
                       textAlign: 'left', width: '100%', transition: 'all 0.12s',
                     }}
-                    onMouseEnter={e => { if (s.type === 'note' && onOpenNote) e.currentTarget.style.backgroundColor = 'var(--accent)' }}
-                    onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'var(--muted)' }}
+                    onMouseEnter={e => {
+                      if (s.type === 'note' && onOpenNote) {
+                        e.currentTarget.style.backgroundColor = 'var(--accent)'
+                        e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--primary) 40%, transparent)'
+                      }
+                    }}
+                    onMouseLeave={e => {
+                      e.currentTarget.style.backgroundColor = 'var(--muted)'
+                      e.currentTarget.style.borderColor = 'var(--border)'
+                    }}
                   >
                     {s.type === 'note'
                       ? <FileText size={11} color="var(--primary)" style={{ flexShrink: 0 }} />
@@ -144,6 +152,9 @@ export function AIPersonPanel({ config, initialName = '', onOpenNote }: AIPerson
                     <span style={{ fontSize: 10, color: 'var(--muted-foreground)', flexShrink: 0 }}>
                       {new Date(s.updatedAt).toLocaleDateString()}
                     </span>
+                    {s.type === 'note' && onOpenNote && (
+                      <ArrowRight size={10} style={{ flexShrink: 0, color: 'var(--primary)', opacity: 0.6 }} />
+                    )}
                   </button>
                 ))}
               </div>
