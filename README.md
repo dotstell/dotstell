@@ -229,116 +229,17 @@ See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for a full breakdown of the sys
 
 ## Project Structure
 
-```
-src/
-├── app/
-│   ├── api/                          # Next.js API routes (server-side)
-│   │   ├── ai/                       # AI routes — all require auth + rate limiting
-│   │   │   ├── chat/                 # Streaming chat (SSE) — all providers
-│   │   │   ├── assist/               # Inline text operations (rewrite, expand, fix…)
-│   │   │   ├── summarize/            # Note / bookmark summary
-│   │   │   ├── title/                # Smart title suggestion
-│   │   │   ├── tags/                 # Auto-tag suggestion
-│   │   │   ├── embed/                # Single + bulk embedding (PUT = bulk re-index)
-│   │   │   ├── semantic-search/      # pgvector similarity search
-│   │   │   ├── related/[id]/         # Related notes for a given note
-│   │   │   ├── digest/               # AI Knowledge Digest (dashboard)
-│   │   │   ├── person/               # Person intelligence brief
-│   │   │   ├── graph-intel/          # Graph AI analysis (clusters, gaps)
-│   │   │   ├── write/                # AI Writing Assistant (draft + improve)
-│   │   ├── cloud-models/         # Live model list (OpenAI / Anthropic / Groq)
-│   │   │   ├── gemini-models/        # Live model list (Gemini)
-│   │   │   └── ollama-models/        # Ollama installed model list (server proxy)
-│   │   ├── notes/                    # Notes list + create
-│   │   ├── notes/[id]/               # Note CRUD (soft delete)
-│   │   ├── notes/[id]/backlinks/     # Backlink lookup for a note
-│   │   ├── notes/[id]/wikilinks/     # Wikilink edge sync on save
-│   │   ├── notes/[id]/unlinked-mentions/ # Unlinked [[title]] detection
-│   │   ├── notes/[id]/restore/       # Restore note from trash
-│   │   ├── notes/[id]/permanent/     # Permanent delete (bypass soft)
-│   │   ├── notes/trash/              # List trashed notes
-│   │   ├── notebooks/                # Notebooks list + create
-│   │   ├── notebooks/[id]/           # Notebook rename / delete
-│   │   ├── people/                   # People list + create
-│   │   ├── people/[id]/              # Person CRUD
-│   │   ├── bookmarks/                # Bookmarks list + create
-│   │   ├── bookmarks/[id]/           # Bookmark patch / delete
-│   │   ├── bookmarks/bulk-import/    # Netscape HTML file parser
-│   │   ├── bookmarks/bulk-delete/    # Delete multiple bookmarks
-│   │   ├── bookmarks/preview-import/ # Parse without saving (preview)
-│   │   ├── bookmarks/manage-tags/    # Rename / delete a tag globally
-│   │   ├── bookmarks/fetch-meta/     # SSRF-protected URL metadata fetch
-│   │   ├── bookmarks/visit/          # Record visit + update last_visited_at
-│   │   ├── tasks/                    # Tasks list + create
-│   │   ├── tasks/[id]/               # Task CRUD
-│   │   ├── links/                    # Knowledge links (manual + wikilink edges)
-│   │   ├── wikilinks/                # Wikilink resolution (title → id lookup)
-│   │   ├── graph/                    # Graph data (all nodes + edges combined)
-│   │   └── search/                   # Full-text search across all entity types
-│   ├── auth/                         # Login, register, OAuth callback
-│   ├── dashboard/                    # Home: overdue tasks, recent notes
-│   ├── notes/                        # Notes list
-│   ├── notes/[id]/                   # Note editor (full page)
-│   ├── people/                       # People list
-│   ├── people/[id]/                  # Person detail + attached notes/tasks
-│   ├── bookmarks/                    # Bookmarks + collections
-│   ├── tasks/                        # Kanban board + list view
-│   ├── graph/                        # Interactive knowledge graph
-│   ├── tags/                         # Tag browser across all entity types
-│   ├── search/                       # Global search results
-│   └── help/                         # Help & keyboard shortcuts
-├── components/
-│   ├── ai/                           # AI UI components
-│   │   ├── AISettingsModal.tsx       # Provider/model picker, test connection, build index
-│   │   ├── AIChatPanel.tsx           # Slide-out chat panel with RAG + People tab
-│   │   ├── AIWritingPanel.tsx        # Right-side writing panel (draft from scratch + improve)
-│   │   ├── AIPersonPanel.tsx         # Person intelligence search + brief
-│   │   └── AIRelatedPanel.tsx        # Related notes sidebar panel
-│   ├── editor/                       # Tiptap editor + WikiLinkExtension node
-│   ├── layout/                       # Sidebar, AppLayout, PageHeader
-│   ├── command/                      # Ctrl+K command palette
-│   ├── links/                        # LinkPanel (manual entity-to-entity linking)
-│   ├── graph/                        # Graph canvas, node/edge renderers
-│   ├── notes/                        # NoteCard, NotesSidePane, BacklinksPanel
-│   ├── bookmarks/                    # BookmarkCard, BookmarkImport, TagFilter
-│   ├── people/                       # PersonCard, PersonDetail
-│   ├── tasks/                        # TaskCard, KanbanBoard, TaskList
-│   ├── onboarding/                   # First-run onboarding flow
-│   ├── brand/                        # Logo and brand assets
-│   └── ui/                           # Design system: buttons, dialogs, inputs
-├── hooks/
-│   ├── useAI.ts                      # useAIStream, useAIAssist, useAISummarize, useAIPersonIntel…
-│   ├── useAISettings.ts              # AI config: load/save/sync across instances
-│   └── …                            # useNotebooks, useMention, useTheme, etc.
-├── store/                            # Zustand global stores
-├── lib/
-│   ├── ai/
-│   │   ├── client.ts                 # streamChat(), complete(), embed(), validateConfig()
-│   │   ├── types.ts                  # AIConfig, AIProvider, EmbeddingProvider, defaults
-│   │   ├── prompts.ts                # Prompt builders for each AI operation
-│   │   ├── error.ts                  # providerError() — normalises provider errors
-│   │   ├── ollama-browser.ts         # Browser-side Ollama client + Local Agent detection
-│   │   └── providers/
-│   │       ├── openai.ts             # OpenAI + Groq streaming (OpenAI-compatible format)
-│   │       ├── anthropic.ts          # Anthropic Messages API streaming
-│   │       ├── gemini.ts             # Gemini streamGenerateContent + embedContent
-│   │       └── ollama.ts             # Ollama /api/chat + /api/embeddings
-│   ├── supabase/                     # Browser + server Supabase clients
-│   ├── tiptap/                       # WikiLinkExtension (custom ProseMirror node)
-│   └── ratelimit.ts                  # In-memory rate limiter
-└── types/                            # Shared TypeScript types
-src-tauri/
-├── src/lib.rs                        # Tauri v2 desktop shell (Rust)
-└── tauri.conf.json                   # App metadata, permissions, updater config
-supabase/
-├── schema.sql                        # Full schema: tables, RLS, indexes, triggers
-└── migrations/                       # Incremental SQL migrations (002 → 008)
-packages/
-└── agent/                            # Dotstell Local AI Agent v1.0.0
-    ├── index.mjs                     # Zero-dep Node.js CORS/PNA proxy for Ollama
-    ├── package.json
-    └── README.md                     # Setup guide and security notes
-```
+The full annotated directory tree is in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+
+| Directory | Purpose |
+|---|---|
+| `src/app/` | Next.js App Router pages and API routes (auth, notes, AI, bookmarks, tasks…) |
+| `src/components/` | React UI components grouped by domain (`ai/`, `editor/`, `graph/`, `layout/`…) |
+| `src/hooks/` | Data-fetching and behaviour hooks |
+| `src/lib/` | AI client, Supabase clients, rate limiter, TipTap extensions |
+| `src-tauri/` | Rust / Tauri v2 desktop shell |
+| `supabase/` | Schema SQL and incremental migrations |
+| `packages/agent/` | Dotstell Local AI Agent — zero-dep Node.js Ollama proxy |
 
 ---
 

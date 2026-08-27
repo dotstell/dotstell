@@ -512,6 +512,8 @@ Ollama (127.0.0.1:11434)
 
 The app detects the agent via `GET http://127.0.0.1:12345/health`. The AI Settings modal shows a live status badge. If the agent is not running, a warning is shown with the start command.
 
+**v1.1.0 additions:** color startup output (ANSI, TTY-guarded), Ollama reachability check at startup (shows ✓/⚠ immediately), per-request log line (method, path, status — health endpoint excluded to avoid noise).
+
 ---
 
 ### Embedding Pipeline
