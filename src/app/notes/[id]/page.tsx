@@ -6,7 +6,7 @@ import {
   X, Maximize2, Minimize2, Plus, FileText,
   ChevronRight, ArrowLeft, LayoutTemplate, Download,
   List, ChevronDown, Sparkles, MessageSquareText, Settings2,
-  AlignLeft, Loader2, RefreshCw,
+  AlignLeft, Loader2, RefreshCw, PenLine,
 } from 'lucide-react'
 import type { Editor } from '@tiptap/react'
 import Link from 'next/link'
@@ -17,6 +17,7 @@ import { LinkPanel } from '@/components/links/LinkPanel'
 import { BacklinksPanel } from '@/components/notes/BacklinksPanel'
 import { AIChatPanel } from '@/components/ai/AIChatPanel'
 import { AIInlineAssist } from '@/components/ai/AIInlineAssist'
+import { AIWritingPanel } from '@/components/ai/AIWritingPanel'
 import { AIRelatedPanel } from '@/components/ai/AIRelatedPanel'
 import { AISettingsModal } from '@/components/ai/AISettingsModal'
 import { useNoteTabs } from '@/hooks/useNoteTabs'
@@ -61,6 +62,9 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
   const [aiSettingsOpen,  setAISettingsOpen]  = useState(false)
   // Inline assist state: set when the user triggers AI on a text selection
   const [aiAssist, setAIAssist] = useState<{ text: string; rect: DOMRect } | null>(null)
+  // AI Writing panel
+  const [writingOpen,   setWritingOpen]   = useState(false)
+  const [writingFormat, setWritingFormat] = useState<string | undefined>(undefined)
   // Smart title suggestion
   const { suggest: suggestTitle, loading: titleLoading } = useAITitleSuggest(aiConfig)
   // Auto-tag suggestions — shown as dismissible chips below the tag input
@@ -458,6 +462,27 @@ ${note.content ?? ''}
             </button>
           )}
 
+          {/* AI Writing Assistant */}
+          {aiConfigured && (
+            <button
+              type="button"
+              title="AI Writing — draft from scratch or improve existing content"
+              onClick={() => { setWritingFormat(undefined); setWritingOpen(w => !w) }}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 5,
+                padding: '5px 10px', borderRadius: 7,
+                border: `1px solid ${writingOpen ? 'color-mix(in srgb, var(--primary) 40%, transparent)' : 'var(--border)'}`,
+                background: writingOpen ? 'color-mix(in srgb, var(--primary) 12%, transparent)' : 'none',
+                color: writingOpen ? 'var(--primary)' : 'var(--muted-foreground)', fontSize: 12, cursor: 'pointer',
+                transition: 'all 0.12s',
+              }}
+              onMouseEnter={e => { if (!writingOpen) { e.currentTarget.style.background = 'var(--accent)'; e.currentTarget.style.color = 'var(--foreground)' } }}
+              onMouseLeave={e => { if (!writingOpen) { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = 'var(--muted-foreground)' } }}
+            >
+              <PenLine size={13} /> AI Write
+            </button>
+          )}
+
           {/* AI Inline Assist is now triggered by the floating bubble that appears on text selection — no header button needed */}
 
           {/* AI Settings shortcut */}
@@ -653,6 +678,58 @@ ${note.content ?? ''}
               if (rect) setAIAssist({ text, rect })
             } : undefined}
           />
+
+          {/* AI Draft hint — shown when note is empty, AI configured, and panel is not open */}
+          {aiConfigured && !loading && !writingOpen && editorText.trim() === '' && (
+            <div style={{
+              margin: '0 20px 20px',
+              padding: '14px 16px', borderRadius: 12,
+              border: '1px dashed color-mix(in srgb, var(--primary) 35%, transparent)',
+              backgroundColor: 'color-mix(in srgb, var(--primary) 5%, transparent)',
+              display: 'flex', flexDirection: 'column', gap: 10,
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+                <Sparkles size={12} color="var(--primary)" />
+                <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--primary)' }}>Start with AI</span>
+                <span style={{ fontSize: 11, color: 'var(--muted-foreground)' }}>— pick a format or describe what you want to write</span>
+              </div>
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                {(['outline', 'meeting', 'ooo', 'proposal', 'email'] as const).map(fmt => {
+                  const labels: Record<string, string> = { outline: '📋 Outline', meeting: '🤝 Meeting notes', ooo: '✈️ OoO email', proposal: '📊 Proposal', email: '✉️ Email draft' }
+                  return (
+                    <button
+                      key={fmt}
+                      type="button"
+                      onClick={() => { setWritingFormat(fmt); setWritingOpen(true) }}
+                      style={{
+                        padding: '4px 10px', borderRadius: 99, fontSize: 12, cursor: 'pointer',
+                        border: '1px solid color-mix(in srgb, var(--primary) 30%, transparent)',
+                        backgroundColor: 'color-mix(in srgb, var(--primary) 8%, transparent)',
+                        color: 'var(--primary)', fontWeight: 500, transition: 'all 0.12s',
+                      }}
+                      onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'color-mix(in srgb, var(--primary) 16%, transparent)')}
+                      onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'color-mix(in srgb, var(--primary) 8%, transparent)')}
+                    >
+                      {labels[fmt]}
+                    </button>
+                  )
+                })}
+                <button
+                  type="button"
+                  onClick={() => { setWritingFormat(undefined); setWritingOpen(true) }}
+                  style={{
+                    padding: '4px 10px', borderRadius: 99, fontSize: 12, cursor: 'pointer',
+                    border: '1px solid var(--border)', backgroundColor: 'transparent',
+                    color: 'var(--muted-foreground)', fontWeight: 500, transition: 'all 0.12s',
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.backgroundColor = 'var(--accent)'; e.currentTarget.style.color = 'var(--foreground)' }}
+                  onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = 'var(--muted-foreground)' }}
+                >
+                  ✏️ Custom
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Right panel — hidden on mobile to preserve editor space */}
@@ -890,6 +967,26 @@ ${note.content ?? ''}
 
       {/* AI Settings modal */}
       {aiSettingsOpen && <AISettingsModal onClose={() => setAISettingsOpen(false)} />}
+
+      {/* AI Writing Panel — side drawer for drafting and improving content */}
+      {writingOpen && aiConfigured && (
+        <AIWritingPanel
+          config={aiConfig}
+          noteTitle={note.title}
+          noteContent={editorText}
+          isEmpty={editorText.trim() === ''}
+          initialFormat={writingFormat as 'outline' | 'meeting' | 'daily' | 'research' | 'ooo' | 'proposal' | 'status' | 'email' | undefined}
+          onInsert={html => {
+            const editor = editorRef.current
+            if (editor) editor.chain().focus().insertContent(html).run()
+          }}
+          onReplace={html => {
+            const editor = editorRef.current
+            if (editor) editor.commands.setContent(html)
+          }}
+          onClose={() => { setWritingOpen(false); setWritingFormat(undefined) }}
+        />
+      )}
 
       {/* AI Inline Assist — floating panel anchored to the text selection */}
       {aiAssist && aiConfigured && (
