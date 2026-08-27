@@ -978,7 +978,10 @@ ${note.content ?? ''}
           initialFormat={writingFormat as 'outline' | 'meeting' | 'daily' | 'research' | 'ooo' | 'proposal' | 'status' | 'email' | undefined}
           onInsert={html => {
             const editor = editorRef.current
-            if (editor) editor.chain().focus().insertContent(html).run()
+            if (editor) {
+              const end = editor.state.doc.content.size
+              editor.chain().focus().insertContentAt(end, html).run()
+            }
           }}
           onReplace={html => {
             const editor = editorRef.current
