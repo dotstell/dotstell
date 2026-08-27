@@ -30,6 +30,7 @@ export default function PersonPage({ params }: { params: Promise<{ id: string }>
   const [person, setPerson] = useState<Person | null>(null)
   const [notes, setNotes] = useState<Note[]>([])
   const [linkedItems, setLinkedItems] = useState<LinkedItem[]>([])
+  const [noteLinkedTypes, setNoteLinkedTypes] = useState<Record<string, string[]>>({})
   const [loading, setLoading] = useState(true)
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editingNote, setEditingNote] = useState<Partial<Note>>(DEFAULT_NOTE)
@@ -42,7 +43,29 @@ export default function PersonPage({ params }: { params: Promise<{ id: string }>
       fetch(`/api/links?target_id=${id}`),
     ])
     if (personRes.ok) setPerson(await personRes.json())
-    if (notesRes.ok) setNotes(await notesRes.json())
+    const fetchedNotes: Note[] = notesRes.ok ? await notesRes.json() : []
+    setNotes(fetchedNotes)
+
+    // Fetch linked types per note to show connection badges on cards
+    if (fetchedNotes.length > 0) {
+      const typeMaps = await Promise.all(
+        fetchedNotes.map(async (n) => {
+          try {
+            const r = await fetch(`/api/links?source_id=${n.id}`)
+            if (!r.ok) return { id: n.id, types: [] as string[] }
+            const links: { target_type: string; label?: string }[] = await r.json()
+            const types = links
+              .filter(l => l.label !== '__wikilink__')
+              .map(l => l.target_type)
+            return { id: n.id, types }
+          } catch { return { id: n.id, types: [] as string[] } }
+        })
+      )
+      const map: Record<string, string[]> = {}
+      typeMaps.forEach(({ id, types }) => { map[id] = types })
+      setNoteLinkedTypes(map)
+    }
+
     if (linksRes.ok) {
       const links = await linksRes.json()
       const filtered = Array.isArray(links) ? links.filter((l: { label?: string }) => l.label !== '__wikilink__') : []
@@ -149,6 +172,7 @@ export default function PersonPage({ params }: { params: Promise<{ id: string }>
                 note={note}
                 onClick={() => { setEditingNote(note); setDialogOpen(true) }}
                 onDelete={deleteNote}
+                linkedTypes={noteLinkedTypes[note.id]}
               />
             ))}
           </div>

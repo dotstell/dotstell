@@ -1,5 +1,5 @@
 'use client'
-import { AlignLeft, FileText, CheckSquare, Trash2, GitBranch, Pin } from 'lucide-react'
+import { AlignLeft, FileText, CheckSquare, Trash2, GitBranch, Pin, Users, Bookmark, Link2 } from 'lucide-react'
 import { Note } from '@/types'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -8,6 +8,9 @@ import { formatRelative } from '@/lib/utils'
 const TYPE_ICON  = { plain: AlignLeft, markdown: FileText, checklist: CheckSquare }
 const TYPE_LABEL = { plain: 'Plain', markdown: 'Rich text', checklist: 'List' }
 const TYPE_COLOR = { plain: 'var(--muted-foreground)', markdown: 'var(--primary)', checklist: '#10b981' }
+
+const LINK_ICON: Record<string, React.ElementType> = { person: Users, bookmark: Bookmark, task: CheckSquare, note: FileText }
+const LINK_COLOR: Record<string, string> = { person: '#10b981', bookmark: '#f59e0b', task: '#ef4444', note: 'var(--primary)' }
 
 // Extracts readable preview text from Tiptap HTML — intentionally lightweight
 // (regex-based, not DOMParser) since this runs on every render for each card.
@@ -29,9 +32,11 @@ interface NoteCardProps {
   onDelete: (id: string) => void
   onContextMenu?: (e: React.MouseEvent) => void
   onPin?: () => void
+  linkedTypes?: string[]
 }
 
-export function NoteCard({ note, onClick, onDelete, onContextMenu, onPin }: NoteCardProps) {
+export function NoteCard({ note, onClick, onDelete, onContextMenu, onPin, linkedTypes }: NoteCardProps) {
+  const uniqueLinkedTypes = linkedTypes ? [...new Set(linkedTypes)] : []
   const Icon  = TYPE_ICON[note.type]
   const color = TYPE_COLOR[note.type]
 
@@ -136,6 +141,23 @@ export function NoteCard({ note, onClick, onDelete, onContextMenu, onPin }: Note
           {(note.sub_notes_count ?? 0) > 0 && (
             <span style={{ display: 'flex', alignItems: 'center', gap: 3, fontSize: 10, color: 'var(--muted-foreground)', backgroundColor: 'var(--muted)', padding: '1px 6px', borderRadius: 99 }}>
               <GitBranch size={9} /> {note.sub_notes_count}
+            </span>
+          )}
+          {uniqueLinkedTypes.length > 0 && (
+            <span style={{ display: 'flex', alignItems: 'center', gap: 3 }} title={`Linked: ${uniqueLinkedTypes.join(', ')}`}>
+              <Link2 size={9} style={{ color: 'var(--muted-foreground)', marginRight: 1 }} />
+              {uniqueLinkedTypes.slice(0, 3).map(type => {
+                const Icon = LINK_ICON[type]
+                const color = LINK_COLOR[type] ?? 'var(--muted-foreground)'
+                return Icon ? (
+                  <span key={type} style={{ width: 16, height: 16, borderRadius: 4, backgroundColor: color + '22', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <Icon size={9} style={{ color }} />
+                  </span>
+                ) : null
+              })}
+              {uniqueLinkedTypes.length > 3 && (
+                <span style={{ fontSize: 9, color: 'var(--muted-foreground)' }}>+{uniqueLinkedTypes.length - 3}</span>
+              )}
             </span>
           )}
         </div>
