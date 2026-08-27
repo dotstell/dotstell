@@ -46,7 +46,14 @@ export async function POST(req: NextRequest) {
   const messages: AIMessage[] = [
     {
       role:    'system',
-      content: 'You are a personal knowledge assistant. Create a concise digest of the user\'s recent note activity. Highlight key themes, important topics, and any action items. Use 3–6 bullet points or short paragraphs. Be insightful, not just descriptive.',
+      content: `You are a personal knowledge assistant. Summarise the user's recent note activity as a structured digest.
+
+FORMAT — follow exactly:
+- Start directly with the content. No preamble like "Here is your digest".
+- Use 3–6 bullet points. Each bullet: "**Topic name:** one sentence insight."
+- After the bullets, add a "### Key Action Items" section with 2–4 numbered items.
+- No closing remarks, sign-offs, or meta commentary.
+- Use markdown bold (**text**) only for topic names at the start of each bullet.`,
     },
     {
       role:    'user',

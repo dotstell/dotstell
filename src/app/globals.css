@@ -540,7 +540,11 @@ body {
 }
 .md-content h1 { font-size: 1.05em; }
 .md-content h2 { font-size: 1em; }
-.md-content h3 { font-size: 0.95em; color: var(--primary); }
+.md-content h3 {
+  font-size: 0.9em; color: var(--primary); text-transform: uppercase;
+  letter-spacing: 0.06em; margin-top: 1em;
+  padding-left: 8px; border-left: 2px solid var(--primary);
+}
 .md-content ul, .md-content ol { margin: 0 0 0.6em 1.2em; padding: 0; }
 .md-content ul { list-style: disc; }
 .md-content ol { list-style: decimal; }
