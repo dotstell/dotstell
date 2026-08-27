@@ -26,7 +26,7 @@ export interface Note {
   type: NoteType
   checklist_items?: ChecklistItem[]
   tags: string[]
-  linked_items: LinkedItem[]
+  linked_items?: LinkedItem[]
   person_id?: string | null
   parent_id?: string | null
   sub_notes_count?: number
@@ -66,7 +66,7 @@ export interface Bookmark {
   last_visited_at?: string | null
   visit_count?: number
   tags: string[]
-  linked_items: LinkedItem[]
+  linked_items?: LinkedItem[]
   created_at: string
   updated_at: string
 }
@@ -84,7 +84,7 @@ export interface Task {
   due_date?: string | null
   person_id?: string | null
   tags: string[]
-  linked_items: LinkedItem[]
+  linked_items?: LinkedItem[]
   created_at: string
   updated_at: string
 }

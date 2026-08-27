@@ -24,7 +24,7 @@ const TYPE_COLOR: Record<string, string> = {
   note: 'var(--primary)', person: '#10b981', bookmark: '#f59e0b', task: '#ef4444',
 }
 const TYPE_HREF: Record<string, (id: string) => string> = {
-  note: () => '/notes', person: (id) => `/people/${id}`, bookmark: () => '/bookmarks', task: () => '/tasks',
+  note: (id) => `/notes/${id}`, person: (id) => `/people/${id}`, bookmark: () => '/bookmarks', task: () => '/tasks',
 }
 
 interface LinkPanelProps {
@@ -39,21 +39,6 @@ export function LinkPanel({ sourceId, sourceType }: LinkPanelProps) {
   const [results, setResults]     = useState<SearchResult[]>([])
   const [loading, setLoading]     = useState(false)
   const debouncedQ = useDebounce(query, 250)
-
-  const loadLinks = useCallback(async () => {
-    const res = await fetch(`/api/links?source_id=${sourceId}`)
-    if (!res.ok) return
-    const data = await res.json()
-    if (!Array.isArray(data)) return
-    // Fetch labels for each linked item
-    const enriched = await Promise.all(
-      data.map(async (link: { id: string; target_id: string; target_type: string }) => {
-        const r = await fetch(`/api/search?q=${link.target_id}&exact=${link.target_id}`)
-        return { id: link.target_id, type: link.target_type as LinkableType, label: link.target_id, link_id: link.id }
-      })
-    )
-    setLinks(enriched)
-  }, [sourceId])
 
   const loadLinksWithLabels = useCallback(async () => {
     const res = await fetch(`/api/links?source_id=${sourceId}`)

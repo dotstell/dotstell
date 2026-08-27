@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import {
   X, Maximize2, Minimize2, Plus, FileText,
   ChevronRight, ArrowLeft, LayoutTemplate, Download,
-  List, ChevronDown, Sparkles, MessageSquareText, Settings2,
+  List, ChevronDown, Sparkles, Settings2,
   AlignLeft, Loader2, RefreshCw, PenLine, Check, CheckSquare,
 } from 'lucide-react'
 import type { Editor } from '@tiptap/react'
@@ -65,7 +65,7 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
   const [aiAssist, setAIAssist] = useState<{ text: string; rect: DOMRect } | null>(null)
   // AI Writing panel
   const [writingOpen,   setWritingOpen]   = useState(false)
-  const [writingFormat, setWritingFormat] = useState<string | undefined>(undefined)
+  const [writingFormat, setWritingFormat] = useState<'outline' | 'meeting' | 'daily' | 'research' | 'ooo' | 'proposal' | 'status' | 'email' | undefined>(undefined)
   // Smart title suggestion
   const { suggest: suggestTitle, loading: titleLoading } = useAITitleSuggest(aiConfig)
   // Auto-tag suggestions — shown as dismissible chips below the tag input
@@ -182,7 +182,7 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
         const res = await fetch('/api/notes', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ ...data, type: 'markdown' }),
+          body: JSON.stringify(data),
         })
         if (res.ok) {
           const saved = await res.json()
@@ -1162,7 +1162,7 @@ ${note.content ?? ''}
           noteTitle={note.title}
           noteContent={editorText}
           isEmpty={editorText.trim() === ''}
-          initialFormat={writingFormat as 'outline' | 'meeting' | 'daily' | 'research' | 'ooo' | 'proposal' | 'status' | 'email' | undefined}
+          initialFormat={writingFormat}
           onInsert={html => {
             const editor = editorRef.current
             if (editor) {

@@ -59,9 +59,10 @@ const NOTE_COLORS = [
   { label: 'Pink',   value: '#ec4899' },
 ]
 
-function getLS<T>(key: string, fallback: T): T {
+function getLS(key: string, fallback: string, allowed: readonly string[]): string {
   if (typeof window === 'undefined') return fallback
-  return (localStorage.getItem(key) as T) ?? fallback
+  const v = localStorage.getItem(key)
+  return v && allowed.includes(v) ? v : fallback
 }
 
 // ── Sortable wrapper ─────────────────────────────────────────────────────────
@@ -103,6 +104,7 @@ export default function NotesPage() {
   const [showTrash,  setShowTrash]  = useState(false)
   const [trashNotes, setTrashNotes] = useState<Note[]>([])
   const [trashLoading, setTrashLoading] = useState(false)
+  const [noteLinkedTypes, setNoteLinkedTypes] = useState<Record<string, string[]>>({})
   const [confirmState, setConfirmState] = useState<{
     open: boolean; title: string; body: string; confirmLabel: string; onConfirm: () => void
   }>({ open: false, title: '', body: '', confirmLabel: '', onConfirm: () => {} })
@@ -130,9 +132,9 @@ export default function NotesPage() {
   )
 
   useEffect(() => {
-    setView(getLS('notes-view', 'grid'))
-    setGroupMode(getLS('notes-group', 'none'))
-    setSortMode(getLS('notes-sort', 'updated') as SortMode)
+    setView(getLS('notes-view',  'grid',    ['grid', 'list'])                    as ViewMode)
+    setGroupMode(getLS('notes-group', 'none',    ['none', 'tag'])               as GroupMode)
+    setSortMode(getLS('notes-sort',  'updated', ['updated', 'created', 'title', 'manual']) as SortMode)
   }, [])
 
   useEffect(() => { localStorage.setItem('notes-view',  view)      }, [view])
@@ -167,8 +169,26 @@ export default function NotesPage() {
     const res = await fetch(`/api/notes?${params}`)
     if (!res.ok) { setLoading(false); toast.error('Failed to load notes'); return }
     const data = await res.json()
-    setNotes(Array.isArray(data) ? data : [])
+    const fetchedNotes: Note[] = Array.isArray(data) ? data : []
+    setNotes(fetchedNotes)
     setLoading(false)
+
+    // Batch-fetch linked types per note to show connection badges on NoteCards
+    if (fetchedNotes.length > 0) {
+      const typeMaps = await Promise.all(
+        fetchedNotes.map(async (n) => {
+          try {
+            const r = await fetch(`/api/links?source_id=${n.id}`)
+            if (!r.ok) return { id: n.id, types: [] as string[] }
+            const links: { target_type: string; label?: string }[] = await r.json()
+            return { id: n.id, types: links.filter(l => l.label !== '__wikilink__').map(l => l.target_type) }
+          } catch { return { id: n.id, types: [] as string[] } }
+        })
+      )
+      const map: Record<string, string[]> = {}
+      typeMaps.forEach(({ id, types }) => { map[id] = types })
+      setNoteLinkedTypes(map)
+    }
   }, [typeFilter, search, sortMode])
 
   useEffect(() => { fetchNotes() }, [fetchNotes])
@@ -660,6 +680,7 @@ export default function NotesPage() {
                                 onDelete={deleteNote}
                                 onContextMenu={e => openCtx(e, note)}
                                 onPin={() => togglePin(note)}
+                                linkedTypes={noteLinkedTypes[note.id]}
                               />
                             </SortableItem>
                           ))}

@@ -45,11 +45,11 @@ export function useMention(content: string, onInsert: (updated: string) => void,
   }
 
   function handleKeyDown(e: React.KeyboardEvent) {
+    if (e.key === 'Escape') { setSuggestions([]); setMentionQuery(null); return }
     if (!suggestions.length) return
     if (e.key === 'ArrowDown') { e.preventDefault(); setSelectedIdx(i => Math.min(i + 1, suggestions.length - 1)) }
     if (e.key === 'ArrowUp')   { e.preventDefault(); setSelectedIdx(i => Math.max(i - 1, 0)) }
-    if (e.key === 'Enter' && suggestions.length) { e.preventDefault(); pickSuggestion(suggestions[selectedIdx]) }
-    if (e.key === 'Escape') { setSuggestions([]); setMentionQuery(null) }
+    if (e.key === 'Enter') { e.preventDefault(); pickSuggestion(suggestions[selectedIdx]) }
   }
 
   return { suggestions, selectedIdx, pickSuggestion, handleKeyDown, active: suggestions.length > 0 }

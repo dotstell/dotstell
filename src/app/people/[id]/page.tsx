@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect, useCallback } from 'react'
 import { use } from 'react'
-import { ArrowLeft, Plus, Mail, Building2, Phone, FileText, CheckSquare, Bookmark } from 'lucide-react'
+import { ArrowLeft, Plus, Mail, Building2, Phone, FileText, CheckSquare, Bookmark, Users } from 'lucide-react'
 import Link from 'next/link'
 import { toast } from 'sonner'
 import { Person, Note } from '@/types'
@@ -17,12 +17,13 @@ const DEFAULT_NOTE: Partial<Note> = { title: '', content: '', type: 'plain', che
 
 interface LinkedItem { id: string; type: string; label: string }
 
-const LINKED_ICON: Record<string, React.ElementType> = { note: FileText, task: CheckSquare, bookmark: Bookmark }
-const LINKED_COLOR: Record<string, string> = { note: 'var(--primary)', task: '#ef4444', bookmark: '#f59e0b' }
+const LINKED_ICON: Record<string, React.ElementType> = { note: FileText, task: CheckSquare, bookmark: Bookmark, person: Users }
+const LINKED_COLOR: Record<string, string> = { note: 'var(--primary)', task: '#ef4444', bookmark: '#f59e0b', person: '#10b981' }
 const LINKED_HREF: Record<string, (id: string) => string> = {
   note: (id) => `/notes/${id}`,
   task: () => '/tasks',
   bookmark: () => '/bookmarks',
+  person: (id) => `/people/${id}`,
 }
 
 export default function PersonPage({ params }: { params: Promise<{ id: string }> }) {

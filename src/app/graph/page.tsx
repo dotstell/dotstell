@@ -1,5 +1,6 @@
 'use client'
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
+import { useRouter } from 'next/navigation'
 import ReactFlow, {
   Node, Background, Controls, MiniMap,
   useNodesState, useEdgesState, BackgroundVariant,
@@ -109,6 +110,7 @@ export default function GraphPage() {
 
 function GraphPageInner() {
   const { fitView } = useReactFlow()
+  const router = useRouter()
   const [items,   setItems]   = useState<GraphItem[]>([])
   const [links,   setLinks]   = useState<GLink[]>([])
   const [loading, setLoading] = useState(true)
@@ -445,7 +447,7 @@ function GraphPageInner() {
               <div style={{ flex: 1, overflowY: 'auto', padding: 14 }}>
                 <AIGraphIntelPanel
                   config={aiConfig}
-                  onOpenNote={id => { window.location.href = `/notes/${id}` }}
+                  onOpenNote={id => router.push(`/notes/${id}`)}
                 />
               </div>
             </div>
