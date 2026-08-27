@@ -32,8 +32,8 @@ export async function POST(req: NextRequest) {
 
   const modeInstruction: Record<string, string> = {
     short:    'Provide a 1–2 sentence summary. No preamble.',
-    bullets:  'Provide a summary as 3–5 bullet points. Start each bullet with "- " (hyphen space). Use **bold** for key terms. No preamble or closing remarks.',
-    detailed: 'Provide a detailed summary using markdown: ## headings for sections, - bullet points for lists, **bold** for key terms.',
+    bullets:  'Provide a summary as 3–5 bullet points. Start each bullet with "- " (hyphen space). Use **bold** for key terms. End with a single "> " blockquote line for the most important takeaway. No preamble or closing remarks.',
+    detailed: 'Provide a detailed summary using: ## headings for sections, - bullet points for lists, **bold** for key terms, and "> " blockquote for the single most important insight.',
   }
 
   try {
