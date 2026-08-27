@@ -145,7 +145,7 @@ function DashboardMock() {
             <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--primary)' }}>AI Digest</span>
           </div>
           <p style={{ fontSize: 11, color: 'var(--muted-foreground)', lineHeight: 1.6, margin: 0 }}>
-            You added 3 notes on auth strategy and Q3 planning. Shihab appears in 4 notes this week. 1 bookmark saved from Linear.
+            You added 3 notes on auth strategy and Q3 planning. Sarah appears in 4 notes this week. 1 bookmark saved from Linear.
           </p>
         </div>
         {/* Task progress */}
@@ -187,7 +187,7 @@ function NotesMock() {
         <Chip label="Q3 Goals" accent="#22c55e" />.
       </p>
       <CheckItem done text="Align on scope with stakeholders" />
-      <CheckItem text="Review wireframes with Shihab" />
+      <CheckItem text="Review wireframes with Sarah" />
       <CheckItem text="Map deliverables into Q3 Goals" />
       <div style={{ marginTop: 14 }}>
         <Label>Connected to</Label>
@@ -267,7 +267,7 @@ function PeopleMock() {
           <p style={{ fontSize: 11, margin: 0, color: 'var(--muted-foreground)' }}>Engineering Lead · Last met Aug 27</p>
         </div>
       </div>
-      <Label>Notes mentioning Alex</Label>
+      <Label>Notes mentioning Shihab</Label>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 12 }}>
         {['Product Launch Plan','Auth decision — Aug 2026','Q3 retrospective'].map(n => (
           <div key={n} style={{ fontSize: 11, padding: '5px 10px', borderRadius: 6, background: 'var(--secondary)', color: 'var(--foreground)', border: '1px solid var(--border)' }}>📄 {n}</div>
@@ -275,7 +275,7 @@ function PeopleMock() {
       </div>
       <Label>Linked tasks</Label>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-        <CheckItem text="Review wireframes with Shihab" />
+        <CheckItem text="Review wireframes with Sarah" />
         <CheckItem done text="Sync on Q4 product roadmap" />
       </div>
     </MockShell>
@@ -285,7 +285,7 @@ function PeopleMock() {
 function TasksMock() {
   const cols = [
     { label: 'To do',       color: 'var(--muted-foreground)', tasks: [{ t: 'Define scope', overdue: true }, { t: 'Write API spec', overdue: false }]   },
-    { label: 'In progress', color: '#f59e0b',                 tasks: [{ t: 'Review wireframes', overdue: true }, { t: 'Sync with Alex', overdue: false }] },
+    { label: 'In progress', color: '#f59e0b',                 tasks: [{ t: 'Review wireframes', overdue: true }, { t: 'Sync with Yuki', overdue: false }] },
     { label: 'Done',        color: '#22c55e',                 tasks: [{ t: 'Stakeholder alignment', overdue: false }] },
   ]
   return (
@@ -316,7 +316,7 @@ function AIChatMock() {
       <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
         <div style={{ flex: 1, padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 10, overflow: 'hidden' }}>
           <ChatBubble role="user" text="What did I decide about the auth strategy?" />
-          <ChatBubble role="ai" text={'Based on your note “Auth decision — Aug 2026”: you chose JWT over sessions after discussing scalability concerns with Shihab. OAuth2 proxy was ruled out due to added infrastructure complexity. Action item: revisit before Q3 launch.'} />
+          <ChatBubble role="ai" text={'Based on your note “Auth decision — Aug 2026”: you chose JWT over sessions after discussing scalability concerns with Marcus. OAuth2 proxy was ruled out due to added infrastructure complexity. Action item: revisit before Q3 launch.'} />
         </div>
         <div style={{ padding: '10px 14px', borderTop: '1px solid var(--border)', display: 'flex', gap: 8, alignItems: 'center' }}>
           <div style={{ flex: 1, padding: '7px 12px', borderRadius: 6, background: 'var(--secondary)', border: '1px solid var(--border)', fontSize: 11, color: 'var(--muted-foreground)' }}>Ask anything about your notes…</div>
