@@ -145,6 +145,7 @@ src/app/
 
 ```
 src/components/
+├── ai/           # AI UI panels — AISettingsModal, AIChatPanel, AIWritingPanel, AIPersonPanel, AIRelatedPanel
 ├── editor/       # Tiptap rich text editor + WikiLinkExtension (custom ProseMirror node)
 ├── layout/       # Sidebar, AppLayout, PageHeader
 ├── command/      # Ctrl+K command palette
@@ -440,6 +441,7 @@ All downstream consumers (API routes, hooks, UI) read this single format regardl
 | `/api/ai/related/[id]` | POST | Related notes for a given note (wraps semantic-search) |
 | `/api/ai/digest` | POST | AI Knowledge Digest for dashboard |
 | `/api/ai/person` | POST | Person intelligence: search all notes/bookmarks by name, generate brief |
+| `/api/ai/write` | POST | AI Writing Assistant — draft from scratch (8 templates + custom) or improve existing content (5 actions) |
 | `/api/ai/graph-intel` | POST | Graph analysis: missing links, clusters, gap detection |
 | `/api/ai/cloud-models` | POST | Fetch live model list from OpenAI / Anthropic / Groq |
 | `/api/ai/gemini-models` | POST | Fetch live chat + embedding model list from Gemini |

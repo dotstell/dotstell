@@ -407,6 +407,9 @@ export default function HelpPage() {
               <Tip icon="🌐" title="Graph intelligence"
                 body="The Graph page AI panel (click the AI button in the toolbar) provides three analyses: Missing links surfaces highly similar unlinked note pairs; Note clusters groups orphaned notes by topic; Gap detection finds note pairs sharing many neighbours but no direct bridge — a candidate for a new connecting note."
               />
+              <Tip icon="✍️" title="AI Writing Assistant"
+                body={<>Click the <strong>AI Write</strong> button (pen icon) in the note toolbar to open the Writing Assistant panel. On an <strong>empty note</strong>, choose from eight starter templates — Outline, Meeting notes, Daily log, Research note, OoO email, Proposal, Status update, or Email draft — or describe your intent in the custom field. On a <strong>note with existing content</strong>, pick an improve action: Improve English, Make formal, Make concise, Expand, or Full rewrite. Results stream live; choose to <em>append</em> to the note or <em>replace</em> all content. When a note is blank, quick-pick chips also appear inline so you can start without opening the panel.</>}
+              />
               <Tip icon="🔒" title="Privacy"
                 body="Your API keys are stored only in your browser's localStorage — they leave your device only as part of TLS-encrypted requests to your chosen AI provider (OpenAI, Anthropic, etc.), never to dotstell servers. Choosing Ollama keeps everything 100% local."
               />
@@ -506,11 +509,28 @@ export default function HelpPage() {
             {/* WHAT'S NEW */}
             <Section id="whats-new" title="✨ Changelog">
 
+              {/* v0.5.0 */}
+              <div style={{ marginBottom: 32 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--primary)', background: 'color-mix(in srgb, var(--primary) 10%, transparent)', border: '1px solid color-mix(in srgb, var(--primary) 25%, transparent)', padding: '3px 10px', borderRadius: 99 }}>v0.5.0</span>
+                  <span style={{ fontSize: 12, fontWeight: 600, color: '#10b981', background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.2)', padding: '2px 8px', borderRadius: 99 }}>Latest</span>
+                  <span style={{ fontSize: 12, color: 'var(--muted-foreground)' }}>Aug 2026</span>
+                </div>
+                <Tip icon="✍️" title="AI Writing Assistant"
+                  body={<>New <strong>AI Write</strong> button in the note toolbar. On empty notes, draft from scratch using 8 starter templates (Outline, Meeting notes, Daily log, Research note, OoO email, Proposal, Status update, Email draft) or a custom prompt. On notes with content, improve it with one-click actions: Improve English, Make formal, Make concise, Expand, or Full rewrite. Results stream live; append to or replace the note. Quick-pick chips on blank notes let you start without opening the panel.</>}
+                />
+                <Tip icon="⚙️" title="AI Settings UX improvements"
+                  body="Build search index button is now disabled until your AI provider and embedding model are saved — prevents index errors on unconfigured setups. Fixed the Local Agent notice link and the double-arrow (↗↗) bug in provider error messages."
+                />
+                <Tip icon="🎨" title="Dashboard light theme"
+                  body="All dashboard text now uses CSS variables instead of hard-coded dark hex values — the dashboard now looks correct on light themes and every other theme."
+                />
+              </div>
+
               {/* v0.4.0 */}
               <div style={{ marginBottom: 32 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
                   <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--primary)', background: 'color-mix(in srgb, var(--primary) 10%, transparent)', border: '1px solid color-mix(in srgb, var(--primary) 25%, transparent)', padding: '3px 10px', borderRadius: 99 }}>v0.4.0</span>
-                  <span style={{ fontSize: 12, fontWeight: 600, color: '#10b981', background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.2)', padding: '2px 8px', borderRadius: 99 }}>Latest</span>
                   <span style={{ fontSize: 12, color: 'var(--muted-foreground)' }}>Aug 2026</span>
                 </div>
                 <Tip icon="✨" title="Complete AI integration"

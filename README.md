@@ -70,7 +70,7 @@ Every star, issue, and PR genuinely matters for an early-stage OSS project.
 | 🔍 | **Universal Search** | Ctrl+K command palette across all notes, people, tasks and bookmarks |
 | 🔗 | **Manual Linking** | Connect any entity to any other — note → person, bookmark → task, etc. |
 | 🏠 | **Dashboard** | Unified home screen: overdue alerts, task progress, recent notes and bookmarks |
-| ✨ | **AI — Chat, Assist & Search** | RAG-grounded chat, inline text assist (rewrite, expand, fix), smart titles, auto-tagging, note summaries, AI Digest, Person Intelligence, semantic Related Notes — works with Ollama (local/private), OpenAI, Anthropic, Gemini, or Groq |
+| ✨ | **AI — Chat, Write, Assist & Search** | RAG-grounded chat, AI Writing Assistant (draft from scratch or improve existing), inline text assist (rewrite, expand, fix), smart titles, auto-tagging, note summaries, AI Digest, Person Intelligence, semantic Related Notes — works with Ollama (local/private), OpenAI, Anthropic, Gemini, or Groq |
 
 ---
 
@@ -165,6 +165,7 @@ Dotstell ships a complete AI layer. All features work with five provider options
 | **Groq** | ✅ | — | Extremely fast inference; use a separate embedding provider |
 
 **AI features:**
+- **AI Writing Assistant** — draft notes from scratch using 8 starter templates (Outline, Meeting notes, Daily log, Research note, OoO email, Proposal, Status update, Email draft) or a custom prompt; improve existing notes with one-click actions (Improve English, Make formal, Make concise, Expand, Full rewrite)
 - **AI Chat** — slide-out panel with RAG (semantic search grounds answers in your notes), "This note" and "All knowledge" modes, People tab for person intelligence
 - **Inline Assist** — select text → rewrite / expand / shorten / fix grammar / outline / checklist / explain
 - **Smart title & auto-tags** — suggest a title and up to 5 relevant tags as you write
@@ -178,19 +179,29 @@ API keys are stored only in your browser's `localStorage`. They are never sent t
 
 ### Using Ollama with the live app — Local AI Agent
 
-The hosted app at `dotstell.app` runs over `https://`. Modern browsers block `https://` pages from fetching `http://localhost` directly (Private Network Access spec). To use Ollama with the live app, run the **Dotstell Local AI Agent** — a tiny zero-dependency Node.js proxy that adds the required browser security headers:
+The hosted app at `dotstell.app` runs over `https://`. Modern browsers block `https://` pages from fetching `http://localhost` directly (Private Network Access spec). To use Ollama with the live app, run the **Dotstell Local AI Agent** — a tiny zero-dependency Node.js proxy that adds the required browser security headers.
+
+**You do not need to clone this repo.** The agent is available as a standalone npm package:
 
 ```bash
-# If Ollama is not already running (on Windows it usually auto-starts):
-ollama serve
-
-# Start the Local Agent
-node packages/agent/index.mjs
+# Run without installing (Node.js 18+ required)
+npx @dotstell/agent
 ```
 
-> **Windows tip:** Ollama typically runs as a background service on Windows and starts automatically. If you see `bind: Only one usage of each socket address` when running `ollama serve`, Ollama is already up — skip that step and just start the agent.
+Or download the single file directly if you prefer not to use npm:
+
+```bash
+curl -o dotstell-agent.mjs https://raw.githubusercontent.com/dotstell/dotstell/main/packages/agent/index.mjs
+node dotstell-agent.mjs
+```
+
+Make sure Ollama is running first (on Windows it usually auto-starts — check the system tray). If it's not: `ollama serve`
+
+> **Windows tip:** If you see `bind: Only one usage of each socket address` when running `ollama serve`, Ollama is already running — skip that step and just start the agent.
 
 The agent runs on `http://127.0.0.1:12345`, is loopback-only (not reachable from outside your machine), and proxies all AI requests from the browser to your local Ollama. The settings modal shows a green badge when it detects the agent.
+
+If you already have the repo cloned, you can also run it directly: `node packages/agent/index.mjs`
 
 See [`packages/agent/README.md`](packages/agent/README.md) for full setup, environment variables, and security details.
 
@@ -234,7 +245,8 @@ src/
 │   │   │   ├── digest/               # AI Knowledge Digest (dashboard)
 │   │   │   ├── person/               # Person intelligence brief
 │   │   │   ├── graph-intel/          # Graph AI analysis (clusters, gaps)
-│   │   │   ├── cloud-models/         # Live model list (OpenAI / Anthropic / Groq)
+│   │   │   ├── write/                # AI Writing Assistant (draft + improve)
+│   │   ├── cloud-models/         # Live model list (OpenAI / Anthropic / Groq)
 │   │   │   ├── gemini-models/        # Live model list (Gemini)
 │   │   │   └── ollama-models/        # Ollama installed model list (server proxy)
 │   │   ├── notes/                    # Notes list + create
@@ -279,6 +291,7 @@ src/
 │   ├── ai/                           # AI UI components
 │   │   ├── AISettingsModal.tsx       # Provider/model picker, test connection, build index
 │   │   ├── AIChatPanel.tsx           # Slide-out chat panel with RAG + People tab
+│   │   ├── AIWritingPanel.tsx        # Right-side writing panel (draft from scratch + improve)
 │   │   ├── AIPersonPanel.tsx         # Person intelligence search + brief
 │   │   └── AIRelatedPanel.tsx        # Related notes sidebar panel
 │   ├── editor/                       # Tiptap editor + WikiLinkExtension node
@@ -339,6 +352,7 @@ packages/
 | Desktop app (Windows, macOS + Linux) | ✅ Live |
 | AI layer — Chat, Assist, Semantic Search, Person Intelligence, Summaries, Digest | ✅ Live (v0.4.0) |
 | Local AI via Ollama — works from both live app and local dev | ✅ Live (v0.4.0) |
+| AI Writing Assistant — draft from scratch (8 templates) + improve existing content | ✅ Live (v0.5.0) |
 | Docs (per-project documentation) | 🔜 Soon |
 | Browser extension | 🔜 Planned |
 | Integrations (Slack, Teams, etc.) | 🔜 Planned |
