@@ -4,42 +4,17 @@ import { APP_VERSION } from '@/lib/version'
 
 export const dynamic = 'force-dynamic'
 
-const FEATURES = [
-  {
-    icon: '✏️',
-    title: 'Smart Notes',
-    desc: 'Rich text with slash commands, tables, code blocks, text colours, highlights and [[wikilinks]]. Drag to reorder, pin, and colour-label.',
-  },
-  {
-    icon: '🔖',
-    title: 'Smart Bookmarks',
-    desc: 'Save any URL — title, description and favicon fetched automatically and linked into your graph.',
-  },
-  {
-    icon: '🌐',
-    title: 'Knowledge Graph',
-    desc: 'A live visual map of how every note, person, task and bookmark connects to everything else.',
-  },
-  {
-    icon: '👥',
-    title: 'People & Connections',
-    desc: 'Build a personal network — link notes, bookmarks and tasks to the people who matter.',
-  },
-  {
-    icon: '📁',
-    title: 'Notebooks & Organisation',
-    desc: 'Group into notebooks, add tags, pin favourites and colour-label — then find anything with full-text search.',
-  },
-  {
-    icon: '✅',
-    title: 'Tasks & Checklists',
-    desc: 'Create checklists inside any note or as standalone tasks — keep what you need to do right next to why you need to do it.',
-  },
-  {
-    icon: '✨',
-    title: 'AI Intelligence',
-    desc: 'Bring your own key — Ollama, OpenAI, Anthropic, Gemini or Groq. Draft and improve notes with the AI Writing Assistant, get a daily digest, note summaries, auto-tags, smart titles, person intelligence, graph analysis, and AI chat across your entire knowledge base.',
-  },
+const TICKER_ITEMS = [
+  { icon: '✏️', label: 'Smart Notes'       },
+  { icon: '🔖', label: 'Bookmarks'         },
+  { icon: '🌐', label: 'Knowledge Graph'   },
+  { icon: '👥', label: 'People'            },
+  { icon: '📁', label: 'Notebooks'         },
+  { icon: '✅', label: 'Tasks'             },
+  { icon: '🔍', label: 'Universal Search'  },
+  { icon: '✨', label: 'AI Chat & Assist'  },
+  { icon: '✍️', label: 'AI Writing'        },
+  { icon: '🔗', label: 'Wikilinks'         },
 ]
 
 const NAV_ITEMS = [
@@ -260,6 +235,10 @@ export default function LandingPage() {
         <DotstellLogo size="sm" />
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <a href="https://www.dotstell.com/" target="_blank" rel="noopener noreferrer" style={{ padding: '6px 12px', fontSize: 13, borderRadius: 6, color: 'var(--muted-foreground)', textDecoration: 'none' }}>About</a>
+          <a href="https://github.com/dotstell/dotstell" target="_blank" rel="noopener noreferrer" className="hover:text-[var(--foreground)] transition-colors" style={{ padding: '6px 12px', fontSize: 13, borderRadius: 6, color: 'var(--muted-foreground)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 5 }}>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" /></svg>
+            GitHub
+          </a>
           <Link href="/auth/login" style={{ padding: '6px 12px', fontSize: 13, borderRadius: 6, color: 'var(--muted-foreground)', textDecoration: 'none' }}>Sign in</Link>
           <Link href="/auth/register" className="hover:opacity-90 transition-opacity" style={{ padding: '6px 16px', fontSize: 13, borderRadius: 6, background: 'var(--primary)', color: 'var(--primary-foreground)', fontWeight: 500, textDecoration: 'none' }}>
             Get started free
@@ -311,20 +290,41 @@ export default function LandingPage() {
         <AppMock />
       </section>
 
-      {/* ── Features ── */}
-      <section style={{ padding: '0 16px 96px', maxWidth: 960, margin: '0 auto', width: '100%' }}>
-        <div style={{ textAlign: 'center', marginBottom: 48 }}>
-          <h2 style={{ fontSize: 'clamp(22px, 4vw, 30px)', fontWeight: 700, marginBottom: 12 }}>One graph. Every thought.</h2>
-          <p style={{ fontSize: 14, color: 'var(--muted-foreground)' }}>Everything you capture lives together — and connects.</p>
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {FEATURES.map(({ icon, title, desc }) => (
-            <div key={title} className="hover:border-[var(--primary)]/40 transition-colors" style={{ borderRadius: 12, padding: '20px', border: '1px solid var(--border)', background: 'var(--card)' }}>
-              <div style={{ fontSize: 24, marginBottom: 12 }}>{icon}</div>
-              <h3 style={{ fontSize: 13, fontWeight: 600, marginBottom: 6 }}>{title}</h3>
-              <p style={{ fontSize: 12, color: 'var(--muted-foreground)', lineHeight: 1.6 }}>{desc}</p>
-            </div>
-          ))}
+      {/* ── Feature ticker ── */}
+      <style dangerouslySetInnerHTML={{ __html: `
+        @keyframes ticker { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
+        @media (prefers-reduced-motion: reduce) { .ticker-track { animation-play-state: paused !important; } }
+      ` }} />
+      <section style={{ borderTop: '1px solid var(--border)', padding: '28px 0', overflow: 'hidden' }}>
+        <p style={{ textAlign: 'center', fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--muted-foreground)', opacity: 0.45, marginBottom: 16 }}>
+          Everything connected
+        </p>
+        <div style={{ overflow: 'hidden', maskImage: 'linear-gradient(to right, transparent, black 10%, black 90%, transparent)', WebkitMaskImage: 'linear-gradient(to right, transparent, black 10%, black 90%, transparent)' }}>
+          <div
+            className="ticker-track"
+            style={{
+              display: 'flex',
+              width: 'max-content',
+              animation: 'ticker 28s linear infinite',
+              gap: 12,
+            }}
+          >
+            {[...TICKER_ITEMS, ...TICKER_ITEMS].map(({ icon, label }, i) => (
+              <span
+                key={i}
+                style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 7,
+                  padding: '7px 16px', borderRadius: 999, whiteSpace: 'nowrap',
+                  border: '1px solid var(--border)', background: 'var(--card)',
+                  fontSize: 12, color: 'var(--muted-foreground)',
+                  flexShrink: 0,
+                }}
+              >
+                <span style={{ fontSize: 14 }}>{icon}</span>
+                {label}
+              </span>
+            ))}
+          </div>
         </div>
       </section>
 
@@ -367,7 +367,9 @@ export default function LandingPage() {
       {/* ── Footer ── */}
       <footer style={{ borderTop: '1px solid var(--border)', padding: '24px 16px', textAlign: 'center', fontSize: 12, color: 'var(--muted-foreground)' }}>
         <div className="flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-4">
-          <span>Open source · Built in public</span>
+          <span>Open source · AGPL-3.0</span>
+          <span className="hidden sm:inline" style={{ opacity: 0.35 }}>·</span>
+          <a href="https://github.com/dotstell/dotstell" target="_blank" rel="noopener noreferrer" className="hover:text-[var(--foreground)] transition-colors">GitHub</a>
           <span className="hidden sm:inline" style={{ opacity: 0.35 }}>·</span>
           <a href="https://www.dotstell.com/" target="_blank" rel="noopener noreferrer" className="hover:text-[var(--foreground)] transition-colors">dotstell.com</a>
           <span className="hidden sm:inline" style={{ opacity: 0.35 }}>·</span>
