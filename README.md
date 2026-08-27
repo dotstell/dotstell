@@ -181,24 +181,27 @@ API keys are stored only in your browser's `localStorage`. They are never sent t
 
 The hosted app at `dotstell.app` runs over `https://`. Modern browsers block `https://` pages from fetching `http://localhost` directly (Private Network Access spec). To use Ollama with the live app, run the **Dotstell Local AI Agent** — a tiny zero-dependency Node.js proxy that adds the required browser security headers.
 
-**You do not need to clone this repo.** Download just the agent file:
+**You do not need to clone this repo.** The agent is available as a standalone npm package:
 
 ```bash
-# Download the agent (one file, no dependencies, no repo clone needed)
+# Run without installing (Node.js 18+ required)
+npx @dotstell/agent
+```
+
+Or download the single file directly if you prefer not to use npm:
+
+```bash
 curl -o dotstell-agent.mjs https://raw.githubusercontent.com/dotstell/dotstell/main/packages/agent/index.mjs
-
-# Make sure Ollama is running (on Windows it usually auto-starts — check system tray)
-# If not running: ollama serve
-
-# Start the agent
 node dotstell-agent.mjs
 ```
 
-> **Windows tip:** Ollama typically runs as a background service on Windows and starts automatically. If you see `bind: Only one usage of each socket address` when running `ollama serve`, Ollama is already up — skip that step and just start the agent.
+Make sure Ollama is running first (on Windows it usually auto-starts — check the system tray). If it's not: `ollama serve`
+
+> **Windows tip:** If you see `bind: Only one usage of each socket address` when running `ollama serve`, Ollama is already running — skip that step and just start the agent.
 
 The agent runs on `http://127.0.0.1:12345`, is loopback-only (not reachable from outside your machine), and proxies all AI requests from the browser to your local Ollama. The settings modal shows a green badge when it detects the agent.
 
-If you already have the repo cloned, you can also run it directly from there: `node packages/agent/index.mjs`
+If you already have the repo cloned, you can also run it directly: `node packages/agent/index.mjs`
 
 See [`packages/agent/README.md`](packages/agent/README.md) for full setup, environment variables, and security details.
 

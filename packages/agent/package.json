@@ -13,5 +13,16 @@
   },
   "engines": {
     "node": ">=18"
-  }
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/dotstell/dotstell.git",
+    "directory": "packages/agent"
+  },
+  "homepage": "https://github.com/dotstell/dotstell/tree/main/packages/agent#readme",
+  "keywords": ["ollama", "local-ai", "proxy", "dotstell"],
+  "license": "AGPL-3.0"
 }
