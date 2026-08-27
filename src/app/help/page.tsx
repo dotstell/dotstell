@@ -149,8 +149,8 @@ export default function HelpPage() {
               <Tip icon="2️⃣" title="Connect it to something"
                 body={<>Inside any note, type <Kbd>[[</Kbd> and start typing to link to another note. This is the core idea: connections between things reveal what no single item could tell you alone.</>}
               />
-              <Tip icon="3️⃣" title="Add people and tasks"
-                body={<>Create a contact in <Link href="/people" style={{ color: 'var(--primary)' }}>People</Link>, then attach notes and tasks directly to them. Use it for meeting notes, 1-on-1 prep, and tracking context around a person.</>}
+              <Tip icon="3️⃣" title="Link notes to people, tasks and bookmarks"
+                body={<>Open any note and click <strong>Link item</strong> in the right panel to attach it to a person, task or bookmark. You can also connect items directly from the <Link href="/graph" style={{ color: 'var(--primary)' }}>Graph</Link> view. Once linked, open a person&apos;s profile and you&apos;ll see every note, task and bookmark connected to them in one place — no searching across apps.</>}
               />
               <Tip icon="4️⃣" title="Watch the graph build itself"
                 body={<>Open <Link href="/graph" style={{ color: 'var(--primary)' }}>Graph</Link> after adding a few linked notes. Every connection you create appears as an edge — the picture that was invisible across separate tools becomes visible.</>}
