@@ -101,6 +101,22 @@ Next.js App Router. Every folder is a route segment.
 ```
 src/app/
 ├── api/                              # REST API (server-side)
+│   ├── ai/                           # AI routes — all require auth + rate limiting
+│   │   ├── chat/                     # Streaming chat (SSE) — all providers
+│   │   ├── assist/                   # Inline text operations (rewrite, expand, fix…)
+│   │   ├── summarize/                # Note / bookmark summary
+│   │   ├── title/                    # Smart title suggestion
+│   │   ├── tags/                     # Auto-tag suggestion
+│   │   ├── embed/                    # Single embed (POST) + bulk re-index (PUT)
+│   │   ├── semantic-search/          # pgvector cosine similarity search
+│   │   ├── related/[id]/             # Related notes for a given note
+│   │   ├── digest/                   # AI Knowledge Digest (dashboard)
+│   │   ├── person/                   # Person intelligence brief
+│   │   ├── graph-intel/              # Graph analysis: missing links, clusters, gaps
+│   │   ├── write/                    # AI Writing Assistant (draft + improve)
+│   │   ├── cloud-models/             # Live model list (OpenAI / Anthropic / Groq)
+│   │   ├── gemini-models/            # Live model list (Gemini)
+│   │   └── ollama-models/            # Ollama installed model list (server proxy)
 │   ├── notes/                        # Notes list + create
 │   ├── notes/[id]/                   # Note CRUD (soft delete via deleted_at)
 │   ├── notes/[id]/backlinks/         # Inbound wikilinks for a note
