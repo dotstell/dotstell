@@ -1,5 +1,6 @@
 'use client'
 import { useState, useEffect, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
 import { Plus, User, Mail, Building2, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import Link from 'next/link'
@@ -20,6 +21,7 @@ const DEFAULT_PERSON: Partial<Person> = {
 }
 
 export default function PeoplePage() {
+  const router = useRouter()
   const [people, setPeople] = useState<Person[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
@@ -120,7 +122,11 @@ export default function PeoplePage() {
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {people.map(person => (
-              <div key={person.id} className="group bg-[var(--card)] border border-[var(--border)] rounded-lg p-4 hover:border-[var(--primary)]/40 transition-all">
+              <div
+                key={person.id}
+                className="group bg-[var(--card)] border border-[var(--border)] rounded-lg p-4 hover:border-[var(--primary)]/40 hover:shadow-sm transition-all cursor-pointer"
+                onClick={() => router.push(`/people/${person.id}`)}
+              >
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex items-center gap-3">
                     <div className="w-9 h-9 rounded-full bg-[var(--primary)]/20 flex items-center justify-center flex-shrink-0">
@@ -129,12 +135,7 @@ export default function PeoplePage() {
                       </span>
                     </div>
                     <div>
-                      <Link
-                        href={`/people/${person.id}`}
-                        className="text-sm font-medium hover:text-[var(--primary)] transition-colors"
-                      >
-                        {person.name}
-                      </Link>
+                      <p className="text-sm font-medium">{person.name}</p>
                       {person.role && (
                         <p className="text-xs text-[var(--muted-foreground)]">{person.role}</p>
                       )}
@@ -144,7 +145,7 @@ export default function PeoplePage() {
                     variant="ghost"
                     size="icon"
                     className="opacity-0 group-hover:opacity-100 h-6 w-6 text-[var(--muted-foreground)] hover:text-[var(--destructive)]"
-                    onClick={() => deletePerson(person.id)}
+                    onClick={e => { e.stopPropagation(); deletePerson(person.id) }}
                   >
                     <Trash2 size={12} />
                   </Button>
@@ -170,7 +171,7 @@ export default function PeoplePage() {
                     ))}
                   </div>
                   <button
-                    onClick={() => openEdit(person)}
+                    onClick={e => { e.stopPropagation(); openEdit(person) }}
                     className="text-xs text-[var(--primary)] hover:underline"
                   >
                     Edit

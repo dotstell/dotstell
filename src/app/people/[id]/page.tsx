@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect, useCallback } from 'react'
 import { use } from 'react'
-import { ArrowLeft, Plus, Mail, Building2, Phone } from 'lucide-react'
+import { ArrowLeft, Plus, Mail, Building2, Phone, FileText, CheckSquare, Bookmark } from 'lucide-react'
 import Link from 'next/link'
 import { toast } from 'sonner'
 import { Person, Note } from '@/types'
@@ -15,22 +15,51 @@ import { PageContainer } from '@/components/layout/PageContainer'
 
 const DEFAULT_NOTE: Partial<Note> = { title: '', content: '', type: 'plain', checklist_items: [], tags: [] }
 
+interface LinkedItem { id: string; type: string; label: string }
+
+const LINKED_ICON: Record<string, React.ElementType> = { note: FileText, task: CheckSquare, bookmark: Bookmark }
+const LINKED_COLOR: Record<string, string> = { note: 'var(--primary)', task: '#ef4444', bookmark: '#f59e0b' }
+const LINKED_HREF: Record<string, (id: string) => string> = {
+  note: (id) => `/notes/${id}`,
+  task: () => '/tasks',
+  bookmark: () => '/bookmarks',
+}
+
 export default function PersonPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params)
   const [person, setPerson] = useState<Person | null>(null)
   const [notes, setNotes] = useState<Note[]>([])
+  const [linkedItems, setLinkedItems] = useState<LinkedItem[]>([])
   const [loading, setLoading] = useState(true)
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editingNote, setEditingNote] = useState<Partial<Note>>(DEFAULT_NOTE)
   const [saving, setSaving] = useState(false)
 
   const fetchData = useCallback(async () => {
-    const [personRes, notesRes] = await Promise.all([
+    const [personRes, notesRes, linksRes] = await Promise.all([
       fetch(`/api/people/${id}`),
       fetch(`/api/notes?person_id=${id}`),
+      fetch(`/api/links?target_id=${id}`),
     ])
     if (personRes.ok) setPerson(await personRes.json())
     if (notesRes.ok) setNotes(await notesRes.json())
+    if (linksRes.ok) {
+      const links = await linksRes.json()
+      const filtered = Array.isArray(links) ? links.filter((l: { label?: string }) => l.label !== '__wikilink__') : []
+      const enriched: LinkedItem[] = await Promise.all(
+        filtered.map(async (link: { source_id: string; source_type: string }) => {
+          try {
+            const r = await fetch(`/api/${link.source_type === 'person' ? 'people' : link.source_type + 's'}/${link.source_id}`)
+            if (r.ok) {
+              const item = await r.json()
+              return { id: link.source_id, type: link.source_type, label: item.title ?? item.name ?? link.source_id }
+            }
+          } catch {}
+          return { id: link.source_id, type: link.source_type, label: link.source_id }
+        })
+      )
+      setLinkedItems(enriched)
+    }
     setLoading(false)
   }, [id])
 
@@ -122,6 +151,34 @@ export default function PersonPage({ params }: { params: Promise<{ id: string }>
                 onDelete={deleteNote}
               />
             ))}
+          </div>
+        )}
+        {/* Linked items — notes, tasks, bookmarks connected to this person via Link item */}
+        {linkedItems.length > 0 && (
+          <div className="mt-8">
+            <h2 className="text-base font-semibold mb-4">Linked items ({linkedItems.length})</h2>
+            <div className="flex flex-col gap-2">
+              {linkedItems.map(item => {
+                const Icon = LINKED_ICON[item.type] ?? FileText
+                const color = LINKED_COLOR[item.type] ?? 'var(--primary)'
+                const href = LINKED_HREF[item.type]?.(item.id) ?? '#'
+                return (
+                  <Link
+                    key={item.id}
+                    href={href}
+                    className="flex items-center gap-3 px-4 py-3 rounded-lg border border-[var(--border)] bg-[var(--card)] hover:border-[var(--primary)]/40 transition-colors no-underline"
+                  >
+                    <div className="w-7 h-7 rounded-md flex items-center justify-center flex-shrink-0" style={{ backgroundColor: color + '20' }}>
+                      <Icon size={13} style={{ color }} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate" style={{ color: 'var(--foreground)' }}>{item.label}</p>
+                      <p className="text-xs capitalize" style={{ color: 'var(--muted-foreground)' }}>{item.type}</p>
+                    </div>
+                  </Link>
+                )
+              })}
+            </div>
           </div>
         )}
       </PageContainer>
