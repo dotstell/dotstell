@@ -1,21 +1,26 @@
 'use client'
-import ReactMarkdown from 'react-markdown'
-import remarkGfm from 'remark-gfm'
+import { marked } from 'marked'
+import { useMemo } from 'react'
 
 interface Props {
   children: string
   className?: string
-  /** When true, suppresses paragraph margins — useful inside chat bubbles */
+  /** Reduces paragraph/list spacing inside chat bubbles */
   compact?: boolean
 }
 
+// marked is already installed (v18) — use it instead of react-markdown
+// to avoid ESM-only module issues during Next.js compilation.
+// Content here is AI-generated markdown, not user-supplied HTML.
 export function MarkdownContent({ children, className = '', compact = false }: Props) {
+  const html = useMemo(() => {
+    return marked(children, { gfm: true, breaks: false }) as string
+  }, [children])
+
   return (
-    <ReactMarkdown
+    <div
       className={`md-content${compact ? ' md-content--compact' : ''}${className ? ` ${className}` : ''}`}
-      remarkPlugins={[remarkGfm]}
-    >
-      {children}
-    </ReactMarkdown>
+      dangerouslySetInnerHTML={{ __html: html }}
+    />
   )
 }
