@@ -66,13 +66,15 @@ const EMBED_PROVIDER_WHY_NOT: Partial<Record<AIProvider, string>> = {
 }
 
 export function AISettingsModal({ onClose }: AISettingsModalProps) {
-  const { config, saveConfig, loaded } = useAISettings()
+  const { config, saveConfig, loaded, isConfigured } = useAISettings()
   const [draft,        setDraft]        = useState<AIConfig>(config)
 
   // useAISettings reads localStorage in a useEffect (async), so `config` starts as
   // DEFAULT_AI_CONFIG on first render. Sync draft once the hook has loaded the real value.
   useEffect(() => { if (loaded) setDraft(config) }, [loaded]) // eslint-disable-line react-hooks/exhaustive-deps
   const [saved,        setSaved]         = useState(false)
+  // Build index is only allowed once settings have been saved at least once
+  const canBuildIndex = isConfigured || saved
   const [testing,      setTesting]      = useState(false)
   const [testResult,   setTestResult]   = useState<{ ok: boolean; chatOk: boolean; message: string; embedResult?: { ok: boolean; message: string } } | null>(null)
   const [indexing,     setIndexing]     = useState(false)
@@ -567,13 +569,12 @@ export function AISettingsModal({ onClose }: AISettingsModalProps) {
           )}
           {/* Local Agent status — only shown on the live app when Ollama is selected */}
           {draft.provider === 'ollama' && !isLocalHostname() && agentRunning === false && (
-            <Notice type="warning" style={{ marginTop: 6 }}>
-              Dotstell Local Agent not found on port 12345. Browser security (Private Network Access) blocks direct Ollama connections from dotstell.app.
-              Start the agent to fix this:{' '}
+            <Notice type="warning" style={{ marginTop: 6 }} href="http://127.0.0.1:12345/health" hrefLabel="Check agent health">
+              Dotstell Local Agent not found on port 12345. Browser security (Private Network
+              Access) blocks direct Ollama connections from dotstell.app. Start the agent:{' '}
               <code style={{ fontSize: 10, backgroundColor: 'rgba(0,0,0,0.2)', padding: '1px 4px', borderRadius: 3 }}>
                 node packages/agent/index.mjs
               </code>
-              |||http://127.0.0.1:12345/health|||Check agent health ↗
             </Notice>
           )}
           {draft.provider === 'ollama' && !isLocalHostname() && agentRunning === true && (
@@ -626,10 +627,20 @@ export function AISettingsModal({ onClose }: AISettingsModalProps) {
               </Notice>
             )}
             {draft.embeddingProvider === 'ollama' && !isLocalHostname() && (
-              <Notice type={agentRunning === true ? 'success' : 'warning'} style={{ marginBottom: 6 }}>
+              <Notice
+                type={agentRunning === true ? 'success' : 'warning'}
+                style={{ marginBottom: 6 }}
+                {...(agentRunning !== true ? { href: 'http://127.0.0.1:12345/health', hrefLabel: 'Check agent health' } : {})}
+              >
                 {agentRunning === true
                   ? 'Local Ollama embedding is active — Build index runs in your browser via the Local Agent.'
-                  : 'Local Ollama embedding requires the Local Agent on port 12345. Start it before building the search index: node packages/agent/index.mjs'}
+                  : <>
+                      Local Ollama embedding requires the Local Agent on port 12345. Start it before building the search index:{' '}
+                      <code style={{ fontSize: 10, backgroundColor: 'rgba(0,0,0,0.2)', padding: '1px 4px', borderRadius: 3 }}>
+                        node packages/agent/index.mjs
+                      </code>
+                    </>
+                }
               </Notice>
             )}
             <ModelInput value={draft.embeddingModel} suggestions={embedModels} onChange={v => setDraft(p => ({ ...p, embeddingModel: v }))} />
@@ -639,16 +650,38 @@ export function AISettingsModal({ onClose }: AISettingsModalProps) {
         {/* ── Step 3: Build search index ── */}
         <div style={{ borderTop: '1px solid var(--border)', paddingTop: 16, marginTop: 4 }}>
           <SectionHeader step={3} title="Build the search index" subtitle="One-time step — converts your notes into a searchable format" />
-          <p style={{ fontSize: 12, color: 'var(--muted-foreground)', margin: '0 0 10px', lineHeight: 1.5 }}>
-            Click <strong>Build index</strong>{' '}after saving. dotstell will read each of your notes and create a compact numerical fingerprint (an &quot;embedding&quot;) that lets the AI find related notes by meaning. This runs once; new notes are indexed automatically as you write them.
-          </p>
+          {!canBuildIndex ? (
+            <Notice type="warning" style={{ marginBottom: 10 }}>
+              Save your AI settings first (step 1 &amp; 2), then come back here to build the search index.
+            </Notice>
+          ) : (
+            <p style={{ fontSize: 12, color: 'var(--muted-foreground)', margin: '0 0 10px', lineHeight: 1.5 }}>
+              dotstell will read each of your notes and create a compact numerical fingerprint
+              (an &ldquo;embedding&rdquo;) that lets the AI find related notes by meaning. This
+              runs once; new notes are indexed automatically as you write them.
+            </p>
+          )}
           <button
             type="button"
             onClick={buildSearchIndex}
-            disabled={indexing}
-            style={{ width: '100%', padding: '9px', borderRadius: 8, border: '1px solid var(--border)', backgroundColor: 'var(--muted)', color: 'var(--foreground)', fontSize: 12, cursor: indexing ? 'default' : 'pointer', fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
+            disabled={indexing || !canBuildIndex}
+            title={!canBuildIndex ? 'Save your settings first to enable index building' : undefined}
+            style={{
+              width: '100%', padding: '9px', borderRadius: 8,
+              border: '1px solid var(--border)',
+              backgroundColor: 'var(--muted)',
+              color: canBuildIndex ? 'var(--foreground)' : 'var(--muted-foreground)',
+              fontSize: 12,
+              cursor: indexing || !canBuildIndex ? 'default' : 'pointer',
+              fontWeight: 600,
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+              opacity: canBuildIndex ? 1 : 0.45,
+            }}
           >
-            {indexing ? <><Loader2 size={13} style={{ animation: 'spin 1s linear infinite' }} /> Indexing your notes…</> : <><Database size={13} /> Build search index</>}
+            {indexing
+              ? <><Loader2 size={13} style={{ animation: 'spin 1s linear infinite' }} /> Indexing your notes…</>
+              : <><Database size={13} /> Build search index</>
+            }
           </button>
           {indexResult && (
             <Notice type={indexResult.ok ? 'success' : 'error'} style={{ marginTop: 8 }}>
@@ -751,7 +784,13 @@ function Field({ label, children, aside, style }: { label: string; children: Rea
   )
 }
 
-function Notice({ type, children, style }: { type: 'success' | 'error' | 'warning'; children: React.ReactNode; style?: React.CSSProperties }) {
+function Notice({ type, children, style, href, hrefLabel }: {
+  type: 'success' | 'error' | 'warning'
+  children: React.ReactNode
+  style?: React.CSSProperties
+  href?: string
+  hrefLabel?: string
+}) {
   const colors = {
     success: { bg: 'rgba(74,222,128,0.08)',   border: 'rgba(74,222,128,0.3)',   text: '#4ade80' },
     error:   { bg: 'rgba(248,113,113,0.08)',  border: 'rgba(248,113,113,0.3)',  text: '#f87171' },
@@ -761,14 +800,16 @@ function Notice({ type, children, style }: { type: 'success' | 'error' | 'warnin
   const Icon = type === 'success' ? Check : AlertCircle
 
   // Parse "message|||url|||link label" format emitted by providerError()
+  // Explicit href/hrefLabel props take precedence over the encoded string format.
   let message:   React.ReactNode = children
-  let helpUrl:   string | null   = null
-  let helpLabel: string | null   = null
-  if (typeof children === 'string' && children.includes('|||')) {
+  let helpUrl:   string | null   = href ?? null
+  let helpLabel: string | null   = hrefLabel ?? null
+  if (!href && typeof children === 'string' && children.includes('|||')) {
     const parts = children.split('|||')
     message   = parts[0]
     helpUrl   = parts[1] ?? null
-    helpLabel = parts[2] ?? null
+    // Strip trailing ↗ from legacy encoded labels — the link renders it itself
+    helpLabel = (parts[2] ?? null)?.replace(/\s*↗\s*$/, '') ?? null
   }
 
   return (
