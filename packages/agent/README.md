@@ -47,9 +47,20 @@ node packages/agent/index.mjs
 You should see:
 
 ```
-Dotstell Local AI Agent v1.0.0 listening on http://127.0.0.1:12345
-Proxying to Ollama at http://127.0.0.1:11434
+  ● dotstell  Local AI Agent v1.1.0
+
+  Listening   http://127.0.0.1:12345
+  Proxying    http://127.0.0.1:11434   ✓ Ollama is running
+
+  App     https://dotstell.app
+  GitHub  https://github.com/dotstell/dotstell  · ★ star if it's useful
+
+  ────────────────────────────────────────────────
+  Keep this running while using Ollama · Ctrl+C to stop
+  ────────────────────────────────────────────────
 ```
+
+> Output is color-coded when running in a terminal that supports ANSI colors. `●` and `dotstell` appear in purple, URLs in cyan, `✓ Ollama is running` in green (or `⚠ Ollama not detected` in yellow if Ollama isn't up yet).
 
 Verify it is running by visiting [http://127.0.0.1:12345/health](http://127.0.0.1:12345/health) — it returns a JSON health object including the Ollama reachability status.
 
