@@ -24,13 +24,21 @@ The Local Agent runs on `http://127.0.0.1:12345` (a permitted local address), ac
 
 ## Quick start
 
-```bash
-# From the repo root
-node packages/agent/index.mjs
+**You do not need to clone the dotstell repo.** Download just this file and run it:
 
-# Or via npm script
-cd packages/agent
-npm start
+```bash
+# Download the agent (one file, no dependencies)
+curl -o dotstell-agent.mjs https://raw.githubusercontent.com/dotstell/dotstell/main/packages/agent/index.mjs
+
+# Start it
+node dotstell-agent.mjs
+```
+
+If you already have the repo cloned, run it from the repo root instead:
+
+```bash
+node packages/agent/index.mjs
+# or: cd packages/agent && npm start
 ```
 
 You should see:
@@ -48,7 +56,7 @@ Verify it is running by visiting [http://127.0.0.1:12345/health](http://127.0.0.
 
 1. Make sure Ollama is running. On Windows it usually auto-starts — check `http://127.0.0.1:11434` in a browser. If it shows "Ollama is running" you can skip `ollama serve`. If not: `ollama serve`
 2. Pull a model if you haven't: `ollama pull llama3.2` (or any model you want to use)
-3. Start the agent: `node packages/agent/index.mjs`
+3. Start the agent: `node dotstell-agent.mjs` (or `node packages/agent/index.mjs` if you have the repo cloned)
 4. Open [dotstell.app](https://dotstell.app) → AI Settings → choose **Ollama (Local)**
 5. The settings modal shows a green "Local Agent is running" badge when it detects the agent on port 12345
 
@@ -137,4 +145,4 @@ The agent is designed to be safe to run persistently in the background:
 }
 ```
 
-The `dotstell-agent` binary can be installed globally: `npm install -g packages/agent` (from the repo root) and then started with `dotstell-agent` from anywhere.
+If you have the repo cloned, you can install the binary globally: `npm install -g packages/agent` (from the repo root) and then start it with `dotstell-agent` from anywhere.
