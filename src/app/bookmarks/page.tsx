@@ -16,6 +16,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { EmptyState } from '@/components/ui/empty-state'
 import { formatRelative } from '@/lib/utils'
 import { PageContainer } from '@/components/layout/PageContainer'
+import { MarkdownContent } from '@/components/ui/MarkdownContent'
 
 // ── Metadata fetch helper ────────────────────────────────────
 async function fetchMeta(url: string) {
@@ -1486,9 +1487,9 @@ function BookmarkCard({ bookmark: bm, onEdit, onDelete, onTagClick, selectMode, 
               </div>
             )}
             {summary && (
-              <p style={{ margin: 0, fontSize: 12, color: 'var(--foreground)', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>
-                {summary}
-              </p>
+              <div style={{ fontSize: 12, color: 'var(--foreground)', lineHeight: 1.6 }}>
+                <MarkdownContent compact>{summary}</MarkdownContent>
+              </div>
             )}
           </div>
         )}

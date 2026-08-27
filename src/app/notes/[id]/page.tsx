@@ -23,6 +23,7 @@ import { useNoteTabs } from '@/hooks/useNoteTabs'
 import { notebookTag } from '@/hooks/useNotebooks'
 import { useAISettings } from '@/hooks/useAISettings'
 import { useAITitleSuggest, useAITagSuggest, useAISummarize } from '@/hooks/useAI'
+import { MarkdownContent } from '@/components/ui/MarkdownContent'
 import '@/components/editor/editor.css'
 
 type SaveStatus = 'saved' | 'saving' | 'unsaved' | null
@@ -832,9 +833,9 @@ ${note.content ?? ''}
                   </div>
                 )}
                 {noteSummary && !summaryLoading && (
-                  <p style={{ margin: 0, fontSize: 12, color: 'var(--muted-foreground)', lineHeight: 1.65, whiteSpace: 'pre-wrap' }}>
-                    {noteSummary}
-                  </p>
+                  <div style={{ fontSize: 12, color: 'var(--muted-foreground)', lineHeight: 1.65 }}>
+                    <MarkdownContent compact>{noteSummary}</MarkdownContent>
+                  </div>
                 )}
                 {!noteSummary && !summaryLoading && (
                   <p style={{ margin: 0, fontSize: 11, color: 'var(--muted-foreground)', opacity: 0.5 }}>
