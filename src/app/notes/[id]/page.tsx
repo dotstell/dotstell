@@ -6,11 +6,12 @@ import {
   X, Maximize2, Minimize2, Plus, FileText,
   ChevronRight, ArrowLeft, LayoutTemplate, Download,
   List, ChevronDown, Sparkles, MessageSquareText, Settings2,
-  AlignLeft, Loader2, RefreshCw, PenLine,
+  AlignLeft, Loader2, RefreshCw, PenLine, Check, CheckSquare,
 } from 'lucide-react'
 import type { Editor } from '@tiptap/react'
 import Link from 'next/link'
-import { Note } from '@/types'
+import { Note, ChecklistItem } from '@/types'
+import { generateId } from '@/lib/utils'
 import { RichTextEditor } from '@/components/editor/RichTextEditor'
 import { NoteTemplateModal } from '@/components/editor/NoteTemplates'
 import { LinkPanel } from '@/components/links/LinkPanel'
@@ -74,8 +75,9 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
 
   const saveTimer    = useRef<ReturnType<typeof setTimeout> | null>(null)
   const wikiLinkIds  = useRef<string[]>([])
-  // Holds the live Tiptap editor instance so we can scroll to headings from the ToC
   const editorRef    = useRef<Editor | null>(null)
+  const lastCheckRef = useRef<HTMLInputElement>(null)
+  const prevCheckLen = useRef(0)
 
   // Parse headings from HTML content so the ToC stays in sync with the editor
   const headings = useMemo(() => {
@@ -105,6 +107,12 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
     window.addEventListener('resize', check)
     return () => window.removeEventListener('resize', check)
   }, [])
+
+  useEffect(() => {
+    const len = note.checklist_items?.length ?? 0
+    if (len > prevCheckLen.current) lastCheckRef.current?.focus()
+    prevCheckLen.current = len
+  }, [note.checklist_items?.length])
 
   // Pre-populate notebook tag when coming from side pane
   useEffect(() => {
@@ -310,6 +318,22 @@ ${note.content ?? ''}
     setNote(updated); scheduleAutoSave(updated)
   }
 
+  function addCheckItem() {
+    const items = note.checklist_items ?? []
+    const updated = { ...note, checklist_items: [...items, { id: generateId(), text: '', checked: false }] }
+    setNote(updated); scheduleAutoSave(updated)
+  }
+
+  function updateCheckItem(itemId: string, updates: Partial<ChecklistItem>) {
+    const updated = { ...note, checklist_items: note.checklist_items?.map(item => item.id === itemId ? { ...item, ...updates } : item) ?? [] }
+    setNote(updated); scheduleAutoSave(updated)
+  }
+
+  function removeCheckItem(itemId: string) {
+    const updated = { ...note, checklist_items: note.checklist_items?.filter(item => item.id !== itemId) ?? [] }
+    setNote(updated); scheduleAutoSave(updated)
+  }
+
   async function handleSuggestTitle() {
     const content = note.content ?? ''
     if (!content || content === '<p></p>') return
@@ -349,7 +373,7 @@ ${note.content ?? ''}
         {/* Row 1: breadcrumb + actions */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           {!focusMode && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 13, color: 'var(--muted-foreground)', flexShrink: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'var(--muted-foreground)', flexShrink: 0 }}>
               <Link href="/notes" style={{ color: 'var(--muted-foreground)', display: 'flex', alignItems: 'center', gap: 4, textDecoration: 'none' }}>
                 <ArrowLeft size={13} /> Notes
               </Link>
@@ -358,6 +382,16 @@ ${note.content ?? ''}
                   <ChevronRight size={11} color="var(--border)" />
                   <Link href={`/notes/${note.parent_id}`} style={{ color: 'var(--muted-foreground)', textDecoration: 'none' }}>Parent</Link>
                 </>
+              )}
+              {note.type === 'checklist' && (
+                <span style={{ display: 'flex', alignItems: 'center', gap: 3, fontSize: 11, fontWeight: 600, color: '#10b981', backgroundColor: 'rgba(16,185,129,0.12)', padding: '2px 7px', borderRadius: 99 }}>
+                  <CheckSquare size={10} /> Checklist
+                </span>
+              )}
+              {note.type === 'plain' && (
+                <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--muted-foreground)', backgroundColor: 'var(--muted)', padding: '2px 7px', borderRadius: 99 }}>
+                  Plain
+                </span>
               )}
             </div>
           )}
@@ -655,80 +689,194 @@ ${note.content ?? ''}
       {/* ── Body: editor + right panel ── */}
       <div style={{ flex: 1, display: 'flex', minHeight: 0 }}>
 
-        {/* Editor */}
+        {/* Editor — checklist or rich text depending on note type */}
         <div style={{ flex: 1, minWidth: 0, overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
-          <RichTextEditor
-            content={note.content ?? '<p></p>'}
-            onChange={handleContentChange}
-            onTextChange={setEditorText}
-            placeholder="Start writing… (type / for commands, [[ to link a note)"
-            focusMode={focusMode}
-            onFocusMode={setFocusMode}
-            onWikiLinksChange={ids => { wikiLinkIds.current = ids }}
-            onEditorReady={ed => { editorRef.current = ed }}
-            onAIAssist={aiConfigured ? () => {
-              const editor = editorRef.current
-              if (!editor) return
-              const { from, to } = editor.state.selection
-              if (from === to) return
-              const text = editor.state.doc.textBetween(from, to, ' ').trim()
-              if (!text) return
-              const sel = window.getSelection()
-              const rect = sel?.rangeCount ? sel.getRangeAt(0).getBoundingClientRect() : null
-              if (rect) setAIAssist({ text, rect })
-            } : undefined}
-          />
+          {note.type === 'checklist' ? (
+            <div style={{ flex: 1, padding: '24px 40px', maxWidth: 680, margin: '0 auto', width: '100%', boxSizing: 'border-box' }}>
+              {/* Progress bar */}
+              {(note.checklist_items?.length ?? 0) > 0 && (() => {
+                const done  = note.checklist_items?.filter(i => i.checked).length ?? 0
+                const total = note.checklist_items?.length ?? 0
+                const pct   = total ? (done / total) * 100 : 0
+                return (
+                  <div style={{ marginBottom: 20 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                      <span style={{ fontSize: 12, fontWeight: 600, color: pct === 100 ? '#10b981' : 'var(--muted-foreground)' }}>
+                        {pct === 100 ? '🎉 All done!' : `${done} / ${total} done`}
+                      </span>
+                      {done > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const upd = { ...note, checklist_items: note.checklist_items?.filter(i => !i.checked) ?? [] }
+                            setNote(upd); scheduleAutoSave(upd)
+                          }}
+                          style={{ fontSize: 11, color: 'var(--muted-foreground)', background: 'none', border: 'none', cursor: 'pointer' }}
+                          onMouseEnter={e => { e.currentTarget.style.color = 'var(--destructive)' }}
+                          onMouseLeave={e => { e.currentTarget.style.color = 'var(--muted-foreground)' }}
+                        >
+                          Clear done
+                        </button>
+                      )}
+                    </div>
+                    <div style={{ height: 4, borderRadius: 99, backgroundColor: 'var(--border)', overflow: 'hidden' }}>
+                      <div style={{ height: '100%', borderRadius: 99, backgroundColor: '#10b981', width: `${pct}%`, transition: 'width 0.3s ease' }} />
+                    </div>
+                  </div>
+                )
+              })()}
 
-          {/* AI Draft hint — shown when note is empty, AI configured, and panel is not open */}
-          {aiConfigured && !loading && !writingOpen && editorText.trim() === '' && (
-            <div style={{
-              margin: '0 20px 20px',
-              padding: '14px 16px', borderRadius: 12,
-              border: '1px dashed color-mix(in srgb, var(--primary) 35%, transparent)',
-              backgroundColor: 'color-mix(in srgb, var(--primary) 5%, transparent)',
-              display: 'flex', flexDirection: 'column', gap: 10,
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-                <Sparkles size={12} color="var(--primary)" />
-                <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--primary)' }}>Start with AI</span>
-                <span style={{ fontSize: 11, color: 'var(--muted-foreground)' }}>— pick a format or describe what you want to write</span>
-              </div>
-              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                {(['outline', 'meeting', 'ooo', 'proposal', 'email'] as const).map(fmt => {
-                  const labels: Record<string, string> = { outline: '📋 Outline', meeting: '🤝 Meeting notes', ooo: '✈️ OoO email', proposal: '📊 Proposal', email: '✉️ Email draft' }
-                  return (
+              {/* Items */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                {(note.checklist_items ?? []).map((item, idx) => (
+                  <div
+                    key={item.id}
+                    className="group"
+                    style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '5px 8px', borderRadius: 8 }}
+                    onMouseEnter={e => { e.currentTarget.style.backgroundColor = 'var(--accent)' }}
+                    onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'transparent' }}
+                  >
                     <button
-                      key={fmt}
                       type="button"
-                      onClick={() => { setWritingFormat(fmt); setWritingOpen(true) }}
+                      onClick={() => updateCheckItem(item.id, { checked: !item.checked })}
+                      style={{
+                        width: 18, height: 18, borderRadius: 5, flexShrink: 0,
+                        border: `2px solid ${item.checked ? '#10b981' : 'var(--border)'}`,
+                        backgroundColor: item.checked ? '#10b981' : 'transparent',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        cursor: 'pointer', transition: 'all 0.15s',
+                      }}
+                      onMouseEnter={e => { if (!item.checked) e.currentTarget.style.borderColor = '#10b981' }}
+                      onMouseLeave={e => { if (!item.checked) e.currentTarget.style.borderColor = 'var(--border)' }}
+                    >
+                      {item.checked && <Check size={11} color="white" strokeWidth={3} />}
+                    </button>
+                    <input
+                      ref={idx === (note.checklist_items?.length ?? 0) - 1 ? lastCheckRef : undefined}
+                      value={item.text}
+                      onChange={e => updateCheckItem(item.id, { text: e.target.value })}
+                      onKeyDown={e => {
+                        if (e.key === 'Enter') { e.preventDefault(); addCheckItem() }
+                        if (e.key === 'Backspace' && !item.text) { e.preventDefault(); removeCheckItem(item.id) }
+                      }}
+                      placeholder="Item..."
+                      style={{
+                        flex: 1, background: 'none', border: 'none', outline: 'none',
+                        fontSize: 15, fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+                        color: item.checked ? 'var(--muted-foreground)' : 'var(--foreground)',
+                        textDecoration: item.checked ? 'line-through' : 'none',
+                        transition: 'color 0.15s',
+                      }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => removeCheckItem(item.id)}
+                      className="opacity-0 group-hover:opacity-100"
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 3, color: 'var(--muted-foreground)', display: 'flex', borderRadius: 4, transition: 'all 0.1s' }}
+                      onMouseEnter={e => { e.currentTarget.style.color = 'var(--destructive)'; e.currentTarget.style.backgroundColor = 'rgba(239,68,68,0.1)' }}
+                      onMouseLeave={e => { e.currentTarget.style.color = 'var(--muted-foreground)'; e.currentTarget.style.backgroundColor = 'transparent' }}
+                    >
+                      <X size={13} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+
+              {/* Add item row */}
+              <button
+                type="button"
+                onClick={addCheckItem}
+                style={{
+                  marginTop: 6, display: 'flex', alignItems: 'center', gap: 10,
+                  padding: '5px 8px', borderRadius: 8, border: 'none',
+                  background: 'none', cursor: 'pointer', color: 'var(--muted-foreground)',
+                  fontSize: 15, width: '100%', textAlign: 'left',
+                }}
+                onMouseEnter={e => { e.currentTarget.style.backgroundColor = 'var(--accent)'; e.currentTarget.style.color = 'var(--foreground)' }}
+                onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = 'var(--muted-foreground)' }}
+              >
+                <div style={{ width: 18, height: 18, borderRadius: 5, border: '2px dashed var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <Plus size={10} />
+                </div>
+                Add item
+              </button>
+            </div>
+          ) : (
+            <>
+              <RichTextEditor
+                content={note.content ?? '<p></p>'}
+                onChange={handleContentChange}
+                onTextChange={setEditorText}
+                placeholder="Start writing… (type / for commands, [[ to link a note)"
+                focusMode={focusMode}
+                onFocusMode={setFocusMode}
+                onWikiLinksChange={ids => { wikiLinkIds.current = ids }}
+                onEditorReady={ed => { editorRef.current = ed }}
+                onAIAssist={aiConfigured ? () => {
+                  const editor = editorRef.current
+                  if (!editor) return
+                  const { from, to } = editor.state.selection
+                  if (from === to) return
+                  const text = editor.state.doc.textBetween(from, to, ' ').trim()
+                  if (!text) return
+                  const sel = window.getSelection()
+                  const rect = sel?.rangeCount ? sel.getRangeAt(0).getBoundingClientRect() : null
+                  if (rect) setAIAssist({ text, rect })
+                } : undefined}
+              />
+
+              {/* AI Draft hint — shown when note is empty, AI configured, and panel is not open */}
+              {aiConfigured && !loading && !writingOpen && editorText.trim() === '' && (
+                <div style={{
+                  margin: '0 20px 20px',
+                  padding: '14px 16px', borderRadius: 12,
+                  border: '1px dashed color-mix(in srgb, var(--primary) 35%, transparent)',
+                  backgroundColor: 'color-mix(in srgb, var(--primary) 5%, transparent)',
+                  display: 'flex', flexDirection: 'column', gap: 10,
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+                    <Sparkles size={12} color="var(--primary)" />
+                    <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--primary)' }}>Start with AI</span>
+                    <span style={{ fontSize: 11, color: 'var(--muted-foreground)' }}>— pick a format or describe what you want to write</span>
+                  </div>
+                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                    {(['outline', 'meeting', 'ooo', 'proposal', 'email'] as const).map(fmt => {
+                      const labels: Record<string, string> = { outline: '📋 Outline', meeting: '🤝 Meeting notes', ooo: '✈️ OoO email', proposal: '📊 Proposal', email: '✉️ Email draft' }
+                      return (
+                        <button
+                          key={fmt}
+                          type="button"
+                          onClick={() => { setWritingFormat(fmt); setWritingOpen(true) }}
+                          style={{
+                            padding: '4px 10px', borderRadius: 99, fontSize: 12, cursor: 'pointer',
+                            border: '1px solid color-mix(in srgb, var(--primary) 30%, transparent)',
+                            backgroundColor: 'color-mix(in srgb, var(--primary) 8%, transparent)',
+                            color: 'var(--primary)', fontWeight: 500, transition: 'all 0.12s',
+                          }}
+                          onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'color-mix(in srgb, var(--primary) 16%, transparent)')}
+                          onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'color-mix(in srgb, var(--primary) 8%, transparent)')}
+                        >
+                          {labels[fmt]}
+                        </button>
+                      )
+                    })}
+                    <button
+                      type="button"
+                      onClick={() => { setWritingFormat(undefined); setWritingOpen(true) }}
                       style={{
                         padding: '4px 10px', borderRadius: 99, fontSize: 12, cursor: 'pointer',
-                        border: '1px solid color-mix(in srgb, var(--primary) 30%, transparent)',
-                        backgroundColor: 'color-mix(in srgb, var(--primary) 8%, transparent)',
-                        color: 'var(--primary)', fontWeight: 500, transition: 'all 0.12s',
+                        border: '1px solid var(--border)', backgroundColor: 'transparent',
+                        color: 'var(--muted-foreground)', fontWeight: 500, transition: 'all 0.12s',
                       }}
-                      onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'color-mix(in srgb, var(--primary) 16%, transparent)')}
-                      onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'color-mix(in srgb, var(--primary) 8%, transparent)')}
+                      onMouseEnter={e => { e.currentTarget.style.backgroundColor = 'var(--accent)'; e.currentTarget.style.color = 'var(--foreground)' }}
+                      onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = 'var(--muted-foreground)' }}
                     >
-                      {labels[fmt]}
+                      ✏️ Custom
                     </button>
-                  )
-                })}
-                <button
-                  type="button"
-                  onClick={() => { setWritingFormat(undefined); setWritingOpen(true) }}
-                  style={{
-                    padding: '4px 10px', borderRadius: 99, fontSize: 12, cursor: 'pointer',
-                    border: '1px solid var(--border)', backgroundColor: 'transparent',
-                    color: 'var(--muted-foreground)', fontWeight: 500, transition: 'all 0.12s',
-                  }}
-                  onMouseEnter={e => { e.currentTarget.style.backgroundColor = 'var(--accent)'; e.currentTarget.style.color = 'var(--foreground)' }}
-                  onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = 'var(--muted-foreground)' }}
-                >
-                  ✏️ Custom
-                </button>
-              </div>
-            </div>
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </div>
 
@@ -740,64 +888,87 @@ ${note.content ?? ''}
             display: 'flex', flexDirection: 'column', gap: 20,
           }}>
 
-            {/* ── Table of Contents ── */}
-            <div>
-              {/* Header with toggle — clicking shows/hides the outline */}
-              <button
-                type="button"
-                onClick={() => {
-                  const next = !tocOpen
-                  setTocOpen(next)
-                  localStorage.setItem('dotstell_toc_open', String(next))
-                }}
-                style={{
-                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                  width: '100%', background: 'none', border: 'none', cursor: 'pointer',
-                  padding: '0 0 8px', marginBottom: tocOpen ? 4 : 0,
-                }}
-              >
-                <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, fontWeight: 600, color: 'var(--muted-foreground)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                  <List size={12} /> Outline
-                </span>
-                <ChevronDown size={12} style={{ color: 'var(--muted-foreground)', transform: tocOpen ? 'rotate(0deg)' : 'rotate(-90deg)', transition: 'transform 0.15s' }} />
-              </button>
-
-              {tocOpen && (
-                headings.length === 0 ? (
-                  <p style={{ fontSize: 12, color: 'var(--muted-foreground)', margin: 0, opacity: 0.5 }}>
-                    Add headings to see outline
+            {/* ── Table of Contents / Checklist Progress ── */}
+            {note.type === 'checklist' ? (() => {
+              const done  = note.checklist_items?.filter(i => i.checked).length ?? 0
+              const total = note.checklist_items?.length ?? 0
+              const pct   = total ? Math.round((done / total) * 100) : 0
+              return (
+                <div>
+                  <p style={{ margin: '0 0 10px', fontSize: 11, fontWeight: 600, color: 'var(--muted-foreground)', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'flex', alignItems: 'center', gap: 5 }}>
+                    <CheckSquare size={12} /> Progress
                   </p>
-                ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                    {headings.map(h => (
-                      <button
-                        key={h.index}
-                        type="button"
-                        onClick={() => scrollToHeading(h.text)}
-                        title={h.text}
-                        style={{
-                          display: 'block', width: '100%', textAlign: 'left',
-                          background: 'none', border: 'none', cursor: 'pointer',
-                          // Indent by heading level: h1=0px, h2=10px, h3=18px, h4=24px
-                          paddingLeft: Math.max(0, (h.level - 1) * 8),
-                          paddingTop: 3, paddingBottom: 3, paddingRight: 4,
-                          borderRadius: 5,
-                          fontSize: h.level === 1 ? 13 : 12,
-                          fontWeight: h.level <= 2 ? 600 : 400,
-                          color: 'var(--foreground)',
-                          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                          transition: 'background 0.1s, color 0.1s',
-                        }}
-                        onMouseEnter={e => { e.currentTarget.style.background = 'var(--accent)'; e.currentTarget.style.color = 'var(--primary)' }}
-                        onMouseLeave={e => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = 'var(--foreground)' }}
-                      >
-                        {h.text}
-                      </button>
-                    ))}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12 }}>
+                      <span style={{ color: 'var(--foreground)', fontWeight: 600 }}>{pct}%</span>
+                      <span style={{ color: 'var(--muted-foreground)' }}>{done}/{total}</span>
+                    </div>
+                    <div style={{ height: 6, borderRadius: 99, backgroundColor: 'var(--border)', overflow: 'hidden' }}>
+                      <div style={{ height: '100%', borderRadius: 99, backgroundColor: pct === 100 ? '#10b981' : 'var(--primary)', width: `${pct}%`, transition: 'width 0.3s ease' }} />
+                    </div>
+                    <p style={{ margin: 0, fontSize: 11, color: pct === 100 ? '#10b981' : 'var(--muted-foreground)' }}>
+                      {pct === 100 ? '🎉 All items complete' : `${total - done} item${total - done !== 1 ? 's' : ''} remaining`}
+                    </p>
                   </div>
-                )
-              )}
-            </div>
+                </div>
+              )
+            })() : (
+              <div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const next = !tocOpen
+                    setTocOpen(next)
+                    localStorage.setItem('dotstell_toc_open', String(next))
+                  }}
+                  style={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                    width: '100%', background: 'none', border: 'none', cursor: 'pointer',
+                    padding: '0 0 8px', marginBottom: tocOpen ? 4 : 0,
+                  }}
+                >
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, fontWeight: 600, color: 'var(--muted-foreground)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                    <List size={12} /> Outline
+                  </span>
+                  <ChevronDown size={12} style={{ color: 'var(--muted-foreground)', transform: tocOpen ? 'rotate(0deg)' : 'rotate(-90deg)', transition: 'transform 0.15s' }} />
+                </button>
+
+                {tocOpen && (
+                  headings.length === 0 ? (
+                    <p style={{ fontSize: 12, color: 'var(--muted-foreground)', margin: 0, opacity: 0.5 }}>
+                      Add headings to see outline
+                    </p>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                      {headings.map(h => (
+                        <button
+                          key={h.index}
+                          type="button"
+                          onClick={() => scrollToHeading(h.text)}
+                          title={h.text}
+                          style={{
+                            display: 'block', width: '100%', textAlign: 'left',
+                            background: 'none', border: 'none', cursor: 'pointer',
+                            paddingLeft: Math.max(0, (h.level - 1) * 8),
+                            paddingTop: 3, paddingBottom: 3, paddingRight: 4,
+                            borderRadius: 5,
+                            fontSize: h.level === 1 ? 13 : 12,
+                            fontWeight: h.level <= 2 ? 600 : 400,
+                            color: 'var(--foreground)',
+                            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                            transition: 'background 0.1s, color 0.1s',
+                          }}
+                          onMouseEnter={e => { e.currentTarget.style.background = 'var(--accent)'; e.currentTarget.style.color = 'var(--primary)' }}
+                          onMouseLeave={e => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = 'var(--foreground)' }}
+                        >
+                          {h.text}
+                        </button>
+                      ))}
+                    </div>
+                  )
+                )}
+              </div>
+            )}
 
             <LinkPanel sourceId={noteId} sourceType="note" />
 
@@ -935,11 +1106,27 @@ ${note.content ?? ''}
           backgroundColor: 'color-mix(in srgb, var(--card) 80%, var(--background))',
           flexShrink: 0,
         }}>
-          <StatusPill label={`${wordCount.toLocaleString()} ${wordCount === 1 ? 'word' : 'words'}`} />
-          <StatusDivider />
-          <StatusPill label={`${charCount.toLocaleString()} chars`} />
-          <StatusDivider />
-          <StatusPill label={`~${readMins} min read`} />
+          {note.type === 'checklist' ? (() => {
+            const done  = note.checklist_items?.filter(i => i.checked).length ?? 0
+            const total = note.checklist_items?.length ?? 0
+            return (
+              <>
+                <StatusPill label={`${total} item${total !== 1 ? 's' : ''}`} />
+                <StatusDivider />
+                <StatusPill label={`${done} done`} />
+                <StatusDivider />
+                <StatusPill label={`${total - done} remaining`} />
+              </>
+            )
+          })() : (
+            <>
+              <StatusPill label={`${wordCount.toLocaleString()} ${wordCount === 1 ? 'word' : 'words'}`} />
+              <StatusDivider />
+              <StatusPill label={`${charCount.toLocaleString()} chars`} />
+              <StatusDivider />
+              <StatusPill label={`~${readMins} min read`} />
+            </>
+          )}
           {saveStatus && (
             <>
               <div style={{ flex: 1 }} />
