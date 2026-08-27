@@ -290,41 +290,26 @@ export default function LandingPage() {
         <AppMock />
       </section>
 
-      {/* ── Feature ticker ── */}
-      <style dangerouslySetInnerHTML={{ __html: `
-        @keyframes ticker { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
-        @media (prefers-reduced-motion: reduce) { .ticker-track { animation-play-state: paused !important; } }
-      ` }} />
-      <section style={{ borderTop: '1px solid var(--border)', padding: '28px 0', overflow: 'hidden' }}>
-        <p style={{ textAlign: 'center', fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--muted-foreground)', opacity: 0.45, marginBottom: 16 }}>
+      {/* ── Feature pills ── */}
+      <section style={{ borderTop: '1px solid var(--border)', padding: '32px 24px' }}>
+        <p style={{ textAlign: 'center', fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--muted-foreground)', opacity: 0.45, marginBottom: 20 }}>
           Everything connected
         </p>
-        <div style={{ overflow: 'hidden', maskImage: 'linear-gradient(to right, transparent, black 10%, black 90%, transparent)', WebkitMaskImage: 'linear-gradient(to right, transparent, black 10%, black 90%, transparent)' }}>
-          <div
-            className="ticker-track"
-            style={{
-              display: 'flex',
-              width: 'max-content',
-              animation: 'ticker 28s linear infinite',
-              gap: 12,
-            }}
-          >
-            {[...TICKER_ITEMS, ...TICKER_ITEMS].map(({ icon, label }, i) => (
-              <span
-                key={i}
-                style={{
-                  display: 'inline-flex', alignItems: 'center', gap: 7,
-                  padding: '7px 16px', borderRadius: 999, whiteSpace: 'nowrap',
-                  border: '1px solid var(--border)', background: 'var(--card)',
-                  fontSize: 12, color: 'var(--muted-foreground)',
-                  flexShrink: 0,
-                }}
-              >
-                <span style={{ fontSize: 14 }}>{icon}</span>
-                {label}
-              </span>
-            ))}
-          </div>
+        <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 10, maxWidth: 800, margin: '0 auto' }}>
+          {TICKER_ITEMS.map(({ icon, label }) => (
+            <span
+              key={label}
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: 7,
+                padding: '7px 16px', borderRadius: 999,
+                border: '1px solid var(--border)', background: 'var(--card)',
+                fontSize: 12, color: 'var(--muted-foreground)',
+              }}
+            >
+              <span style={{ fontSize: 14 }}>{icon}</span>
+              {label}
+            </span>
+          ))}
         </div>
       </section>
 
