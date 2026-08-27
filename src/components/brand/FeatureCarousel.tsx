@@ -182,7 +182,7 @@ function NotesMock() {
     <MockShell title="Product Launch Plan" accent="#7c6aff">
       <p style={{ fontSize: 12, color: 'var(--foreground)', lineHeight: 1.9, margin: '0 0 14px' }}>
         Coordinate timeline with{' '}
-        <Chip label="Shihab" accent="#7c6aff" />
+        <Chip label="Sarah" accent="#a855f7" />
         {' '}and align with{' '}
         <Chip label="Q3 Goals" accent="#22c55e" />.
       </p>
@@ -192,7 +192,7 @@ function NotesMock() {
       <div style={{ marginTop: 14 }}>
         <Label>Connected to</Label>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-          <Pill icon="👤" label="Shihab" type="Person" accent="#7c6aff" />
+          <Pill icon="👤" label="Sarah" type="Person" accent="#a855f7" />
           <Pill icon="📄" label="Q3 Goals" type="Note" accent="#22c55e" />
           <Pill icon="✅" label="Define launch scope" type="Task" accent="#f59e0b" />
         </div>
@@ -204,7 +204,7 @@ function NotesMock() {
 function GraphMock() {
   const nodes = [
     { id: 'n1', x: 50,  y: 40,  label: 'Launch Plan',  color: '#7c6aff', r: 18 },
-    { id: 'n2', x: 160, y: 25,  label: 'Shihab',       color: '#a855f7', r: 14 },
+    { id: 'n2', x: 160, y: 25,  label: 'Sarah',        color: '#a855f7', r: 14 },
     { id: 'n3', x: 200, y: 110, label: 'Q3 Goals',     color: '#22c55e', r: 16 },
     { id: 'n4', x: 80,  y: 130, label: 'wireframes',   color: '#3b82f6', r: 12 },
     { id: 'n5', x: 270, y: 50,  label: 'Auth decision',color: '#7c6aff', r: 14 },
@@ -354,7 +354,7 @@ function AIIntelMock() {
       <div style={{ padding: '14px', display: 'flex', flexDirection: 'column', gap: 12 }}>
         <div>
           <Label>Today's activity summary</Label>
-          <p style={{ fontSize: 11, color: 'var(--muted-foreground)', lineHeight: 1.65, margin: 0 }}>You added 3 notes today focused on auth strategy and Q3 planning. 2 tasks are overdue. Shihab appeared in 4 notes this week.</p>
+          <p style={{ fontSize: 11, color: 'var(--muted-foreground)', lineHeight: 1.65, margin: 0 }}>You added 3 notes today focused on auth strategy and Q3 planning. 2 tasks are overdue. Sarah appeared in 4 notes this week.</p>
         </div>
         <div>
           <Label>Smart title suggestion</Label>
