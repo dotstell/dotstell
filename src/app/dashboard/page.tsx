@@ -494,7 +494,7 @@ export default function DashboardPage() {
                 <Activity size={14} color="var(--muted-foreground)" />
                 <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--foreground)' }}>Recent activity</span>
               </div>
-              <span style={{ fontSize: 11, color: 'var(--border)' }}>Last 7 days</span>
+              <span style={{ fontSize: 11, color: 'var(--muted-foreground)' }}>Last 7 days</span>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3,1fr)', padding: '8px' }}>
               {activity.map((item, idx) => (
@@ -516,10 +516,10 @@ export default function DashboardPage() {
                     {item.type === 'task'     && <CheckCircle2 size={12} color={item.color} />}
                   </div>
                   <div style={{ minWidth: 0, flex: 1 }}>
-                    <p style={{ fontSize: 12, fontWeight: 500, color: '#d0d0e8', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    <p style={{ fontSize: 12, fontWeight: 500, color: 'var(--foreground)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {item.label}
                     </p>
-                    <p style={{ fontSize: 10, color: '#4a4a6a', margin: '1px 0 0' }}>
+                    <p style={{ fontSize: 10, color: 'var(--muted-foreground)', margin: '1px 0 0' }}>
                       {item.action} · {formatRelative(item.time)}
                     </p>
                   </div>
@@ -531,8 +531,8 @@ export default function DashboardPage() {
 
         {/* ── Quick actions ── */}
         <div>
-          <p style={{ fontSize: 10, color: 'var(--border)', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', margin: '0 0 10px', display: 'flex', alignItems: 'center', gap: 6 }}>
-            <Zap size={11} color="var(--border)" /> Quick actions
+          <p style={{ fontSize: 10, color: 'var(--muted-foreground)', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', margin: '0 0 10px', display: 'flex', alignItems: 'center', gap: 6 }}>
+            <Zap size={11} color="var(--muted-foreground)" /> Quick actions
           </p>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
             {[
@@ -574,15 +574,15 @@ function Panel({ title, icon, href, action, actionHref, children }: {
           <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--foreground)' }}>{title}</span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <Link href={actionHref} style={{ fontSize: 11, color: 'var(--border)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 3 }}
+          <Link href={actionHref} style={{ fontSize: 11, color: 'var(--muted-foreground)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 3 }}
             onMouseEnter={e => (e.currentTarget.style.color = 'var(--primary)')}
-            onMouseLeave={e => (e.currentTarget.style.color = 'var(--border)')}
+            onMouseLeave={e => (e.currentTarget.style.color = 'var(--muted-foreground)')}
           >
             <Plus size={11} />
           </Link>
-          <Link href={href} style={{ fontSize: 11, color: 'var(--border)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 3 }}
+          <Link href={href} style={{ fontSize: 11, color: 'var(--muted-foreground)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 3 }}
             onMouseEnter={e => (e.currentTarget.style.color = 'var(--primary)')}
-            onMouseLeave={e => (e.currentTarget.style.color = 'var(--border)')}
+            onMouseLeave={e => (e.currentTarget.style.color = 'var(--muted-foreground)')}
           >
             All <ArrowRight size={10} />
           </Link>
@@ -612,7 +612,7 @@ function PanelEmpty({ icon, text }: { icon: string; text: string }) {
   return (
     <div style={{ padding: '24px 10px', textAlign: 'center' }}>
       <p style={{ fontSize: 20, margin: '0 0 4px' }}>{icon}</p>
-      <p style={{ fontSize: 12, color: 'var(--border)', margin: 0 }}>{text}</p>
+      <p style={{ fontSize: 12, color: 'var(--muted-foreground)', margin: 0 }}>{text}</p>
     </div>
   )
 }
@@ -624,12 +624,12 @@ const rowStyle: React.CSSProperties = {
   transition: 'background 0.12s', backgroundColor: 'transparent',
 }
 const rowTitleStyle: React.CSSProperties = {
-  fontSize: 12, fontWeight: 500, color: '#d8d8f0', margin: 0,
+  fontSize: 12, fontWeight: 500, color: 'var(--foreground)', margin: 0,
   overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
 }
 const rowSubStyle: React.CSSProperties = {
   fontSize: 10, color: 'var(--muted-foreground)', margin: '1px 0 0',
 }
 const rowTimeStyle: React.CSSProperties = {
-  fontSize: 10, color: '#4a4a6a', flexShrink: 0, marginLeft: 4,
+  fontSize: 10, color: 'var(--muted-foreground)', flexShrink: 0, marginLeft: 4,
 }
