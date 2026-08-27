@@ -71,7 +71,16 @@ export function AISettingsModal({ onClose }: AISettingsModalProps) {
 
   // useAISettings reads localStorage in a useEffect (async), so `config` starts as
   // DEFAULT_AI_CONFIG on first render. Sync draft once the hook has loaded the real value.
-  useEffect(() => { if (loaded) setDraft(config) }, [loaded]) // eslint-disable-line react-hooks/exhaustive-deps
+  // Also migrate any stale model names that no longer exist in the provider's API.
+  useEffect(() => {
+    if (!loaded) return
+    let migrated = config
+    if (config.provider === 'gemini' && config.model === 'gemini-3.6-flash') {
+      migrated = { ...config, model: 'gemini-2.0-flash' }
+      saveConfig(migrated)
+    }
+    setDraft(migrated)
+  }, [loaded]) // eslint-disable-line react-hooks/exhaustive-deps
   const [saved,        setSaved]         = useState(false)
   const [testing,      setTesting]      = useState(false)
   const [testResult,   setTestResult]   = useState<{ ok: boolean; chatOk: boolean; message: string; embedResult?: { ok: boolean; message: string } } | null>(null)
@@ -245,8 +254,12 @@ export function AISettingsModal({ onClose }: AISettingsModalProps) {
       body:    JSON.stringify({ config: draft, messages: [{ role: 'user', content: 'Reply with exactly: OK' }] }),
     })
     if (!res.ok) {
-      const err = await res.json().catch(() => ({ error: 'Connection failed' }))
-      throw new Error(err.error ?? 'Connection failed')
+      let errMsg = `Connection failed — HTTP ${res.status}`
+      try {
+        const body = await res.json()
+        if (body.error) errMsg = body.error
+      } catch { /* non-JSON error body — fall through to HTTP status message */ }
+      throw new Error(errMsg)
     }
     const reader  = res.body!.getReader()
     const decoder = new TextDecoder()

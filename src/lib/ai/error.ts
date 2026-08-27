@@ -28,11 +28,18 @@ const HELP: Partial<Record<ProviderName, Partial<Record<number, HelpAction>>>> =
 const STATUS_MESSAGES: Record<number, string> = {
   401: 'Invalid API key — double-check what you pasted',
   403: 'Invalid API key or insufficient permissions',
-  429: 'Rate limit exceeded — your account is out of quota',
+  429: 'Rate limit or quota exceeded',
   404: 'Model not found — update the model name in AI Settings',
   500: 'Provider server error — try again later',
   502: 'Provider unreachable — try again later',
   503: 'Provider unavailable — try again later',
+}
+
+// Provider-specific overrides for specific status codes
+const PROVIDER_STATUS_MESSAGES: Partial<Record<ProviderName, Partial<Record<number, string>>>> = {
+  Gemini: {
+    429: 'Free tier daily limit reached (1M tokens/day) — quota resets at midnight PST. Try a different model or wait for the reset.',
+  },
 }
 
 function cleanRawMessage(raw: string): string {
@@ -52,11 +59,11 @@ function cleanRawMessage(raw: string): string {
  */
 export function providerError(label: string, status: number, rawMsg: string): Error {
   const help     = HELP[label as ProviderName]?.[status]
-  const fixedMsg = STATUS_MESSAGES[status]
+  const fixedMsg = PROVIDER_STATUS_MESSAGES[label as ProviderName]?.[status] ?? STATUS_MESSAGES[status]
   // For 404 include the raw provider message — it names the missing model/path for easier diagnosis
   const msg      = status === 404
     ? `${STATUS_MESSAGES[404]} (${cleanRawMessage(rawMsg)})`
-    : fixedMsg ?? `error ${status}: ${cleanRawMessage(rawMsg)}`
+    : fixedMsg ?? `HTTP ${status}: ${cleanRawMessage(rawMsg)}`
   const full     = help
     ? `${label} — ${msg}|||${help.url}|||${help.label}`
     : `${label} — ${msg}`
