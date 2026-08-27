@@ -36,7 +36,7 @@ export const DEFAULT_CHAT_MODELS: Record<AIProvider, string> = {
   ollama:    'llama3.2',
   openai:    'gpt-4o-mini',
   anthropic: 'claude-haiku-4-5-20251001',
-  gemini:    'gemini-2.0-flash',
+  gemini:    'gemini-3.6-flash',
   groq:      'llama-3.1-8b-instant',
 }
 

@@ -71,16 +71,7 @@ export function AISettingsModal({ onClose }: AISettingsModalProps) {
 
   // useAISettings reads localStorage in a useEffect (async), so `config` starts as
   // DEFAULT_AI_CONFIG on first render. Sync draft once the hook has loaded the real value.
-  // Also migrate any stale model names that no longer exist in the provider's API.
-  useEffect(() => {
-    if (!loaded) return
-    let migrated = config
-    if (config.provider === 'gemini' && config.model === 'gemini-3.6-flash') {
-      migrated = { ...config, model: 'gemini-2.0-flash' }
-      saveConfig(migrated)
-    }
-    setDraft(migrated)
-  }, [loaded]) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { if (loaded) setDraft(config) }, [loaded]) // eslint-disable-line react-hooks/exhaustive-deps
   const [saved,        setSaved]         = useState(false)
   const [testing,      setTesting]      = useState(false)
   const [testResult,   setTestResult]   = useState<{ ok: boolean; chatOk: boolean; message: string; embedResult?: { ok: boolean; message: string } } | null>(null)

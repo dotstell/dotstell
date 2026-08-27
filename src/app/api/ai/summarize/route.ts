@@ -31,9 +31,9 @@ export async function POST(req: NextRequest) {
   const mode = body.mode ?? 'bullets'
 
   const modeInstruction: Record<string, string> = {
-    short:    'Provide a 1–2 sentence summary.',
-    bullets:  'Provide a summary as 3–5 concise bullet points.',
-    detailed: 'Provide a detailed summary covering all key points.',
+    short:    'Provide a 1–2 sentence summary. No preamble.',
+    bullets:  'Provide a summary as 3–5 bullet points. Start each bullet with "- " (hyphen space). Use **bold** for key terms. No preamble or closing remarks.',
+    detailed: 'Provide a detailed summary using markdown: ## headings for sections, - bullet points for lists, **bold** for key terms.',
   }
 
   try {
@@ -93,7 +93,7 @@ export async function POST(req: NextRequest) {
     const messages: AIMessage[] = [
       {
         role:    'system',
-        content: `You are a precise summarizer. ${modeInstruction[mode]} Be concise and extract only the most important information. Do not add information not present in the input.`,
+        content: `You are a precise summarizer. ${modeInstruction[mode]} Extract only information present in the input. Always use markdown syntax — never use bullet characters like • or *.`,
       },
       {
         role:    'user',
