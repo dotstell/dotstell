@@ -1,6 +1,6 @@
 'use client'
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { X, Send, Sparkles, User, Loader2, Trash2, Globe, FileText, Users } from 'lucide-react'
+import { X, Send, Sparkles, User, Loader2, Trash2, Globe, FileText, Users, Copy, Check } from 'lucide-react'
 import { AIConfig, AIMessage } from '@/lib/ai/types'
 import { useAIStream } from '@/hooks/useAI'
 import { streamOllamaBrowser, isLocalHostname } from '@/lib/ai/ollama-browser'
@@ -25,11 +25,12 @@ type ChatMode = 'note' | 'global'
 type PanelTab = 'chat' | 'people'
 
 export function AIChatPanel({ config, noteId, noteTitle, noteContent, onClose }: AIChatPanelProps) {
-  const [activeTab, setActiveTab] = useState<PanelTab>('chat')
-  const [messages,  setMessages]  = useState<ChatMessage[]>([])
-  const [input,     setInput]     = useState('')
-  const [mode,      setMode]      = useState<ChatMode>(noteId ? 'note' : 'global')
-  const [ragActive, setRagActive] = useState(true)
+  const [activeTab,  setActiveTab]  = useState<PanelTab>('chat')
+  const [messages,   setMessages]   = useState<ChatMessage[]>([])
+  const [input,      setInput]      = useState('')
+  const [mode,       setMode]       = useState<ChatMode>(noteId ? 'note' : 'global')
+  const [ragActive,  setRagActive]  = useState(true)
+  const [copiedIdx,  setCopiedIdx]  = useState<number | null>(null)
   const { text: streamText, streaming, error, stream, streamDirect, cancel, setText } = useAIStream()
   const bottomRef   = useRef<HTMLDivElement>(null)
   const inputRef    = useRef<HTMLTextAreaElement>(null)
@@ -157,6 +158,19 @@ export function AIChatPanel({ config, noteId, noteTitle, noteContent, onClose }:
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send() }
   }
 
+  async function copyMessage(content: string, idx: number) {
+    try {
+      await navigator.clipboard.writeText(content)
+      setCopiedIdx(idx)
+      setTimeout(() => setCopiedIdx(null), 2000)
+    } catch { /* clipboard unavailable */ }
+  }
+
+  function injectPrompt(text: string) {
+    setInput(text)
+    setTimeout(() => inputRef.current?.focus(), 0)
+  }
+
   const clearHistory = useCallback(() => {
     setMessages([])
     cancel()
@@ -245,37 +259,60 @@ export function AIChatPanel({ config, noteId, noteTitle, noteContent, onClose }:
 
       {/* Messages — chat tab only */}
       {activeTab === 'chat' && <div style={{ flex: 1, overflowY: 'auto', padding: '12px 12px 0', display: 'flex', flexDirection: 'column', gap: 10 }}>
-        {isEmpty && <WelcomeMessage mode={mode} noteTitle={noteTitle} />}
+        {isEmpty && <WelcomeMessage mode={mode} noteTitle={noteTitle} onPrompt={injectPrompt} />}
 
-        {messages.map((msg, i) => (
-          <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'flex-start', justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start' }}>
-            {msg.role === 'assistant' && (
-              <div style={{ width: 24, height: 24, borderRadius: 6, backgroundColor: 'color-mix(in srgb, var(--primary) 12%, transparent)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 2 }}>
-                <Sparkles size={12} color="var(--primary)" />
+        {messages.map((msg, i) => {
+          const isStreaming = streaming && i === messages.length - 1 && msg.role === 'assistant'
+          return (
+            <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'flex-start', justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start' }}>
+              {msg.role === 'assistant' && (
+                <div style={{ width: 24, height: 24, borderRadius: 6, backgroundColor: 'color-mix(in srgb, var(--primary) 12%, transparent)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 2 }}>
+                  <Sparkles size={12} color="var(--primary)" />
+                </div>
+              )}
+              <div style={{ maxWidth: '80%', display: 'flex', flexDirection: 'column', gap: 4, alignItems: msg.role === 'user' ? 'flex-end' : 'flex-start' }}>
+                <div style={{
+                  padding:         '8px 11px',
+                  borderRadius:    msg.role === 'user' ? '12px 12px 4px 12px' : '12px 12px 12px 4px',
+                  backgroundColor: msg.role === 'user' ? 'var(--primary)' : 'var(--muted)',
+                  color:           msg.role === 'user' ? 'white' : 'var(--foreground)',
+                  fontSize:        13, lineHeight: 1.5, wordBreak: 'break-word',
+                }}>
+                  {msg.role === 'assistant' && msg.content
+                    ? <><MarkdownContent compact>{msg.content}</MarkdownContent>{isStreaming && <span className="streaming-cursor">▌</span>}</>
+                    : msg.content || (isStreaming
+                        ? <Loader2 size={12} style={{ animation: 'spin 1s linear infinite' }} />
+                        : null)
+                  }
+                </div>
+                {/* Copy button — shown below completed assistant messages only */}
+                {msg.role === 'assistant' && msg.content && !isStreaming && (
+                  <button
+                    type="button"
+                    title="Copy response"
+                    onClick={() => copyMessage(msg.content, i)}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 3,
+                      background: 'none', border: 'none', cursor: 'pointer',
+                      color: copiedIdx === i ? 'var(--primary)' : 'var(--muted-foreground)',
+                      fontSize: 10, padding: '1px 4px', borderRadius: 4,
+                      transition: 'color 0.15s', opacity: 0.6,
+                    }}
+                    onMouseEnter={e => { (e.currentTarget as HTMLElement).style.opacity = '1' }}
+                    onMouseLeave={e => { (e.currentTarget as HTMLElement).style.opacity = '0.6' }}
+                  >
+                    {copiedIdx === i ? <><Check size={10} /> Copied</> : <><Copy size={10} /> Copy</>}
+                  </button>
+                )}
               </div>
-            )}
-            <div style={{
-              maxWidth:        '80%',
-              padding:         '8px 11px',
-              borderRadius:    msg.role === 'user' ? '12px 12px 4px 12px' : '12px 12px 12px 4px',
-              backgroundColor: msg.role === 'user' ? 'var(--primary)' : 'var(--muted)',
-              color:           msg.role === 'user' ? 'white' : 'var(--foreground)',
-              fontSize:        13, lineHeight: 1.5, wordBreak: 'break-word',
-            }}>
-              {msg.role === 'assistant' && msg.content
-                ? <MarkdownContent compact>{msg.content}</MarkdownContent>
-                : msg.content || (streaming && i === messages.length - 1
-                    ? <Loader2 size={12} style={{ animation: 'spin 1s linear infinite' }} />
-                    : null)
-              }
+              {msg.role === 'user' && (
+                <div style={{ width: 24, height: 24, borderRadius: 6, backgroundColor: 'var(--muted)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 2 }}>
+                  <User size={12} color="var(--muted-foreground)" />
+                </div>
+              )}
             </div>
-            {msg.role === 'user' && (
-              <div style={{ width: 24, height: 24, borderRadius: 6, backgroundColor: 'var(--muted)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 2 }}>
-                <User size={12} color="var(--muted-foreground)" />
-              </div>
-            )}
-          </div>
-        ))}
+          )
+        })}
 
         {error && (
           <div style={{ padding: '8px 12px', borderRadius: 8, backgroundColor: 'rgba(248,113,113,0.1)', border: '1px solid rgba(248,113,113,0.3)', color: '#f87171', fontSize: 12 }}>
@@ -331,18 +368,46 @@ export function AIChatPanel({ config, noteId, noteTitle, noteContent, onClose }:
   )
 }
 
-function WelcomeMessage({ mode, noteTitle }: { mode: ChatMode; noteTitle?: string }) {
+const NOTE_PROMPTS   = ['Summarize this note', 'What are the key tasks?', 'Explain the main concepts']
+const GLOBAL_PROMPTS = ['What have I been working on?', 'Find connections between my notes', 'Summarize recent activity']
+
+function WelcomeMessage({ mode, noteTitle, onPrompt }: { mode: ChatMode; noteTitle?: string; onPrompt: (p: string) => void }) {
+  const prompts = mode === 'note' ? NOTE_PROMPTS : GLOBAL_PROMPTS
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flex: 1, padding: '32px 16px', gap: 8, color: 'var(--muted-foreground)', textAlign: 'center' }}>
-      <Sparkles size={28} color="var(--primary)" style={{ opacity: 0.7 }} />
-      <p style={{ margin: 0, fontSize: 14, fontWeight: 600, color: 'var(--foreground)' }}>
-        {mode === 'note' && noteTitle ? `Chat about "${noteTitle}"` : 'Chat with your knowledge base'}
-      </p>
-      <p style={{ margin: 0, fontSize: 12, maxWidth: 260, lineHeight: 1.5 }}>
-        {mode === 'note'
-          ? 'Ask questions, explore ideas, or get summaries about this note. Your other relevant notes are used as context.'
-          : 'Ask anything about your notes, bookmarks, or ideas. RAG finds relevant context automatically.'}
-      </p>
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flex: 1, padding: '32px 16px', gap: 12, color: 'var(--muted-foreground)', textAlign: 'center' }}>
+      <div style={{ width: 44, height: 44, borderRadius: 12, backgroundColor: 'color-mix(in srgb, var(--primary) 12%, transparent)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <Sparkles size={22} color="var(--primary)" />
+      </div>
+      <div>
+        <p style={{ margin: '0 0 4px', fontSize: 14, fontWeight: 600, color: 'var(--foreground)' }}>
+          {mode === 'note' && noteTitle ? `Chat about "${noteTitle}"` : 'Chat with your knowledge base'}
+        </p>
+        <p style={{ margin: 0, fontSize: 12, maxWidth: 260, lineHeight: 1.5 }}>
+          {mode === 'note'
+            ? 'Ask questions, explore ideas, or get summaries about this note.'
+            : 'Ask anything about your notes, bookmarks, or ideas. RAG finds relevant context automatically.'}
+        </p>
+      </div>
+      {/* Suggested prompts */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 6, width: '100%', maxWidth: 280 }}>
+        {prompts.map(p => (
+          <button
+            key={p}
+            type="button"
+            onClick={() => onPrompt(p)}
+            style={{
+              padding: '7px 12px', borderRadius: 8, textAlign: 'left',
+              border: '1px solid var(--border)', background: 'var(--muted)',
+              color: 'var(--foreground)', fontSize: 12, cursor: 'pointer',
+              transition: 'border-color 0.12s, background 0.12s',
+            }}
+            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = 'color-mix(in srgb, var(--primary) 50%, transparent)'; (e.currentTarget as HTMLElement).style.background = 'color-mix(in srgb, var(--primary) 6%, var(--muted))' }}
+            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--border)'; (e.currentTarget as HTMLElement).style.background = 'var(--muted)' }}
+          >
+            {p}
+          </button>
+        ))}
+      </div>
     </div>
   )
 }
