@@ -259,11 +259,11 @@ function BookmarksMock() {
 
 function PeopleMock() {
   return (
-    <MockShell title="Shihab Uddin · Engineering Lead" accent="#a855f7">
+    <MockShell title="Shihab · Engineering Lead" accent="#a855f7">
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14 }}>
         <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'linear-gradient(135deg,#7c6aff,#a855f7)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, flexShrink: 0 }}>👤</div>
         <div>
-          <p style={{ fontSize: 13, fontWeight: 600, margin: 0, color: 'var(--foreground)' }}>Shihab Uddin</p>
+          <p style={{ fontSize: 13, fontWeight: 600, margin: 0, color: 'var(--foreground)' }}>Shihab</p>
           <p style={{ fontSize: 11, margin: 0, color: 'var(--muted-foreground)' }}>Engineering Lead · Last met Aug 27</p>
         </div>
       </div>
@@ -276,7 +276,7 @@ function PeopleMock() {
       <Label>Linked tasks</Label>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
         <CheckItem text="Review wireframes with Shihab" />
-        <CheckItem done text="Sync on GHAS rollout plan" />
+        <CheckItem done text="Sync on Q4 product roadmap" />
       </div>
     </MockShell>
   )
@@ -354,7 +354,7 @@ function AIIntelMock() {
       <div style={{ padding: '14px', display: 'flex', flexDirection: 'column', gap: 12 }}>
         <div>
           <Label>Today's activity summary</Label>
-          <p style={{ fontSize: 11, color: 'var(--muted-foreground)', lineHeight: 1.65, margin: 0 }}>You added 3 notes today focused on auth strategy and Q3 planning. 2 tasks are overdue. Shihab Uddin appeared in 4 notes this week.</p>
+          <p style={{ fontSize: 11, color: 'var(--muted-foreground)', lineHeight: 1.65, margin: 0 }}>You added 3 notes today focused on auth strategy and Q3 planning. 2 tasks are overdue. Shihab appeared in 4 notes this week.</p>
         </div>
         <div>
           <Label>Smart title suggestion</Label>
