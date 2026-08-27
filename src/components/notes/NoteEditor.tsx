@@ -1,5 +1,5 @@
 'use client'
-import { useState, useCallback, useRef } from 'react'
+import { useState, useCallback, useRef, useEffect } from 'react'
 import { Plus, Trash2, Check, AtSign } from 'lucide-react'
 import dynamic from 'next/dynamic'
 import { Note, NoteType, ChecklistItem } from '@/types'
@@ -28,6 +28,14 @@ const TYPE_TABS: { value: NoteType; label: string }[] = [
 export function NoteEditor({ note, onChange }: NoteEditorProps) {
   const [tagInput, setTagInput] = useState('')
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const lastCheckRef = useRef<HTMLInputElement>(null)
+  const prevCheckLen = useRef(0)
+
+  useEffect(() => {
+    const len = note.checklist_items?.length ?? 0
+    if (len > prevCheckLen.current) lastCheckRef.current?.focus()
+    prevCheckLen.current = len
+  }, [note.checklist_items?.length])
 
   const { suggestions, selectedIdx, pickSuggestion, handleKeyDown: mentionKeyDown, active: mentionActive } = useMention(
     note.content ?? '',
@@ -149,7 +157,7 @@ export function NoteEditor({ note, onChange }: NoteEditorProps) {
 
       {note.type === 'checklist' && (
         <div className="space-y-2">
-          {(note.checklist_items ?? []).map(item => (
+          {(note.checklist_items ?? []).map((item, idx) => (
             <div key={item.id} className="flex items-center gap-2">
               <button
                 type="button"
@@ -161,6 +169,7 @@ export function NoteEditor({ note, onChange }: NoteEditorProps) {
                 {item.checked && <Check size={10} className="text-white" />}
               </button>
               <input
+                ref={idx === (note.checklist_items?.length ?? 0) - 1 ? lastCheckRef : undefined}
                 className={`flex-1 bg-transparent text-sm border-none outline-none ${
                   item.checked ? 'line-through text-[var(--muted-foreground)]' : 'text-[var(--foreground)]'
                 }`}
