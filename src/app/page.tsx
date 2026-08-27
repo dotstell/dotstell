@@ -50,8 +50,8 @@ export default function LandingPage() {
             Your knowledge is scattered.<br />
             <span style={{ color: 'var(--primary)' }}>Dotstell connects it.</span>
           </h1>
-          <p style={{ fontSize: 'clamp(14px, 2.5vw, 18px)', color: 'var(--muted-foreground)', maxWidth: 520, margin: '0 auto 10px' }}>
-            Notes, people, tasks and bookmarks — all linked in one graph. Chat with AI that answers from your own knowledge, not the internet.
+          <p style={{ fontSize: 'clamp(14px, 2.5vw, 18px)', color: 'var(--muted-foreground)', maxWidth: 540, margin: '0 auto 10px' }}>
+            Ideas, research, meeting notes, 1-on-1s — capture everything, link it with people, tasks and bookmarks, and chat with AI that answers from your own knowledge.
           </p>
           <p style={{ fontSize: 13, color: 'var(--muted-foreground)', opacity: 0.65, marginBottom: 36 }}>
             Run AI privately with Ollama · No data sent to Dotstell · AGPL-3.0 open source

@@ -12,7 +12,7 @@ const FEATURES = [
     bullets: [
       'Overdue alert banner — never miss a deadline again',
       'AI Digest — one-paragraph recap of everything you captured lately',
-      'Task progress, pinned notes and recent bookmarks at a glance',
+      'Task progress + recent notes and bookmarks activity in one view',
     ],
     mock: <DashboardMock />,
   },
@@ -92,9 +92,9 @@ const FEATURES = [
     key: 'ai-write',
     tab: '✍️ AI Writing',
     headline: 'Never face a blank page again',
-    desc: 'Open AI Write to generate a full draft from 8 templates, or select any text and improve it in one click — rewrite, expand, shorten, formalise, or fix grammar.',
+    desc: 'Open AI Write to draft anything from 8 templates or your own custom prompt. Select any text to improve it in one click — rewrite, expand, shorten, formalise, or fix grammar.',
     bullets: [
-      '8 templates — meeting notes, proposal, OoO, research note and more',
+      '8 templates + custom prompt — draft anything you can describe',
       'One-click improvements: formal, concise, expanded, full rewrite',
       'Inline Assist — select any text anywhere and transform it instantly',
     ],
@@ -146,12 +146,17 @@ function DashboardMock() {
             <div style={{ height: '100%', width: '62%', borderRadius: 999, background: 'var(--primary)' }} />
           </div>
         </div>
-        {/* Recent notes */}
+        {/* Recent activity */}
         <div>
-          <Label>Recent notes</Label>
+          <Label>Recent activity</Label>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-            {['Auth decision — Aug 2026','Product Launch Plan','Q3 retrospective'].map(n => (
-              <div key={n} style={{ fontSize: 11, padding: '4px 8px', borderRadius: 5, background: 'var(--secondary)', border: '1px solid var(--border)', color: 'var(--foreground)' }}>📄 {n}</div>
+            {[
+              { icon: '📄', text: 'Auth decision — Aug 2026' },
+              { icon: '🔖', text: 'figma.com/wireframes' },
+              { icon: '📄', text: 'Product Launch Plan' },
+              { icon: '🔖', text: 'linear.app — Issue tracker' },
+            ].map(({ icon, text }) => (
+              <div key={text} style={{ fontSize: 11, padding: '4px 8px', borderRadius: 5, background: 'var(--secondary)', border: '1px solid var(--border)', color: 'var(--foreground)' }}>{icon} {text}</div>
             ))}
           </div>
         </div>
@@ -316,8 +321,8 @@ function AIWriteMock() {
       <div style={{ display: 'flex', height: '100%' }}>
         <div style={{ width: '44%', borderRight: '1px solid var(--border)', padding: '12px', display: 'flex', flexDirection: 'column', gap: 6 }}>
           <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--muted-foreground)', margin: '0 0 4px' }}>Templates</p>
-          {['Outline','Meeting notes','Proposal','Status update','OoO email','Research note'].map((t,i) => (
-            <div key={t} style={{ fontSize: 11, padding: '5px 9px', borderRadius: 6, background: i === 2 ? 'color-mix(in srgb, var(--primary) 14%, transparent)' : 'var(--secondary)', color: i === 2 ? 'var(--primary)' : 'var(--foreground)', border: `1px solid ${i === 2 ? 'color-mix(in srgb, var(--primary) 30%, transparent)' : 'var(--border)'}`, cursor: 'default' }}>{t}</div>
+          {['Outline','Meeting notes','Proposal','Status update','OoO email','✦ Custom prompt'].map((t,i) => (
+            <div key={t} style={{ fontSize: 11, padding: '5px 9px', borderRadius: 6, background: i === 5 ? 'color-mix(in srgb, var(--primary) 14%, transparent)' : i === 2 ? 'var(--secondary)' : 'var(--secondary)', color: i === 5 ? 'var(--primary)' : 'var(--foreground)', border: `1px solid ${i === 5 ? 'color-mix(in srgb, var(--primary) 30%, transparent)' : 'var(--border)'}`, cursor: 'default', fontWeight: i === 5 ? 500 : 400 }}>{t}</div>
           ))}
         </div>
         <div style={{ flex: 1, padding: '12px', display: 'flex', flexDirection: 'column', gap: 8 }}>
