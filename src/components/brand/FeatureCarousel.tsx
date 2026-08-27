@@ -5,14 +5,26 @@ import Link from 'next/link'
 
 const FEATURES = [
   {
+    key: 'dashboard',
+    tab: '🏠 Dashboard',
+    headline: 'Your entire day in one glance',
+    desc: 'The Dashboard is your daily home base — overdue task alerts, AI Digest summary of recent activity, task progress and the latest notes all in one view.',
+    bullets: [
+      'Overdue alert banner — never miss a deadline again',
+      'AI Digest — one-paragraph recap of everything you captured lately',
+      'Task progress, pinned notes and recent bookmarks at a glance',
+    ],
+    mock: <DashboardMock />,
+  },
+  {
     key: 'notes',
     tab: '✏️ Smart Notes',
     headline: 'Write notes that know where they belong',
-    desc: 'Rich text editing with slash commands, tables, code blocks and colour highlights — all linked into your graph the moment you type [[.',
+    desc: 'Rich text editor with slash commands, wikilinks, tables and code blocks. Every note links into your graph automatically and AI helps you write faster.',
     bullets: [
-      'Slash commands, tables, code blocks, highlights',
-      'Wikilinks — type [[ to connect any note instantly',
-      'AI summary, smart title & auto-tags in one click',
+      'Wikilinks — type [[ to connect to any note or person instantly',
+      'AI Inline Assist — select any text to rewrite, expand or fix grammar',
+      'AI summary, smart title & 5 auto-tags in one click',
     ],
     mock: <NotesMock />,
   },
@@ -20,11 +32,11 @@ const FEATURES = [
     key: 'graph',
     tab: '🌐 Knowledge Graph',
     headline: 'See how everything connects',
-    desc: 'A live visual map of your entire knowledge base — every note, person, bookmark and task as a node, every link as an edge. AI finds the gaps.',
+    desc: 'A live visual map of your entire knowledge base — every note, person, bookmark and task as a node, every link as an edge. AI finds the gaps you miss.',
     bullets: [
-      'Auto-generated from wikilinks and manual connections',
+      'Auto-built from wikilinks and manual connections',
       'Zoom, pan and click any node to open it instantly',
-      'Graph Intelligence — AI surfaces missing links and clusters',
+      'Graph Intelligence — AI spots missing links, clusters and dead ends',
     ],
     mock: <GraphMock />,
   },
@@ -32,7 +44,7 @@ const FEATURES = [
     key: 'bookmarks',
     tab: '🔖 Bookmarks',
     headline: 'Save the internet, connect it to your thinking',
-    desc: 'Paste any URL — title, description and favicon fetched automatically. AI summarises any saved page so you never have to re-read it to remember why you saved it.',
+    desc: 'Paste any URL and metadata is fetched automatically. AI summarises any saved page so you never re-read it to remember why you saved it.',
     bullets: [
       'Auto-fetch title, description and favicon on save',
       'AI summary of any bookmark in one click',
@@ -43,12 +55,12 @@ const FEATURES = [
   {
     key: 'people',
     tab: '👥 People',
-    headline: 'Build context around every person you know',
-    desc: 'Track your professional and personal network. Attach notes, tasks and bookmarks directly to people — then @mention them in any note.',
+    headline: 'Build rich context around every person',
+    desc: 'Track your professional and personal network. @mention people in notes, attach tasks and bookmarks — then ask AI to brief you on anyone in seconds.',
     bullets: [
       '@mention people in any note — linked automatically',
-      'Attach notes, tasks and bookmarks to a contact',
-      'See everything connected to a person in one view',
+      'Attach notes, tasks and bookmarks to each contact',
+      'Person Intelligence — AI brief on anyone from your notes',
     ],
     mock: <PeopleMock />,
   },
@@ -56,11 +68,11 @@ const FEATURES = [
     key: 'tasks',
     tab: '✅ Tasks',
     headline: 'Keep tasks next to why they exist',
-    desc: 'Create standalone tasks or checklists inside any note. Kanban board, priorities and due dates — always in context with the knowledge behind them.',
+    desc: 'Create standalone tasks or checklists inside any note. Priorities, due dates and overdue alerts — always in context with the knowledge behind them.',
     bullets: [
-      'Checklists inline in notes or standalone task board',
-      'Priorities, due dates and overdue alerts',
-      'Linked to notes, people and bookmarks',
+      'Kanban board + inline checklists inside any note',
+      'Overdue alerts and due-date notifications — nothing slips',
+      'Linked to the notes, people and bookmarks behind each task',
     ],
     mock: <TasksMock />,
   },
@@ -68,7 +80,7 @@ const FEATURES = [
     key: 'ai-chat',
     tab: '✨ AI Chat',
     headline: 'Ask questions. Get answers from your own notes.',
-    desc: 'RAG-grounded chat that searches your knowledge base before answering. Works with Ollama (local), OpenAI, Anthropic, Gemini or Groq.',
+    desc: 'RAG-grounded chat searches your knowledge base before answering — so replies reference what you actually wrote, not generic internet results.',
     bullets: [
       'Answers grounded in your notes, not the internet',
       'Chat about one note or your entire knowledge base',
@@ -79,30 +91,74 @@ const FEATURES = [
   {
     key: 'ai-write',
     tab: '✍️ AI Writing',
-    headline: 'Draft faster. Improve anything.',
-    desc: 'Open the AI Write panel to draft a full note from scratch using 8 starter templates, or improve what you already wrote with one click.',
+    headline: 'Never face a blank page again',
+    desc: 'Open AI Write to generate a full draft from 8 templates, or select any text and improve it in one click — rewrite, expand, shorten, formalise, or fix grammar.',
     bullets: [
-      '8 templates — outline, meeting notes, proposal, OoO and more',
-      'Improve existing content: rewrite, expand, make concise',
-      'Inline Assist — select any text to rewrite or fix grammar',
+      '8 templates — meeting notes, proposal, OoO, research note and more',
+      'One-click improvements: formal, concise, expanded, full rewrite',
+      'Inline Assist — select any text anywhere and transform it instantly',
     ],
     mock: <AIWriteMock />,
   },
   {
-    key: 'ai-intel',
-    tab: '🧠 AI Intelligence',
-    headline: 'Let AI do the work your tools skip',
-    desc: 'Smart titles and auto-tags, daily digest, person intelligence briefs, graph gap analysis, related notes — all powered by your own notes, not the internet.',
+    key: 'ai-digest',
+    tab: '🧠 AI Digest & Insights',
+    headline: 'AI that keeps up so you can catch up',
+    desc: 'Daily AI Digest recaps your recent notes activity. Smart titles and auto-tags as you write. Related Notes shows semantic matches as you read. Person Intelligence briefs on demand.',
     bullets: [
-      'Smart title + 5 auto-tags suggested from your content',
-      'AI Digest — daily briefing of your recent activity',
-      'Related Notes sidebar — semantic matches as you read',
+      'AI Digest — daily recap of what you captured and what changed',
+      'Related Notes sidebar — semantically similar notes surface as you read',
+      'Smart title + 5 auto-tags · Person Intelligence on any contact',
     ],
     mock: <AIIntelMock />,
   },
 ]
 
 // ── Inline mocks ──────────────────────────────────────────────────────────────
+
+function DashboardMock() {
+  return (
+    <MockShell title="Dashboard · Wednesday, Aug 27" accent="#7c6aff" noPad>
+      <div style={{ padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 10, height: '100%', overflow: 'hidden' }}>
+        {/* Overdue alert */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '7px 12px', borderRadius: 8, background: 'color-mix(in srgb, #ef4444 10%, transparent)', border: '1px solid color-mix(in srgb, #ef4444 25%, transparent)' }}>
+          <span style={{ fontSize: 12 }}>⚠️</span>
+          <span style={{ fontSize: 11, color: '#ef4444', fontWeight: 500 }}>2 tasks overdue</span>
+          <span style={{ fontSize: 10, color: 'var(--muted-foreground)', marginLeft: 'auto' }}>Review wireframes · Define scope</span>
+        </div>
+        {/* AI Digest */}
+        <div style={{ padding: '10px 12px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--secondary)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
+            <span style={{ fontSize: 11 }}>✨</span>
+            <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--primary)' }}>AI Digest</span>
+          </div>
+          <p style={{ fontSize: 11, color: 'var(--muted-foreground)', lineHeight: 1.6, margin: 0 }}>
+            You added 3 notes on auth strategy and Q3 planning. Alex Chen appears in 4 notes this week. 1 bookmark saved from Linear.
+          </p>
+        </div>
+        {/* Task progress */}
+        <div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
+            <span style={{ fontSize: 10, color: 'var(--muted-foreground)' }}>Task progress</span>
+            <span style={{ fontSize: 10, color: 'var(--primary)', fontWeight: 600 }}>5 / 8 done</span>
+          </div>
+          <div style={{ height: 5, borderRadius: 999, background: 'var(--border)', overflow: 'hidden' }}>
+            <div style={{ height: '100%', width: '62%', borderRadius: 999, background: 'var(--primary)' }} />
+          </div>
+        </div>
+        {/* Recent notes */}
+        <div>
+          <Label>Recent notes</Label>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+            {['Auth decision — Aug 2026','Product Launch Plan','Q3 retrospective'].map(n => (
+              <div key={n} style={{ fontSize: 11, padding: '4px 8px', borderRadius: 5, background: 'var(--secondary)', border: '1px solid var(--border)', color: 'var(--foreground)' }}>📄 {n}</div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </MockShell>
+  )
+}
 
 function NotesMock() {
   return (
@@ -211,18 +267,24 @@ function PeopleMock() {
 
 function TasksMock() {
   const cols = [
-    { label: 'To do',       color: 'var(--muted-foreground)', tasks: ['Define scope','Write API spec']         },
-    { label: 'In progress', color: '#f59e0b',                 tasks: ['Review wireframes','Sync with Alex']   },
-    { label: 'Done',        color: '#22c55e',                 tasks: ['Stakeholder alignment']                 },
+    { label: 'To do',       color: 'var(--muted-foreground)', tasks: [{ t: 'Define scope', overdue: true }, { t: 'Write API spec', overdue: false }]   },
+    { label: 'In progress', color: '#f59e0b',                 tasks: [{ t: 'Review wireframes', overdue: true }, { t: 'Sync with Alex', overdue: false }] },
+    { label: 'Done',        color: '#22c55e',                 tasks: [{ t: 'Stakeholder alignment', overdue: false }] },
   ]
   return (
     <MockShell title="Tasks" accent="#f59e0b" noPad>
-      <div style={{ display: 'flex', gap: 8, padding: '14px', height: '100%' }}>
+      <div style={{ padding: '8px 12px 0', borderBottom: '1px solid var(--border)', background: 'color-mix(in srgb, #ef4444 8%, transparent)' }}>
+        <span style={{ fontSize: 10, color: '#ef4444', fontWeight: 600 }}>⚠ 2 overdue</span>
+        <span style={{ fontSize: 10, color: 'var(--muted-foreground)', marginLeft: 8 }}>Define scope · Review wireframes</span>
+      </div>
+      <div style={{ display: 'flex', gap: 8, padding: '10px 12px', height: 'calc(100% - 30px)' }}>
         {cols.map(col => (
-          <div key={col.label} style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <div key={col.label} style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 7 }}>
             <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: col.color, marginBottom: 2 }}>{col.label}</div>
-            {col.tasks.map(t => (
-              <div key={t} style={{ padding: '8px 10px', borderRadius: 7, border: '1px solid var(--border)', background: 'var(--secondary)', fontSize: 11, color: 'var(--foreground)', lineHeight: 1.4 }}>{t}</div>
+            {col.tasks.map(({ t, overdue }) => (
+              <div key={t} style={{ padding: '7px 9px', borderRadius: 7, border: `1px solid ${overdue ? 'color-mix(in srgb, #ef4444 30%, transparent)' : 'var(--border)'}`, background: overdue ? 'color-mix(in srgb, #ef4444 8%, transparent)' : 'var(--secondary)', fontSize: 11, color: 'var(--foreground)', lineHeight: 1.4 }}>
+                {t}{overdue && <span style={{ display: 'block', fontSize: 9, color: '#ef4444', marginTop: 2 }}>Overdue</span>}
+              </div>
             ))}
           </div>
         ))}
