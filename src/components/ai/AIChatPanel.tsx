@@ -6,6 +6,7 @@ import { useAIStream } from '@/hooks/useAI'
 import { streamOllamaBrowser, isLocalHostname } from '@/lib/ai/ollama-browser'
 import { createClient as createSupabaseBrowserClient } from '@/lib/supabase/client'
 import { AIPersonPanel } from './AIPersonPanel'
+import { MarkdownContent } from '@/components/ui/MarkdownContent'
 
 interface AIChatPanelProps {
   config:       AIConfig
@@ -259,11 +260,14 @@ export function AIChatPanel({ config, noteId, noteTitle, noteContent, onClose }:
               borderRadius:    msg.role === 'user' ? '12px 12px 4px 12px' : '12px 12px 12px 4px',
               backgroundColor: msg.role === 'user' ? 'var(--primary)' : 'var(--muted)',
               color:           msg.role === 'user' ? 'white' : 'var(--foreground)',
-              fontSize:        13, lineHeight: 1.5, whiteSpace: 'pre-wrap', wordBreak: 'break-word',
+              fontSize:        13, lineHeight: 1.5, wordBreak: 'break-word',
             }}>
-              {msg.content || (streaming && i === messages.length - 1 ? (
-                <Loader2 size={12} style={{ animation: 'spin 1s linear infinite' }} />
-              ) : null)}
+              {msg.role === 'assistant' && msg.content
+                ? <MarkdownContent compact>{msg.content}</MarkdownContent>
+                : msg.content || (streaming && i === messages.length - 1
+                    ? <Loader2 size={12} style={{ animation: 'spin 1s linear infinite' }} />
+                    : null)
+              }
             </div>
             {msg.role === 'user' && (
               <div style={{ width: 24, height: 24, borderRadius: 6, backgroundColor: 'var(--muted)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 2 }}>

@@ -21,6 +21,7 @@ import { useNoteTabs } from '@/hooks/useNoteTabs'
 import { toast } from 'sonner'
 import { useAISettings } from '@/hooks/useAISettings'
 import { useAISummarize } from '@/hooks/useAI'
+import { MarkdownContent } from '@/components/ui/MarkdownContent'
 
 interface Props {
   width?: number
@@ -978,9 +979,9 @@ export function NotesSidePane({ width = 220, activeNoteId }: Props) {
                 </div>
               )}
               {nbSummary && (
-                <p style={{ margin: 0, fontSize: 13, color: 'var(--foreground)', lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>
-                  {nbSummary}
-                </p>
+                <div style={{ fontSize: 13, color: 'var(--foreground)', lineHeight: 1.7 }}>
+                  <MarkdownContent>{nbSummary}</MarkdownContent>
+                </div>
               )}
             </div>
             <div style={{ padding: '10px 18px', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'flex-end', gap: 8 }}>

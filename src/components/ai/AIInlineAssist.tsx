@@ -3,6 +3,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { X, Loader2, Check, RefreshCw, Wand2 } from 'lucide-react'
 import { AIConfig, AssistOperation, ASSIST_LABELS } from '@/lib/ai/types'
 import { useAIAssist } from '@/hooks/useAI'
+import { MarkdownContent } from '@/components/ui/MarkdownContent'
 
 interface AIInlineAssistProps {
   config:      AIConfig
@@ -126,9 +127,12 @@ export function AIInlineAssist({ config, selectedText, noteContext, anchorRect, 
         minHeight: 48, maxHeight: 240, overflowY: 'auto',
         padding: '8px 10px', borderRadius: 8, backgroundColor: 'var(--muted)',
         border: '1px solid var(--border)', fontSize: 13, lineHeight: 1.5,
-        color: 'var(--foreground)', whiteSpace: 'pre-wrap', wordBreak: 'break-word', marginBottom: 8,
+        color: 'var(--foreground)', wordBreak: 'break-word', marginBottom: 8,
       }}>
-        {result || (streaming && <Loader2 size={13} color="var(--muted-foreground)" style={{ animation: 'spin 1s linear infinite' }} />)}
+        {result
+          ? <MarkdownContent compact>{result}</MarkdownContent>
+          : (streaming && <Loader2 size={13} color="var(--muted-foreground)" style={{ animation: 'spin 1s linear infinite' }} />)
+        }
       </div>
 
       {error && (

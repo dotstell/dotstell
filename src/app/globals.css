@@ -530,6 +530,44 @@ body {
 
 @keyframes spin { to { transform: rotate(360deg); } }
 
+/* ── AI Markdown content renderer ─────────────────────────────
+   Scoped to .md-content — never leaks into the Tiptap note editor. */
+.md-content { font-size: inherit; line-height: inherit; color: inherit; }
+.md-content p { margin: 0 0 0.6em; }
+.md-content p:last-child { margin-bottom: 0; }
+.md-content h1, .md-content h2, .md-content h3 {
+  font-weight: 600; margin: 0.8em 0 0.3em; line-height: 1.3;
+}
+.md-content h1 { font-size: 1.05em; }
+.md-content h2 { font-size: 1em; }
+.md-content h3 { font-size: 0.95em; color: var(--primary); }
+.md-content ul, .md-content ol { margin: 0 0 0.6em 1.2em; padding: 0; }
+.md-content ul { list-style: disc; }
+.md-content ol { list-style: decimal; }
+.md-content li { margin-bottom: 0.25em; }
+.md-content li:last-child { margin-bottom: 0; }
+.md-content strong { font-weight: 600; }
+.md-content em { font-style: italic; color: var(--muted-foreground); }
+.md-content code {
+  font-family: ui-monospace, 'Cascadia Code', monospace; font-size: 0.88em;
+  background: color-mix(in srgb, var(--primary) 10%, transparent);
+  padding: 0.1em 0.35em; border-radius: 4px;
+}
+.md-content pre {
+  background: var(--muted); border: 1px solid var(--border);
+  border-radius: 6px; padding: 10px 12px; overflow-x: auto; margin: 0.5em 0;
+}
+.md-content pre code { background: none; padding: 0; font-size: 0.85em; }
+.md-content hr { border: none; border-top: 1px solid var(--border); margin: 0.75em 0; }
+.md-content a { color: var(--primary); text-decoration: underline; text-underline-offset: 2px; }
+.md-content blockquote {
+  margin: 0.5em 0; padding: 0.25em 0 0.25em 0.75em;
+  border-left: 3px solid var(--border); color: var(--muted-foreground);
+}
+/* compact variant — less spacing inside chat bubbles */
+.md-content--compact p { margin-bottom: 0.2em; }
+.md-content--compact ul, .md-content--compact ol { margin-bottom: 0.2em; }
+
 /* ── Mobile layout ───────────────────────────────── */
 @media (max-width: 767px) {
   .page-container {

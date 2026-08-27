@@ -3,6 +3,7 @@ import { useState, useRef } from 'react'
 import { Sparkles, Search, FileText, Bookmark, Loader2, AlertCircle, User } from 'lucide-react'
 import { AIConfig } from '@/lib/ai/types'
 import { useAIPersonIntel } from '@/hooks/useAI'
+import { MarkdownContent } from '@/components/ui/MarkdownContent'
 
 interface AIPersonPanelProps {
   config:     AIConfig
@@ -107,8 +108,8 @@ export function AIPersonPanel({ config, initialName = '', onOpenNote }: AIPerson
           </div>
 
           {/* AI-generated summary */}
-          <div style={{ fontSize: 13, lineHeight: 1.65, color: 'var(--foreground)', whiteSpace: 'pre-wrap' }}>
-            {summary}
+          <div style={{ fontSize: 13, lineHeight: 1.65, color: 'var(--foreground)' }}>
+            <MarkdownContent>{summary}</MarkdownContent>
           </div>
 
           {/* Source list */}

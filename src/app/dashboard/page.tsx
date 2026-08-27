@@ -15,6 +15,7 @@ import { PageContainer } from '@/components/layout/PageContainer'
 import { useAISettings } from '@/hooks/useAISettings'
 import { isLocalHostname, completeOllamaBrowser } from '@/lib/ai/ollama-browser'
 import { createClient as createSupabaseBrowserClient } from '@/lib/supabase/client'
+import { MarkdownContent } from '@/components/ui/MarkdownContent'
 
 const PRIORITY_COLOR: Record<string, string> = { low: '#10b981', medium: '#f59e0b', high: '#ef4444' }
 const STATUS_COLOR:   Record<string, string> = { todo: 'var(--muted-foreground)', in_progress: 'var(--primary)', done: '#10b981' }
@@ -515,8 +516,8 @@ export default function DashboardPage() {
             )}
 
             {digest && !digestLoading && (
-              <div style={{ padding: '14px 16px', fontSize: 13, lineHeight: 1.7, color: 'var(--foreground)', whiteSpace: 'pre-wrap' }}>
-                {digest}
+              <div style={{ padding: '14px 16px', fontSize: 13, lineHeight: 1.7, color: 'var(--foreground)' }}>
+                <MarkdownContent>{digest}</MarkdownContent>
               </div>
             )}
 
