@@ -145,7 +145,7 @@ function DashboardMock() {
             <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--primary)' }}>AI Digest</span>
           </div>
           <p style={{ fontSize: 11, color: 'var(--muted-foreground)', lineHeight: 1.6, margin: 0 }}>
-            You added 3 notes on auth strategy and Q3 planning. Alex Chen appears in 4 notes this week. 1 bookmark saved from Linear.
+            You added 3 notes on auth strategy and Q3 planning. Shihab appears in 4 notes this week. 1 bookmark saved from Linear.
           </p>
         </div>
         {/* Task progress */}
@@ -259,12 +259,12 @@ function BookmarksMock() {
 
 function PeopleMock() {
   return (
-    <MockShell title="Alex Chen · Engineering Lead" accent="#a855f7">
+    <MockShell title="Shihab Uddin · Engineering Lead" accent="#a855f7">
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14 }}>
         <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'linear-gradient(135deg,#7c6aff,#a855f7)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, flexShrink: 0 }}>👤</div>
         <div>
-          <p style={{ fontSize: 13, fontWeight: 600, margin: 0, color: 'var(--foreground)' }}>Alex Chen</p>
-          <p style={{ fontSize: 11, margin: 0, color: 'var(--muted-foreground)' }}>Engineering Lead · Last met Aug 12</p>
+          <p style={{ fontSize: 13, fontWeight: 600, margin: 0, color: 'var(--foreground)' }}>Shihab Uddin</p>
+          <p style={{ fontSize: 11, margin: 0, color: 'var(--muted-foreground)' }}>Engineering Lead · Last met Aug 27</p>
         </div>
       </div>
       <Label>Notes mentioning Alex</Label>
@@ -275,8 +275,8 @@ function PeopleMock() {
       </div>
       <Label>Linked tasks</Label>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-        <CheckItem text="Review wireframes with Alex" />
-        <CheckItem done text="Sync on auth strategy" />
+        <CheckItem text="Review wireframes with Shihab" />
+        <CheckItem done text="Sync on GHAS rollout plan" />
       </div>
     </MockShell>
   )
@@ -316,7 +316,7 @@ function AIChatMock() {
       <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
         <div style={{ flex: 1, padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 10, overflow: 'hidden' }}>
           <ChatBubble role="user" text="What did I decide about the auth strategy?" />
-          <ChatBubble role="ai" text={'Based on your note “Auth decision — Aug 2026”: you chose JWT over sessions after discussing scalability concerns with Alex. OAuth2 proxy was ruled out due to added infrastructure complexity. Action item: revisit before Q3 launch.'} />
+          <ChatBubble role="ai" text={'Based on your note “Auth decision — Aug 2026”: you chose JWT over sessions after discussing scalability concerns with Shihab. OAuth2 proxy was ruled out due to added infrastructure complexity. Action item: revisit before Q3 launch.'} />
         </div>
         <div style={{ padding: '10px 14px', borderTop: '1px solid var(--border)', display: 'flex', gap: 8, alignItems: 'center' }}>
           <div style={{ flex: 1, padding: '7px 12px', borderRadius: 6, background: 'var(--secondary)', border: '1px solid var(--border)', fontSize: 11, color: 'var(--muted-foreground)' }}>Ask anything about your notes…</div>
@@ -354,7 +354,7 @@ function AIIntelMock() {
       <div style={{ padding: '14px', display: 'flex', flexDirection: 'column', gap: 12 }}>
         <div>
           <Label>Today's activity summary</Label>
-          <p style={{ fontSize: 11, color: 'var(--muted-foreground)', lineHeight: 1.65, margin: 0 }}>You added 3 notes today focused on auth strategy and Q3 planning. 2 tasks are overdue. Alex Chen appeared in 4 notes this week.</p>
+          <p style={{ fontSize: 11, color: 'var(--muted-foreground)', lineHeight: 1.65, margin: 0 }}>You added 3 notes today focused on auth strategy and Q3 planning. 2 tasks are overdue. Shihab Uddin appeared in 4 notes this week.</p>
         </div>
         <div>
           <Label>Smart title suggestion</Label>
