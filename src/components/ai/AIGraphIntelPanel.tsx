@@ -208,9 +208,12 @@ function NoteButton({ title, id, onOpen, full }: { title: string; id: string; on
         border: '1px solid var(--border)',
         backgroundColor: 'var(--card)', cursor: onOpen ? 'pointer' : 'default',
         fontSize: 11, color: 'var(--foreground)', fontWeight: 500,
-        overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-        maxWidth: full ? '100%' : 130, width: full ? '100%' : undefined,
-        transition: 'all 0.12s', textAlign: 'left', flexShrink: full ? undefined : 0,
+        overflow: 'hidden',
+        // flex: 1 + minWidth: 0 lets both side-by-side buttons shrink proportionally
+        // instead of overflowing the card container
+        flex: full ? undefined : 1, minWidth: 0,
+        width: full ? '100%' : undefined,
+        transition: 'all 0.12s', textAlign: 'left',
       }}
       onMouseEnter={e => { if (onOpen) { e.currentTarget.style.backgroundColor = 'var(--accent)'; e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--primary) 40%, transparent)' } }}
       onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'var(--card)'; e.currentTarget.style.borderColor = 'var(--border)' }}

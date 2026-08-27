@@ -533,8 +533,8 @@ body {
 /* ── AI Markdown content renderer ─────────────────────────────
    Scoped to .md-content — never leaks into the Tiptap note editor.
    Colors use color-mix() with --primary so they adapt to every theme. */
-.md-content { font-size: inherit; line-height: 1.6; color: inherit; }
-.md-content p { margin: 0 0 0.65em; }
+.md-content { font-size: inherit; line-height: 1.65; color: inherit; }
+.md-content p { margin: 0 0 0.7em; }
 .md-content p:last-child { margin-bottom: 0; }
 
 /* Headings — first child never has a top gap */
@@ -563,7 +563,7 @@ body {
 .md-content ul, .md-content ol { margin: 0 0 0.65em 1.25em; padding: 0; }
 .md-content ul { list-style: disc; }
 .md-content ol { list-style: decimal; }
-.md-content li { margin-bottom: 0.3em; line-height: 1.5; }
+.md-content li { margin-bottom: 0.45em; line-height: 1.55; }
 .md-content li:last-child { margin-bottom: 0; }
 /* Themed bullet dots and numbers */
 .md-content ul li::marker { color: var(--primary); }
