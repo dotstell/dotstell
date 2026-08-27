@@ -602,11 +602,22 @@ body {
 }
 .md-content blockquote p:last-child { margin-bottom: 0; }
 
-/* Compact variant — tighter spacing inside chat bubbles */
+/* Compact variant — tighter spacing + lighter styling inside chat bubbles */
 .md-content--compact p { margin-bottom: 0.2em; }
 .md-content--compact ul, .md-content--compact ol { margin-bottom: 0.2em; margin-left: 1.1em; }
 .md-content--compact li { margin-bottom: 0.15em; }
 .md-content--compact h1, .md-content--compact h2, .md-content--compact h3 { margin: 0.5em 0 0.2em; }
+/* Strip the section-badge (uppercase + left border) from h3 in chat — too heavy in a bubble */
+.md-content--compact h2 { padding-bottom: 0; border-bottom: none; font-size: 0.92em; }
+.md-content--compact h3 {
+  text-transform: none; letter-spacing: normal;
+  padding-left: 0; border-left: none; font-size: 0.92em;
+}
+/* Inline code in compact: keep subtle bg tint but use normal text color to reduce noise */
+.md-content--compact code {
+  background: color-mix(in srgb, var(--primary) 8%, transparent);
+  color: inherit;
+}
 .md-content--compact blockquote { padding: 0.3em 0.6em 0.3em 0.7em; }
 
 /* ── Mobile layout ───────────────────────────────── */

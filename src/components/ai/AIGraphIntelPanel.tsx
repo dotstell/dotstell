@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Sparkles, Loader2, AlertCircle, Link2, Layers, GitBranch, FileText, ExternalLink, RefreshCw } from 'lucide-react'
 import { AIConfig } from '@/lib/ai/types'
 
@@ -27,6 +27,9 @@ export function AIGraphIntelPanel({ config, onOpenNote }: AIGraphIntelPanelProps
   const [loading, setLoading] = useState(false)
   const [error,   setError]   = useState<string | null>(null)
   const [ran,     setRan]     = useState(false)
+
+  // Auto-run missing links when the panel first opens
+  useEffect(() => { run('missing') }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function run(m: IntelMode) {
     setMode(m); setResults([]); setError(null); setRan(false); setLoading(true)
@@ -140,7 +143,7 @@ export function AIGraphIntelPanel({ config, onOpenNote }: AIGraphIntelPanelProps
       )}
 
       {/* Results: Missing links */}
-      {mode === 'missing' && (results as MissingLink[]).filter(r => r?.source && r?.target).map((r, i) => (
+      {mode === 'missing' && (results as MissingLink[]).filter(r => r?.source && r?.target && r.source.id !== r.target.id).map((r, i) => (
         <div key={i} style={{ padding: '10px 12px', borderRadius: 8, border: '1px solid var(--border)', backgroundColor: 'var(--muted)', display: 'flex', flexDirection: 'column', gap: 8 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <NoteButton title={r.source.title} id={r.source.id} onOpen={onOpenNote} />
