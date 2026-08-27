@@ -1,0 +1,34 @@
+name: Branch Policy
+
+on:
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  check-source-branch:
+    name: Validate source branch
+    runs-on: ubuntu-latest
+    steps:
+      - name: PRs to main must come from develop
+        if: github.base_ref == 'main'
+        run: |
+          if [ "${{ github.head_ref }}" != "develop" ]; then
+            echo "❌ Direct PRs to main are not allowed."
+            echo "   Source: ${{ github.head_ref }} → Target: main"
+            echo "   Merge your changes into develop first, then open a PR from develop → main."
+            exit 1
+          fi
+          echo "✅ Source branch is develop — allowed to merge into main."
+
+      - name: PRs to develop must come from a feature branch
+        if: github.base_ref == 'develop'
+        run: |
+          HEAD="${{ github.head_ref }}"
+          if [[ "$HEAD" =~ ^(feature|fix|hotfix|chore|docs|refactor|test|ci|perf|style)/. ]]; then
+            echo "✅ Source branch '$HEAD' matches allowed pattern."
+          else
+            echo "❌ PRs to develop must come from a branch prefixed with:"
+            echo "   feature/, fix/, hotfix/, chore/, docs/, refactor/, test/, ci/, perf/, or style/"
+            echo "   Source branch: $HEAD"
+            exit 1
+          fi
