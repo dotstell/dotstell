@@ -145,7 +145,7 @@ function DashboardMock() {
             <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--primary)' }}>AI Digest</span>
           </div>
           <p style={{ fontSize: 11, color: 'var(--muted-foreground)', lineHeight: 1.6, margin: 0 }}>
-            You added 3 notes on auth strategy and Q3 planning. Sarah appears in 4 notes this week. 1 bookmark saved from Linear.
+            You added 3 notes on auth strategy and Q3 planning. Mei appears in 4 notes this week. 1 bookmark saved from Linear.
           </p>
         </div>
         {/* Task progress */}
@@ -187,7 +187,7 @@ function NotesMock() {
         <Chip label="Q3 Goals" accent="#22c55e" />.
       </p>
       <CheckItem done text="Align on scope with stakeholders" />
-      <CheckItem text="Review wireframes with Sarah" />
+      <CheckItem text="Review wireframes with Yuki" />
       <CheckItem text="Map deliverables into Q3 Goals" />
       <div style={{ marginTop: 14 }}>
         <Label>Connected to</Label>
@@ -204,7 +204,7 @@ function NotesMock() {
 function GraphMock() {
   const nodes = [
     { id: 'n1', x: 50,  y: 40,  label: 'Launch Plan',  color: '#7c6aff', r: 18 },
-    { id: 'n2', x: 160, y: 25,  label: 'Sarah',        color: '#a855f7', r: 14 },
+    { id: 'n2', x: 160, y: 25,  label: 'Marcus',       color: '#a855f7', r: 14 },
     { id: 'n3', x: 200, y: 110, label: 'Q3 Goals',     color: '#22c55e', r: 16 },
     { id: 'n4', x: 80,  y: 130, label: 'wireframes',   color: '#3b82f6', r: 12 },
     { id: 'n5', x: 270, y: 50,  label: 'Auth decision',color: '#7c6aff', r: 14 },
@@ -354,7 +354,7 @@ function AIIntelMock() {
       <div style={{ padding: '14px', display: 'flex', flexDirection: 'column', gap: 12 }}>
         <div>
           <Label>Today's activity summary</Label>
-          <p style={{ fontSize: 11, color: 'var(--muted-foreground)', lineHeight: 1.65, margin: 0 }}>You added 3 notes today focused on auth strategy and Q3 planning. 2 tasks are overdue. Sarah appeared in 4 notes this week.</p>
+          <p style={{ fontSize: 11, color: 'var(--muted-foreground)', lineHeight: 1.65, margin: 0 }}>You added 3 notes today focused on auth strategy and Q3 planning. 2 tasks are overdue. Mei appeared in 4 notes this week.</p>
         </div>
         <div>
           <Label>Smart title suggestion</Label>
