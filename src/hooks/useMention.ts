@@ -7,7 +7,7 @@ export interface MentionSuggestion {
   role?: string
 }
 
-export function useMention(content: string, onInsert: (updated: string) => void) {
+export function useMention(content: string, onInsert: (updated: string) => void, serialized = false) {
   const [suggestions, setSuggestions]   = useState<MentionSuggestion[]>([])
   const [mentionQuery, setMentionQuery] = useState<string | null>(null)
   const [atIndex, setAtIndex]           = useState<number>(-1)
@@ -36,10 +36,10 @@ export function useMention(content: string, onInsert: (updated: string) => void)
   }, [debouncedQ, mentionQuery])
 
   function pickSuggestion(person: MentionSuggestion) {
-    const before = content.slice(0, atIndex)
-    const after  = content.slice(atIndex + 1 + (mentionQuery?.length ?? 0))
-    // Serialized as @[name](person:id) — the parser extracts id for DB lookups, name for display
-    onInsert(`${before}@[${person.name}](person:${person.id})${after}`)
+    const before  = content.slice(0, atIndex)
+    const after   = content.slice(atIndex + 1 + (mentionQuery?.length ?? 0))
+    const mention = serialized ? `@[${person.name}](person:${person.id})` : `@${person.name}`
+    onInsert(`${before}${mention} ${after}`)
     setSuggestions([])
     setMentionQuery(null)
   }
