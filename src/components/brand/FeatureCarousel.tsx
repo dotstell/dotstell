@@ -3,10 +3,14 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 
-const FEATURES = [
+const FEATURES: Array<{
+  key: string; tab: string; accent: string;
+  headline: string; desc: string; bullets: string[]; mock: React.ReactNode
+}> = [
   {
     key: 'dashboard',
     tab: '🏠 Dashboard',
+    accent: '#f59e0b',
     headline: 'Your entire day in one glance',
     desc: 'The Dashboard is your daily home base — overdue task alerts, AI Digest summary of recent activity, task progress and the latest notes all in one view.',
     bullets: [
@@ -19,6 +23,7 @@ const FEATURES = [
   {
     key: 'notes',
     tab: '✏️ Smart Notes',
+    accent: '#7c6aff',
     headline: 'Write notes that know where they belong',
     desc: 'Rich text editor with slash commands, wikilinks, tables and code blocks. Every note links into your graph automatically and AI helps you write faster.',
     bullets: [
@@ -31,6 +36,7 @@ const FEATURES = [
   {
     key: 'graph',
     tab: '🌐 Knowledge Graph',
+    accent: '#3b82f6',
     headline: 'See how everything connects',
     desc: 'A live visual map of your entire knowledge base — every note, person, bookmark and task as a node, every link as an edge. AI finds the gaps you miss.',
     bullets: [
@@ -43,6 +49,7 @@ const FEATURES = [
   {
     key: 'bookmarks',
     tab: '🔖 Bookmarks',
+    accent: '#06b6d4',
     headline: 'Save the internet, connect it to your thinking',
     desc: 'Paste any URL and metadata is fetched automatically. AI summarises any saved page so you never re-read it to remember why you saved it.',
     bullets: [
@@ -55,6 +62,7 @@ const FEATURES = [
   {
     key: 'people',
     tab: '👥 People',
+    accent: '#a855f7',
     headline: 'Build rich context around every person',
     desc: 'Track your professional and personal network. @mention people in notes, attach tasks and bookmarks — then ask AI to brief you on anyone in seconds.',
     bullets: [
@@ -67,6 +75,7 @@ const FEATURES = [
   {
     key: 'tasks',
     tab: '✅ Tasks',
+    accent: '#22c55e',
     headline: 'Keep tasks next to why they exist',
     desc: 'Create standalone tasks or checklists inside any note. Priorities, due dates and overdue alerts — always in context with the knowledge behind them.',
     bullets: [
@@ -79,6 +88,7 @@ const FEATURES = [
   {
     key: 'ai-chat',
     tab: '✨ AI Chat',
+    accent: '#818cf8',
     headline: 'Ask questions. Get answers from your own notes.',
     desc: 'RAG-grounded chat searches your knowledge base before answering — so replies reference what you actually wrote, not generic internet results.',
     bullets: [
@@ -91,6 +101,7 @@ const FEATURES = [
   {
     key: 'ai-write',
     tab: '✍️ AI Writing',
+    accent: '#e879f9',
     headline: 'Never face a blank page again',
     desc: 'Open AI Write to draft anything from 8 templates or your own custom prompt. Select any text to improve it in one click — rewrite, expand, shorten, formalise, or fix grammar.',
     bullets: [
@@ -103,6 +114,7 @@ const FEATURES = [
   {
     key: 'ai-digest',
     tab: '🧠 AI Digest & Insights',
+    accent: '#f97316',
     headline: 'AI that keeps up so you can catch up',
     desc: 'Daily AI Digest recaps your recent notes activity. Smart titles and auto-tags as you write. Related Notes shows semantic matches as you read. Person Intelligence briefs on demand.',
     bullets: [
@@ -424,21 +436,15 @@ function ChatBubble({ role, text }: { role: 'user' | 'ai'; text: string }) {
 
 export function FeatureCarousel() {
   const [active, setActive] = useState(0)
-  const [paused, setPaused] = useState(false)
   const f = FEATURES[active]
 
   useEffect(() => {
-    if (paused) return
     const id = setInterval(() => setActive(i => (i + 1) % FEATURES.length), 5000)
     return () => clearInterval(id)
-  }, [paused, active])
+  }, [active])
 
   return (
-    <section
-      style={{ padding: '80px 16px', maxWidth: 1000, margin: '0 auto', width: '100%' }}
-      onMouseEnter={() => setPaused(true)}
-      onMouseLeave={() => setPaused(false)}
-    >
+    <section style={{ padding: '80px 16px', maxWidth: 1000, margin: '0 auto', width: '100%' }}>
       {/* Section heading */}
       <div style={{ textAlign: 'center', marginBottom: 40 }}>
         <h2 style={{ fontSize: 'clamp(22px, 4vw, 30px)', fontWeight: 700, marginBottom: 10 }}>One graph. Every thought.</h2>
@@ -454,22 +460,22 @@ export function FeatureCarousel() {
             style={{
               position: 'relative', overflow: 'hidden',
               padding: '7px 14px', borderRadius: 999, border: '1px solid',
-              borderColor: active === i ? 'var(--primary)' : 'var(--border)',
-              background: active === i ? 'color-mix(in srgb, var(--primary) 12%, transparent)' : 'transparent',
-              color: active === i ? 'var(--primary)' : 'var(--muted-foreground)',
+              borderColor: active === i ? `${feat.accent}60` : 'var(--border)',
+              background: active === i ? `${feat.accent}15` : 'transparent',
+              color: active === i ? feat.accent : 'var(--muted-foreground)',
               fontSize: 12, fontWeight: active === i ? 600 : 400,
               whiteSpace: 'nowrap', cursor: 'pointer', flexShrink: 0,
-              transition: 'all 0.15s',
+              transition: 'all 0.2s',
             }}
           >
             {feat.tab}
-            {active === i && !paused && (
+            {active === i && (
               <span
                 className="tab-progress"
-                key={`${i}-${active}`}
+                key={`${i}-progress`}
                 style={{
                   position: 'absolute', bottom: 0, left: 0, height: 2,
-                  background: 'var(--primary)', borderRadius: 999,
+                  background: feat.accent, borderRadius: 999,
                   animation: 'tabprogress 5s linear forwards',
                 }}
               />
@@ -497,7 +503,7 @@ export function FeatureCarousel() {
 
         {/* Left: text */}
         <div>
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 12px', borderRadius: 999, fontSize: 11, fontWeight: 500, marginBottom: 18, border: '1px solid color-mix(in srgb, var(--primary) 30%, transparent)', background: 'color-mix(in srgb, var(--primary) 8%, transparent)', color: 'var(--primary)' }}>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 12px', borderRadius: 999, fontSize: 11, fontWeight: 500, marginBottom: 18, border: `1px solid ${f.accent}40`, background: `${f.accent}12`, color: f.accent }}>
             {f.tab}
           </span>
           <h3 style={{ fontSize: 'clamp(18px, 3vw, 24px)', fontWeight: 700, lineHeight: 1.25, marginBottom: 14, color: 'var(--foreground)' }}>{f.headline}</h3>
@@ -516,7 +522,7 @@ export function FeatureCarousel() {
           <Link
             href="/auth/register"
             className="hover:opacity-90 transition-opacity"
-            style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '9px 20px', borderRadius: 8, background: 'var(--primary)', color: 'var(--primary-foreground)', fontWeight: 500, fontSize: 13, textDecoration: 'none' }}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '9px 20px', borderRadius: 8, background: f.accent, color: '#fff', fontWeight: 500, fontSize: 13, textDecoration: 'none' }}
           >
             Try it free →
           </Link>

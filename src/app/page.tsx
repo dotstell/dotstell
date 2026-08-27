@@ -50,13 +50,30 @@ export default function LandingPage() {
             Your knowledge is scattered.<br />
             <span style={{ color: 'var(--primary)' }}>Dotstell connects it.</span>
           </h1>
-          <p style={{ fontSize: 'clamp(14px, 2.5vw, 18px)', color: 'var(--muted-foreground)', maxWidth: 560, margin: '0 auto 10px' }}>
-            Ideas, research, meeting notes, 1-on-1s, and everything worth remembering — capture it all, connect it with people, tasks, and bookmarks, and chat with AI that answers from your own knowledge.
+          <p style={{ fontSize: 'clamp(14px, 2.5vw, 18px)', color: 'var(--muted-foreground)', maxWidth: 560, margin: '0 auto 24px' }}>
+            Ideas, research, meeting notes, 1-on-1s, and everything worth remembering — capture it all, connect it with people, tasks, and bookmarks, and chat with{' '}
+            <span style={{ color: 'var(--foreground)', fontWeight: 600 }}>AI that answers from your own knowledge.</span>
           </p>
-          <p style={{ fontSize: 13, color: 'var(--muted-foreground)', opacity: 0.65, marginBottom: 36 }}>
-            Run AI privately with Ollama · No data sent to Dotstell · AGPL-3.0 open source
-          </p>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, flexWrap: 'wrap', marginBottom: 20 }}>
+
+          {/* Capture → Connect → Ask */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 32, flexWrap: 'wrap' }}>
+            {[
+              { label: 'Capture', color: '#22c55e'  },
+              { label: 'Connect', color: '#7c6aff'  },
+              { label: 'Ask',     color: '#f59e0b'  },
+            ].map(({ label, color }, i, arr) => (
+              <span key={label} style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 14px', borderRadius: 999, fontSize: 12, fontWeight: 600, border: `1px solid ${color}40`, background: `${color}12`, color }}>
+                  {label}
+                </span>
+                {i < arr.length - 1 && (
+                  <span style={{ fontSize: 14, color: 'var(--muted-foreground)', opacity: 0.4 }}>→</span>
+                )}
+              </span>
+            ))}
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, flexWrap: 'wrap', marginBottom: 16 }}>
             <Link href="/auth/register" className="hover:opacity-90 transition-opacity" style={{ padding: '10px 24px', borderRadius: 8, background: 'var(--primary)', color: 'var(--primary-foreground)', fontWeight: 500, fontSize: 14, textDecoration: 'none' }}>
               Get started — it&apos;s free
             </Link>
@@ -64,8 +81,11 @@ export default function LandingPage() {
               Sign in
             </Link>
           </div>
-          <p style={{ fontSize: 12, color: 'var(--muted-foreground)', opacity: 0.55 }}>
-            No credit card required · AGPL-3.0 licensed ·{' '}
+          <p style={{ fontSize: 11, color: 'var(--muted-foreground)', opacity: 0.5, marginBottom: 4 }}>
+            Run AI privately with Ollama · No data sent to Dotstell · AGPL-3.0 open source
+          </p>
+          <p style={{ fontSize: 11, color: 'var(--muted-foreground)', opacity: 0.45 }}>
+            No credit card required ·{' '}
             <a href="https://www.dotstell.com/" target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'underline', color: 'inherit' }}>Learn more at dotstell.com</a>
           </p>
         </div>
