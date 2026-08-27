@@ -4,6 +4,28 @@ All notable changes to Dotstell are documented here.
 
 ---
 
+## [v0.5.0] — Aug 2026
+
+### ✍️ AI Writing Assistant
+
+- New **AI Write** button in the note editor toolbar — opens a right-side panel
+- **Draft from scratch** (empty notes): choose from 8 starter templates — Outline, Meeting notes, Daily log, Research note, OoO email, Proposal, Status update, Email draft — or enter a custom intent
+- **Improve existing content**: five one-click actions — Improve English, Make formal, Make concise, Expand, Full rewrite
+- Empty-note hint bar with 5 quick-pick template chips appears when the note is blank — start drafting without opening the full panel
+- Results stream live; accept by appending to the note or replacing all content
+
+### ⚙️ AI Settings UX improvements
+
+- **Build search index** button is now disabled until the AI provider and embedding model have been saved — prevents the "index failed" error when clicking the button before configuration was complete
+- Fixed **Local Agent** notice link — the "Install Local Agent →" link now renders correctly in the settings modal
+- Fixed double-arrow (↗↗) that appeared in some provider error message links
+
+### 🎨 Dashboard light theme
+
+- All dashboard text now uses CSS variables (`var(--foreground)`, `var(--muted-foreground)`) instead of hard-coded dark hex values — dashboard now looks correct on all themes, not just dark
+
+---
+
 ## [v0.4.0] — Aug 2026
 
 The AI release — bring your own key and get intelligence across your entire knowledge graph.

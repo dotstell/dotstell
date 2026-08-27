@@ -70,7 +70,7 @@ Every star, issue, and PR genuinely matters for an early-stage OSS project.
 | 🔍 | **Universal Search** | Ctrl+K command palette across all notes, people, tasks and bookmarks |
 | 🔗 | **Manual Linking** | Connect any entity to any other — note → person, bookmark → task, etc. |
 | 🏠 | **Dashboard** | Unified home screen: overdue alerts, task progress, recent notes and bookmarks |
-| ✨ | **AI — Chat, Assist & Search** | RAG-grounded chat, inline text assist (rewrite, expand, fix), smart titles, auto-tagging, note summaries, AI Digest, Person Intelligence, semantic Related Notes — works with Ollama (local/private), OpenAI, Anthropic, Gemini, or Groq |
+| ✨ | **AI — Chat, Write, Assist & Search** | RAG-grounded chat, AI Writing Assistant (draft from scratch or improve existing), inline text assist (rewrite, expand, fix), smart titles, auto-tagging, note summaries, AI Digest, Person Intelligence, semantic Related Notes — works with Ollama (local/private), OpenAI, Anthropic, Gemini, or Groq |
 
 ---
 
@@ -165,6 +165,7 @@ Dotstell ships a complete AI layer. All features work with five provider options
 | **Groq** | ✅ | — | Extremely fast inference; use a separate embedding provider |
 
 **AI features:**
+- **AI Writing Assistant** — draft notes from scratch using 8 starter templates (Outline, Meeting notes, Daily log, Research note, OoO email, Proposal, Status update, Email draft) or a custom prompt; improve existing notes with one-click actions (Improve English, Make formal, Make concise, Expand, Full rewrite)
 - **AI Chat** — slide-out panel with RAG (semantic search grounds answers in your notes), "This note" and "All knowledge" modes, People tab for person intelligence
 - **Inline Assist** — select text → rewrite / expand / shorten / fix grammar / outline / checklist / explain
 - **Smart title & auto-tags** — suggest a title and up to 5 relevant tags as you write
@@ -234,7 +235,8 @@ src/
 │   │   │   ├── digest/               # AI Knowledge Digest (dashboard)
 │   │   │   ├── person/               # Person intelligence brief
 │   │   │   ├── graph-intel/          # Graph AI analysis (clusters, gaps)
-│   │   │   ├── cloud-models/         # Live model list (OpenAI / Anthropic / Groq)
+│   │   │   ├── write/                # AI Writing Assistant (draft + improve)
+│   │   ├── cloud-models/         # Live model list (OpenAI / Anthropic / Groq)
 │   │   │   ├── gemini-models/        # Live model list (Gemini)
 │   │   │   └── ollama-models/        # Ollama installed model list (server proxy)
 │   │   ├── notes/                    # Notes list + create
@@ -279,6 +281,7 @@ src/
 │   ├── ai/                           # AI UI components
 │   │   ├── AISettingsModal.tsx       # Provider/model picker, test connection, build index
 │   │   ├── AIChatPanel.tsx           # Slide-out chat panel with RAG + People tab
+│   │   ├── AIWritingPanel.tsx        # Right-side writing panel (draft from scratch + improve)
 │   │   ├── AIPersonPanel.tsx         # Person intelligence search + brief
 │   │   └── AIRelatedPanel.tsx        # Related notes sidebar panel
 │   ├── editor/                       # Tiptap editor + WikiLinkExtension node
@@ -339,6 +342,7 @@ packages/
 | Desktop app (Windows, macOS + Linux) | ✅ Live |
 | AI layer — Chat, Assist, Semantic Search, Person Intelligence, Summaries, Digest | ✅ Live (v0.4.0) |
 | Local AI via Ollama — works from both live app and local dev | ✅ Live (v0.4.0) |
+| AI Writing Assistant — draft from scratch (8 templates) + improve existing content | ✅ Live (v0.5.0) |
 | Docs (per-project documentation) | 🔜 Soon |
 | Browser extension | 🔜 Planned |
 | Integrations (Slack, Teams, etc.) | 🔜 Planned |
