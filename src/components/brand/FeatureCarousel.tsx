@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 
 const FEATURES = [
@@ -424,10 +424,21 @@ function ChatBubble({ role, text }: { role: 'user' | 'ai'; text: string }) {
 
 export function FeatureCarousel() {
   const [active, setActive] = useState(0)
+  const [paused, setPaused] = useState(false)
   const f = FEATURES[active]
 
+  useEffect(() => {
+    if (paused) return
+    const id = setInterval(() => setActive(i => (i + 1) % FEATURES.length), 5000)
+    return () => clearInterval(id)
+  }, [paused, active])
+
   return (
-    <section style={{ padding: '80px 16px', maxWidth: 1000, margin: '0 auto', width: '100%' }}>
+    <section
+      style={{ padding: '80px 16px', maxWidth: 1000, margin: '0 auto', width: '100%' }}
+      onMouseEnter={() => setPaused(true)}
+      onMouseLeave={() => setPaused(false)}
+    >
       {/* Section heading */}
       <div style={{ textAlign: 'center', marginBottom: 40 }}>
         <h2 style={{ fontSize: 'clamp(22px, 4vw, 30px)', fontWeight: 700, marginBottom: 10 }}>One graph. Every thought.</h2>
@@ -441,6 +452,7 @@ export function FeatureCarousel() {
             key={feat.key}
             onClick={() => setActive(i)}
             style={{
+              position: 'relative', overflow: 'hidden',
               padding: '7px 14px', borderRadius: 999, border: '1px solid',
               borderColor: active === i ? 'var(--primary)' : 'var(--border)',
               background: active === i ? 'color-mix(in srgb, var(--primary) 12%, transparent)' : 'transparent',
@@ -451,6 +463,17 @@ export function FeatureCarousel() {
             }}
           >
             {feat.tab}
+            {active === i && !paused && (
+              <span
+                className="tab-progress"
+                key={`${i}-${active}`}
+                style={{
+                  position: 'absolute', bottom: 0, left: 0, height: 2,
+                  background: 'var(--primary)', borderRadius: 999,
+                  animation: 'tabprogress 5s linear forwards',
+                }}
+              />
+            )}
           </button>
         ))}
       </div>
@@ -467,7 +490,8 @@ export function FeatureCarousel() {
       >
         <style dangerouslySetInnerHTML={{ __html: `
           @keyframes fadein { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
-          @media (prefers-reduced-motion: reduce) { .feature-panel { animation: none !important; } }
+          @keyframes tabprogress { from { width: 0%; } to { width: 100%; } }
+          @media (prefers-reduced-motion: reduce) { .feature-panel { animation: none !important; } .tab-progress { animation: none !important; } }
           @media (max-width: 640px) { .feature-panel { grid-template-columns: 1fr !important; } }
         ` }} />
 
