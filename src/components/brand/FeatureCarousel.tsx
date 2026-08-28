@@ -182,7 +182,7 @@ function NotesMock() {
     <MockShell title="Product Launch Plan" accent="#7c6aff">
       <p style={{ fontSize: 12, color: 'var(--foreground)', lineHeight: 1.9, margin: '0 0 14px' }}>
         Coordinate timeline with{' '}
-        <Chip label="Sarah" accent="#a855f7" />
+        <Chip label="Rayan" accent="#a855f7" />
         {' '}and align with{' '}
         <Chip label="Q3 Goals" accent="#22c55e" />.
       </p>
@@ -192,7 +192,7 @@ function NotesMock() {
       <div style={{ marginTop: 14 }}>
         <Label>Connected to</Label>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-          <Pill icon="👤" label="Sarah" type="Person" accent="#a855f7" />
+          <Pill icon="👤" label="Rayan" type="Person" accent="#a855f7" />
           <Pill icon="📄" label="Q3 Goals" type="Note" accent="#22c55e" />
           <Pill icon="✅" label="Define launch scope" type="Task" accent="#f59e0b" />
         </div>
@@ -275,7 +275,7 @@ function PeopleMock() {
       </div>
       <Label>Linked tasks</Label>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-        <CheckItem text="Review wireframes with Sarah" />
+        <CheckItem text="Review wireframes with Rayan" />
         <CheckItem done text="Sync on Q4 product roadmap" />
       </div>
     </MockShell>
