@@ -76,18 +76,21 @@ export function AIChatPanel({ config, noteId, noteTitle, noteContent, onClose }:
     setMessages(prev => [...prev, userMsg, placeholder])
     pendingRole.current = true
 
-    // Build context — current note first (always in "This note" mode), then RAG results
+    // Build context — current note first, then RAG results, then DB supplement
     let context: string | undefined
 
-    // In "This note" mode, always inject the open note's content directly so the model
-    // has it regardless of whether semantic search also surfaces it.
-    if (mode === 'note' && noteContent && noteTitle) {
+    // Always inject the open note first so the model knows which note the user is viewing,
+    // regardless of mode. In "This note" mode it's the only source; in "All knowledge" mode
+    // it anchors the response while RAG + DB supplement provide the broader context.
+    if (noteContent && noteTitle) {
       const plain = noteContent.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 4000)
-      context = `## ${noteTitle}\n${plain}`
+      const label = mode === 'note' ? `## ${noteTitle}` : `## Currently viewing: ${noteTitle}`
+      context = `${label}\n${plain}`
     }
 
     // Track RAG note IDs so the global-mode supplement can dedup by ID (not fragile string match).
-    let ragNoteIds = new Set<string>()
+    // Seed with the open note's ID so RAG/DB supplement don't re-inject it.
+    let ragNoteIds = new Set<string>(noteId ? [noteId] : [])
     let ragHasTasks = false
 
     if (ragActive) {
@@ -105,12 +108,9 @@ export function AIChatPanel({ config, noteId, noteTitle, noteContent, onClose }:
         if (ragRes.ok) {
           const results: Array<{ id: string; title: string; type: string; body: string }> = await ragRes.json()
           ragHasTasks = results.some(r => r.type === 'task')
-          ragNoteIds = new Set(results.filter(r => r.type === 'note').map(r => r.id))
-          // In "This note" mode the open note is already injected above — skip it here.
-          // In "All knowledge" mode include it; nothing else injects it.
-          const others = mode === 'note'
-            ? results.filter(r => !(r.type === 'note' && r.id === noteId))
-            : results
+          results.filter(r => r.type === 'note').forEach(r => ragNoteIds.add(r.id))
+          // The open note is always injected above — skip it here to avoid duplication.
+          const others = results.filter(r => !(r.type === 'note' && r.id === noteId))
           if (others.length) {
             const ragContext = others.map(r => {
               const prefix = r.type === 'task' ? '### Task' : r.type === 'bookmark' ? '### Bookmark' : '##'
