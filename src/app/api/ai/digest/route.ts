@@ -15,7 +15,7 @@ export async function POST(req: NextRequest) {
   const rl = rateLimit(`ai-digest:${user.id}`, 10, 60_000)
   if (rl) return rl
 
-  let body: { config: AIConfig; period?: 'day' | 'week' }
+  let body!: { config: AIConfig; period?: 'day' | 'week' }
   try { body = await req.json() } catch { return NextResponse.json({ error: 'Invalid request body' }, { status: 400 }) }
   const configError = validateConfig(body.config)
   if (configError) return NextResponse.json({ error: configError }, { status: 400 })

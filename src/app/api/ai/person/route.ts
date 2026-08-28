@@ -22,7 +22,7 @@ export async function POST(req: NextRequest) {
   const rl = rateLimit(`ai-person:${user.id}`, 20, 60_000)
   if (rl) return rl
 
-  let body: { config: AIConfig; name: string }
+  let body!: { config: AIConfig; name: string }
   try { body: { config: AIConfig; name: string } = await req.json() } catch { return NextResponse.json({ error: 'Invalid request body' }, { status: 400 }) }
   const configError = validateConfig(body.config)
   if (configError) return NextResponse.json({ error: configError }, { status: 400 })

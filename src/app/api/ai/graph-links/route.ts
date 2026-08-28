@@ -16,7 +16,7 @@ export async function POST(req: NextRequest) {
   const rl = rateLimit(`ai-graph:${user.id}`, 10, 60_000)
   if (rl) return rl
 
-  let _parsed: Record<string, unknown>
+  let _parsed!: Record<string, unknown>
   try { _parsed = await req.json() } catch { return NextResponse.json({ error: 'Invalid request body' }, { status: 400 }) }
   const { mode, limit } = _parsed
 

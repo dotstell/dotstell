@@ -111,7 +111,7 @@ export async function POST(req: NextRequest) {
   if (contentLength && parseInt(contentLength) > 10 * 1024 * 1024) {
     return NextResponse.json({ error: 'Payload too large (max 10 MB)' }, { status: 413 })
   }
-  let body
+  let body!
   try { body = await req.json() } catch { return NextResponse.json({ error: 'Invalid request body' }, { status: 400 }) }
   const { html, force, selectedTags } = body as { html: string; force?: boolean; selectedTags?: string[] }
   if (!html) return NextResponse.json({ error: 'Missing html' }, { status: 400 })

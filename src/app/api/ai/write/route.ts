@@ -38,7 +38,7 @@ export async function POST(req: NextRequest) {
   const rl = rateLimit(`ai-write:${user.id}`, 20, 60_000)
   if (rl) return rl
 
-  let _parsed: Record<string, unknown>
+  let _parsed!: Record<string, unknown>
   try { _parsed = await req.json() } catch { return NextResponse.json({ error: 'Invalid request body' }, { status: 400 }) }
   const { config, mode, format, intent, title, content } = _parsed
 

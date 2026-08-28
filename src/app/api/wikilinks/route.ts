@@ -9,7 +9,7 @@ export async function POST(req: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  let _parsed: Record<string, unknown>
+  let _parsed!: Record<string, unknown>
   try { _parsed = await req.json() } catch { return NextResponse.json({ error: 'Invalid request body' }, { status: 400 }) }
   const { sourceNoteId, targetNoteIds } = _parsed as {
     sourceNoteId: string

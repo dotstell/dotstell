@@ -21,7 +21,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   const rl = rateLimit(`notes-patch:${user.id}`, 120, 60_000)
   if (rl) return rl
 
-  let body
+  let body!
   try { body = await req.json() } catch { return NextResponse.json({ error: 'Invalid request body' }, { status: 400 }) }
   if (typeof body.content === 'string' && body.content.length > 2_000_000) {
     return NextResponse.json({ error: 'Content too large (max 2 MB)' }, { status: 413 })

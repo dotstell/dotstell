@@ -19,7 +19,7 @@ export async function POST(
   const rl = rateLimit(`ai-related:${user.id}`, 60, 60_000)
   if (rl) return rl
 
-  let body: { config: AIConfig; limit?: number }
+  let body!: { config: AIConfig; limit?: number }
   try { body: { config: AIConfig; limit?: number } = await req.json() } catch { return NextResponse.json({ error: 'Invalid request body' }, { status: 400 }) }
   const limit = Math.min(body.limit ?? 5, 10)
 

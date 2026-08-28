@@ -15,7 +15,7 @@ export async function POST(req: NextRequest) {
   const rl = rateLimit(`ai-autolink:${user.id}`, 30, 60_000)
   if (rl) return rl
 
-  let _parsed: Record<string, unknown>
+  let _parsed!: Record<string, unknown>
   try { _parsed = await req.json() } catch { return NextResponse.json({ error: 'Invalid request body' }, { status: 400 }) }
   const { noteId } = _parsed
   if (!noteId) return NextResponse.json({ error: 'noteId required' }, { status: 400 })

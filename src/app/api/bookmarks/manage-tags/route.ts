@@ -7,7 +7,7 @@ export async function PATCH(req: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  let _parsed: Record<string, unknown>
+  let _parsed!: Record<string, unknown>
   try { _parsed = await req.json() } catch { return NextResponse.json({ error: 'Invalid request body' }, { status: 400 }) }
   const { oldTag, newTag } = _parsed
   if (!oldTag || !newTag) return NextResponse.json({ error: 'Missing oldTag or newTag' }, { status: 400 })
@@ -54,7 +54,7 @@ export async function DELETE(req: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  let _parsed: Record<string, unknown>
+  let _parsed!: Record<string, unknown>
   try { _parsed = await req.json() } catch { return NextResponse.json({ error: 'Invalid request body' }, { status: 400 }) }
   const { tag } = _parsed
   if (!tag) return NextResponse.json({ error: 'Missing tag' }, { status: 400 })
