@@ -4,11 +4,14 @@ import { rateLimit }    from '@/lib/ratelimit'
 import { streamChat, validateConfig } from '@/lib/ai/client'
 import { AIConfig, AIMessage } from '@/lib/ai/types'
 
-// POST /api/ai/chat
-// Body: { config, messages, context? }
-// Returns: text/event-stream (SSE) — normalised delta chunks
-// context is optional injected RAG context prepended as a system message
-export async function POST(req: NextRequest) {
+/**
+ * POST /api/ai/chat
+ * Body: `{ config: AIConfig, messages: AIMessage[], context?: string }`
+ * Returns a `text/event-stream` of normalised delta chunks `{ delta?, done?, error? }`.
+ * When `context` is provided it is prepended as a system message (wrapped in XML tags
+ * to prevent prompt injection from user-generated note/task content).
+ */
+export async function POST(req: NextRequest): Promise<Response | NextResponse> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -16,7 +19,13 @@ export async function POST(req: NextRequest) {
   const rl = rateLimit(`ai-chat:${user.id}`, 60, 60_000)
   if (rl) return rl
 
-  const body: { config: AIConfig; messages: AIMessage[]; context?: string } = await req.json()
+  let body: { config: AIConfig; messages: AIMessage[]; context?: string }
+  try {
+    body = await req.json()
+  } catch {
+    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 })
+  }
+
   const configError = validateConfig(body.config)
   if (configError) return NextResponse.json({ error: configError }, { status: 400 })
 

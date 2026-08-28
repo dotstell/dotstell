@@ -10,6 +10,7 @@ import {
 } from 'lucide-react'
 import type { Editor } from '@tiptap/react'
 import Link from 'next/link'
+import { toast } from 'sonner'
 import { Note, ChecklistItem } from '@/types'
 import { generateId } from '@/lib/utils'
 import { RichTextEditor } from '@/components/editor/RichTextEditor'
@@ -145,12 +146,15 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
 
   async function createSubNote() {
     if (!noteId) return
-    const res = await fetch('/api/notes', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ title: '', content: '<p></p>', type: 'markdown', tags: [], parent_id: noteId }),
-    })
-    if (res.ok) { const sub = await res.json(); router.push(`/notes/${sub.id}`) }
+    try {
+      const res = await fetch('/api/notes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: '', content: '<p></p>', type: 'markdown', tags: [], parent_id: noteId }),
+      })
+      if (res.ok) { const sub = await res.json(); router.push(`/notes/${sub.id}`) }
+      else toast.error('Failed to create sub-note')
+    } catch { toast.error('Failed to create sub-note') }
   }
 
   const syncWikiLinks = useCallback(async (sourceNoteId: string) => {
@@ -266,12 +270,25 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
 </style>
 </head><body>
 <h1>${safe(title)}</h1>
-${note.content ?? ''}
+${sanitizeHtmlForPrint(note.content ?? '')}
 </body></html>`)
     win.document.close()
     win.focus()
     // Brief delay lets the browser render before the print dialog opens
     setTimeout(() => { win.print(); win.close() }, 600)
+  }
+
+  // Strip dangerous elements from TipTap HTML before writing to a new window.
+  // Guards against <script>/<iframe> injection via paste or direct DB edits.
+  function sanitizeHtmlForPrint(html: string): string {
+    const doc = new DOMParser().parseFromString(html, 'text/html')
+    doc.querySelectorAll('script, iframe, object, embed').forEach(el => el.remove())
+    doc.querySelectorAll('*').forEach(el => {
+      for (const attr of Array.from(el.attributes)) {
+        if (attr.name.startsWith('on')) el.removeAttribute(attr.name)
+      }
+    })
+    return doc.body.innerHTML
   }
 
   // Navigate to a heading by querying the actual rendered DOM inside the editor.

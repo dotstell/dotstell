@@ -25,6 +25,14 @@ interface ChatMessage {
 type ChatMode = 'note' | 'global'
 type PanelTab = 'chat' | 'people'
 
+/**
+ * Floating chat panel supporting two modes:
+ * - "This note" (noteId provided): context is the open note + RAG results
+ * - "All knowledge" (global): semantic search across all notes/tasks/bookmarks;
+ *   tasks are supplemented via direct DB fetch when embeddings haven't been built yet.
+ * On the live app, Ollama chat streams directly through the Local Agent (browser → localhost proxy)
+ * instead of the server route, which cannot reach the user's local Ollama instance.
+ */
 export function AIChatPanel({ config, noteId, noteTitle, noteContent, onClose }: AIChatPanelProps) {
   const router = useRouter()
   const [activeTab,  setActiveTab]  = useState<PanelTab>('chat')
@@ -78,6 +86,11 @@ export function AIChatPanel({ config, noteId, noteTitle, noteContent, onClose }:
       context = `## ${noteTitle}\n${plain}`
     }
 
+    // Tracks whether any task row came back from RAG — used below to decide whether to
+    // supplement. Checking the assembled string would be fragile (note body could contain
+    // the literal text "### Task").
+    let ragHasTasks = false
+
     if (ragActive) {
       try {
         const ragRes = await fetch('/api/ai/semantic-search', {
@@ -92,6 +105,7 @@ export function AIChatPanel({ config, noteId, noteTitle, noteContent, onClose }:
         })
         if (ragRes.ok) {
           const results: Array<{ id: string; title: string; type: string; body: string }> = await ragRes.json()
+          ragHasTasks = results.some(r => r.type === 'task')
           // Filter out the current note (already injected above) so it isn't duplicated
           const others = results.filter(r => !(r.type === 'note' && r.id === noteId))
           if (others.length) {
@@ -136,7 +150,7 @@ export function AIChatPanel({ config, noteId, noteTitle, noteContent, onClose }:
             }))
           }
           if (parts.length) context = parts.join('\n\n')
-        } else if (!context.includes('### Task')) {
+        } else if (!ragHasTasks) {
           // RAG returned notes/bookmarks but no tasks — supplement so the model always sees them.
           const { data: recentTasks } = await supabase
             .from('tasks').select('title, description, status, priority, due_date, updated_at')

@@ -124,10 +124,13 @@ export default function BookmarksPage() {
   const { config: aiConfig, loaded: aiLoaded } = useAISettings()
 
   const fetchBookmarks = useCallback(async () => {
-    const res = await fetch('/api/bookmarks')
-    const data = await res.json()
-    setBookmarks(Array.isArray(data) ? data : [])
-    setLoading(false)
+    try {
+      const res = await fetch('/api/bookmarks')
+      if (!res.ok) return
+      const data = await res.json()
+      setBookmarks(Array.isArray(data) ? data : [])
+    } catch { /* leave existing bookmarks in place on network error */ }
+    finally { setLoading(false) }
   }, [])
 
   async function trackVisit(id: string) {
@@ -154,32 +157,32 @@ export default function BookmarksPage() {
     try { new URL(url) } catch { toast.error('Invalid URL'); return }
 
     setCaptureFetching(true)
-    const meta = await fetchMeta(url)
-
-    const res = await fetch('/api/bookmarks', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        url,
-        title: meta?.title ?? new URL(url).hostname,
-        description: meta?.description ?? '',
-        favicon_url: meta?.favicon_url ?? null,
-        reading_time: meta?.reading_time ?? null,
-        hostname: meta?.hostname ?? new URL(url).hostname,
-        tags: [],
-      }),
-    })
-
-    if (res.ok) {
-      const saved = await res.json()
-      if (saved?.id) triggerEmbedBackground('bookmark', saved.id)
-      toast.success('Bookmark saved')
-      setCaptureUrl('')
-      fetchBookmarks()
-    } else {
-      toast.error('Failed to save')
-    }
-    setCaptureFetching(false)
+    try {
+      const meta = await fetchMeta(url)
+      const res = await fetch('/api/bookmarks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          url,
+          title: meta?.title ?? new URL(url).hostname,
+          description: meta?.description ?? '',
+          favicon_url: meta?.favicon_url ?? null,
+          reading_time: meta?.reading_time ?? null,
+          hostname: meta?.hostname ?? new URL(url).hostname,
+          tags: [],
+        }),
+      })
+      if (res.ok) {
+        const saved = await res.json()
+        if (saved?.id) triggerEmbedBackground('bookmark', saved.id)
+        toast.success('Bookmark saved')
+        setCaptureUrl('')
+        fetchBookmarks()
+      } else {
+        toast.error('Failed to save')
+      }
+    } catch { toast.error('Failed to save') }
+    finally { setCaptureFetching(false) }
   }
 
   // ── Drag and drop ────────────────────────────────────────
@@ -200,52 +203,56 @@ export default function BookmarksPage() {
     try { new URL(url) } catch { toast.error('Not a valid URL'); return }
 
     setCaptureFetching(true)
-    const meta = await fetchMeta(url)
-    const res = await fetch('/api/bookmarks', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        url,
-        title: meta?.title ?? new URL(url).hostname,
-        description: meta?.description ?? '',
-        favicon_url: meta?.favicon_url ?? null,
-        reading_time: meta?.reading_time ?? null,
-        hostname: meta?.hostname ?? new URL(url).hostname,
-        tags: [],
-      }),
-    })
-    if (res.ok) {
-      const saved = await res.json()
-      if (saved?.id) triggerEmbedBackground('bookmark', saved.id)
-      toast.success('Link saved!')
-      fetchBookmarks()
-    } else toast.error('Failed to save')
-    setCaptureFetching(false)
+    try {
+      const meta = await fetchMeta(url)
+      const res = await fetch('/api/bookmarks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          url,
+          title: meta?.title ?? new URL(url).hostname,
+          description: meta?.description ?? '',
+          favicon_url: meta?.favicon_url ?? null,
+          reading_time: meta?.reading_time ?? null,
+          hostname: meta?.hostname ?? new URL(url).hostname,
+          tags: [],
+        }),
+      })
+      if (res.ok) {
+        const saved = await res.json()
+        if (saved?.id) triggerEmbedBackground('bookmark', saved.id)
+        toast.success('Link saved!')
+        fetchBookmarks()
+      } else toast.error('Failed to save')
+    } catch { toast.error('Failed to save') }
+    finally { setCaptureFetching(false) }
   }
 
   // ── Bulk import ──────────────────────────────────────────
   async function runImport(html: string, force = false, selectedTags?: string[]) {
     setImporting(true)
-    const res = await fetch('/api/bookmarks/bulk-import', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ html, force, selectedTags }),
-    })
-    const data = await res.json()
-    if (res.ok) {
-      setImportResult(data)
-      if (data.imported > 0) {
-        toast.success(`Imported ${data.imported} new bookmark${data.imported !== 1 ? 's' : ''}`)
-        fetchBookmarks()
-        // Bulk re-index all un-embedded bookmarks so imported items are immediately searchable.
-        if (aiLoaded && aiConfig.embeddingProvider) triggerBulkEmbedBackground(aiConfig)
-      } else if (data.duplicates > 0) {
-        toast.info(`All ${data.duplicates} bookmarks already exist`)
+    try {
+      const res = await fetch('/api/bookmarks/bulk-import', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ html, force, selectedTags }),
+      })
+      const data = await res.json()
+      if (res.ok) {
+        setImportResult(data)
+        if (data.imported > 0) {
+          toast.success(`Imported ${data.imported} new bookmark${data.imported !== 1 ? 's' : ''}`)
+          fetchBookmarks()
+          // Bulk re-index all un-embedded bookmarks so imported items are immediately searchable.
+          if (aiLoaded && aiConfig.embeddingProvider) triggerBulkEmbedBackground(aiConfig)
+        } else if (data.duplicates > 0) {
+          toast.info(`All ${data.duplicates} bookmarks already exist`)
+        }
+      } else {
+        toast.error(data.error ?? 'Import failed')
       }
-    } else {
-      toast.error(data.error ?? 'Import failed')
-    }
-    setImporting(false)
+    } catch { toast.error('Import failed') }
+    finally { setImporting(false) }
   }
 
   async function handleFileImport(e: React.ChangeEvent<HTMLInputElement>) {
@@ -311,8 +318,13 @@ export default function BookmarksPage() {
   }
 
   async function deleteBookmark(id: string) {
-    const res = await fetch(`/api/bookmarks/${id}`, { method: 'DELETE' })
-    if (res.ok) { setBookmarks(prev => prev.filter(b => b.id !== id)); toast.success('Deleted') }
+    try {
+      const res = await fetch(`/api/bookmarks/${id}`, { method: 'DELETE' })
+      if (res.ok) {
+        setBookmarks(prev => prev.filter(b => b.id !== id))
+        toast.success('Deleted')
+      } else toast.error('Failed to delete')
+    } catch { toast.error('Failed to delete') }
   }
 
   // ── Bulk operations ──────────────────────────────────────

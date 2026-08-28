@@ -84,8 +84,10 @@ export function triggerEmbedBackground(
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
     if (!raw) return
-    const config = JSON.parse(raw) as AIConfig
-    if (!config.embeddingProvider) return
+    const parsed = JSON.parse(raw) as unknown
+    // Guard against a stale or malformed config shape in localStorage
+    if (!parsed || typeof (parsed as Record<string, unknown>).embeddingProvider !== 'string') return
+    const config = parsed as AIConfig
 
     if (config.embeddingProvider === 'ollama') {
       embedViaLocalAgent(config, entityType, entityId).catch(() => {})

@@ -58,7 +58,7 @@ export default function TasksPage() {
       const data = await res.json()
       setTasks(Array.isArray(data) ? data : [])
     } catch {
-      // network error — leave existing tasks in place
+      toast.error('Failed to load tasks')
     } finally {
       setLoading(false)
     }
