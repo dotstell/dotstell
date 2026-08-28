@@ -99,8 +99,10 @@ export default function TasksPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status }),
       })
-      if (res.ok) setTasks(prev => prev.map(t => t.id === task.id ? { ...t, status } : t))
-      else toast.error('Failed to update task')
+      if (res.ok) {
+        setTasks(prev => prev.map(t => t.id === task.id ? { ...t, status } : t))
+        triggerEmbedBackground('task', task.id)
+      } else toast.error('Failed to update task')
     } catch {
       toast.error('Failed to update task')
     }

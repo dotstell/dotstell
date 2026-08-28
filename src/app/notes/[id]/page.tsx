@@ -175,6 +175,7 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
         })
         if (res.ok) {
           setSaveStatus('saved')
+          triggerEmbedBackground('note', currentId)
           syncWikiLinks(currentId)
           if (data.title !== undefined) updateTitle(currentId, data.title || 'Untitled')
           window.dispatchEvent(new Event('dotstell:notes-updated'))
