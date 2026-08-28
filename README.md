@@ -258,7 +258,7 @@ See [`packages/agent/README.md`](packages/agent/README.md) for environment varia
 | Framework | Next.js 16 (App Router, React 19) |
 | Language | TypeScript 5 · Rust (desktop shell) |
 | Styling | Tailwind CSS v4 |
-| Database | Supabase (PostgreSQL 15 + Row Level Security) |
+| Database | Supabase (PostgreSQL 17.6 + Row Level Security) |
 | Auth | Supabase Auth (JWT) |
 | Rich Text Editor | Tiptap v3 |
 | Graph Visualisation | React Flow v11 |

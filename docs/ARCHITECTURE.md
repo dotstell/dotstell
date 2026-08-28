@@ -31,31 +31,25 @@ This document explains how Dotstell is built: the layers, the languages, the dat
 
 ## System Overview
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                        Client Layer                         │
-│                                                             │
-│   Browser (dotstell.app)        Desktop (Tauri WebView)     │
-│   Next.js · React 19            Tauri v2 · Rust shell       │
-│   TypeScript · Tailwind v4      loads dotstell.app via WKWebView / WebView2
-└────────────────────┬────────────────────────────────────────┘
-                     │  HTTPS  (Supabase JWT in Authorization header)
-┌────────────────────▼────────────────────────────────────────┐
-│                       API Layer                             │
-│                                                             │
-│   Next.js App Router API Routes  (TypeScript)               │
-│   /api/notes  /api/people  /api/tasks  /api/bookmarks       │
-│   /api/links  /api/notebooks  /api/search  /api/fetch-meta  │
-└────────────────────┬────────────────────────────────────────┘
-                     │  Supabase client  (service role / anon)
-┌────────────────────▼────────────────────────────────────────┐
-│                     Data Layer                              │
-│                                                             │
-│   Supabase (PostgreSQL 15 + pgvector extension)             │
-│   Row Level Security enforced at DB level                   │
-│   Tables: notes · people · bookmarks · tasks                │
-│           knowledge_links · notebooks                       │
-└─────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+    subgraph CL["Client Layer"]
+        direction LR
+        BR["🌐 Browser\ndotstell.app · Next.js · React 19\nTypeScript · Tailwind v4"]
+        DT["🖥 Desktop\nTauri v2 · Rust shell\nloads dotstell.app via WebView"]
+    end
+
+    subgraph AL["API Layer"]
+        API["Next.js App Router — API Routes\n/api/notes  /api/people  /api/tasks\n/api/bookmarks  /api/links  /api/ai/*"]
+    end
+
+    subgraph DL["Data Layer"]
+        DB["Supabase · PostgreSQL 17.6 + pgvector\nRow Level Security on all tables"]
+    end
+
+    BR -- "HTTPS + Supabase JWT" --> API
+    DT -- "HTTPS + Supabase JWT" --> API
+    API -- "Supabase client (service role / anon)" --> DB
 ```
 
 The desktop app is a **thin native shell** — it opens a WebView pointed at `dotstell.app` and never talks to the database directly. All data access flows through the same Next.js API routes as the web app.
@@ -82,7 +76,7 @@ The desktop app is a **thin native shell** — it opens a WebView pointed at `do
 | Rich text editor | Tiptap | v3 |
 | Graph visualisation | React Flow | v11 |
 | State management | Zustand + TanStack Query | 5 |
-| Database | Supabase (PostgreSQL 15) | — |
+| Database | Supabase (PostgreSQL 17.6) | — |
 | Auth | Supabase Auth (JWT) | — |
 | Desktop shell | Tauri | v2 |
 | Drag and drop | dnd-kit | 6 / 10 |
@@ -209,26 +203,78 @@ src/lib/
 
 ### Entity Relationship Overview
 
+```mermaid
+erDiagram
+    USERS ||--o{ NOTES : "owns"
+    USERS ||--o{ PEOPLE : "owns"
+    USERS ||--o{ BOOKMARKS : "owns"
+    USERS ||--o{ TASKS : "owns"
+    USERS ||--o{ NOTEBOOKS : "owns"
+    USERS ||--o{ KNOWLEDGE_LINKS : "owns"
+    PEOPLE ||--o{ NOTES : "person_id (nullable FK)"
+    PEOPLE ||--o{ TASKS : "person_id (nullable FK)"
+
+    NOTES {
+        uuid id PK
+        uuid user_id FK
+        uuid person_id FK
+        text title
+        text content
+        text type
+        jsonb checklist_items
+        text[] tags
+        timestamp deleted_at
+        vector embedding
+        int sort_order
+        boolean pinned
+    }
+    PEOPLE {
+        uuid id PK
+        uuid user_id FK
+        text name
+        text role
+        text company
+        text email
+        text[] tags
+    }
+    BOOKMARKS {
+        uuid id PK
+        uuid user_id FK
+        text url
+        text title
+        text[] tags
+        vector embedding
+        timestamp last_visited_at
+    }
+    TASKS {
+        uuid id PK
+        uuid user_id FK
+        uuid person_id FK
+        text title
+        text status
+        text priority
+        date due_date
+        text[] tags
+    }
+    NOTEBOOKS {
+        uuid id PK
+        uuid user_id FK
+        text name
+        text color
+        int sort_order
+    }
+    KNOWLEDGE_LINKS {
+        uuid id PK
+        uuid user_id FK
+        uuid source_id
+        text source_type
+        uuid target_id
+        text target_type
+        text label
+    }
 ```
-auth.users (Supabase managed)
-    │
-    ├── notes ──────────────────── people (person_id FK, nullable)
-    │     │  tags: text[]          │
-    │     │  (includes nb: tags)   ├── tasks (person_id FK, nullable)
-    │     │                        │
-    ├── bookmarks                  └── (standalone: no further FKs)
-    │     │  tags: text[]
-    │
-    ├── tasks
-    │     │  tags: text[]
-    │
-    ├── notebooks
-    │     │  (membership tracked via nb: tags on notes — no FK)
-    │
-    └── knowledge_links
-          source_id (uuid, untyped — can ref any entity)
-          target_id (uuid, untyped — can ref any entity)
-```
+
+> `KNOWLEDGE_LINKS.source_id` / `target_id` are untyped UUIDs — no FK constraint. They can reference any entity (note, person, bookmark, task). `source_type` / `target_type` record what each UUID refers to. `label = '__wikilink__'` marks auto-created wikilink edges vs manually created links.
 
 ### Design Decisions
 
@@ -260,12 +306,26 @@ Notes are not hard-deleted. `DELETE /api/notes/[id]` sets `deleted_at = now()`. 
 
 Dotstell uses **Supabase Auth** — JWT-based, issued by Supabase on login. The token is stored in a cookie (via `@supabase/ssr`) and sent with every API request. API routes call `supabase.auth.getUser()` server-side to verify the token before any data access.
 
-```
-User → POST /auth/signin → Supabase Auth
-                         ← JWT cookie
-User → GET /api/notes   (cookie sent automatically)
-     → supabase.auth.getUser() verifies JWT
-     ← notes belonging to user only
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant B as Browser
+    participant A as Next.js API Route
+    participant S as Supabase Auth
+    participant DB as PostgreSQL
+
+    U->>B: Sign in (email / OAuth)
+    B->>S: signInWithPassword()
+    S-->>B: JWT in cookie (httpOnly)
+
+    U->>B: Navigate to /notes
+    B->>A: GET /api/notes (cookie sent automatically)
+    A->>S: auth.getUser()
+    S-->>A: user.id
+    A->>DB: SELECT … WHERE user_id = user.id
+    Note over DB: RLS policy: auth.uid() = user_id
+    DB-->>A: rows belonging to user only
+    A-->>B: JSON response
 ```
 
 ### Row Level Security
@@ -324,15 +384,26 @@ The bookmark metadata fetcher pre-resolves DNS and blocks requests to RFC-1918 a
 
 The Tiptap editor has a custom `WikiLinkExtension` (in `src/lib/tiptap/WikiLinkExtension.ts`) that recognises `[[Page Title]]` syntax as a ProseMirror inline node.
 
-**Write path:**
-1. User types `[[` — the extension shows an autocomplete dropdown of existing note titles.
-2. On selection, a `wikilink` node is inserted with `attrs: { title, id }`.
-3. On every note save, the editor serialises wikilink nodes and calls `POST /api/links` for each one, upserting a `knowledge_links` row with `label = '__wikilink__'`.
+```mermaid
+flowchart LR
+    subgraph Write["✏️ Write Path"]
+        W1["User types [[ in editor"]
+        W2["WikiLinkExtension\nshows autocomplete"]
+        W3["wikilink node inserted\nattrs: {title, id}"]
+        W4["On save\nPOST /api/links\nper wikilink node"]
+        W5["knowledge_links row\nlabel = '__wikilink__'"]
+        W1 --> W2 --> W3 --> W4 --> W5
+    end
 
-**Read path (backlinks):**
-1. When viewing note X, the BacklinksPanel calls `GET /api/links?target_id=X`.
-2. The API returns all `knowledge_links` rows where `target_id = X` and `label = '__wikilink__'`.
-3. The panel fetches note titles for the returned `source_id` values and renders the list.
+    subgraph Read["🔍 Read Path — Backlinks Panel"]
+        R1["User opens note X"]
+        R2["GET /api/links\n?target_id=X"]
+        R3["Filter\nlabel = '__wikilink__'"]
+        R4["Fetch source\nnote titles"]
+        R5["BacklinksPanel\nrenders linking notes"]
+        R1 --> R2 --> R3 --> R4 --> R5
+    end
+```
 
 **Why upsert on `(user_id, source_id, target_id)`:**
 A note with 5 `[[links]]` to the same target should produce one edge, not 5. The unique constraint on that triplet plus `onConflict` upsert handles this without duplicate edges accumulating over edits.
@@ -473,12 +544,22 @@ Most AI operations run on the **Next.js server** (Vercel), which then calls the 
 
 For Ollama on the live app, all AI requests take a **browser-side path** — the browser calls Ollama (or the Local Agent proxy) directly:
 
-```
-Normal path (cloud providers, or Ollama on localhost dev):
-  Browser → POST /api/ai/chat → Vercel → Provider API → SSE back
+```mermaid
+flowchart TB
+    UI["UI Component\nChat · Assist · Summary · Title · Tags…"]
+    UI --> Check{{"Provider = Ollama\nAND live app?"}}
 
-Ollama path on live app (dotstell.app):
-  Browser → POST http://127.0.0.1:12345/api/chat → Local Agent → Ollama → NDJSON back
+    Check -- "Yes\n(dotstell.app)" --> BrowserPath["🔒 Browser-direct path\nfetch → 127.0.0.1:12345"]
+    Check -- "No\n(cloud provider or local dev)" --> ServerPath["/api/ai/* route\nVercel serverless"]
+
+    BrowserPath --> Agent["Dotstell Local Agent\n(PNA proxy)"]
+    Agent --> Ollama1["Ollama · 127.0.0.1:11434"]
+
+    ServerPath --> OAI["OpenAI"]
+    ServerPath --> ANT["Anthropic"]
+    ServerPath --> GEM["Google Gemini"]
+    ServerPath --> GRQ["Groq"]
+    ServerPath --> Ollama2["Ollama\n(local dev only)"]
 ```
 
 **Which routes use the browser-side path when Ollama + live app is detected:**
@@ -511,19 +592,24 @@ The Local AI Agent (`packages/agent/index.mjs`) solves the **Private Network Acc
 4. Forwards the request verbatim to Ollama (`127.0.0.1:11434` by default)
 5. Copies Ollama's streaming response back with its own CORS headers
 
-```
-Browser (dotstell.app)
-  │  OPTIONS http://127.0.0.1:12345/api/chat
-  │  ← Access-Control-Allow-Private-Network: true
-  │  ← Access-Control-Allow-Origin: https://dotstell.app
-  │
-  │  POST http://127.0.0.1:12345/api/chat
-  ▼
-Local Agent (127.0.0.1:12345)
-  │  forward (origin/referer headers stripped)
-  ▼
-Ollama (127.0.0.1:11434)
-  └── model inference → NDJSON stream back
+```mermaid
+sequenceDiagram
+    participant B as Browser (dotstell.app)
+    participant A as Local Agent (127.0.0.1:12345)
+    participant O as Ollama (127.0.0.1:11434)
+
+    B->>A: OPTIONS /api/chat
+    Note over B,A: Origin: https://dotstell.app
+    A-->>B: 200 OK
+    Note over A,B: Access-Control-Allow-Private-Network: true
+    Note over A,B: Access-Control-Allow-Origin: https://dotstell.app
+
+    B->>A: POST /api/chat {model, messages}
+    A->>A: Validate Origin against allow-list
+    A->>A: Strip Origin / Referer headers
+    A->>O: POST /api/chat (forwarded verbatim)
+    O-->>A: NDJSON stream
+    A-->>B: NDJSON stream + CORS headers
 ```
 
 The app detects the agent via `GET http://127.0.0.1:12345/health`. The AI Settings modal shows a live status badge. If the agent is not running, a warning is shown with the start command.
@@ -545,6 +631,26 @@ Semantic search (Related Notes, RAG context, AI Chat grounding) requires notes a
 | Gemini | `gemini-embedding-001` | `outputDimensionality: 768` param |
 
 > `text-embedding-ada-002` is not supported — it ignores the `dimensions` parameter and always returns 1536 dimensions, which mismatches the `vector(768)` column. The app rejects it with a clear error.
+
+```mermaid
+flowchart LR
+    subgraph Build["Build Index — PUT /api/ai/embed"]
+        N["Un-indexed notes\n& bookmarks"]
+        EM["Embedding model\nnomic-embed-text · text-embedding-3-small\ngemini-embedding-001"]
+        V["vector(768) column\nPostgreSQL + pgvector"]
+        N --> EM --> V
+    end
+
+    subgraph Search["Semantic Search — POST /api/ai/semantic-search"]
+        Q["User query"]
+        QE["Embed query\n→ vector(768)"]
+        CS["pgvector\ncosine distance <=>"]
+        R["Top-N results\nabove threshold"]
+        Q --> QE --> CS --> R
+    end
+
+    V -. "stored embeddings" .-> CS
+```
 
 **Indexing:** The `PUT /api/ai/embed` route (bulk) embeds all un-indexed notes and bookmarks sequentially (to avoid rate-limit bursts). For Ollama on the live app, `buildSearchIndexBrowserOllama()` runs the same pipeline entirely in the browser via the Local Agent.
 
@@ -579,9 +685,35 @@ The `<=>` operator is pgvector's cosine distance. Results above the threshold ar
 
 ---
 
-
+## Request Lifecycle
 
 A typical note save (PATCH) follows this path:
+
+```mermaid
+sequenceDiagram
+    participant E as Editor (browser)
+    participant A as /api/notes/[id] (Vercel)
+    participant S as Supabase Auth
+    participant DB as PostgreSQL
+
+    E->>E: User types — debounce 500 ms
+    Note over E: Optimistic update applied immediately
+    E->>A: PATCH /api/notes/[id] {title, content, tags}
+
+    A->>S: auth.getUser()
+    S-->>A: user.id
+    A->>A: Rate limit check (120 req/min)
+    A->>A: Validate fields allowlist + formats
+    A->>DB: UPDATE notes WHERE id=? AND user_id=?
+    Note over DB: RLS: auth.uid() = user_id (double enforcement)
+    DB-->>A: updated row
+    A-->>E: 200 OK
+
+    Note over E: Success: no-op (optimistic state already correct)
+    Note over E: Failure: rollback to snapshot + toast error
+```
+
+Full server-side steps:
 
 ```
 User types in editor
@@ -609,19 +741,17 @@ Client:
 
 The desktop app is built with **Tauri v2** — a Rust framework that wraps a WebView (WKWebView on macOS, WebView2 on Windows, webkit2gtk on Linux).
 
-```
-┌─────────────────────────────────┐
-│     Native OS Window            │
-│  ┌───────────────────────────┐  │
-│  │  WebView                  │  │
-│  │  loads dotstell.app       │  │
-│  │  (same Next.js web app)   │  │
-│  └───────────────────────────┘  │
-│     Rust shell (src-tauri/)     │
-│     handles: window mgmt,       │
-│     auto-updater, tray icon,    │
-│     deep links, notifications   │
-└─────────────────────────────────┘
+```mermaid
+flowchart TB
+    subgraph OS["Native OS Window"]
+        subgraph Shell["Tauri v2 · Rust Shell"]
+            WV["WebView\nloads dotstell.app\n(same Next.js web app)"]
+            RS["window management · auto-updater\ntray icon · deep links · notifications"]
+        end
+    end
+
+    WV -- "HTTPS" --> APP["dotstell.app\n(Vercel · Next.js)"]
+    APP -- "Supabase client" --> SB["Supabase\nPostgreSQL 17.6 + pgvector"]
 ```
 
 **Key properties:**
