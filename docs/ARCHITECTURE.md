@@ -251,10 +251,13 @@ erDiagram
         uuid user_id FK
         uuid person_id FK
         text title
+        text description
         text status
         text priority
         date due_date
         text[] tags
+        vector embedding
+        text embedding_model
     }
     NOTEBOOKS {
         uuid id PK
@@ -523,8 +526,8 @@ All downstream consumers (API routes, hooks, UI) read this single format regardl
 | `/api/ai/summarize` | POST | Note or bookmark summary |
 | `/api/ai/title` | POST | Smart title suggestion |
 | `/api/ai/tags` | POST | Auto-tag suggestion (returns JSON array) |
-| `/api/ai/embed` | POST / PUT | Single embed (POST) or bulk re-index all un-indexed notes (PUT) |
-| `/api/ai/semantic-search` | POST | pgvector cosine similarity search; returns matching note/bookmark snippets |
+| `/api/ai/embed` | POST / PUT | Single embed (POST) or bulk re-index all un-indexed notes, bookmarks, and tasks (PUT) |
+| `/api/ai/semantic-search` | POST | pgvector cosine similarity search across notes, bookmarks, and tasks; returns results with `body` field for RAG context |
 | `/api/ai/related/[id]` | POST | Related notes for a given note (wraps semantic-search) |
 | `/api/ai/digest` | POST | AI Knowledge Digest for dashboard |
 | `/api/ai/person` | POST | Person intelligence: search all notes/bookmarks by name, generate brief |
@@ -620,9 +623,9 @@ The app detects the agent via `GET http://127.0.0.1:12345/health`. The AI Settin
 
 ### Embedding Pipeline
 
-Semantic search (Related Notes, RAG context, AI Chat grounding) requires notes and bookmarks to have embeddings stored in the database.
+Semantic search (Related Notes, RAG context, AI Chat grounding) requires notes, bookmarks, and tasks to have embeddings stored in the database.
 
-**Storage:** The `notes` and `bookmarks` tables each have an `embedding vector(768)` column (pgvector extension). All embedding models are configured to produce exactly 768 dimensions:
+**Storage:** The `notes`, `bookmarks`, and `tasks` tables each have an `embedding vector(768)` column (pgvector extension). All embedding models are configured to produce exactly 768 dimensions:
 
 | Provider | Embedding model | 768-dim mechanism |
 |---|---|---|
@@ -635,7 +638,7 @@ Semantic search (Related Notes, RAG context, AI Chat grounding) requires notes a
 ```mermaid
 flowchart LR
     subgraph Build["Build Index — PUT /api/ai/embed"]
-        N["Un-indexed notes\n& bookmarks"]
+        N["Un-indexed notes,\nbookmarks & tasks"]
         EM["Embedding model\nnomic-embed-text · text-embedding-3-small\ngemini-embedding-001"]
         V["vector(768) column\nPostgreSQL + pgvector"]
         N --> EM --> V
@@ -652,22 +655,23 @@ flowchart LR
     V -. "stored embeddings" .-> CS
 ```
 
-**Indexing:** The `PUT /api/ai/embed` route (bulk) embeds all un-indexed notes and bookmarks sequentially (to avoid rate-limit bursts). For Ollama on the live app, `buildSearchIndexBrowserOllama()` runs the same pipeline entirely in the browser via the Local Agent.
+**Indexing:** The `PUT /api/ai/embed` route (bulk) embeds all un-indexed notes, bookmarks, and tasks sequentially (to avoid rate-limit bursts). Task embed text encodes `title + description + status + priority + due_date + tags` so queries like *"what's high priority?"* match via embedding similarity. For Ollama on the live app, `buildSearchIndexBrowserOllama()` runs the same pipeline entirely in the browser via the Local Agent.
 
-**Search:** `POST /api/ai/semantic-search` embeds the query and runs:
+**Search:** `POST /api/ai/semantic-search` embeds the query and runs parallel cosine similarity lookups across all three tables via `match_notes`, `match_bookmarks`, and `match_tasks` RPC functions:
 
 ```sql
+-- Same pattern for notes, bookmarks, and tasks
 SELECT id, title, content, 1 - (embedding <=> query_vector) AS similarity
-FROM notes
+FROM notes   -- or bookmarks / tasks
 WHERE user_id = $1
-  AND deleted_at IS NULL
+  AND deleted_at IS NULL   -- notes only
   AND embedding IS NOT NULL
   AND 1 - (embedding <=> query_vector) > threshold
 ORDER BY similarity DESC
-LIMIT limit
+LIMIT match_count
 ```
 
-The `<=>` operator is pgvector's cosine distance. Results above the threshold are returned as context chunks.
+Results from all three tables are merged and sorted by score. Each result includes a `body` field (up to 800 chars) used directly as RAG context in AI Chat, and a `snippet` (120 chars) for search UI display. The `<=>` operator is pgvector's cosine distance.
 
 ---
 
@@ -781,7 +785,8 @@ supabase/migrations/
 ├── 006_notes_color.sql            # color column (hex string)
 ├── 007_notebooks_constraints.sql  # unique (user_id, name) + explicit WITH CHECK policy
 ├── 008_ai_embeddings.sql          # vector(768) columns on notes + bookmarks; enables pgvector
-└── 009_ai_match_functions.sql     # match_notes() + match_bookmarks() RPC functions for cosine similarity search
+├── 009_ai_match_functions.sql     # match_notes() + match_bookmarks() RPC functions for cosine similarity search
+└── 010_tasks_embedding.sql        # vector(768) column on tasks + match_tasks() RPC; tasks now in AI Chat RAG + semantic search
 ```
 
 > **Note on `007_notebooks_constraints.sql`:** This migration must be run manually in the Supabase SQL Editor. It adds the `UNIQUE(user_id, name)` constraint that prevents duplicate notebook names from producing colliding `nb:` tags. Without it, creating two notebooks with the same name will cause a 500 error instead of a clean 409 conflict response.

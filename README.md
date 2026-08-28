@@ -76,7 +76,7 @@ Every star, issue, and PR genuinely matters for an early-stage OSS project.
 | 🔍 | **Universal Search** | Ctrl+K command palette across all notes, people, tasks and bookmarks |
 | 🔗 | **Manual Linking** | Connect any entity to any other — note → person, bookmark → task, etc. |
 | 🏠 | **Dashboard** | Unified home screen: overdue alerts, task progress, recent notes and bookmarks |
-| ✨ | **AI — Chat, Write, Assist & Search** | RAG-grounded chat, AI Writing Assistant (draft from scratch or improve existing), inline text assist (rewrite, expand, fix), smart titles, auto-tagging, note summaries, AI Digest, Person Intelligence, semantic Related Notes — works with Ollama (local/private), OpenAI, Anthropic, Gemini, or Groq |
+| ✨ | **AI — Chat, Write, Assist & Search** | RAG-grounded chat (notes, bookmarks, and tasks all in context), AI Writing Assistant (draft from scratch or improve existing), inline text assist (rewrite, expand, fix), smart titles, auto-tagging, note summaries, AI Digest, Person Intelligence, semantic Related Notes — works with Ollama (local/private), OpenAI, Anthropic, Gemini, or Groq |
 
 ---
 
@@ -128,7 +128,8 @@ supabase/migrations/
 ├── 006_notes_color.sql
 ├── 007_notebooks_constraints.sql
 ├── 008_ai_embeddings.sql          ← vector(768) columns on notes + bookmarks (AI semantic search)
-└── 009_ai_match_functions.sql     ← pgvector cosine similarity RPC functions
+├── 009_ai_match_functions.sql     ← pgvector cosine similarity RPC functions
+└── 010_tasks_embedding.sql        ← vector(768) column on tasks + match_tasks() (tasks in AI Chat RAG)
 ```
 
 3. Copy your project URL and anon key from **Settings → API**
@@ -172,7 +173,7 @@ Dotstell ships a complete AI layer. All features work with five provider options
 
 **AI features:**
 - **AI Writing Assistant** — draft notes from scratch using 8 starter templates (Outline, Meeting notes, Daily log, Research note, OoO email, Proposal, Status update, Email draft) or a custom prompt; improve existing notes with one-click actions (Improve English, Make formal, Make concise, Expand, Full rewrite)
-- **AI Chat** — slide-out panel with RAG (semantic search grounds answers in your notes), "This note" and "All knowledge" modes, People tab for person intelligence
+- **AI Chat** — slide-out panel with RAG (semantic search grounds answers in your notes, bookmarks, and tasks), "This note" and "All knowledge" modes, People tab for person intelligence
 - **Inline Assist** — select text → rewrite / expand / shorten / fix grammar / outline / checklist / explain
 - **Smart title & auto-tags** — suggest a title and up to 5 relevant tags as you write
 - **Note & bookmark summaries** — one-click summary in bullet or paragraph form
@@ -209,7 +210,7 @@ Dotstell needs two model types — one for chat/writing and one for semantic sea
 | **Chat** | `llama3.2` | 3B | Reliable all-rounder |
 | **Chat** | `deepseek-r1:7b` | 7B | Best reasoning quality — needs a GPU |
 | **Chat** | `qwen2.5:7b` | 7B | Excellent quality + multilingual — needs a GPU |
-| **Embeddings** | `nomic-embed-text` | — | Required for semantic search and Related Notes |
+| **Embeddings** | `nomic-embed-text` | — | Required for semantic search, Related Notes, and task-aware AI Chat |
 
 ```bash
 ollama pull phi4-mini
