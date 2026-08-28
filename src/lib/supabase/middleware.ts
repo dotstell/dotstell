@@ -33,6 +33,9 @@ export async function updateSession(request: NextRequest) {
   const isPublicRoute = request.nextUrl.pathname === '/'
 
   if (!user && !isAuthRoute && !isPublicRoute) {
+    // API routes handle auth themselves and return JSON 401 — never redirect them
+    // to the HTML login page, as that breaks all fetch() callers expecting JSON.
+    if (request.nextUrl.pathname.startsWith('/api/')) return supabaseResponse
     const url = request.nextUrl.clone()
     url.pathname = '/auth/login'
     return NextResponse.redirect(url)
