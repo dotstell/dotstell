@@ -106,8 +106,11 @@ export function AIChatPanel({ config, noteId, noteTitle, noteContent, onClose }:
           const results: Array<{ id: string; title: string; type: string; body: string }> = await ragRes.json()
           ragHasTasks = results.some(r => r.type === 'task')
           ragNoteIds = new Set(results.filter(r => r.type === 'note').map(r => r.id))
-          // Filter out the current note (already injected above) so it isn't duplicated
-          const others = results.filter(r => !(r.type === 'note' && r.id === noteId))
+          // In "This note" mode the open note is already injected above — skip it here.
+          // In "All knowledge" mode include it; nothing else injects it.
+          const others = mode === 'note'
+            ? results.filter(r => !(r.type === 'note' && r.id === noteId))
+            : results
           if (others.length) {
             const ragContext = others.map(r => {
               const prefix = r.type === 'task' ? '### Task' : r.type === 'bookmark' ? '### Bookmark' : '##'
@@ -157,7 +160,8 @@ export function AIChatPanel({ config, noteId, noteTitle, noteContent, onClose }:
             .from('notes').select('id, title, content, updated_at')
             .eq('user_id', user.id).is('deleted_at', null)
             .order('updated_at', { ascending: false }).limit(5)
-          const freshNotes = (recentNotes ?? []).filter(n => !ragNoteIds.has(n.id) && n.id !== noteId)
+          // noteId exclusion only applies in "This note" mode where the note is already injected
+          const freshNotes = (recentNotes ?? []).filter(n => !ragNoteIds.has(n.id))
           if (freshNotes.length) {
             const noteContext = freshNotes.map(n =>
               `## Note: ${n.title || 'Untitled'}\n${n.content.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 600)}`
