@@ -33,10 +33,13 @@ export default function PeoplePage() {
   const fetchPeople = useCallback(async () => {
     const params = new URLSearchParams()
     if (search) params.set('q', search)
-    const res = await fetch(`/api/people?${params}`)
-    const data = await res.json()
-    setPeople(Array.isArray(data) ? data : [])
-    setLoading(false)
+    try {
+      const res = await fetch(`/api/people?${params}`)
+      if (!res.ok) throw new Error()
+      const data = await res.json()
+      setPeople(Array.isArray(data) ? data : [])
+    } catch { setPeople([]) }
+    finally { setLoading(false) }
   }, [search])
 
   useEffect(() => { fetchPeople() }, [fetchPeople])

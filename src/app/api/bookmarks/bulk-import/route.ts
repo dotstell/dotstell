@@ -47,7 +47,13 @@ function parseNetscapeHTML(html: string): { bookmarks: ParsedBookmark[]; skipped
       if (url.startsWith('place:')) { skipped.push({ url, reason: 'Firefox internal link' }); continue }
       if (url.length > 2000) { skipped.push({ url: url.slice(0, 80) + '…', reason: 'URL too long' }); continue }
 
-      try { new URL(url) } catch {
+      try {
+        const parsed = new URL(url)
+        if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+          skipped.push({ url, reason: 'Only http/https URLs are allowed' })
+          continue
+        }
+      } catch {
         skipped.push({ url, reason: 'Invalid URL format' })
         continue
       }
@@ -105,7 +111,8 @@ export async function POST(req: NextRequest) {
   if (contentLength && parseInt(contentLength) > 10 * 1024 * 1024) {
     return NextResponse.json({ error: 'Payload too large (max 10 MB)' }, { status: 413 })
   }
-  const body = await req.json()
+  let body
+  try { body = await req.json() } catch { return NextResponse.json({ error: 'Invalid request body' }, { status: 400 }) }
   const { html, force, selectedTags } = body as { html: string; force?: boolean; selectedTags?: string[] }
   if (!html) return NextResponse.json({ error: 'Missing html' }, { status: 400 })
   if (html.length > 10 * 1024 * 1024) {

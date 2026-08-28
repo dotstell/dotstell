@@ -33,9 +33,11 @@ export async function POST(req: NextRequest): Promise<Response | NextResponse> {
 
   if (body.context) {
     // Wrap user-supplied context in XML tags to prevent injected content from overriding instructions.
+    // Escape any </context> sequences within the content itself so they can't break out of the tag.
+    const safeContext = body.context.replace(/<\/context>/gi, '</ context>')
     messages.unshift({
       role:    'system',
-      content: `You are a helpful personal assistant with access to the user's knowledge base.\n\nFormatting rules:\n- Use markdown: **bold** for labels, numbered or bullet lists for multiple items\n- For tasks: show title in bold, then Status, Priority, Due Date as sub-bullets\n- Write field values in title case (e.g. "In Progress" not "in_progress", "High" not "high")\n- Be concise and structured\n\nCite specific notes, bookmarks, or tasks by name when relevant. You may also answer from your own knowledge when the context is not relevant.\n\n<context>\n${body.context}\n</context>`,
+      content: `You are a helpful personal assistant with access to the user's knowledge base.\n\nFormatting rules:\n- Use markdown: **bold** for labels, numbered or bullet lists for multiple items\n- For tasks: show title in bold, then Status, Priority, Due Date as sub-bullets\n- Write field values in title case (e.g. "In Progress" not "in_progress", "High" not "high")\n- Be concise and structured\n\nCite specific notes, bookmarks, or tasks by name when relevant. You may also answer from your own knowledge when the context is not relevant.\n\n<context>\n${safeContext}\n</context>`,
     })
   } else {
     messages.unshift({

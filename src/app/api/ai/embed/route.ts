@@ -15,7 +15,8 @@ export async function POST(req: NextRequest) {
   const rl = rateLimit(`ai-embed:${user.id}`, 120, 60_000)
   if (rl) return rl
 
-  const body: { config: AIConfig; entityType: 'note' | 'bookmark' | 'task'; entityId: string } = await req.json()
+  let body: { config: AIConfig; entityType: 'note' | 'bookmark' | 'task'; entityId: string }
+  try { body: { config: AIConfig; entityType: 'note' | 'bookmark' | 'task'; entityId: string } = await req.json() } catch { return NextResponse.json({ error: 'Invalid request body' }, { status: 400 }) }
   const configError = validateConfig(body.config)
   if (configError) return NextResponse.json({ error: configError }, { status: 400 })
 
@@ -84,7 +85,8 @@ export async function PUT(req: NextRequest) {
   const rl = rateLimit(`ai-embed-bulk:${user.id}`, 5, 60_000)
   if (rl) return rl
 
-  const body: { config: AIConfig } = await req.json()
+  let body: { config: AIConfig }
+  try { body: { config: AIConfig } = await req.json() } catch { return NextResponse.json({ error: 'Invalid request body' }, { status: 400 }) }
   const configError = validateConfig(body.config)
   if (configError) return NextResponse.json({ error: configError }, { status: 400 })
 

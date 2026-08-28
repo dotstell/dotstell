@@ -195,12 +195,15 @@ export function useAISummarize(config: AIConfig) {
         let text = params.text ?? ''
         if (!text && params.entityId && params.entityType && params.entityType !== 'notebook') {
           const supabase = createSupabaseBrowserClient()
-          if (params.entityType === 'note') {
-            const { data } = await supabase.from('notes').select('title, content').eq('id', params.entityId).single()
-            if (data) text = `${data.title}\n${data.content.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()}`
-          } else if (params.entityType === 'bookmark') {
-            const { data } = await supabase.from('bookmarks').select('title, description').eq('id', params.entityId).single()
-            if (data) text = `${data.title}\n${data.description ?? ''}`
+          const { data: { user } } = await supabase.auth.getUser()
+          if (user) {
+            if (params.entityType === 'note') {
+              const { data } = await supabase.from('notes').select('title, content').eq('id', params.entityId).eq('user_id', user.id).single()
+              if (data) text = `${data.title}\n${data.content.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()}`
+            } else if (params.entityType === 'bookmark') {
+              const { data } = await supabase.from('bookmarks').select('title, description').eq('id', params.entityId).eq('user_id', user.id).single()
+              if (data) text = `${data.title}\n${data.description ?? ''}`
+            }
           }
         }
         if (text) {
@@ -358,13 +361,17 @@ export function useAIPersonIntel(config: AIConfig) {
       // Fetch notes/bookmarks from Supabase browser client, build context, call Ollama directly.
       if (config.provider === 'ollama' && !isLocalHostname()) {
         const supabase = createSupabaseBrowserClient()
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) throw new Error('Unauthorized')
         const pattern  = `%${name}%`
         const [notesRes, bookmarksRes] = await Promise.all([
           supabase.from('notes').select('id, title, content, updated_at')
+            .eq('user_id', user.id)
             .is('deleted_at', null)
             .or(`title.ilike.${pattern},content.ilike.${pattern}`)
             .order('updated_at', { ascending: false }).limit(20),
           supabase.from('bookmarks').select('id, title, description, url, updated_at')
+            .eq('user_id', user.id)
             .or(`title.ilike.${pattern},description.ilike.${pattern}`)
             .order('updated_at', { ascending: false }).limit(10),
         ])

@@ -29,7 +29,8 @@ export async function POST(req: NextRequest) {
   const rl = rateLimit(`bookmarks-post:${user.id}`, 60, 60_000)
   if (rl) return rl
 
-  const body = await req.json()
+  let body
+  try { body = await req.json() } catch { return NextResponse.json({ error: 'Invalid request body' }, { status: 400 }) }
 
   // Validate URL: must be present, a string, and http(s) only (blocks javascript:, data: etc.)
   if (!body.url || typeof body.url !== 'string') {

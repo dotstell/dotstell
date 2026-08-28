@@ -16,13 +16,9 @@ export async function POST(req: NextRequest) {
   const rl = rateLimit(`ai-assist:${user.id}`, 60, 60_000)
   if (rl) return rl
 
-  const body: {
-    config:       AIConfig
-    operation:    AssistOperation
-    text:         string
-    stream?:      boolean
-    noteContext?: string  // surrounding note content for 'explain' operations
-  } = await req.json()
+  let _parsed: Record<string, unknown>
+  try { _parsed = await req.json() } catch { return NextResponse.json({ error: 'Invalid request body' }, { status: 400 }) }
+  const { config, operation, text, stream, noteContext } = _parsed
 
   const configError = validateConfig(body.config)
   if (configError) return NextResponse.json({ error: configError }, { status: 400 })

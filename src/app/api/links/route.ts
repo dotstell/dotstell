@@ -24,7 +24,8 @@ export async function POST(req: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const body = await req.json()
+  let body
+  try { body = await req.json() } catch { return NextResponse.json({ error: 'Invalid request body' }, { status: 400 }) }
   if (!body.source_id || !body.target_id) {
     return NextResponse.json({ error: 'source_id and target_id required' }, { status: 400 })
   }
@@ -49,7 +50,8 @@ export async function DELETE(req: NextRequest) {
 
   // DELETE reads a JSON body — non-standard but intentional: links are identified by
   // (source_id, target_id), not a single URL param, so body is the cleanest interface.
-  const body = await req.json()
+  let body
+  try { body = await req.json() } catch { return NextResponse.json({ error: 'Invalid request body' }, { status: 400 }) }
   if (!body.source_id || !body.target_id) {
     return NextResponse.json({ error: 'source_id and target_id required' }, { status: 400 })
   }

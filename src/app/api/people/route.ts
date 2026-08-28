@@ -29,7 +29,8 @@ export async function POST(req: NextRequest) {
   const rl = rateLimit(`people-post:${user.id}`, 30, 60_000)
   if (rl) return rl
 
-  const body = await req.json()
+  let body
+  try { body = await req.json() } catch { return NextResponse.json({ error: 'Invalid request body' }, { status: 400 }) }
   if (!body.name || typeof body.name !== 'string') {
     return NextResponse.json({ error: 'Invalid name' }, { status: 400 })
   }

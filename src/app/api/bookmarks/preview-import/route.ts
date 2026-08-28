@@ -16,7 +16,9 @@ export async function POST(req: NextRequest) {
   if (contentLength && parseInt(contentLength) > 10 * 1024 * 1024) {
     return NextResponse.json({ error: 'Payload too large (max 10 MB)' }, { status: 413 })
   }
-  const { html } = await req.json()
+  let _parsed: Record<string, unknown>
+  try { _parsed = await req.json() } catch { return NextResponse.json({ error: 'Invalid request body' }, { status: 400 }) }
+  const { html } = _parsed
   if (!html || html.length > 10 * 1024 * 1024) {
     return NextResponse.json({ error: 'Payload too large (max 10 MB)' }, { status: 413 })
   }

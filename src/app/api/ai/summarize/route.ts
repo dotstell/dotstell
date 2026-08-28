@@ -16,14 +16,9 @@ export async function POST(req: NextRequest) {
   const rl = rateLimit(`ai-summarize:${user.id}`, 30, 60_000)
   if (rl) return rl
 
-  const body: {
-    config:      AIConfig
-    entityType?: 'note' | 'bookmark' | 'notebook'
-    entityId?:   string
-    text?:       string
-    title?:      string
-    mode?:       'short' | 'bullets' | 'detailed'  // default: bullets
-  } = await req.json()
+  let _parsed: Record<string, unknown>
+  try { _parsed = await req.json() } catch { return NextResponse.json({ error: 'Invalid request body' }, { status: 400 }) }
+  const { config, entityType, entityId, text, title, mode } = _parsed
 
   const configError = validateConfig(body.config)
   if (configError) return NextResponse.json({ error: configError }, { status: 400 })

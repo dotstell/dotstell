@@ -166,12 +166,14 @@ export default function NotesPage() {
     if (search) params.set('q', search)
     if (sortMode === 'manual') params.set('sort', 'manual')
     params.set('root_only', 'true')
+    try {
     const res = await fetch(`/api/notes?${params}`)
-    if (!res.ok) { setLoading(false); toast.error('Failed to load notes'); return }
+    if (!res.ok) { toast.error('Failed to load notes'); return }
     const data = await res.json()
     const fetchedNotes: Note[] = Array.isArray(data) ? data : []
     setNotes(fetchedNotes)
-    setLoading(false)
+    } catch { toast.error('Failed to load notes') }
+    finally { setLoading(false) }
 
     // Batch-fetch linked types per note to show connection badges on NoteCards
     if (fetchedNotes.length > 0) {

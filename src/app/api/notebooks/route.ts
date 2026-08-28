@@ -13,7 +13,7 @@ export async function GET() {
     .order('sort_order', { ascending: true })
     .order('created_at', { ascending: true })
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return NextResponse.json({ error: 'An unexpected error occurred.' }, { status: 500 })
   return NextResponse.json(data)
 }
 
@@ -22,7 +22,8 @@ export async function POST(req: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const body = await req.json()
+  let body
+  try { body = await req.json() } catch { return NextResponse.json({ error: 'Invalid request body' }, { status: 400 }) }
   const { name, color, icon, sort_order, id } = body
 
   if (!name?.trim()) return NextResponse.json({ error: 'Name required' }, { status: 400 })
@@ -53,7 +54,7 @@ export async function POST(req: NextRequest) {
   if (error) {
     // Postgres unique violation (user_id, name) — surface as 409 so the client can show a clear message
     if (error.code === '23505') return NextResponse.json({ error: 'A notebook with this name already exists.' }, { status: 409 })
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    return NextResponse.json({ error: 'An unexpected error occurred.' }, { status: 500 })
   }
   return NextResponse.json(data, { status: 201 })
 }

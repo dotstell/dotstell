@@ -9,7 +9,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const { data, error } = await supabase.from('notes').select('*').eq('id', id).eq('user_id', user.id).single()
-  if (error) return NextResponse.json({ error: error.message }, { status: 404 })
+  if (error) return NextResponse.json({ error: 'Not found' }, { status: 404 })
   return NextResponse.json(data)
 }
 
@@ -21,7 +21,8 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   const rl = rateLimit(`notes-patch:${user.id}`, 120, 60_000)
   if (rl) return rl
 
-  const body = await req.json()
+  let body
+  try { body = await req.json() } catch { return NextResponse.json({ error: 'Invalid request body' }, { status: 400 }) }
   if (typeof body.content === 'string' && body.content.length > 2_000_000) {
     return NextResponse.json({ error: 'Content too large (max 2 MB)' }, { status: 413 })
   }

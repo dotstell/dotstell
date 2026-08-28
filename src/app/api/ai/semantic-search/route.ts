@@ -16,12 +16,9 @@ export async function POST(req: NextRequest) {
   const rl = rateLimit(`ai-semantic:${user.id}`, 30, 60_000)
   if (rl) return rl
 
-  const body: {
-    config:  AIConfig
-    query:   string
-    types?:  ('note' | 'bookmark' | 'task')[]
-    limit?:  number
-  } = await req.json()
+  let _parsed: Record<string, unknown>
+  try { _parsed = await req.json() } catch { return NextResponse.json({ error: 'Invalid request body' }, { status: 400 }) }
+  const { config, query, types, limit } = _parsed
 
   if (!body.query?.trim()) return NextResponse.json([], { status: 200 })
 

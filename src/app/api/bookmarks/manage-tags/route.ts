@@ -7,7 +7,9 @@ export async function PATCH(req: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const { oldTag, newTag } = await req.json()
+  let _parsed: Record<string, unknown>
+  try { _parsed = await req.json() } catch { return NextResponse.json({ error: 'Invalid request body' }, { status: 400 }) }
+  const { oldTag, newTag } = _parsed
   if (!oldTag || !newTag) return NextResponse.json({ error: 'Missing oldTag or newTag' }, { status: 400 })
   if (typeof oldTag !== 'string' || typeof newTag !== 'string') {
     return NextResponse.json({ error: 'Tags must be strings' }, { status: 400 })
@@ -52,7 +54,9 @@ export async function DELETE(req: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const { tag } = await req.json()
+  let _parsed: Record<string, unknown>
+  try { _parsed = await req.json() } catch { return NextResponse.json({ error: 'Invalid request body' }, { status: 400 }) }
+  const { tag } = _parsed
   if (!tag) return NextResponse.json({ error: 'Missing tag' }, { status: 400 })
 
   // Same 500-row cap as PATCH — see comment above

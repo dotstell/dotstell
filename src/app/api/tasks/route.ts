@@ -29,7 +29,8 @@ export async function POST(req: NextRequest) {
   const rl = rateLimit(`tasks-post:${user.id}`, 60, 60_000)
   if (rl) return rl
 
-  const body = await req.json()
+  let body
+  try { body = await req.json() } catch { return NextResponse.json({ error: 'Invalid request body' }, { status: 400 }) }
   if (!body.title || typeof body.title !== 'string') {
     return NextResponse.json({ error: 'Invalid title' }, { status: 400 })
   }

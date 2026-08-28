@@ -6,7 +6,9 @@ export async function POST(req: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const { id } = await req.json()
+  let _parsed: Record<string, unknown>
+  try { _parsed = await req.json() } catch { return NextResponse.json({ error: 'Invalid request body' }, { status: 400 }) }
+  const { id } = _parsed
   if (!id) return NextResponse.json({ error: 'Missing id' }, { status: 400 })
 
   // Read-then-increment: PostgREST has no atomic column increment (no UPDATE SET col = col + 1),
