@@ -366,6 +366,8 @@ export function AISettingsModal({ onClose }: AISettingsModalProps) {
     }
     try {
       const supabase = createSupabaseBrowserClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) throw new Error('Not authenticated')
       // Fetch notes, bookmarks, and tasks without embeddings (limit 100 each) + total counts
       const [
         { data: notes, error: ne }, { data: bookmarks, error: be }, { data: tasks, error: te },
@@ -420,9 +422,11 @@ export function AISettingsModal({ onClose }: AISettingsModalProps) {
           const data      = await res.json()
           const embedding = data.embedding as number[]
           if (!Array.isArray(embedding) || embedding.length === 0) throw new Error('Empty embedding from Ollama')
+          if (embedding.length !== 768) throw new Error(`Model returns ${embedding.length}-dimensional vectors but the database requires 768. Switch to nomic-embed-text or another 768D model.`)
           const { error: dbError } = await supabase.from(item.table)
             .update({ embedding, embedding_model: draft.embeddingModel })
             .eq('id', item.id)
+            .eq('user_id', user.id)
           if (dbError) throw new Error(`DB update failed: ${dbError.message}`)
           succeeded++
         } catch (e) {
@@ -660,16 +664,16 @@ export function AISettingsModal({ onClose }: AISettingsModalProps) {
 
         {/* ── Step 3: Build search index ── */}
         <div style={{ borderTop: '1px solid var(--border)', paddingTop: 16, marginTop: 4 }}>
-          <SectionHeader step={3} title="Build the search index" subtitle="One-time step — converts your notes into a searchable format" />
+          <SectionHeader step={3} title="Build the search index" subtitle="One-time step — makes your notes, bookmarks, and tasks semantically searchable" />
           {!canBuildIndex ? (
             <Notice type="warning" style={{ marginBottom: 10 }}>
               Save your AI settings first (step 1 &amp; 2), then come back here to build the search index.
             </Notice>
           ) : (
             <p style={{ fontSize: 12, color: 'var(--muted-foreground)', margin: '0 0 10px', lineHeight: 1.5 }}>
-              dotstell will read each of your notes and create a compact numerical fingerprint
-              (an &ldquo;embedding&rdquo;) that lets the AI find related notes by meaning. This
-              runs once; new notes are indexed automatically as you write them.
+              dotstell will read each of your notes, bookmarks, and tasks and create a compact
+              numerical fingerprint (an &ldquo;embedding&rdquo;) that lets the AI find related
+              content by meaning. This runs once; new items are indexed automatically as you create them.
             </p>
           )}
           <button
@@ -690,7 +694,7 @@ export function AISettingsModal({ onClose }: AISettingsModalProps) {
             }}
           >
             {indexing
-              ? <><Loader2 size={13} style={{ animation: 'spin 1s linear infinite' }} /> Indexing your notes…</>
+              ? <><Loader2 size={13} style={{ animation: 'spin 1s linear infinite' }} /> Indexing your content…</>
               : <><Database size={13} /> Build search index</>
             }
           </button>

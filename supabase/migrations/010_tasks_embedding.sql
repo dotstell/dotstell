@@ -25,6 +25,7 @@ returns table (
   status      text,
   priority    text,
   due_date    timestamptz,
+  tags        text[],
   similarity  float
 )
 language sql stable as $$
@@ -35,6 +36,7 @@ language sql stable as $$
     status,
     priority,
     due_date,
+    tags,
     1 - (embedding <=> query_embedding) as similarity
   from tasks
   where user_id = user_id_param

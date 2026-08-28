@@ -28,8 +28,11 @@ export async function POST(req: NextRequest) {
   const configError = validateConfig(body.config)
   if (configError) return NextResponse.json({ error: configError }, { status: 400 })
 
-  const limit = Math.min(body.limit ?? 10, 20)
-  const types = body.types ?? ['note', 'bookmark', 'task']
+  const limit      = Math.min(body.limit ?? 10, 20)
+  const validTypes = ['note', 'bookmark', 'task'] as const
+  const types      = (body.types ?? [...validTypes]).filter(
+    (t): t is typeof validTypes[number] => validTypes.includes(t as typeof validTypes[number])
+  )
 
   try {
     const { embedding } = await embed(body.config, body.query.slice(0, 2000))
@@ -99,10 +102,12 @@ export async function POST(req: NextRequest) {
           status:      string
           priority:    string
           due_date:    string | null
+          tags:        string[] | null
           similarity:  number
         }) => {
           const meta = [`Status: ${t.status}`, `Priority: ${t.priority}`]
           if (t.due_date) meta.push(`Due: ${t.due_date.split('T')[0]}`)
+          if (t.tags?.length) meta.push(t.tags.join(', '))
           const metaLine = meta.join(' · ')
           return {
             id:      t.id,
