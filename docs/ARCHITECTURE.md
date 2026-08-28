@@ -225,6 +225,7 @@ erDiagram
         text[] tags
         timestamp deleted_at
         vector embedding
+        text embedding_model
         int sort_order
         boolean pinned
     }
@@ -244,6 +245,7 @@ erDiagram
         text title
         text[] tags
         vector embedding
+        text embedding_model
         timestamp last_visited_at
     }
     TASKS {

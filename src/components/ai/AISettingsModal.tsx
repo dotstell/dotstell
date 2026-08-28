@@ -345,8 +345,8 @@ export function AISettingsModal({ onClose }: AISettingsModalProps) {
       const already  = (data.grandTotal ?? data.total ?? 0) - (data.total ?? 0)
       const alreadyMsg = already > 0 ? `, ${already} already up to date` : ''
       const msg = data.total === 0
-        ? `All ${data.grandTotal ?? 'notes'} notes are already indexed — nothing to do`
-        : `Done: indexed ${data.succeeded} of ${data.grandTotal ?? data.total} notes${alreadyMsg}${data.failed > 0 ? ` (${data.failed} failed${data.firstError ? `: ${data.firstError}` : ''})` : ''}`
+        ? `All ${data.grandTotal ?? 0} items are already indexed — nothing to do`
+        : `Done: indexed ${data.succeeded} of ${data.grandTotal ?? data.total} items${alreadyMsg}${data.failed > 0 ? ` (${data.failed} failed${data.firstError ? `: ${data.firstError}` : ''})` : ''}`
       setIndexResult({ ok: true, message: msg })
     } catch (err) {
       setIndexResult({ ok: false, message: err instanceof Error ? err.message : 'Indexing failed' })
@@ -366,20 +366,22 @@ export function AISettingsModal({ onClose }: AISettingsModalProps) {
     }
     try {
       const supabase = createSupabaseBrowserClient()
-      // Fetch notes and bookmarks without embeddings (limit 100 each) + total counts
+      // Fetch notes, bookmarks, and tasks without embeddings (limit 100 each) + total counts
       const [
-        { data: notes, error: ne }, { data: bookmarks, error: be },
-        { count: totalNotes }, { count: totalBookmarks },
+        { data: notes, error: ne }, { data: bookmarks, error: be }, { data: tasks, error: te },
+        { count: totalNotes }, { count: totalBookmarks }, { count: totalTasks },
       ] = await Promise.all([
         supabase.from('notes').select('id, title, content').is('embedding', null).is('deleted_at', null).limit(100),
         supabase.from('bookmarks').select('id, title, description').is('embedding', null).limit(100),
+        supabase.from('tasks').select('id, title, description, status, priority, due_date, tags').is('embedding', null).limit(100),
         supabase.from('notes').select('*', { count: 'exact', head: true }).is('deleted_at', null),
         supabase.from('bookmarks').select('*', { count: 'exact', head: true }),
+        supabase.from('tasks').select('*', { count: 'exact', head: true }),
       ])
-      if (ne || be) throw new Error(`Failed to fetch items: ${ne?.message ?? be?.message}`)
-      const grandTotal = (totalNotes ?? 0) + (totalBookmarks ?? 0)
+      if (ne || be || te) throw new Error(`Failed to fetch items: ${ne?.message ?? be?.message ?? te?.message}`)
+      const grandTotal = (totalNotes ?? 0) + (totalBookmarks ?? 0) + (totalTasks ?? 0)
 
-      const items: Array<{ table: 'notes' | 'bookmarks'; id: string; text: string }> = [
+      const items: Array<{ table: 'notes' | 'bookmarks' | 'tasks'; id: string; text: string }> = [
         ...(notes ?? []).map(n => ({
           table: 'notes' as const,
           id:    n.id,
@@ -390,6 +392,15 @@ export function AISettingsModal({ onClose }: AISettingsModalProps) {
           id:    b.id,
           text:  `${b.title}\n${b.description ?? ''}`.slice(0, 8000),
         })),
+        ...(tasks ?? []).map(t => {
+          const meta = [`Status: ${t.status}`, `Priority: ${t.priority}`]
+          if (t.due_date) meta.push(`Due: ${t.due_date.split('T')[0]}`)
+          if (t.tags?.length) meta.push(t.tags.join(', '))
+          const parts = [t.title]
+          if (t.description?.trim()) parts.push(t.description.trim())
+          parts.push(meta.join(' · '))
+          return { table: 'tasks' as const, id: t.id, text: parts.join('\n').slice(0, 8000) }
+        }),
       ]
 
       const total = items.length
@@ -423,8 +434,8 @@ export function AISettingsModal({ onClose }: AISettingsModalProps) {
       const already    = grandTotal - total
       const alreadyMsg = already > 0 ? `, ${already} already up to date` : ''
       const msg = total === 0
-        ? `All ${grandTotal} notes are already indexed — nothing to do`
-        : `Done: indexed ${succeeded} of ${grandTotal} notes${alreadyMsg}${failed > 0 ? ` (${failed} failed${firstError ? `: ${firstError}` : ''})` : ''}`
+        ? `All ${grandTotal} items are already indexed — nothing to do`
+        : `Done: indexed ${succeeded} of ${grandTotal} items${alreadyMsg}${failed > 0 ? ` (${failed} failed${firstError ? `: ${firstError}` : ''})` : ''}`
       setIndexResult({ ok: true, message: msg })
     } catch (err) {
       setIndexResult({ ok: false, message: err instanceof Error ? err.message : 'Indexing failed' })
