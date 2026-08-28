@@ -86,9 +86,8 @@ export function AIChatPanel({ config, noteId, noteTitle, noteContent, onClose }:
       context = `## ${noteTitle}\n${plain}`
     }
 
-    // Tracks whether any task row came back from RAG — used below to decide whether to
-    // supplement. Checking the assembled string would be fragile (note body could contain
-    // the literal text "### Task").
+    // Track RAG note IDs so the global-mode supplement can dedup by ID (not fragile string match).
+    let ragNoteIds = new Set<string>()
     let ragHasTasks = false
 
     if (ragActive) {
@@ -106,6 +105,7 @@ export function AIChatPanel({ config, noteId, noteTitle, noteContent, onClose }:
         if (ragRes.ok) {
           const results: Array<{ id: string; title: string; type: string; body: string }> = await ragRes.json()
           ragHasTasks = results.some(r => r.type === 'task')
+          ragNoteIds = new Set(results.filter(r => r.type === 'note').map(r => r.id))
           // Filter out the current note (already injected above) so it isn't duplicated
           const others = results.filter(r => !(r.type === 'note' && r.id === noteId))
           if (others.length) {
@@ -119,8 +119,8 @@ export function AIChatPanel({ config, noteId, noteTitle, noteContent, onClose }:
       } catch { /* RAG is best-effort — proceed without it */ }
     }
 
-    // "All knowledge" mode: tasks may be missing from RAG context if their embeddings
-    // haven't been built yet — supplement with a direct DB fetch.
+    // "All knowledge" mode: always supplement with recently updated notes from the DB so
+    // new or unembedded notes are never silently absent (RAG only surfaces embedded items).
     if (mode === 'global') {
       try {
         const supabase = createSupabaseBrowserClient()
@@ -130,9 +130,9 @@ export function AIChatPanel({ config, noteId, noteTitle, noteContent, onClose }:
         if (!context) {
           // RAG returned nothing — full fallback: recent notes + tasks
           const [{ data: recentNotes }, { data: recentTasks }] = await Promise.all([
-            supabase.from('notes').select('title, content, updated_at')
+            supabase.from('notes').select('id, title, content, updated_at')
               .eq('user_id', user.id).is('deleted_at', null)
-              .order('updated_at', { ascending: false }).limit(3),
+              .order('updated_at', { ascending: false }).limit(5),
             supabase.from('tasks').select('title, description, status, priority, due_date, updated_at')
               .eq('user_id', user.id).order('updated_at', { ascending: false }).limit(5),
           ])
@@ -150,18 +150,33 @@ export function AIChatPanel({ config, noteId, noteTitle, noteContent, onClose }:
             }))
           }
           if (parts.length) context = parts.join('\n\n')
-        } else if (!ragHasTasks) {
-          // RAG returned notes/bookmarks but no tasks — supplement so the model always sees them.
-          const { data: recentTasks } = await supabase
-            .from('tasks').select('title, description, status, priority, due_date, updated_at')
-            .eq('user_id', user.id).order('updated_at', { ascending: false }).limit(5)
-          if (recentTasks?.length) {
-            const taskContext = recentTasks.map(t => {
-              const meta = [`Status: ${t.status}`, `Priority: ${t.priority}`]
-              if (t.due_date) meta.push(`Due: ${t.due_date.split('T')[0]}`)
-              return `### Task: ${t.title}${t.description ? `\n${t.description.slice(0, 300)}` : ''}\n${meta.join(' · ')}`
-            }).join('\n\n')
-            context = `${context}\n\n${taskContext}`
+        } else {
+          // RAG returned something — supplement with any recent notes NOT already in results
+          // (covers new/unembedded notes that semantic search would silently miss).
+          const { data: recentNotes } = await supabase
+            .from('notes').select('id, title, content, updated_at')
+            .eq('user_id', user.id).is('deleted_at', null)
+            .order('updated_at', { ascending: false }).limit(5)
+          const freshNotes = (recentNotes ?? []).filter(n => !ragNoteIds.has(n.id) && n.id !== noteId)
+          if (freshNotes.length) {
+            const noteContext = freshNotes.map(n =>
+              `## Note: ${n.title || 'Untitled'}\n${n.content.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 600)}`
+            ).join('\n\n')
+            context = `${context}\n\n${noteContext}`
+          }
+          // Also supplement tasks if RAG didn't surface any.
+          if (!ragHasTasks) {
+            const { data: recentTasks } = await supabase
+              .from('tasks').select('title, description, status, priority, due_date, updated_at')
+              .eq('user_id', user.id).order('updated_at', { ascending: false }).limit(5)
+            if (recentTasks?.length) {
+              const taskContext = recentTasks.map(t => {
+                const meta = [`Status: ${t.status}`, `Priority: ${t.priority}`]
+                if (t.due_date) meta.push(`Due: ${t.due_date.split('T')[0]}`)
+                return `### Task: ${t.title}${t.description ? `\n${t.description.slice(0, 300)}` : ''}\n${meta.join(' · ')}`
+              }).join('\n\n')
+              context = `${context}\n\n${taskContext}`
+            }
           }
         }
       } catch { /* fallback is best-effort */ }
