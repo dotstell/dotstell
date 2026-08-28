@@ -5,6 +5,25 @@ import { streamOllamaBrowser, completeOllamaBrowser, isLocalHostname } from '@/l
 import { buildAssistMessages, buildSummarizeMessages, buildTitleMessages, buildTagMessages } from '@/lib/ai/prompts'
 import { createClient as createSupabaseBrowserClient } from '@/lib/supabase/client'
 
+function friendlyAIError(msg: string): string {
+  const m = msg.toLowerCase()
+  if (m.includes('401') || m.includes('unauthorized') || m.includes('api_key') || m.includes('incorrect api key') || m.includes('invalid api key'))
+    return 'Invalid API key — check your key in AI Settings.'
+  if (m.includes('403') || m.includes('forbidden'))
+    return 'Access denied — your API key may not have permission for this model.'
+  if (m.includes('429') || m.includes('rate limit') || m.includes('quota'))
+    return 'Rate limit reached — wait a moment and try again.'
+  if (m.includes('404') || m.includes('model not found') || m.includes('no such model'))
+    return 'Model not found — check the model name in AI Settings.'
+  if (m.includes('econnrefused') || m.includes('fetch failed') || m.includes('failed to fetch') || m.includes('local agent'))
+    return 'Could not reach the AI provider. If using Ollama, make sure the Local Agent is running: npx @dotstell/agent'
+  if (m.includes('timeout') || m.includes('timed out'))
+    return 'Request timed out — the model may be overloaded. Try again.'
+  if (m.includes('context length') || m.includes('token') || m.includes('too long'))
+    return 'Input too long for this model — try a shorter query or switch to a model with a larger context window.'
+  return msg || 'Something went wrong. Please try again.'
+}
+
 /**
  * Low-level hook for consuming AI streaming responses.
  * Handles the full fetch → SSE parse → state update cycle.
@@ -83,7 +102,7 @@ export function useAIStream() {
       return full
     } catch (err) {
       if (err instanceof Error && err.name === 'AbortError') return
-      setError(err instanceof Error ? err.message : 'Unknown error')
+      setError(friendlyAIError(err instanceof Error ? err.message : 'Unknown error'))
     } finally {
       setStreaming(false)
     }
@@ -107,7 +126,7 @@ export function useAIStream() {
       return full
     } catch (err) {
       if (err instanceof Error && err.name === 'AbortError') return
-      setError(err instanceof Error ? err.message : 'Unknown error')
+      setError(friendlyAIError(err instanceof Error ? err.message : 'Unknown error'))
     } finally {
       setStreaming(false)
     }
@@ -118,7 +137,7 @@ export function useAIStream() {
     setStreaming(false)
   }, [])
 
-  return { text, streaming, error, stream, streamDirect, cancel, setText }
+  return { text, streaming, error, clearError: () => setError(null), stream, streamDirect, cancel, setText }
 }
 
 /** Wrap `useAIStream` with AI Assist specifics — wires the correct endpoint and body shape. */

@@ -33,7 +33,7 @@ export function AIChatPanel({ config, noteId, noteTitle, noteContent, onClose }:
   const [mode,       setMode]       = useState<ChatMode>(noteId ? 'note' : 'global')
   const [ragActive,  setRagActive]  = useState(true)
   const [copiedIdx,  setCopiedIdx]  = useState<number | null>(null)
-  const { text: streamText, streaming, error, stream, streamDirect, cancel, setText } = useAIStream()
+  const { text: streamText, streaming, error, clearError, stream, streamDirect, cancel, setText } = useAIStream()
   const bottomRef   = useRef<HTMLDivElement>(null)
   const inputRef    = useRef<HTMLTextAreaElement>(null)
   const pendingRole = useRef(false)   // true while assistant message slot is being filled
@@ -345,8 +345,20 @@ export function AIChatPanel({ config, noteId, noteTitle, noteContent, onClose }:
         })}
 
         {error && (
-          <div style={{ padding: '8px 12px', borderRadius: 8, backgroundColor: 'rgba(248,113,113,0.1)', border: '1px solid rgba(248,113,113,0.3)', color: '#f87171', fontSize: 12 }}>
-            {error}
+          <div style={{ padding: '10px 12px', borderRadius: 8, backgroundColor: 'rgba(248,113,113,0.08)', border: '1px solid rgba(248,113,113,0.25)', fontSize: 12 }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+              <span style={{ fontSize: 14, flexShrink: 0, marginTop: 1 }}>⚠️</span>
+              <div style={{ flex: 1 }}>
+                <span style={{ color: '#f87171' }}>{error}</span>
+                <button
+                  type="button"
+                  onClick={() => { clearError(); setTimeout(() => { const ta = document.querySelector<HTMLTextAreaElement>('[data-chat-input]'); ta?.focus() }, 50) }}
+                  style={{ display: 'block', marginTop: 6, fontSize: 11, color: 'var(--primary)', background: 'none', border: 'none', padding: 0, cursor: 'pointer', textDecoration: 'underline' }}
+                >
+                  Dismiss
+                </button>
+              </div>
+            </div>
           </div>
         )}
         <div ref={bottomRef} style={{ height: 12 }} />
@@ -370,6 +382,7 @@ export function AIChatPanel({ config, noteId, noteTitle, noteContent, onClose }:
       {activeTab === 'chat' && <div style={{ padding: '8px 12px 12px', borderTop: '1px solid var(--border)', display: 'flex', gap: 6, flexShrink: 0 }}>
         <textarea
           ref={inputRef}
+          data-chat-input
           value={input}
           onChange={e => setInput(e.target.value)}
           onKeyDown={handleKey}
