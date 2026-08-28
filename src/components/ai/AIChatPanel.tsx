@@ -93,7 +93,9 @@ export function AIChatPanel({ config, noteId, noteTitle, noteContent, onClose }:
     let ragNoteIds = new Set<string>(noteId ? [noteId] : [])
     let ragHasTasks = false
 
-    if (ragActive) {
+    // RAG only runs in "All knowledge" mode. In "This note" mode the context is intentionally
+    // limited to the current note — running RAG would inject other notes and confuse the model.
+    if (ragActive && mode === 'global') {
       try {
         const ragRes = await fetch('/api/ai/semantic-search', {
           method:  'POST',
