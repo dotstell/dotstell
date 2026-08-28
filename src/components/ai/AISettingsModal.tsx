@@ -345,8 +345,8 @@ export function AISettingsModal({ onClose }: AISettingsModalProps) {
       const already  = (data.grandTotal ?? data.total ?? 0) - (data.total ?? 0)
       const alreadyMsg = already > 0 ? `, ${already} already up to date` : ''
       const msg = data.total === 0
-        ? `All ${data.grandTotal ?? 'notes'} notes are already indexed — nothing to do`
-        : `Done: indexed ${data.succeeded} of ${data.grandTotal ?? data.total} notes${alreadyMsg}${data.failed > 0 ? ` (${data.failed} failed${data.firstError ? `: ${data.firstError}` : ''})` : ''}`
+        ? `All ${data.grandTotal ?? 0} items are already indexed — nothing to do`
+        : `Done: indexed ${data.succeeded} of ${data.grandTotal ?? data.total} items${alreadyMsg}${data.failed > 0 ? ` (${data.failed} failed${data.firstError ? `: ${data.firstError}` : ''})` : ''}`
       setIndexResult({ ok: true, message: msg })
     } catch (err) {
       setIndexResult({ ok: false, message: err instanceof Error ? err.message : 'Indexing failed' })
@@ -366,20 +366,24 @@ export function AISettingsModal({ onClose }: AISettingsModalProps) {
     }
     try {
       const supabase = createSupabaseBrowserClient()
-      // Fetch notes and bookmarks without embeddings (limit 100 each) + total counts
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) throw new Error('Not authenticated')
+      // Fetch notes, bookmarks, and tasks without embeddings (limit 100 each) + total counts
       const [
-        { data: notes, error: ne }, { data: bookmarks, error: be },
-        { count: totalNotes }, { count: totalBookmarks },
+        { data: notes, error: ne }, { data: bookmarks, error: be }, { data: tasks, error: te },
+        { count: totalNotes }, { count: totalBookmarks }, { count: totalTasks },
       ] = await Promise.all([
         supabase.from('notes').select('id, title, content').is('embedding', null).is('deleted_at', null).limit(100),
         supabase.from('bookmarks').select('id, title, description').is('embedding', null).limit(100),
+        supabase.from('tasks').select('id, title, description, status, priority, due_date, tags').is('embedding', null).limit(100),
         supabase.from('notes').select('*', { count: 'exact', head: true }).is('deleted_at', null),
         supabase.from('bookmarks').select('*', { count: 'exact', head: true }),
+        supabase.from('tasks').select('*', { count: 'exact', head: true }),
       ])
-      if (ne || be) throw new Error(`Failed to fetch items: ${ne?.message ?? be?.message}`)
-      const grandTotal = (totalNotes ?? 0) + (totalBookmarks ?? 0)
+      if (ne || be || te) throw new Error(`Failed to fetch items: ${ne?.message ?? be?.message ?? te?.message}`)
+      const grandTotal = (totalNotes ?? 0) + (totalBookmarks ?? 0) + (totalTasks ?? 0)
 
-      const items: Array<{ table: 'notes' | 'bookmarks'; id: string; text: string }> = [
+      const items: Array<{ table: 'notes' | 'bookmarks' | 'tasks'; id: string; text: string }> = [
         ...(notes ?? []).map(n => ({
           table: 'notes' as const,
           id:    n.id,
@@ -390,6 +394,15 @@ export function AISettingsModal({ onClose }: AISettingsModalProps) {
           id:    b.id,
           text:  `${b.title}\n${b.description ?? ''}`.slice(0, 8000),
         })),
+        ...(tasks ?? []).map(t => {
+          const meta = [`Status: ${t.status}`, `Priority: ${t.priority}`]
+          if (t.due_date) meta.push(`Due: ${t.due_date.split('T')[0]}`)
+          if (t.tags?.length) meta.push(t.tags.join(', '))
+          const parts = [t.title]
+          if (t.description?.trim()) parts.push(t.description.trim())
+          parts.push(meta.join(' · '))
+          return { table: 'tasks' as const, id: t.id, text: parts.join('\n').slice(0, 8000) }
+        }),
       ]
 
       const total = items.length
@@ -409,9 +422,11 @@ export function AISettingsModal({ onClose }: AISettingsModalProps) {
           const data      = await res.json()
           const embedding = data.embedding as number[]
           if (!Array.isArray(embedding) || embedding.length === 0) throw new Error('Empty embedding from Ollama')
+          if (embedding.length !== 768) throw new Error(`Model returns ${embedding.length}-dimensional vectors but the database requires 768. Switch to nomic-embed-text or another 768D model.`)
           const { error: dbError } = await supabase.from(item.table)
             .update({ embedding, embedding_model: draft.embeddingModel })
             .eq('id', item.id)
+            .eq('user_id', user.id)
           if (dbError) throw new Error(`DB update failed: ${dbError.message}`)
           succeeded++
         } catch (e) {
@@ -423,8 +438,8 @@ export function AISettingsModal({ onClose }: AISettingsModalProps) {
       const already    = grandTotal - total
       const alreadyMsg = already > 0 ? `, ${already} already up to date` : ''
       const msg = total === 0
-        ? `All ${grandTotal} notes are already indexed — nothing to do`
-        : `Done: indexed ${succeeded} of ${grandTotal} notes${alreadyMsg}${failed > 0 ? ` (${failed} failed${firstError ? `: ${firstError}` : ''})` : ''}`
+        ? `All ${grandTotal} items are already indexed — nothing to do`
+        : `Done: indexed ${succeeded} of ${grandTotal} items${alreadyMsg}${failed > 0 ? ` (${failed} failed${firstError ? `: ${firstError}` : ''})` : ''}`
       setIndexResult({ ok: true, message: msg })
     } catch (err) {
       setIndexResult({ ok: false, message: err instanceof Error ? err.message : 'Indexing failed' })
@@ -649,16 +664,16 @@ export function AISettingsModal({ onClose }: AISettingsModalProps) {
 
         {/* ── Step 3: Build search index ── */}
         <div style={{ borderTop: '1px solid var(--border)', paddingTop: 16, marginTop: 4 }}>
-          <SectionHeader step={3} title="Build the search index" subtitle="One-time step — converts your notes into a searchable format" />
+          <SectionHeader step={3} title="Build the search index" subtitle="One-time step — makes your notes, bookmarks, and tasks semantically searchable" />
           {!canBuildIndex ? (
             <Notice type="warning" style={{ marginBottom: 10 }}>
               Save your AI settings first (step 1 &amp; 2), then come back here to build the search index.
             </Notice>
           ) : (
             <p style={{ fontSize: 12, color: 'var(--muted-foreground)', margin: '0 0 10px', lineHeight: 1.5 }}>
-              dotstell will read each of your notes and create a compact numerical fingerprint
-              (an &ldquo;embedding&rdquo;) that lets the AI find related notes by meaning. This
-              runs once; new notes are indexed automatically as you write them.
+              dotstell will read each of your notes, bookmarks, and tasks and create a compact
+              numerical fingerprint (an &ldquo;embedding&rdquo;) that lets the AI find related
+              content by meaning. This runs once; new items are indexed automatically as you create them.
             </p>
           )}
           <button
@@ -679,7 +694,7 @@ export function AISettingsModal({ onClose }: AISettingsModalProps) {
             }}
           >
             {indexing
-              ? <><Loader2 size={13} style={{ animation: 'spin 1s linear infinite' }} /> Indexing your notes…</>
+              ? <><Loader2 size={13} style={{ animation: 'spin 1s linear infinite' }} /> Indexing your content…</>
               : <><Database size={13} /> Build search index</>
             }
           </button>

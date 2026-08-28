@@ -111,17 +111,26 @@ export function AIChatPanel({ config, noteId, noteTitle, noteContent, onClose }:
     if (mode === 'global' && !context) {
       try {
         const supabase = createSupabaseBrowserClient()
-        const { data: recent } = await supabase
-          .from('notes')
-          .select('title, content, updated_at')
-          .is('deleted_at', null)
-          .order('updated_at', { ascending: false })
-          .limit(5)
-        if (recent?.length) {
-          context = recent
-            .map(n => `## ${n.title || 'Untitled'}\n${n.content.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 800)}`)
-            .join('\n\n')
+        const [{ data: recentNotes }, { data: recentTasks }] = await Promise.all([
+          supabase.from('notes').select('title, content, updated_at')
+            .is('deleted_at', null).order('updated_at', { ascending: false }).limit(3),
+          supabase.from('tasks').select('title, description, status, priority, due_date, updated_at')
+            .order('updated_at', { ascending: false }).limit(3),
+        ])
+        const parts: string[] = []
+        if (recentNotes?.length) {
+          parts.push(...recentNotes.map(n =>
+            `## Note: ${n.title || 'Untitled'}\n${n.content.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 600)}`
+          ))
         }
+        if (recentTasks?.length) {
+          parts.push(...recentTasks.map(t => {
+            const meta = [`Status: ${t.status}`, `Priority: ${t.priority}`]
+            if (t.due_date) meta.push(`Due: ${t.due_date.split('T')[0]}`)
+            return `### Task: ${t.title}${t.description ? `\n${t.description.slice(0, 300)}` : ''}\n${meta.join(' · ')}`
+          }))
+        }
+        if (parts.length) context = parts.join('\n\n')
       } catch { /* fallback is best-effort */ }
     }
 
@@ -372,7 +381,7 @@ export function AIChatPanel({ config, noteId, noteTitle, noteContent, onClose }:
 }
 
 const NOTE_PROMPTS   = ['Summarize this note', 'What are the key tasks?', 'Explain the main concepts']
-const GLOBAL_PROMPTS = ['What have I been working on?', 'Find connections between my notes', 'Summarize recent activity']
+const GLOBAL_PROMPTS = ['What have I been working on?', 'What are my high-priority tasks?', "What's overdue or needs attention?", 'Summarize recent activity', 'Find connections between my notes']
 
 function WelcomeMessage({ mode, noteTitle, onPrompt }: { mode: ChatMode; noteTitle?: string; onPrompt: (p: string) => void }) {
   const prompts = mode === 'note' ? NOTE_PROMPTS : GLOBAL_PROMPTS
@@ -388,7 +397,7 @@ function WelcomeMessage({ mode, noteTitle, onPrompt }: { mode: ChatMode; noteTit
         <p style={{ margin: 0, fontSize: 12, maxWidth: 260, lineHeight: 1.5 }}>
           {mode === 'note'
             ? 'Ask questions, explore ideas, or get summaries about this note.'
-            : 'Ask anything about your notes, bookmarks, or ideas. RAG finds relevant context automatically.'}
+            : 'Ask anything about your notes, bookmarks, tasks, or ideas. RAG finds relevant context automatically.'}
         </p>
       </div>
       {/* Suggested prompts */}

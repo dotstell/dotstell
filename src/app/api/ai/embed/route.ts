@@ -19,8 +19,8 @@ export async function POST(req: NextRequest) {
   const configError = validateConfig(body.config)
   if (configError) return NextResponse.json({ error: configError }, { status: 400 })
 
-  if (!body.entityType || !body.entityId) {
-    return NextResponse.json({ error: 'entityType and entityId are required' }, { status: 400 })
+  if (!['note', 'bookmark', 'task'].includes(body.entityType) || !body.entityId) {
+    return NextResponse.json({ error: 'entityType must be one of: note, bookmark, task' }, { status: 400 })
   }
 
   try {
@@ -194,7 +194,7 @@ function buildTaskEmbedText(task: {
   status:      string
   priority:    string
   due_date:    string | null
-  tags:        string[]
+  tags:        string[] | null
 }): string {
   const parts = [task.title]
   if (task.description?.trim()) parts.push(task.description.trim())

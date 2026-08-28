@@ -35,25 +35,44 @@ export async function POST(
     return NextResponse.json([])
   }
 
-  // Use pgvector cosine similarity to find the most similar notes, excluding itself
-  const { data: related } = await supabase.rpc('match_notes', {
-    query_embedding: note.embedding,
-    user_id_param:   user.id,
-    match_count:     limit + 1, // +1 because the source note itself will appear
-    match_threshold: 0.4,       // higher threshold for "related" than "search" (0.3)
-  })
+  // Run note and task similarity searches in parallel using the same embedding
+  const [notesResult, tasksResult] = await Promise.all([
+    supabase.rpc('match_notes', {
+      query_embedding: note.embedding,
+      user_id_param:   user.id,
+      match_count:     limit + 1, // +1 because the source note itself will appear
+      match_threshold: 0.4,
+    }),
+    supabase.rpc('match_tasks', {
+      query_embedding: note.embedding,
+      user_id_param:   user.id,
+      match_count:     limit,
+      match_threshold: 0.4,
+    }).then(r => r, () => ({ data: null, error: null })), // graceful degradation if migration not yet applied
+  ])
+  const relatedNotes = notesResult.data
+  const relatedTasks = tasksResult.data
 
-  if (!related) return NextResponse.json([])
-
-  // Filter out the source note and cap at requested limit
-  const filtered = related
+  const notes = (relatedNotes ?? [])
     .filter((n: { id: string }) => n.id !== noteId)
-    .slice(0, limit)
     .map((n: { id: string; title: string; similarity: number }) => ({
       id:         n.id,
       title:      n.title || 'Untitled',
+      type:       'note' as const,
       similarity: Math.round(n.similarity * 100),
     }))
 
-  return NextResponse.json(filtered)
+  const tasks = ((relatedTasks ?? []) as { id: string; title: string; similarity: number }[])
+    .map((t) => ({
+      id:         t.id,
+      title:      t.title || 'Untitled',
+      type:       'task' as const,
+      similarity: Math.round(t.similarity * 100),
+    }))
+
+  const combined = [...notes, ...tasks]
+    .sort((a, b) => b.similarity - a.similarity)
+    .slice(0, limit)
+
+  return NextResponse.json(combined)
 }
