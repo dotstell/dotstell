@@ -33,6 +33,6 @@ export async function GET(
     .in('id', targetIds)
     .order('updated_at', { ascending: false })
 
-  if (notesErr) return NextResponse.json({ error: notesErr.message }, { status: 500 })
+  if (notesErr) return NextResponse.json({ error: 'An unexpected error occurred.' }, { status: 500 })
   return NextResponse.json(notes ?? [])
 }

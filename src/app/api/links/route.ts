@@ -29,6 +29,20 @@ export async function POST(req: NextRequest) {
   if (!body.source_id || !body.target_id) {
     return NextResponse.json({ error: 'source_id and target_id required' }, { status: 400 })
   }
+
+  const VALID_ENTITY_TYPES = ['note', 'bookmark', 'task'] as const
+  if (!VALID_ENTITY_TYPES.includes(body.source_type) || !VALID_ENTITY_TYPES.includes(body.target_type)) {
+    return NextResponse.json({ error: 'source_type and target_type must be one of: note, bookmark, task' }, { status: 400 })
+  }
+
+  // Verify source entity belongs to the authenticated user (IDOR guard)
+  const TABLE_MAP: Record<string, 'notes' | 'bookmarks' | 'tasks'> = { note: 'notes', bookmark: 'bookmarks', task: 'tasks' }
+  const { data: srcEntity } = await supabase.from(TABLE_MAP[body.source_type]).select('id').eq('id', body.source_id).eq('user_id', user.id).single()
+  if (!srcEntity) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+
+  const { data: tgtEntity } = await supabase.from(TABLE_MAP[body.target_type]).select('id').eq('id', body.target_id).eq('user_id', user.id).single()
+  if (!tgtEntity) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+
   // Upsert on (user_id, source_id, target_id) — the unique constraint prevents duplicate edges
   // while allowing the label to be updated if the same pair is re-linked with a different label.
   const { data, error } = await supabase.from('knowledge_links').upsert({

@@ -32,8 +32,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Person name is required' }, { status: 400 })
   }
 
+  // Escape ILIKE wildcards to prevent pattern injection
+  const safeName = name.replace(/%/g, '\\%').replace(/_/g, '\\_')
+  // Strip characters that could be used for prompt injection before inserting into AI prompts
+  const safeNameForPrompt = name.replace(/[^a-zA-Z0-9 \-']/g, '')
+
   // Search notes and bookmarks for mentions of the person
-  const pattern = `%${name}%`
+  const pattern = `%${safeName}%`
   const [notesRes, bookmarksRes] = await Promise.all([
     supabase
       .from('notes')
@@ -92,7 +97,7 @@ export async function POST(req: NextRequest) {
   const messages: AIMessage[] = [
     {
       role:    'system',
-      content: `You are a personal intelligence assistant. The user has notes and bookmarks about "${name}".
+      content: `You are a personal intelligence assistant. The user has notes and bookmarks about "${safeNameForPrompt}".
 Produce a structured summary covering:
 1. Who they are (role, company, relationship to the user — infer from context)
 2. Key facts, decisions, or interactions
@@ -104,7 +109,7 @@ If the sources are thin, say so honestly rather than padding.`,
     },
     {
       role:    'user',
-      content: `Everything I have about "${name}":\n\n${context}`,
+      content: `Everything I have about "${safeNameForPrompt}":\n\n${context}`,
     },
   ]
 

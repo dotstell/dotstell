@@ -1,6 +1,20 @@
 import { AIConfig, AIMessage } from '../types'
 import { providerError, extractMessage } from '../error'
 
+const ALLOWED_BASE_URL_HOSTS = [
+  'openai.com', 'groq.com', 'anthropic.com', 'openrouter.ai',
+  'mistral.ai', 'together.xyz', 'api.together.xyz',
+  'localhost', '127.0.0.1', '::1',
+]
+
+/** Guard against SSRF: reject baseUrls whose hostname is not in the known-provider allowlist. */
+function sanitizeBaseUrl(url: string): void {
+  let hostname: string
+  try { hostname = new URL(url).hostname } catch { throw new Error('Invalid baseUrl') }
+  const allowed = ALLOWED_BASE_URL_HOSTS.some(h => hostname === h || hostname.endsWith(`.${h}`))
+  if (!allowed) throw new Error('Unsupported baseUrl host')
+}
+
 /**
  * Stream a chat completion from the OpenAI API (or any OpenAI-compatible endpoint).
  * Used directly for OpenAI, and as the delegate for Ollama and Groq which share the same wire format.
@@ -11,6 +25,8 @@ export async function openaiStream(
   messages: AIMessage[],
 ): Promise<ReadableStream<Uint8Array>> {
   const baseUrl = config.baseUrl?.replace(/\/$/, '') || 'https://api.openai.com/v1'
+  // Validate the baseUrl hostname when a custom one is provided (skip Ollama — it uses assertLocalhost)
+  if (config.baseUrl && config.provider !== 'ollama') sanitizeBaseUrl(baseUrl)
   const url = `${baseUrl}/chat/completions`
 
   const res = await fetch(url, {

@@ -25,7 +25,7 @@ export async function POST(req: NextRequest) {
 
   if (!body.text?.trim()) return NextResponse.json({ error: 'text is required' }, { status: 400 })
   if (!body.operation || !(body.operation in ASSIST_LABELS)) {
-    return NextResponse.json({ error: `Unknown operation: ${body.operation}` }, { status: 400 })
+    return NextResponse.json({ error: 'Unknown operation' }, { status: 400 })
   }
 
   // Word count of the selected text — used to calibrate expected output length

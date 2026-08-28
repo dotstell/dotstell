@@ -20,7 +20,7 @@ function parseNetscapeHTML(html: string): { bookmarks: ParsedBookmark[]; skipped
   const bookmarks: ParsedBookmark[] = []
   const skipped: SkippedEntry[] = []
 
-  const tokenPattern = /<(\/DL|DL|DT)[^>]*>|<H3[^>]*>(.*?)<\/H3>|<A\s+[^>]*HREF="([^"]*)"[^>]*>(.*?)<\/A>/gi
+  const tokenPattern = /<(\/DL|DL|DT)[^>]*>|<H3[^>]*>([^<]*)<\/H3>|<A\s+[^>]*HREF="([^"]*)"[^>]*>(.*?)<\/A>/gi
   const folderStack: string[] = []
   let match: RegExpExecArray | null
 

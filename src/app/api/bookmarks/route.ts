@@ -43,6 +43,26 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Invalid URL — must be http or https' }, { status: 400 })
   }
 
+  if (body.title && typeof body.title === 'string' && body.title.length > 500) {
+    return NextResponse.json({ error: 'title must be 500 characters or fewer' }, { status: 400 })
+  }
+  if (body.description && typeof body.description === 'string' && body.description.length > 2000) {
+    return NextResponse.json({ error: 'description must be 2000 characters or fewer' }, { status: 400 })
+  }
+  if (body.favicon_url && typeof body.favicon_url === 'string' && body.favicon_url.length > 2000) {
+    return NextResponse.json({ error: 'favicon_url must be 2000 characters or fewer' }, { status: 400 })
+  }
+  if (body.hostname && typeof body.hostname === 'string' && body.hostname.length > 253) {
+    return NextResponse.json({ error: 'hostname must be 253 characters or fewer' }, { status: 400 })
+  }
+  if (body.tags !== undefined) {
+    if (!Array.isArray(body.tags)) return NextResponse.json({ error: 'tags must be an array' }, { status: 400 })
+    if (body.tags.length > 20) return NextResponse.json({ error: 'tags array must contain 20 items or fewer' }, { status: 400 })
+    if (body.tags.some((t: unknown) => typeof t !== 'string' || t.length > 50)) {
+      return NextResponse.json({ error: 'each tag must be a string of 50 characters or fewer' }, { status: 400 })
+    }
+  }
+
   const { data, error } = await supabase.from('bookmarks').insert({
     user_id:      user.id,
     title:        body.title,

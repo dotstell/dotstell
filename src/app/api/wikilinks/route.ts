@@ -17,6 +17,10 @@ export async function POST(req: NextRequest) {
   }
 
   if (!sourceNoteId) return NextResponse.json({ error: 'sourceNoteId required' }, { status: 400 })
+
+  // Verify the source note belongs to the authenticated user (ownership check)
+  const { data: srcNote } = await supabase.from('notes').select('id').eq('id', sourceNoteId).eq('user_id', user.id).single()
+  if (!srcNote) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   if (!Array.isArray(targetNoteIds)) return NextResponse.json({ error: 'targetNoteIds must be an array' }, { status: 400 })
   if (targetNoteIds.length > 500) return NextResponse.json({ error: 'Too many targetNoteIds' }, { status: 400 })
   if (targetNoteIds.some(id => typeof id !== 'string')) {

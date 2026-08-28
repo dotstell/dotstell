@@ -1,9 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { createClient } from '@/lib/supabase/server'
 
 // GET /api/ai/ollama-models?baseUrl=http://localhost:11434
 // Proxies the Ollama /api/tags call server-side so the browser never hits
 // localhost directly — avoiding corporate proxy interference.
 export async function GET(req: NextRequest) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
   const baseUrl = (req.nextUrl.searchParams.get('baseUrl') || 'http://localhost:11434')
     .replace(/\/v1\/?$/, '').replace(/\/$/, '')
 

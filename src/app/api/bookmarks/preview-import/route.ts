@@ -27,7 +27,7 @@ export async function POST(req: NextRequest) {
   const folderCounts = new Map<string, number>()
   const IGNORE = new Set(['bookmarks bar', 'other bookmarks', 'mobile bookmarks', 'bookmarks menu'])
 
-  const tokenPattern = /<(\/DL|DL|DT)[^>]*>|<H3[^>]*>(.*?)<\/H3>|<A\s+[^>]*HREF="([^"]*)"[^>]*>(.*?)<\/A>/gi
+  const tokenPattern = /<(\/DL|DL|DT)[^>]*>|<H3[^>]*>([^<]*)<\/H3>|<A\s+[^>]*HREF="([^"]*)"[^>]*>(.*?)<\/A>/gi
   const folderStack: string[] = []
   let match: RegExpExecArray | null
 

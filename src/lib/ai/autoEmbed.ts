@@ -53,6 +53,7 @@ async function embedViaLocalAgent(
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ model: config.embeddingModel, prompt: text.slice(0, 8000) }),
+    signal: AbortSignal.timeout(15_000),
   })
   if (!embedRes.ok) return
 

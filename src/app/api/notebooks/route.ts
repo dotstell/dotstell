@@ -24,7 +24,7 @@ export async function POST(req: NextRequest) {
 
   let body: any
   try { body = await req.json() } catch { return NextResponse.json({ error: 'Invalid request body' }, { status: 400 }) }
-  const { name, color, icon, sort_order, id } = body
+  const { name, color, icon, sort_order } = body
 
   if (!name?.trim()) return NextResponse.json({ error: 'Name required' }, { status: 400 })
 
@@ -34,15 +34,6 @@ export async function POST(req: NextRequest) {
     color: color ?? null,
     icon: icon ?? '📓',
     sort_order: sort_order ?? 0,
-  }
-  // Only accept a client-supplied id when the migration flag is present.
-  // Without this guard any authenticated user could specify arbitrary UUIDs.
-  if (id && body._migrate === true) {
-    // Strict UUID v4 format: 8-4-4-4-12 hex groups — rejects loose strings that pass the old [a-f0-9-]{36} check
-    if (typeof id !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) {
-      return NextResponse.json({ error: 'Invalid id' }, { status: 400 })
-    }
-    payload.id = id
   }
 
   const { data, error } = await supabase

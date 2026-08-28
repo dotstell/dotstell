@@ -374,12 +374,12 @@ export function AISettingsModal({ onClose }: AISettingsModalProps) {
         { data: notes, error: ne }, { data: bookmarks, error: be }, { data: tasks, error: te },
         { count: totalNotes }, { count: totalBookmarks }, { count: totalTasks },
       ] = await Promise.all([
-        supabase.from('notes').select('id, title, content').is('embedding', null).is('deleted_at', null).limit(100),
-        supabase.from('bookmarks').select('id, title, description').is('embedding', null).limit(100),
-        supabase.from('tasks').select('id, title, description, status, priority, due_date, tags').is('embedding', null).limit(100),
-        supabase.from('notes').select('*', { count: 'exact', head: true }).is('deleted_at', null),
-        supabase.from('bookmarks').select('*', { count: 'exact', head: true }),
-        supabase.from('tasks').select('*', { count: 'exact', head: true }),
+        supabase.from('notes').select('id, title, content').eq('user_id', user.id).is('embedding', null).is('deleted_at', null).limit(100),
+        supabase.from('bookmarks').select('id, title, description').eq('user_id', user.id).is('embedding', null).limit(100),
+        supabase.from('tasks').select('id, title, description, status, priority, due_date, tags').eq('user_id', user.id).is('embedding', null).limit(100),
+        supabase.from('notes').select('*', { count: 'exact', head: true }).eq('user_id', user.id).is('deleted_at', null),
+        supabase.from('bookmarks').select('*', { count: 'exact', head: true }).eq('user_id', user.id),
+        supabase.from('tasks').select('*', { count: 'exact', head: true }).eq('user_id', user.id),
       ])
       if (ne || be || te) throw new Error(`Failed to fetch items: ${ne?.message ?? be?.message ?? te?.message}`)
       const grandTotal = (totalNotes ?? 0) + (totalBookmarks ?? 0) + (totalTasks ?? 0)

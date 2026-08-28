@@ -28,6 +28,8 @@ export async function POST(req: NextRequest) {
   const configError = validateConfig(body.config)
   if (configError) return NextResponse.json({ error: configError }, { status: 400 })
 
+  if (!body.content || typeof body.content !== 'string') return NextResponse.json({ error: 'content is required' }, { status: 400 })
+
   const plainText = body.content
     .replace(/<[^>]+>/g, ' ')
     .replace(/\s+/g, ' ')

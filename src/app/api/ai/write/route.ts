@@ -81,7 +81,7 @@ export async function POST(req: NextRequest) {
         },
         {
           role:    'user',
-          content: body.content,
+          content: body.content?.slice(0, 12_000),
         },
       ]
     }

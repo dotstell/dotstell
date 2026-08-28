@@ -57,7 +57,7 @@ export async function DELETE(req: NextRequest) {
   let _parsed!: Record<string, unknown>
   try { _parsed = await req.json() } catch { return NextResponse.json({ error: 'Invalid request body' }, { status: 400 }) }
   const { tag } = _parsed
-  if (!tag) return NextResponse.json({ error: 'Missing tag' }, { status: 400 })
+  if (!tag || typeof tag !== 'string') return NextResponse.json({ error: 'Missing tag' }, { status: 400 })
 
   // Same 500-row cap as PATCH — see comment above
   const { data: bookmarks, error } = await supabase

@@ -27,11 +27,11 @@ export async function geminiStream(
   const body: Record<string, unknown> = { contents: chatMsgs }
   if (systemMsg) body.systemInstruction = { parts: [{ text: systemMsg }] }
 
-  const url = `${GEMINI_BASE}/models/${config.model}:streamGenerateContent?alt=sse&key=${config.apiKey ?? ''}`
+  const url = `${GEMINI_BASE}/models/${config.model}:streamGenerateContent?alt=sse`
 
   const res = await fetch(url, {
     method:  'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', 'x-goog-api-key': config.apiKey ?? '' },
     body:    JSON.stringify(body),
     signal:  AbortSignal.timeout(30_000),
   })
@@ -52,10 +52,10 @@ export async function geminiStream(
 export async function geminiEmbed(config: AIConfig, text: string): Promise<number[]> {
   const apiKey = config.embeddingApiKey ?? config.apiKey ?? ''
   if (!apiKey) throw new Error('Gemini embedding API key is missing — enter your Google AI Studio key in AI Settings under "Search engine API Key"')
-  const url = `${GEMINI_BASE}/models/${config.embeddingModel}:embedContent?key=${apiKey}`
+  const url = `${GEMINI_BASE}/models/${config.embeddingModel}:embedContent`
   const res = await fetch(url, {
     method:  'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
     body:    JSON.stringify({
       model:                `models/${config.embeddingModel}`,
       content:              { parts: [{ text }] },
