@@ -9,7 +9,9 @@
 
 ### Your knowledge is scattered. Dotstell connects it.
 
-**Notes · People · Tasks · Bookmarks · Wikilinks — all linked in one living knowledge graph**
+**Capture · Connect · Ask**
+
+Notes · People · Tasks · Bookmarks · Wikilinks · Knowledge Graph · AI Intelligence · AI Writing · Local Ollama
 
 <br/>
 
