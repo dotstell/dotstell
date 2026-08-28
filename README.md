@@ -33,9 +33,13 @@
 
 ## What is Dotstell?
 
-Dotstell is an open source personal knowledge graph — a single place to write notes, track people, manage tasks, save bookmarks, and connect all of them together through a visual graph.
+Dotstell is an open source personal knowledge graph — a single place to write notes, track people, manage tasks, save bookmarks, and connect all of them together through a visual graph. With a built-in AI layer that understands your entire knowledge base.
 
-Most productivity tools are built around **capture**. Dotstell is built around **connection**.
+Most productivity tools are built around **capture**. Dotstell is built around **connection** — and now, **conversation**.
+
+**Capture** your ideas, meeting notes, and research. **Connect** them to people, tasks, and bookmarks — building a knowledge graph that grows with you. **Ask** an AI that answers from your own notes, not the internet — chat, get person intelligence, generate writing, and discover what you already know.
+
+> *Everything you write, everyone you know, everything you do — all linked in one living knowledge graph. Now with AI that understands all of it.*
 
 The question it answers that other tools don't:
 
@@ -187,18 +191,30 @@ The hosted app at `dotstell.app` runs over `https://`. Modern browsers block `ht
 
 Download Ollama from [ollama.com](https://ollama.com) if you haven't already, then make sure it is running:
 
-- **Windows:** Ollama usually auto-starts as a background service. Open `http://127.0.0.1:11434` in your browser — if it shows "Ollama is running" you're ready.
+- **Windows:** Ollama usually auto-starts as a background service. Open `http://127.0.0.1:11434` in your browser — if it shows "Ollama is running" you're ready. If not, find **Ollama** in the Start Menu and launch it, or run `ollama serve` in a terminal.
 - **macOS / Linux:** Run `ollama serve` if it isn't already running in the background.
 
 > **Windows tip:** If `ollama serve` returns `bind: Only one usage of each socket address`, Ollama is already running — skip this step entirely.
 
 **Step 2 — Pull a model** *(first time only)*
 
+Dotstell needs two model types — one for chat/writing and one for semantic search (RAG). Pull one from each column:
+
+| Purpose | Model | Size | Notes |
+|---|---|---|---|
+| **Chat** | `phi4-mini` | 3.8B | Best reasoning at small size, fast on CPU — recommended starting point |
+| **Chat** | `qwen2.5:3b` | 3B | Strong and multilingual |
+| **Chat** | `llama3.2` | 3B | Reliable all-rounder |
+| **Chat** | `deepseek-r1:7b` | 7B | Best reasoning quality — needs a GPU |
+| **Chat** | `qwen2.5:7b` | 7B | Excellent quality + multilingual — needs a GPU |
+| **Embeddings** | `nomic-embed-text` | — | Required for semantic search and Related Notes |
+
 ```bash
-ollama pull llama3.2
+ollama pull phi4-mini
+ollama pull nomic-embed-text
 ```
 
-Any Ollama-compatible model works. `llama3.2` is a good starting point.
+> **No GPU?** Stick to 3–4B models (`phi4-mini`, `qwen2.5:3b`, `llama3.2`). 7B models are slow on CPU alone.
 
 **Step 3 — Start the Dotstell Local AI Agent**
 

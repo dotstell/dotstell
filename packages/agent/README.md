@@ -74,21 +74,32 @@ Follow these steps in order — skipping step 1 or 2 is the most common reason t
 
 Open `http://127.0.0.1:11434` in your browser. If it shows "Ollama is running", skip to Step 2.
 
-If Ollama is not running:
+If Ollama is **not** running:
 
-```bash
-ollama serve
-```
+- **Windows:** Find **Ollama** in the Start Menu and launch it, or run `ollama serve` in a terminal.
+- **macOS / Linux:** Run `ollama serve`.
 
-> **Windows tip:** If you see `bind: Only one usage of each socket address`, Ollama is already running in the system tray — skip `ollama serve`.
+> **Windows tip:** If `ollama serve` returns `bind: Only one usage of each socket address`, Ollama is already running in the system tray — skip this step.
 
 **Step 2 — Pull a model** *(first time only)*
 
+Dotstell needs two model types — one for chat/writing and one for semantic search:
+
+| Purpose | Model | Size | Notes |
+|---|---|---|---|
+| **Chat** | `phi4-mini` | 3.8B | Best reasoning at small size, fast on CPU — recommended |
+| **Chat** | `qwen2.5:3b` | 3B | Strong and multilingual |
+| **Chat** | `llama3.2` | 3B | Reliable all-rounder |
+| **Chat** | `deepseek-r1:7b` | 7B | Best reasoning quality — needs a GPU |
+| **Chat** | `qwen2.5:7b` | 7B | Excellent quality + multilingual — needs a GPU |
+| **Embeddings** | `nomic-embed-text` | — | Required for semantic search and Related Notes |
+
 ```bash
-ollama pull llama3.2
+ollama pull phi4-mini
+ollama pull nomic-embed-text
 ```
 
-Any Ollama-compatible model works. Check [ollama.com/library](https://ollama.com/library) for the full list.
+> **No GPU?** Stick to 3–4B models. 7B models are slow on CPU alone.
 
 **Step 3 — Start the agent**
 
