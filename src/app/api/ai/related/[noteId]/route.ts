@@ -36,7 +36,7 @@ export async function POST(
   }
 
   // Run note and task similarity searches in parallel using the same embedding
-  const [{ data: relatedNotes }, { data: relatedTasks }] = await Promise.all([
+  const [notesResult, tasksResult] = await Promise.all([
     supabase.rpc('match_notes', {
       query_embedding: note.embedding,
       user_id_param:   user.id,
@@ -48,8 +48,10 @@ export async function POST(
       user_id_param:   user.id,
       match_count:     limit,
       match_threshold: 0.4,
-    }).catch(() => ({ data: null })), // graceful degradation if migration not yet applied
+    }).then(r => r, () => ({ data: null, error: null })), // graceful degradation if migration not yet applied
   ])
+  const relatedNotes = notesResult.data
+  const relatedTasks = tasksResult.data
 
   const notes = (relatedNotes ?? [])
     .filter((n: { id: string }) => n.id !== noteId)
