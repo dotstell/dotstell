@@ -85,19 +85,20 @@ export function AIChatPanel({ config, noteId, noteTitle, noteContent, onClose }:
           headers: { 'Content-Type': 'application/json' },
           body:    JSON.stringify({
             config,
-            query:      text,
-            types:      ['note'],
-            noteId:     mode === 'note' ? noteId : undefined,
-            limit:      3,
-            threshold:  0.5,
+            query:  text,
+            types:  ['note', 'bookmark', 'task'],
+            limit:  5,
           }),
         })
         if (ragRes.ok) {
-          const results: Array<{ title: string; content: string }> = await ragRes.json()
+          const results: Array<{ id: string; title: string; type: string; body: string }> = await ragRes.json()
           // Filter out the current note (already injected above) so it isn't duplicated
-          const others = results.filter(r => r.title !== noteTitle)
+          const others = results.filter(r => !(r.type === 'note' && r.id === noteId))
           if (others.length) {
-            const ragContext = others.map(r => `## ${r.title}\n${r.content.replace(/<[^>]+>/g, ' ').trim().slice(0, 800)}`).join('\n\n')
+            const ragContext = others.map(r => {
+              const prefix = r.type === 'task' ? '### Task' : r.type === 'bookmark' ? '### Bookmark' : '##'
+              return `${prefix}: ${r.title}\n${r.body ?? ''}`
+            }).join('\n\n')
             context = context ? `${context}\n\n${ragContext}` : ragContext
           }
         }
@@ -134,7 +135,7 @@ export function AIChatPanel({ config, noteId, noteTitle, noteContent, onClose }:
         // On the live app Vercel can't reach local Ollama — stream directly through the Local Agent.
         // Inject context as a system message the same way the server route does.
         const ollamaMessages: AIMessage[] = context
-          ? [{ role: 'system', content: `Use the following context from the user's notes to answer their question. Cite specific notes by name when relevant.\n\nContext:\n${context}` }, ...history]
+          ? [{ role: 'system', content: `Use the following context from the user's knowledge base to answer their question. Cite specific notes, bookmarks, or tasks by name when relevant.\n\nContext:\n${context}` }, ...history]
           : history
         finalText = await streamDirect(() => streamOllamaBrowser(config, ollamaMessages))
       } else {
