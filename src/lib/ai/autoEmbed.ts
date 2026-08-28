@@ -26,19 +26,25 @@ async function embedViaLocalAgent(
   entityId: string,
 ): Promise<void> {
   const supabase = createSupabaseBrowserClient()
+  // Auth guard first — user_id is applied to every SELECT and UPDATE below
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return
 
   let text = ''
   if (entityType === 'note') {
-    const { data } = await supabase.from('notes').select('title, content').eq('id', entityId).single()
+    const { data } = await supabase.from('notes').select('title, content')
+      .eq('id', entityId).eq('user_id', user.id).single()
     if (!data) return
     text = `${data.title}\n${data.content.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()}`
   } else if (entityType === 'task') {
     const { data } = await supabase.from('tasks')
-      .select('title, description, status, priority, due_date, tags').eq('id', entityId).single()
+      .select('title, description, status, priority, due_date, tags')
+      .eq('id', entityId).eq('user_id', user.id).single()
     if (!data) return
     text = buildTaskText(data)
   } else {
-    const { data } = await supabase.from('bookmarks').select('title, description').eq('id', entityId).single()
+    const { data } = await supabase.from('bookmarks').select('title, description')
+      .eq('id', entityId).eq('user_id', user.id).single()
     if (!data) return
     text = `${data.title}\n${data.description ?? ''}`
   }
@@ -54,20 +60,21 @@ async function embedViaLocalAgent(
   if (!Array.isArray(embedding) || embedding.length === 0) return
   if (embedding.length !== 768) return  // DB column is vector(768); wrong-dim model — skip silently
 
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return
-
   const table = entityType === 'note' ? 'notes' : entityType === 'bookmark' ? 'bookmarks' : 'tasks'
-  await supabase.from(table)
+  const { error } = await supabase.from(table)
     .update({ embedding, embedding_model: config.embeddingModel })
     .eq('id', entityId)
     .eq('user_id', user.id)
+  if (error) console.warn('[autoEmbed] embedding write failed:', error.message)
 }
 
 /**
  * Fire-and-forget: embed a single entity after it is saved.
+ * Call immediately after a successful create or update so new items are searchable
+ * without requiring the user to manually re-run Build search index.
+ *
  * - Cloud providers (OpenAI, Gemini, etc.): calls server-side /api/ai/embed
- * - Ollama: calls Local Agent browser-side, same as the Build button does
+ * - Ollama: calls Local Agent browser-side, same path as the Build button
  * - Never throws; silently skips if the Local Agent is not running
  */
 export function triggerEmbedBackground(
@@ -93,9 +100,11 @@ export function triggerEmbedBackground(
 }
 
 /**
- * Silently re-index ALL un-embedded items after a provider switch.
+ * Fire-and-forget: re-index ALL un-embedded items after the user switches embedding provider.
+ * Call when AI Settings are saved with a different provider so items created under
+ * the old provider are picked up automatically.
  * Cloud providers only — Ollama requires the Local Agent which may not be running;
- * user can hit Build search index once if needed after switching to Ollama.
+ * the user can hit Build search index once after switching to Ollama.
  */
 export function triggerBulkEmbedBackground(config: AIConfig): void {
   if (!config.embeddingProvider || config.embeddingProvider === 'ollama') return

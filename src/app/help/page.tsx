@@ -384,7 +384,7 @@ export default function HelpPage() {
                 body={<>When using <strong>Ollama</strong> from <strong>dotstell.app</strong> (the hosted version), browsers block direct connections to localhost for security reasons (Private Network Access spec). Run the <strong>Dotstell Local AI Agent</strong> to bridge the gap — it's a tiny Node.js proxy that adds the required headers and forwards requests to your local Ollama. First make sure Ollama is running (on Windows it usually auto-starts — check the system tray). Then start the agent with: <code style={{ fontSize: 11, backgroundColor: 'rgba(0,0,0,0.15)', padding: '1px 5px', borderRadius: 3 }}>npx @dotstell/agent</code> (no install needed — runs directly via npx). The AI Settings modal shows a green <strong>"Local Agent is running"</strong> badge when detected. You do not need the agent when running dotstell locally at localhost:3000.</>}
               />
               <Tip icon="💬" title="AI Chat"
-                body="Open AI Chat from the note editor toolbar. In This note mode the chat is scoped to the current note with RAG context from related notes. In All knowledge mode it searches your full note library for each question. RAG can be toggled off for direct model answers. Chat history clears with the trash button."
+                body="Open AI Chat from the note editor toolbar. In This note mode the chat is scoped to the current note. In All knowledge mode it searches your notes, tasks, and bookmarks for each question. RAG can be toggled off for direct model answers. New items are indexed automatically — you only need to run Build search index once for existing content."
               />
               <Tip icon="👤" title="Person intelligence"
                 body="Switch to the People tab in the AI Chat panel and type a name. The AI searches across all your notes and bookmarks for mentions, then generates a structured brief — role, key topics, last mentioned. Useful before meetings or when picking up an old context."
@@ -401,8 +401,8 @@ export default function HelpPage() {
               <Tip icon="📊" title="AI Digest"
                 body="The dashboard AI Digest card summarises your recent note activity. Choose Today or This Week and click Generate. Useful for a quick review of what you've been working on."
               />
-              <Tip icon="🔎" title="Related notes (semantic search)"
-                body="The Related Notes panel in the note editor right sidebar uses vector embeddings to find semantically similar notes — not just keyword matches. Requires an embedding provider configured in AI Settings. Click Re-index all in settings to index all existing notes."
+              <Tip icon="🔎" title="Related items (semantic search)"
+                body="The Related Items panel in the note editor right sidebar uses vector embeddings to find semantically similar notes and tasks — not just keyword matches. Requires an embedding provider configured in AI Settings. Click Build search index in AI Settings to index all existing content."
               />
               <Tip icon="🌐" title="Graph intelligence"
                 body="The Graph page AI panel (click the AI button in the toolbar) provides three analyses: Missing links surfaces highly similar unlinked note pairs; Note clusters groups orphaned notes by topic; Gap detection finds note pairs sharing many neighbours but no direct bridge — a candidate for a new connecting note."
@@ -517,7 +517,7 @@ export default function HelpPage() {
                   <span style={{ fontSize: 12, color: 'var(--muted-foreground)' }}>Aug 2026</span>
                 </div>
                 <Tip icon="🧠" title="Tasks in AI Chat, semantic search, and Related"
-                  body="Tasks now have vector embeddings — they appear in AI Chat RAG context, semantic search results, and the Related sidebar alongside notes and bookmarks. Build search index now indexes notes, bookmarks, and tasks together. AI Chat suggested prompts updated to include daily task queries."
+                  body="Tasks now have vector embeddings — they appear in AI Chat RAG context, semantic search results, and the Related Items sidebar alongside notes and bookmarks. Build search index now indexes notes, bookmarks, and tasks together. New items are automatically indexed as you create them. Switching embedding provider re-indexes everything automatically for cloud providers."
                 />
               </div>
 

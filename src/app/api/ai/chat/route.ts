@@ -22,11 +22,16 @@ export async function POST(req: NextRequest) {
 
   const messages: AIMessage[] = body.messages ?? []
 
-  // Prepend RAG context as a system message when provided (e.g. from semantic search results)
   if (body.context) {
+    // Wrap user-supplied context in XML tags to prevent injected content from overriding instructions.
     messages.unshift({
       role:    'system',
-      content: `You are a helpful assistant with access to the user's personal knowledge base. Answer using the provided context.\n\nFormatting rules:\n- Use markdown: **bold** for labels, numbered or bullet lists for multiple items\n- For tasks: show title in bold, then Status, Priority, Due Date as sub-bullets\n- Write field values in title case (e.g. "In Progress" not "in_progress", "High" not "high")\n- Be concise and structured\n\nCite specific notes, bookmarks, or tasks by name when relevant. You can also answer general questions from your own knowledge when the context is not relevant.\n\nContext:\n${body.context}`,
+      content: `You are a helpful personal assistant with access to the user's knowledge base.\n\nFormatting rules:\n- Use markdown: **bold** for labels, numbered or bullet lists for multiple items\n- For tasks: show title in bold, then Status, Priority, Due Date as sub-bullets\n- Write field values in title case (e.g. "In Progress" not "in_progress", "High" not "high")\n- Be concise and structured\n\nCite specific notes, bookmarks, or tasks by name when relevant. You may also answer from your own knowledge when the context is not relevant.\n\n<context>\n${body.context}\n</context>`,
+    })
+  } else {
+    messages.unshift({
+      role:    'system',
+      content: 'You are a helpful personal assistant. Answer clearly and concisely. Use markdown formatting where appropriate.',
     })
   }
 

@@ -473,7 +473,7 @@ export function AISettingsModal({ onClose }: AISettingsModalProps) {
         {/* ── What AI does in dotstell ── */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 6, marginBottom: 20 }}>
           {[
-            { icon: <MessageSquareText size={13} color="var(--primary)" />, label: 'Chat',    desc: 'Ask questions about your notes' },
+            { icon: <MessageSquareText size={13} color="var(--primary)" />, label: 'Chat',    desc: 'Ask questions about your notes, tasks & bookmarks' },
             { icon: <Wand2            size={13} color="var(--primary)" />, label: 'Assist',  desc: 'Rewrite, expand, fix, outline text' },
             { icon: <Search           size={13} color="var(--primary)" />, label: 'Search',  desc: 'Find notes by meaning, not just keywords' },
           ].map(f => (

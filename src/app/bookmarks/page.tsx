@@ -299,6 +299,8 @@ export default function BookmarksPage() {
         }
       )
       if (!res.ok) throw new Error()
+      const saved = await res.json()
+      if (saved?.id) triggerEmbedBackground('bookmark', saved.id)
       toast.success(isEdit ? 'Updated' : 'Saved')
       setDialogOpen(false)
       fetchBookmarks()

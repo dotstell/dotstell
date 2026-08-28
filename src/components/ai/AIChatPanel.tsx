@@ -105,20 +105,22 @@ export function AIChatPanel({ config, noteId, noteTitle, noteContent, onClose }:
       } catch { /* RAG is best-effort — proceed without it */ }
     }
 
-    // In "All knowledge" mode, always ensure tasks are in context. RAG may have found notes
-    // (which have embeddings) while tasks have none yet — so tasks would be silently skipped
-    // unless we supplement with a direct DB fetch.
+    // "All knowledge" mode: tasks may be missing from RAG context if their embeddings
+    // haven't been built yet — supplement with a direct DB fetch.
     if (mode === 'global') {
       try {
         const supabase = createSupabaseBrowserClient()
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) throw new Error()  // caught below; skip the fallback quietly
 
         if (!context) {
-          // RAG returned nothing at all — full fallback: recent notes + tasks
+          // RAG returned nothing — full fallback: recent notes + tasks
           const [{ data: recentNotes }, { data: recentTasks }] = await Promise.all([
             supabase.from('notes').select('title, content, updated_at')
-              .is('deleted_at', null).order('updated_at', { ascending: false }).limit(3),
+              .eq('user_id', user.id).is('deleted_at', null)
+              .order('updated_at', { ascending: false }).limit(3),
             supabase.from('tasks').select('title, description, status, priority, due_date, updated_at')
-              .order('updated_at', { ascending: false }).limit(5),
+              .eq('user_id', user.id).order('updated_at', { ascending: false }).limit(5),
           ])
           const parts: string[] = []
           if (recentNotes?.length) {
@@ -135,11 +137,10 @@ export function AIChatPanel({ config, noteId, noteTitle, noteContent, onClose }:
           }
           if (parts.length) context = parts.join('\n\n')
         } else if (!context.includes('### Task')) {
-          // RAG found notes/bookmarks but no tasks (task embeddings not built yet) —
-          // append all tasks so the model always has them in context.
+          // RAG returned notes/bookmarks but no tasks — supplement so the model always sees them.
           const { data: recentTasks } = await supabase
             .from('tasks').select('title, description, status, priority, due_date, updated_at')
-            .order('updated_at', { ascending: false }).limit(5)
+            .eq('user_id', user.id).order('updated_at', { ascending: false }).limit(5)
           if (recentTasks?.length) {
             const taskContext = recentTasks.map(t => {
               const meta = [`Status: ${t.status}`, `Priority: ${t.priority}`]
@@ -162,7 +163,8 @@ export function AIChatPanel({ config, noteId, noteTitle, noteContent, onClose }:
         // On the live app Vercel can't reach local Ollama — stream directly through the Local Agent.
         // Inject context as a system message the same way the server route does.
         const ollamaMessages: AIMessage[] = context
-          ? [{ role: 'system', content: `You are a helpful assistant with access to the user's personal knowledge base. Answer using the provided context.\n\nFormatting rules:\n- Use markdown: **bold** for labels, numbered or bullet lists for multiple items\n- For tasks: show title in bold, then Status, Priority, Due Date as sub-bullets\n- Write field values in title case (e.g. "In Progress" not "in_progress", "High" not "high")\n- Be concise and structured\n\nCite specific notes, bookmarks, or tasks by name when relevant.\n\nContext:\n${context}` }, ...history]
+          // Wrap context in XML tags to prevent user content from overriding instructions.
+          ? [{ role: 'system', content: `You are a helpful personal assistant with access to the user's knowledge base.\n\nFormatting rules:\n- Use markdown: **bold** for labels, numbered or bullet lists for multiple items\n- For tasks: show title in bold, then Status, Priority, Due Date as sub-bullets\n- Write field values in title case (e.g. "In Progress" not "in_progress", "High" not "high")\n- Be concise and structured\n\nCite specific notes, bookmarks, or tasks by name when relevant.\n\n<context>\n${context}\n</context>` }, ...history]
           : history
         finalText = await streamDirect(() => streamOllamaBrowser(config, ollamaMessages))
       } else {
@@ -374,7 +376,7 @@ export function AIChatPanel({ config, noteId, noteTitle, noteContent, onClose }:
           <Globe size={9} /> {ragActive ? 'RAG on' : 'RAG off'}
         </button>
         <p style={{ margin: 0, fontSize: 10, color: 'var(--muted-foreground)' }}>
-          {ragActive ? 'Answers grounded in your notes' : 'Direct model answers only'}
+          {ragActive ? 'Answers grounded in your notes, tasks & bookmarks' : 'Direct model answers only'}
         </p>
       </div>}
 
