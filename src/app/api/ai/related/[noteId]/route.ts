@@ -20,7 +20,7 @@ export async function POST(
   if (rl) return rl
 
   let body!: { config: AIConfig; limit?: number }
-  try { body: { config: AIConfig; limit?: number } = await req.json() } catch { return NextResponse.json({ error: 'Invalid request body' }, { status: 400 }) }
+  try { body = await req.json() } catch { return NextResponse.json({ error: 'Invalid request body' }, { status: 400 }) }
   const limit = Math.min(body.limit ?? 5, 10)
 
   // Fetch the source note's embedding

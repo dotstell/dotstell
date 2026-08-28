@@ -16,7 +16,7 @@ export async function POST(req: NextRequest) {
   if (rl) return rl
 
   let body!: { config: AIConfig; entityType: 'note' | 'bookmark' | 'task'; entityId: string }
-  try { body: { config: AIConfig; entityType: 'note' | 'bookmark' | 'task'; entityId: string } = await req.json() } catch { return NextResponse.json({ error: 'Invalid request body' }, { status: 400 }) }
+  try { body = await req.json() } catch { return NextResponse.json({ error: 'Invalid request body' }, { status: 400 }) }
   const configError = validateConfig(body.config)
   if (configError) return NextResponse.json({ error: configError }, { status: 400 })
 
@@ -86,7 +86,7 @@ export async function PUT(req: NextRequest) {
   if (rl) return rl
 
   let body!: { config: AIConfig }
-  try { body: { config: AIConfig } = await req.json() } catch { return NextResponse.json({ error: 'Invalid request body' }, { status: 400 }) }
+  try { body = await req.json() } catch { return NextResponse.json({ error: 'Invalid request body' }, { status: 400 }) }
   const configError = validateConfig(body.config)
   if (configError) return NextResponse.json({ error: configError }, { status: 400 })
 

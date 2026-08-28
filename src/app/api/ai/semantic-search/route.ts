@@ -16,9 +16,9 @@ export async function POST(req: NextRequest) {
   const rl = rateLimit(`ai-semantic:${user.id}`, 30, 60_000)
   if (rl) return rl
 
-  let _parsed!: Record<string, unknown>
-  try { _parsed = await req.json() } catch { return NextResponse.json({ error: 'Invalid request body' }, { status: 400 }) }
-  const { config, query, types, limit } = _parsed
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let body: any
+  try { body = await req.json() } catch { return NextResponse.json({ error: 'Invalid request body' }, { status: 400 }) }
 
   if (!body.query?.trim()) return NextResponse.json([], { status: 200 })
 
@@ -27,7 +27,7 @@ export async function POST(req: NextRequest) {
 
   const limit      = Math.min(body.limit ?? 10, 20)
   const validTypes = ['note', 'bookmark', 'task'] as const
-  const types      = (body.types ?? [...validTypes]).filter(
+  const types      = ((body.types ?? [...validTypes]) as string[]).filter(
     (t): t is typeof validTypes[number] => validTypes.includes(t as typeof validTypes[number])
   )
 

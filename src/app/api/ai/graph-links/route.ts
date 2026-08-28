@@ -16,9 +16,9 @@ export async function POST(req: NextRequest) {
   const rl = rateLimit(`ai-graph:${user.id}`, 10, 60_000)
   if (rl) return rl
 
-  let _parsed!: Record<string, unknown>
-  try { _parsed = await req.json() } catch { return NextResponse.json({ error: 'Invalid request body' }, { status: 400 }) }
-  const { mode, limit } = _parsed
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let body: any
+  try { body = await req.json() } catch { return NextResponse.json({ error: 'Invalid request body' }, { status: 400 }) }
 
   const limit = Math.min(body.limit ?? 10, 20)
 

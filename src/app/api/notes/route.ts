@@ -65,7 +65,7 @@ export async function POST(req: NextRequest) {
   const rl = rateLimit(`notes-post:${user.id}`, 30, 60_000)
   if (rl) return rl
 
-  let body!
+  let body: any
   try { body = await req.json() } catch { return NextResponse.json({ error: 'Invalid request body' }, { status: 400 }) }
   if (typeof body.title !== 'string') {
     return NextResponse.json({ error: 'Invalid title' }, { status: 400 })

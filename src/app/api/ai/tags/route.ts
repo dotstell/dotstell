@@ -21,9 +21,9 @@ export async function POST(req: NextRequest) {
   const rl = rateLimit(`ai-tags:${user.id}`, 30, 60_000)
   if (rl) return rl
 
-  let _parsed!: Record<string, unknown>
-  try { _parsed = await req.json() } catch { return NextResponse.json({ error: 'Invalid request body' }, { status: 400 }) }
-  const { config, content, title, existingTags } = _parsed
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let body: any
+  try { body = await req.json() } catch { return NextResponse.json({ error: 'Invalid request body' }, { status: 400 }) }
 
   const configError = validateConfig(body.config)
   if (configError) return NextResponse.json({ error: configError }, { status: 400 })

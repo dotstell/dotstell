@@ -22,7 +22,7 @@ export async function POST(req: NextRequest) {
   if (rl) return rl
 
   let body!: { config: AIConfig; content: string; hint?: string }
-  try { body: { config: AIConfig; content: string; hint?: string } = await req.json() } catch { return NextResponse.json({ error: 'Invalid request body' }, { status: 400 }) }
+  try { body = await req.json() } catch { return NextResponse.json({ error: 'Invalid request body' }, { status: 400 }) }
   const configError = validateConfig(body.config)
   if (configError) return NextResponse.json({ error: configError }, { status: 400 })
 

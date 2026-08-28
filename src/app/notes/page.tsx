@@ -166,12 +166,13 @@ export default function NotesPage() {
     if (search) params.set('q', search)
     if (sortMode === 'manual') params.set('sort', 'manual')
     params.set('root_only', 'true')
+    let fetchedNotes: Note[] = []
     try {
-    const res = await fetch(`/api/notes?${params}`)
-    if (!res.ok) { toast.error('Failed to load notes'); return }
-    const data = await res.json()
-    const fetchedNotes: Note[] = Array.isArray(data) ? data : []
-    setNotes(fetchedNotes)
+      const res = await fetch(`/api/notes?${params}`)
+      if (!res.ok) { toast.error('Failed to load notes'); return }
+      const data = await res.json()
+      fetchedNotes = Array.isArray(data) ? data : []
+      setNotes(fetchedNotes)
     } catch { toast.error('Failed to load notes') }
     finally { setLoading(false) }
 
