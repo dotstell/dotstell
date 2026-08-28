@@ -24,6 +24,7 @@ import { AISettingsModal } from '@/components/ai/AISettingsModal'
 import { useNoteTabs } from '@/hooks/useNoteTabs'
 import { notebookTag } from '@/hooks/useNotebooks'
 import { useAISettings } from '@/hooks/useAISettings'
+import { triggerEmbedBackground } from '@/lib/ai/autoEmbed'
 import { useAITitleSuggest, useAITagSuggest, useAISummarize } from '@/hooks/useAI'
 import { MarkdownContent } from '@/components/ui/MarkdownContent'
 import '@/components/editor/editor.css'
@@ -188,6 +189,7 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
           const saved = await res.json()
           setNoteId(saved.id)
           setSaveStatus('saved')
+          triggerEmbedBackground('note', saved.id)
           // Replace URL without a navigation event so the browser history and tab bar
           // reflect the real note ID while the user keeps typing without interruption.
           window.history.replaceState({}, '', `/notes/${saved.id}`)

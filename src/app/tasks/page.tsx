@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { Plus, Trash2, Calendar } from 'lucide-react'
 import { toast } from 'sonner'
 import { Task, TaskStatus, TaskPriority } from '@/types'
+import { triggerEmbedBackground } from '@/lib/ai/autoEmbed'
 import { AppLayout } from '@/components/layout/AppLayout'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { Button } from '@/components/ui/button'
@@ -79,6 +80,8 @@ export default function TasksPage() {
         }
       )
       if (!res.ok) throw new Error()
+      const saved = await res.json()
+      if (saved?.id) triggerEmbedBackground('task', saved.id)
       toast.success(isEdit ? 'Task updated' : 'Task created')
       setDialogOpen(false)
       fetchTasks()

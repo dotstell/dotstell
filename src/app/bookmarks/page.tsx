@@ -5,6 +5,7 @@ import { toast } from 'sonner'
 import { Bookmark } from '@/types'
 import { AIConfig } from '@/lib/ai/types'
 import { useAISettings } from '@/hooks/useAISettings'
+import { triggerEmbedBackground } from '@/lib/ai/autoEmbed'
 import { useAISummarize } from '@/hooks/useAI'
 import { AppLayout } from '@/components/layout/AppLayout'
 import { PageHeader } from '@/components/layout/PageHeader'
@@ -170,6 +171,8 @@ export default function BookmarksPage() {
     })
 
     if (res.ok) {
+      const saved = await res.json()
+      if (saved?.id) triggerEmbedBackground('bookmark', saved.id)
       toast.success('Bookmark saved')
       setCaptureUrl('')
       fetchBookmarks()
@@ -211,8 +214,12 @@ export default function BookmarksPage() {
         tags: [],
       }),
     })
-    if (res.ok) { toast.success('Link saved!'); fetchBookmarks() }
-    else toast.error('Failed to save')
+    if (res.ok) {
+      const saved = await res.json()
+      if (saved?.id) triggerEmbedBackground('bookmark', saved.id)
+      toast.success('Link saved!')
+      fetchBookmarks()
+    } else toast.error('Failed to save')
     setCaptureFetching(false)
   }
 
