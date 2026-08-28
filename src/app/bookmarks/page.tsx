@@ -5,7 +5,7 @@ import { toast } from 'sonner'
 import { Bookmark } from '@/types'
 import { AIConfig } from '@/lib/ai/types'
 import { useAISettings } from '@/hooks/useAISettings'
-import { triggerEmbedBackground } from '@/lib/ai/autoEmbed'
+import { triggerEmbedBackground, triggerBulkEmbedBackground } from '@/lib/ai/autoEmbed'
 import { useAISummarize } from '@/hooks/useAI'
 import { AppLayout } from '@/components/layout/AppLayout'
 import { PageHeader } from '@/components/layout/PageHeader'
@@ -237,6 +237,8 @@ export default function BookmarksPage() {
       if (data.imported > 0) {
         toast.success(`Imported ${data.imported} new bookmark${data.imported !== 1 ? 's' : ''}`)
         fetchBookmarks()
+        // Bulk re-index all un-embedded bookmarks so imported items are immediately searchable.
+        if (aiLoaded && aiConfig.embeddingProvider) triggerBulkEmbedBackground(aiConfig)
       } else if (data.duplicates > 0) {
         toast.info(`All ${data.duplicates} bookmarks already exist`)
       }
