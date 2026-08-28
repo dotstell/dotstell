@@ -135,9 +135,9 @@ export function AIChatPanel({ config, noteId, noteTitle, noteContent, onClose }:
           const [{ data: recentNotes }, { data: recentTasks }] = await Promise.all([
             supabase.from('notes').select('id, title, content, updated_at')
               .eq('user_id', user.id).is('deleted_at', null)
-              .order('updated_at', { ascending: false }).limit(5),
+              .order('updated_at', { ascending: false }).limit(8),
             supabase.from('tasks').select('title, description, status, priority, due_date, updated_at')
-              .eq('user_id', user.id).order('updated_at', { ascending: false }).limit(5),
+              .eq('user_id', user.id).order('updated_at', { ascending: false }).limit(8),
           ])
           const parts: string[] = []
           if (recentNotes?.length) {
@@ -159,7 +159,7 @@ export function AIChatPanel({ config, noteId, noteTitle, noteContent, onClose }:
           const { data: recentNotes } = await supabase
             .from('notes').select('id, title, content, updated_at')
             .eq('user_id', user.id).is('deleted_at', null)
-            .order('updated_at', { ascending: false }).limit(5)
+            .order('updated_at', { ascending: false }).limit(8)
           // noteId exclusion only applies in "This note" mode where the note is already injected
           const freshNotes = (recentNotes ?? []).filter(n => !ragNoteIds.has(n.id))
           if (freshNotes.length) {
@@ -172,7 +172,7 @@ export function AIChatPanel({ config, noteId, noteTitle, noteContent, onClose }:
           if (!ragHasTasks) {
             const { data: recentTasks } = await supabase
               .from('tasks').select('title, description, status, priority, due_date, updated_at')
-              .eq('user_id', user.id).order('updated_at', { ascending: false }).limit(5)
+              .eq('user_id', user.id).order('updated_at', { ascending: false }).limit(8)
             if (recentTasks?.length) {
               const taskContext = recentTasks.map(t => {
                 const meta = [`Status: ${t.status}`, `Priority: ${t.priority}`]

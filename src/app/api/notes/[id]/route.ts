@@ -29,6 +29,8 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   const allowed: Record<string, unknown> = {}
   const fields = ['title','content','type','tags','person_id','parent_id','pinned','sort_order','checklist_items','color'] as const
   for (const f of fields) if (f in body) allowed[f] = body[f]
+  // Always stamp updated_at on content/title edits so recency-based queries stay accurate
+  if ('content' in body || 'title' in body) allowed.updated_at = new Date().toISOString()
 
   if ('color' in allowed) {
     const c = allowed.color
