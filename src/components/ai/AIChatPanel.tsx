@@ -162,7 +162,7 @@ export function AIChatPanel({ config, noteId, noteTitle, noteContent, onClose }:
         // On the live app Vercel can't reach local Ollama — stream directly through the Local Agent.
         // Inject context as a system message the same way the server route does.
         const ollamaMessages: AIMessage[] = context
-          ? [{ role: 'system', content: `Use the following context from the user's knowledge base to answer their question. Cite specific notes, bookmarks, or tasks by name when relevant.\n\nContext:\n${context}` }, ...history]
+          ? [{ role: 'system', content: `You are a helpful assistant with access to the user's personal knowledge base. Answer using the provided context.\n\nFormatting rules:\n- Use markdown: **bold** for labels, numbered or bullet lists for multiple items\n- For tasks: show title in bold, then Status, Priority, Due Date as sub-bullets\n- Write field values in title case (e.g. "In Progress" not "in_progress", "High" not "high")\n- Be concise and structured\n\nCite specific notes, bookmarks, or tasks by name when relevant.\n\nContext:\n${context}` }, ...history]
           : history
         finalText = await streamDirect(() => streamOllamaBrowser(config, ollamaMessages))
       } else {

@@ -12,6 +12,7 @@ import {
   PROVIDERS_WITHOUT_EMBEDDINGS,
 } from '@/lib/ai/types'
 import { useAISettings } from '@/hooks/useAISettings'
+import { triggerBulkEmbedBackground } from '@/lib/ai/autoEmbed'
 import { fetchOllamaModelsBrowser, completeOllamaBrowser, checkLocalAgent, LOCAL_AGENT_BASE, isLocalHostname } from '@/lib/ai/ollama-browser'
 import { createClient as createSupabaseBrowserClient } from '@/lib/supabase/client'
 
@@ -758,7 +759,13 @@ export function AISettingsModal({ onClose }: AISettingsModalProps) {
             type="button"
             disabled={saved}
             onClick={() => {
+              const prevEmbeddingProvider = config.embeddingProvider
               saveConfig(draft)
+              // If the embedding provider changed, silently re-index all un-embedded items
+              // so items created under the old provider are picked up automatically.
+              if (draft.embeddingProvider !== prevEmbeddingProvider) {
+                triggerBulkEmbedBackground(draft)
+              }
               setSaved(true)
               setTimeout(onClose, 900)
             }}

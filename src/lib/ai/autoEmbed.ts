@@ -1,4 +1,5 @@
 'use client'
+import { AIConfig } from '@/lib/ai/types'
 
 const STORAGE_KEY = 'dotstell-ai-config'
 
@@ -23,4 +24,18 @@ export function triggerEmbedBackground(
       body: JSON.stringify({ config, entityType, entityId }),
     }).catch(() => {})
   } catch {}
+}
+
+/**
+ * Silently re-index ALL un-embedded items after a provider switch.
+ * Call this when the user saves new AI settings with a different embedding
+ * provider so items created under the old provider get picked up automatically.
+ */
+export function triggerBulkEmbedBackground(config: AIConfig): void {
+  if (!config.embeddingProvider || config.embeddingProvider === 'ollama') return
+  fetch('/api/ai/embed', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ config }),
+  }).catch(() => {})
 }
