@@ -49,13 +49,17 @@
 
   <line x1="640" y1="205" x2="1110" y2="205" stroke="#7c6aff" stroke-width="1.2" stroke-opacity="0.3"/>
 
-  <text x="642" y="240"
+  <text x="642" y="236"
         font-family="system-ui,-apple-system,BlinkMacSystemFont,sans-serif"
-        font-size="20" font-weight="400" fill="#a594ff">Your knowledge is scattered. Dotstell connects it.</text>
+        font-size="18" font-weight="400" fill="#a594ff">Your knowledge is scattered. Dotstell connects it.</text>
 
-  <text x="642" y="270"
+  <text x="642" y="262"
         font-family="system-ui,-apple-system,BlinkMacSystemFont,sans-serif"
-        font-size="15" font-weight="400" fill="#6b6b88">Notes · People · Tasks · Bookmarks · Graph · AI Chat · AI Write · Local Ollama</text>
+        font-size="13" font-weight="600" fill="#7c6aff" letter-spacing="1.5">Capture · Connect · Ask</text>
+
+  <text x="642" y="286"
+        font-family="system-ui,-apple-system,BlinkMacSystemFont,sans-serif"
+        font-size="13" font-weight="400" fill="#6b6b88">Notes · People · Tasks · Bookmarks · Graph · AI Chat · AI Write · Local Ollama</text>
 
   <text x="642" y="355"
         font-family="system-ui,-apple-system,sans-serif"
