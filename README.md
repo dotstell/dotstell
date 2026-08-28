@@ -181,31 +181,55 @@ API keys are stored only in your browser's `localStorage`. They are never sent t
 
 The hosted app at `dotstell.app` runs over `https://`. Modern browsers block `https://` pages from fetching `http://localhost` directly (Private Network Access spec). To use Ollama with the live app, run the **Dotstell Local AI Agent** — a tiny zero-dependency Node.js proxy that adds the required browser security headers.
 
-**You do not need to clone this repo.** The agent is available as a standalone npm package:
+**Follow these steps in order:**
+
+**Step 1 — Install and start Ollama**
+
+Download Ollama from [ollama.com](https://ollama.com) if you haven't already, then make sure it is running:
+
+- **Windows:** Ollama usually auto-starts as a background service. Open `http://127.0.0.1:11434` in your browser — if it shows "Ollama is running" you're ready.
+- **macOS / Linux:** Run `ollama serve` if it isn't already running in the background.
+
+> **Windows tip:** If `ollama serve` returns `bind: Only one usage of each socket address`, Ollama is already running — skip this step entirely.
+
+**Step 2 — Pull a model** *(first time only)*
 
 ```bash
-# Run without installing (Node.js 18+ required)
+ollama pull llama3.2
+```
+
+Any Ollama-compatible model works. `llama3.2` is a good starting point.
+
+**Step 3 — Start the Dotstell Local AI Agent**
+
+You do not need to clone this repo. Run directly via npx (Node.js 18+ required):
+
+```bash
 npx @dotstell/agent
 ```
 
-Or download the single file directly if you prefer not to use npm:
+Keep this terminal window open while you use Ollama in dotstell. The agent runs on `http://127.0.0.1:12345` and is loopback-only — not reachable from outside your machine.
+
+**Step 4 — Open dotstell.app → AI Settings → choose Ollama (Local)**
+
+The settings modal shows a green **"Local Agent is running"** badge when the agent is detected. All AI features — Chat, Writing Assistant, Inline Assist, Summaries, Person Intelligence, AI Digest — route through the agent automatically.
+
+---
+
+**Alternative ways to run the agent:**
 
 ```bash
+# Download the single file directly (no npm):
 curl -o dotstell-agent.mjs https://raw.githubusercontent.com/dotstell/dotstell/main/packages/agent/index.mjs
 node dotstell-agent.mjs
+
+# If you already have the repo cloned:
+node packages/agent/index.mjs
 ```
 
-Make sure Ollama is running first (on Windows it usually auto-starts — check the system tray). If it's not: `ollama serve`
+See [`packages/agent/README.md`](packages/agent/README.md) for environment variables, troubleshooting, and security details.
 
-> **Windows tip:** If you see `bind: Only one usage of each socket address` when running `ollama serve`, Ollama is already running — skip that step and just start the agent.
-
-The agent runs on `http://127.0.0.1:12345`, is loopback-only (not reachable from outside your machine), and proxies all AI requests from the browser to your local Ollama. The settings modal shows a green badge when it detects the agent.
-
-If you already have the repo cloned, you can also run it directly: `node packages/agent/index.mjs`
-
-See [`packages/agent/README.md`](packages/agent/README.md) for full setup, environment variables, and security details.
-
-**You do not need the agent when running dotstell locally** (`localhost:3000`). PNA restrictions only apply when accessing the live `https://dotstell.app`.
+> **You do not need the agent when running dotstell locally** (`localhost:3000`). PNA restrictions only apply when accessing the live `https://dotstell.app`.
 
 ---
 

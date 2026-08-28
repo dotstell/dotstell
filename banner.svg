@@ -55,7 +55,7 @@
 
   <text x="642" y="270"
         font-family="system-ui,-apple-system,BlinkMacSystemFont,sans-serif"
-        font-size="15" font-weight="400" fill="#6b6b88">Notes · People · Tasks · Bookmarks · Wikilinks · Knowledge Graph · Desktop App</text>
+        font-size="15" font-weight="400" fill="#6b6b88">Notes · People · Tasks · Bookmarks · Graph · AI Chat · AI Write · Local Ollama</text>
 
   <text x="642" y="355"
         font-family="system-ui,-apple-system,sans-serif"

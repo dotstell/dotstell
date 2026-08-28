@@ -68,13 +68,39 @@ Verify it is running by visiting [http://127.0.0.1:12345/health](http://127.0.0.
 
 ## Usage with dotstell.app
 
-1. Make sure Ollama is running. On Windows it usually auto-starts — check `http://127.0.0.1:11434` in a browser. If it shows "Ollama is running" you can skip `ollama serve`. If not: `ollama serve`
-2. Pull a model if you haven't: `ollama pull llama3.2` (or any model you want to use)
-3. Start the agent: `npx @dotstell/agent` (or `node dotstell-agent.mjs` / `node packages/agent/index.mjs`)
-4. Open [dotstell.app](https://dotstell.app) → AI Settings → choose **Ollama (Local)**
-5. The settings modal shows a green "Local Agent is running" badge when it detects the agent on port 12345
+Follow these steps in order — skipping step 1 or 2 is the most common reason the agent shows a warning instead of a green badge.
 
-The app checks for the agent automatically whenever Ollama is selected as the provider. All AI features — Chat, Assist, Summarize, Person Intelligence, AI Digest, embeddings — route through the agent when on the live app.
+**Step 1 — Make sure Ollama is running**
+
+Open `http://127.0.0.1:11434` in your browser. If it shows "Ollama is running", skip to Step 2.
+
+If Ollama is not running:
+
+```bash
+ollama serve
+```
+
+> **Windows tip:** If you see `bind: Only one usage of each socket address`, Ollama is already running in the system tray — skip `ollama serve`.
+
+**Step 2 — Pull a model** *(first time only)*
+
+```bash
+ollama pull llama3.2
+```
+
+Any Ollama-compatible model works. Check [ollama.com/library](https://ollama.com/library) for the full list.
+
+**Step 3 — Start the agent**
+
+```bash
+npx @dotstell/agent
+```
+
+Keep this terminal window open while you use dotstell. You should see a green `✓ Ollama is running` line in the output — if you see yellow `⚠ Ollama not detected` instead, go back to Step 1.
+
+**Step 4 — Open dotstell.app → AI Settings → Ollama (Local)**
+
+The settings modal shows a green **"Local Agent is running"** badge when it detects the agent on port 12345. All AI features — Chat, Writing Assistant, Inline Assist, Summarize, Person Intelligence, AI Digest, embeddings — route through the agent automatically.
 
 ---
 
