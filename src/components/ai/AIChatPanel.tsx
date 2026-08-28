@@ -105,32 +105,50 @@ export function AIChatPanel({ config, noteId, noteTitle, noteContent, onClose }:
       } catch { /* RAG is best-effort — proceed without it */ }
     }
 
-    // In "All knowledge" mode, if RAG returned nothing (no embeddings yet, or a meta-question
-    // like "summarize all my notes"), fall back to the 5 most recently updated notes so the
-    // model always has some grounding rather than asking the user to paste their notes.
-    if (mode === 'global' && !context) {
+    // In "All knowledge" mode, always ensure tasks are in context. RAG may have found notes
+    // (which have embeddings) while tasks have none yet — so tasks would be silently skipped
+    // unless we supplement with a direct DB fetch.
+    if (mode === 'global') {
       try {
         const supabase = createSupabaseBrowserClient()
-        const [{ data: recentNotes }, { data: recentTasks }] = await Promise.all([
-          supabase.from('notes').select('title, content, updated_at')
-            .is('deleted_at', null).order('updated_at', { ascending: false }).limit(3),
-          supabase.from('tasks').select('title, description, status, priority, due_date, updated_at')
-            .order('updated_at', { ascending: false }).limit(3),
-        ])
-        const parts: string[] = []
-        if (recentNotes?.length) {
-          parts.push(...recentNotes.map(n =>
-            `## Note: ${n.title || 'Untitled'}\n${n.content.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 600)}`
-          ))
+
+        if (!context) {
+          // RAG returned nothing at all — full fallback: recent notes + tasks
+          const [{ data: recentNotes }, { data: recentTasks }] = await Promise.all([
+            supabase.from('notes').select('title, content, updated_at')
+              .is('deleted_at', null).order('updated_at', { ascending: false }).limit(3),
+            supabase.from('tasks').select('title, description, status, priority, due_date, updated_at')
+              .order('updated_at', { ascending: false }).limit(5),
+          ])
+          const parts: string[] = []
+          if (recentNotes?.length) {
+            parts.push(...recentNotes.map(n =>
+              `## Note: ${n.title || 'Untitled'}\n${n.content.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 600)}`
+            ))
+          }
+          if (recentTasks?.length) {
+            parts.push(...recentTasks.map(t => {
+              const meta = [`Status: ${t.status}`, `Priority: ${t.priority}`]
+              if (t.due_date) meta.push(`Due: ${t.due_date.split('T')[0]}`)
+              return `### Task: ${t.title}${t.description ? `\n${t.description.slice(0, 300)}` : ''}\n${meta.join(' · ')}`
+            }))
+          }
+          if (parts.length) context = parts.join('\n\n')
+        } else if (!context.includes('### Task')) {
+          // RAG found notes/bookmarks but no tasks (task embeddings not built yet) —
+          // append all tasks so the model always has them in context.
+          const { data: recentTasks } = await supabase
+            .from('tasks').select('title, description, status, priority, due_date, updated_at')
+            .order('updated_at', { ascending: false }).limit(5)
+          if (recentTasks?.length) {
+            const taskContext = recentTasks.map(t => {
+              const meta = [`Status: ${t.status}`, `Priority: ${t.priority}`]
+              if (t.due_date) meta.push(`Due: ${t.due_date.split('T')[0]}`)
+              return `### Task: ${t.title}${t.description ? `\n${t.description.slice(0, 300)}` : ''}\n${meta.join(' · ')}`
+            }).join('\n\n')
+            context = `${context}\n\n${taskContext}`
+          }
         }
-        if (recentTasks?.length) {
-          parts.push(...recentTasks.map(t => {
-            const meta = [`Status: ${t.status}`, `Priority: ${t.priority}`]
-            if (t.due_date) meta.push(`Due: ${t.due_date.split('T')[0]}`)
-            return `### Task: ${t.title}${t.description ? `\n${t.description.slice(0, 300)}` : ''}\n${meta.join(' · ')}`
-          }))
-        }
-        if (parts.length) context = parts.join('\n\n')
       } catch { /* fallback is best-effort */ }
     }
 
