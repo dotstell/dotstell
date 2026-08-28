@@ -4,6 +4,30 @@ All notable changes to Dotstell are documented here.
 
 ---
 
+## [v0.5.1] — Aug 2026
+
+### 🧠 Tasks in AI Chat & Semantic Search
+
+- **Tasks now have vector embeddings** — every task is indexed alongside notes and bookmarks so AI Chat, semantic search, and the Related sidebar all understand your tasks
+- **AI Chat RAG context** — tasks are retrieved and injected as context before every chat reply; prompts like "What are my high-priority tasks?" and "What's overdue?" now give accurate, grounded answers
+- **Semantic search across everything** — search by meaning, not just keywords; finds relevant notes, tasks, and bookmarks even when exact words don't match
+- **Related sidebar** — now surfaces semantically similar tasks alongside notes and bookmarks as you read
+- **Browser-side embedding** (Local Agent / Ollama) — tasks are included when building the local search index; dimension validation and `user_id` guard added for defence-in-depth
+
+### 💬 AI Chat improvements
+
+- **Five global prompts** added: "What have I been working on?", "What are my high-priority tasks?", "What's overdue or needs attention?", "Summarise recent activity", "Find connections between my notes"
+- Recent tasks now fetched alongside recent notes in the global fallback context
+- Welcome message updated to reflect tasks and bookmarks in context
+
+### 🖥️ Desktop builds
+
+- **macOS Intel** build fixed — cross-compiled from Apple Silicon runner; the `macos-13` runner was stalling indefinitely on Rust compilation
+- All four platforms now build reliably: macOS Apple Silicon, macOS Intel, Windows, Linux
+- Added `timeout-minutes: 60` to all build jobs as a safety net
+
+---
+
 ## [v0.5.0] — Aug 2026
 
 ### ✍️ AI Writing Assistant
