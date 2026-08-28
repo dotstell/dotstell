@@ -381,7 +381,7 @@ export function AIChatPanel({ config, noteId, noteTitle, noteContent, onClose }:
 }
 
 const NOTE_PROMPTS   = ['Summarize this note', 'What are the key tasks?', 'Explain the main concepts']
-const GLOBAL_PROMPTS = ['What have I been working on?', 'What are my high-priority tasks?', 'Find connections between my notes']
+const GLOBAL_PROMPTS = ['What have I been working on?', 'What are my high-priority tasks?', "What's overdue or needs attention?", 'Summarize recent activity', 'Find connections between my notes']
 
 function WelcomeMessage({ mode, noteTitle, onPrompt }: { mode: ChatMode; noteTitle?: string; onPrompt: (p: string) => void }) {
   const prompts = mode === 'note' ? NOTE_PROMPTS : GLOBAL_PROMPTS
