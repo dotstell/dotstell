@@ -431,8 +431,13 @@ export function RichTextEditor({
     }
   }, [content, editor])
 
-  // Notify parent once the editor is ready — used for ToC scroll-to-heading
-  useEffect(() => { if (editor) onEditorReadyRef.current?.(editor) }, [editor])
+  // Notify parent once the editor is ready — used for ToC scroll-to-heading and initial word count
+  useEffect(() => {
+    if (!editor) return
+    onEditorReadyRef.current?.(editor)
+    // Fire onTextChange with initial content so word/char counts are populated without a keystroke
+    onTextChangeRef.current?.(editor.getText())
+  }, [editor])
 
   const filteredCommands = SLASH_COMMANDS.filter(c =>
     c.label.toLowerCase().includes(slashFilter.toLowerCase())
