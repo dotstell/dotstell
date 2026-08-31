@@ -220,6 +220,24 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
     }
   }, [syncWikiLinks, openTab, updateTitle])
 
+  // F (when not typing) → toggle focus mode; Escape → exit focus mode
+  useEffect(() => {
+    function onFocusKey(e: KeyboardEvent) {
+      if (e.key === 'Escape' && focusMode) {
+        e.stopPropagation()
+        setFocusMode(false)
+        return
+      }
+      if ((e.key === 'f' || e.key === 'F') && !e.metaKey && !e.ctrlKey && !e.altKey) {
+        const el = document.activeElement
+        const editable = el && ((el as HTMLElement).isContentEditable || el.tagName === 'INPUT' || el.tagName === 'TEXTAREA')
+        if (!editable) setFocusMode(f => !f)
+      }
+    }
+    window.addEventListener('keydown', onFocusKey, true)
+    return () => window.removeEventListener('keydown', onFocusKey, true)
+  }, [focusMode])
+
   // Ctrl+N → new note
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {

@@ -474,8 +474,7 @@ export default function HelpPage() {
                   { keys: ['G', 'H'],      desc: 'Go to Help' },
                 ]},
                 { category: 'Note editor', rows: [
-                  { keys: ['F'],                   desc: 'Enter focus / distraction-free mode (when not typing)' },
-                  { keys: ['Esc'],                 desc: 'Exit focus mode' },
+                  { keys: ['F'],                   desc: 'Toggle focus / distraction-free mode (when not typing in the editor)' },
                   { keys: ['Ctrl', 'Space'],       desc: 'AI Inline Assist — rewrite / expand / continue writing' },
                   { keys: ['Ctrl', 'Shift', ','],  desc: 'Open AI Settings' },
                   { keys: ['/'],                   desc: 'Open slash command menu' },
