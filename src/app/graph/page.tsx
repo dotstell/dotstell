@@ -327,7 +327,7 @@ function GraphPageInner() {
 
   return (
     <AppLayout>
-      <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', height: isMobile ? 'calc(100dvh - 56px - env(safe-area-inset-bottom))' : '100dvh' }}>
 
         {/* Header */}
         <div style={{ padding: '20px 24px 0', flexShrink: 0 }}>

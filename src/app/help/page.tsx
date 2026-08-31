@@ -701,7 +701,7 @@ export default function HelpPage() {
   /* ── Mobile: fixed-height flex column — pill nav always visible, content scrolls ── */
   if (isMobile) return (
     <AppLayout>
-      <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', height: 'calc(100dvh - 56px - env(safe-area-inset-bottom))', overflow: 'hidden' }}>
         {/* Pill nav — always visible, never scrolls away */}
         <div style={{ flexShrink: 0, backgroundColor: 'var(--background)' }}>
           {pillNav}
@@ -717,7 +717,7 @@ export default function HelpPage() {
   /* ── Desktop: two-panel fixed-height layout ── */
   return (
     <AppLayout>
-      <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', height: '100dvh', overflow: 'hidden' }}>
         <div style={{ padding: '24px 32px 16px', flexShrink: 0, borderBottom: '1px solid var(--border)' }}>
           <h1 style={{ fontSize: 20, fontWeight: 700, color: 'var(--foreground)', margin: 0 }}>Help &amp; features</h1>
         </div>

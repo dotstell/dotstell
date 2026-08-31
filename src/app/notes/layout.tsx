@@ -46,7 +46,7 @@ export default function NotesLayout({ children }: { children: React.ReactNode })
     <AppLayout>
       <div style={{
         display: 'flex',
-        height: '100%',
+        height: isMobile ? 'calc(100dvh - 56px - env(safe-area-inset-bottom))' : '100dvh',
         overflow: 'hidden',
         backgroundColor: 'var(--background)',
         position: 'relative',
