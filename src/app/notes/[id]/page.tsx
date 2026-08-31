@@ -6,7 +6,7 @@ import {
   X, Maximize2, Minimize2, Plus, FileText,
   ChevronRight, ArrowLeft, LayoutTemplate, Download,
   List, ChevronDown, Sparkles, Settings2,
-  AlignLeft, Loader2, RefreshCw, PenLine, Check, CheckSquare,
+  AlignLeft, Loader2, RefreshCw, PenLine, Check, CheckSquare, PanelRight,
 } from 'lucide-react'
 import type { Editor } from '@tiptap/react'
 import Link from 'next/link'
@@ -48,6 +48,7 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
   const [saveStatus, setSaveStatus]   = useState<SaveStatus>(null)
   const [tagInput, setTagInput]       = useState('')
   const [focusMode, setFocusMode]     = useState(false)
+  const [mobilePanel, setMobilePanel] = useState(false)
   const [showTemplates, setShowTemplates] = useState(isNew)
   const [noteId, setNoteId]           = useState<string | null>(isNew ? null : id)
   const [subNotes, setSubNotes]       = useState<Note[]>([])
@@ -527,6 +528,24 @@ ${sanitizeHtmlForPrint(note.content ?? '')}
           >
             {focusMode ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
           </button>
+
+          {/* Panel button — mobile only: opens outline/links/sub-notes as a bottom sheet */}
+          {isMobile && noteId && (
+            <button
+              type="button"
+              title="Outline & links"
+              onClick={() => setMobilePanel(p => !p)}
+              style={{
+                display: 'flex', alignItems: 'center',
+                padding: 6, borderRadius: 7,
+                border: '1px solid var(--border)', background: mobilePanel ? 'var(--accent)' : 'none',
+                color: mobilePanel ? 'var(--foreground)' : 'var(--muted-foreground)', cursor: 'pointer',
+                transition: 'all 0.12s',
+              }}
+            >
+              <PanelRight size={14} />
+            </button>
+          )}
 
           {/* AI Chat — only shown when AI is configured; discovery handled by the global AIStatusBadge */}
           {aiConfigured && (
@@ -1158,6 +1177,45 @@ ${sanitizeHtmlForPrint(note.content ?? '')}
           </div>
         )}
       </div>
+
+      {/* ── Mobile panel bottom sheet — outline, links, sub-notes ── */}
+      {isMobile && mobilePanel && noteId && (
+        <>
+          <div
+            onClick={() => setMobilePanel(false)}
+            style={{ position: 'fixed', inset: 0, zIndex: 149, backgroundColor: 'rgba(0,0,0,0.4)' }}
+          />
+          <div style={{
+            position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 150,
+            backgroundColor: 'var(--card)',
+            borderRadius: '14px 14px 0 0',
+            borderTop: '1px solid var(--border)',
+            maxHeight: '65vh', overflowY: 'auto',
+            padding: '12px 16px 32px',
+            display: 'flex', flexDirection: 'column', gap: 20,
+          }}>
+            {/* Drag handle */}
+            <div style={{ width: 40, height: 4, borderRadius: 2, backgroundColor: 'var(--border)', margin: '0 auto 4px' }} />
+            {/* Reuse the right panel content inline */}
+            {note.type === 'checklist' ? null : headings.length > 0 && (
+              <div>
+                <p style={{ margin: '0 0 8px', fontSize: 11, fontWeight: 600, color: 'var(--muted-foreground)', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'flex', alignItems: 'center', gap: 5 }}>
+                  <List size={12} /> Outline
+                </p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  {headings.map((h, i) => (
+                    <button key={i} type="button" onClick={() => { scrollToHeading(h.text); setMobilePanel(false) }}
+                      style={{ textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer', fontSize: 12, color: 'var(--foreground)', padding: '3px 0', paddingLeft: (h.level - 1) * 12, opacity: 0.85 }}>
+                      {h.text}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+            <LinkPanel sourceId={noteId} sourceType="note" />
+          </div>
+        </>
+      )}
 
       {/* ── Status bar ── */}
       {noteId && !focusMode && !loading && (

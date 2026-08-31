@@ -406,7 +406,7 @@ function GraphPageInner() {
           </div>
 
           {/* Hint bar */}
-          <div style={{ display: 'flex', gap: 16, marginBottom: 12 }}>
+          <div style={{ display: 'flex', gap: 16, marginBottom: 12, flexWrap: 'wrap' }}>
             {[
               { key: 'Drag handle → node', desc: 'Create a link' },
               { key: 'Click node', desc: 'Inspect & navigate' },

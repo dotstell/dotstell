@@ -146,7 +146,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         overflowX: 'hidden',
         backgroundColor: 'var(--background)',
         color: 'var(--foreground)',
-        paddingBottom: isMobile ? 56 : undefined,
+        paddingBottom: isMobile ? 'calc(56px + env(safe-area-inset-bottom))' : undefined,
       }}>
         {children}
       </main>

@@ -16,7 +16,8 @@ export function BottomNav() {
 
   return (
     <nav style={{
-      position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 60, height: 56,
+      position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 60,
+      minHeight: 56, paddingBottom: 'env(safe-area-inset-bottom)',
       backgroundColor: 'var(--card)',
       borderTop: '1px solid var(--border)',
       display: 'flex', alignItems: 'stretch',
