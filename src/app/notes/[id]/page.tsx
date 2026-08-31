@@ -1263,7 +1263,8 @@ ${sanitizeHtmlForPrint(note.content ?? '')}
             borderRadius: '14px 14px 0 0',
             borderTop: '1px solid var(--border)',
             maxHeight: '65vh', overflowY: 'auto',
-            padding: '12px 16px 32px',
+            padding: '12px 16px',
+            paddingBottom: 'calc(56px + env(safe-area-inset-bottom))',
             display: 'flex', flexDirection: 'column', gap: 20,
           }}>
             {/* Drag handle */}
@@ -1454,7 +1455,7 @@ ${sanitizeHtmlForPrint(note.content ?? '')}
   if (focusMode) {
     return (
       <>
-        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'var(--background)', zIndex: 100, display: 'flex', flexDirection: 'column' }}>
+        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'var(--background)', zIndex: 100, display: 'flex', flexDirection: 'column', paddingBottom: isMobile ? 'calc(56px + env(safe-area-inset-bottom))' : 0 }}>
           {editorContent}
         </div>
         {aiChatOverlay}

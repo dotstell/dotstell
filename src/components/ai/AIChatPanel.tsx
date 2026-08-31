@@ -250,7 +250,7 @@ export function AIChatPanel({ config, noteId, noteTitle, noteContent, onClose }:
   return (
     <div style={{
       position:        'fixed', right: 0, top: 0, bottom: 0, zIndex: 200,
-      width:           380, display: 'flex', flexDirection: 'column',
+      width: '100%', maxWidth: 380, display: 'flex', flexDirection: 'column',
       backgroundColor: 'var(--card)', borderLeft: '1px solid var(--border)',
       boxShadow:       '-8px 0 32px rgba(0,0,0,0.3)',
     }}>
@@ -417,7 +417,7 @@ export function AIChatPanel({ config, noteId, noteTitle, noteContent, onClose }:
       </div>}
 
       {/* Input — chat tab only */}
-      {activeTab === 'chat' && <div style={{ padding: '8px 12px 12px', borderTop: '1px solid var(--border)', display: 'flex', gap: 6, flexShrink: 0 }}>
+      {activeTab === 'chat' && <div style={{ padding: '8px 12px 12px', paddingBottom: 'calc(12px + env(safe-area-inset-bottom))', borderTop: '1px solid var(--border)', display: 'flex', gap: 6, flexShrink: 0 }}>
         <textarea
           ref={inputRef}
           data-chat-input

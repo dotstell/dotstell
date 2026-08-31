@@ -621,6 +621,7 @@ export default function NotesPage() {
                 backgroundColor: 'var(--card)', border: '1px solid var(--border)',
                 borderRadius: 10, padding: 4, minWidth: 160,
                 boxShadow: '0 8px 28px rgba(0,0,0,0.5)',
+                maxHeight: 'min(260px, 40vh)', overflowY: 'auto',
               }}>
                 {SORT_OPTIONS.map(opt => (
                   <button key={opt.value} type="button" onClick={() => { setSortMode(opt.value); setSortOpen(false) }} style={{

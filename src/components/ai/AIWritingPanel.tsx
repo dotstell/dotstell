@@ -89,7 +89,7 @@ export function AIWritingPanel({
   return (
     <div style={{
       position: 'fixed', right: 0, top: 0, bottom: 0, zIndex: 200,
-      width: 380, backgroundColor: 'var(--card)',
+      width: '100%', maxWidth: 380, backgroundColor: 'var(--card)',
       borderLeft: '1px solid var(--border)',
       boxShadow: '-12px 0 40px rgba(0,0,0,0.18)',
       display: 'flex', flexDirection: 'column',

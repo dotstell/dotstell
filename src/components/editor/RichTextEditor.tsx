@@ -433,7 +433,10 @@ export function RichTextEditor({
       if (!sel || sel.rangeCount === 0) { setAssistBubble(null); return }
       const rect = sel.getRangeAt(0).getBoundingClientRect()
       if (!rect.width) { setAssistBubble(null); return }
-      setAssistBubble({ x: rect.left + rect.width / 2, y: rect.top - 8 })
+      const BUBBLE_HALF = 60
+      const rawX = rect.left + rect.width / 2
+      const clampedX = Math.max(BUBBLE_HALF, Math.min(rawX, window.innerWidth - BUBBLE_HALF))
+      setAssistBubble({ x: clampedX, y: rect.top - 8 })
     },
   })
 

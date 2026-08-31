@@ -459,7 +459,7 @@ function GraphPageInner() {
           </div>
 
           {/* AI Graph Intelligence panel */}
-          {aiPanelOpen && aiConfig.provider && (
+          {aiPanelOpen && !selected && aiConfig.provider && (
             <div style={isMobile ? {
               position: 'fixed', bottom: 0, left: 0, right: 0, height: '50vh', zIndex: 50,
               backgroundColor: 'var(--card)',
@@ -484,7 +484,7 @@ function GraphPageInner() {
                   <X size={14} />
                 </button>
               </div>
-              <div style={{ flex: 1, overflowY: 'auto', padding: 14 }}>
+              <div style={{ flex: 1, overflowY: 'auto', padding: 14, paddingBottom: isMobile ? 'calc(56px + env(safe-area-inset-bottom))' : 14 }}>
                 <AIGraphIntelPanel
                   config={aiConfig}
                   onOpenNote={id => router.push(`/notes/${id}`)}
@@ -551,7 +551,7 @@ function GraphPageInner() {
               </div>
 
               {/* Connections */}
-              <div style={{ flex: 1, overflowY: 'auto', padding: '12px 16px' }}>
+              <div style={{ flex: 1, overflowY: 'auto', padding: '12px 16px', paddingBottom: isMobile ? 'calc(56px + env(safe-area-inset-bottom))' : 12 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 }}>
                   <Link2 size={13} color="var(--muted-foreground)" />
                   <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--muted-foreground)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
