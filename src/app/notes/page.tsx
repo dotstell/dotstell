@@ -202,13 +202,21 @@ export default function NotesPage() {
     return () => window.removeEventListener('dotstell:notes-updated', fetchNotes)
   }, [fetchNotes])
 
-  async function deleteNote(id: string) {
-    const res = await fetch(`/api/notes/${id}`, { method: 'DELETE' })
-    if (res.ok) {
-      setNotes(prev => prev.filter(n => n.id !== id))
-      toast.success('Moved to trash')
-      window.dispatchEvent(new CustomEvent('dotstell:notes-updated'))
-    }
+  function deleteNote(id: string) {
+    const note = notes.find(n => n.id === id)
+    openConfirm({
+      title: 'Move to trash?',
+      body: `"${note?.title || 'Untitled'}" will be moved to trash. You can restore it within 30 days.`,
+      confirmLabel: 'Move to trash',
+      onConfirm: async () => {
+        const res = await fetch(`/api/notes/${id}`, { method: 'DELETE' })
+        if (res.ok) {
+          setNotes(prev => prev.filter(n => n.id !== id))
+          toast.success('Moved to trash')
+          window.dispatchEvent(new CustomEvent('dotstell:notes-updated'))
+        }
+      },
+    })
   }
 
   const fetchTrash = useCallback(async () => {
@@ -945,7 +953,7 @@ export default function NotesPage() {
             icon={Trash2}
             label="Delete note"
             danger
-            onClick={() => { deleteNote(ctxMenu.note.id); setCtxMenu(null) }}
+            onClick={() => { setCtxMenu(null); deleteNote(ctxMenu.note.id) }}
           />
         </div>
       )}
