@@ -424,7 +424,7 @@ ${sanitizeHtmlForPrint(note.content ?? '')}
         gap: 8,
       }}>
         {/* Row 1: breadcrumb + actions */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', rowGap: 4 }}>
           {!focusMode && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'var(--muted-foreground)', flexShrink: 0 }}>
               <Link href="/notes" style={{ color: 'var(--muted-foreground)', display: 'flex', alignItems: 'center', gap: 4, textDecoration: 'none' }}>
@@ -466,7 +466,7 @@ ${sanitizeHtmlForPrint(note.content ?? '')}
 
           {/* Export — Markdown and PDF side by side */}
           {noteId && (
-            <div style={{ display: 'flex', gap: 3 }}>
+            <div style={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
               {([
                 { label: '.md', title: 'Export as Markdown', onClick: exportMarkdown },
                 { label: 'PDF', title: 'Export as PDF (print dialog)', onClick: exportPdf },

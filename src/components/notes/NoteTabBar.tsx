@@ -141,7 +141,7 @@ export function NoteTabBar({ currentId, paneOpen, onTogglePane }: Props) {
           type="button"
           onClick={() => scrollRef.current && (scrollRef.current.scrollLeft -= 160)}
           style={{
-            flexShrink: 0, width: 24, height: TAB_H,
+            flexShrink: 0, width: 32, height: TAB_H,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             border: 'none', borderRight: '1px solid var(--border)',
             background: 'linear-gradient(to right, var(--card) 60%, transparent)',
@@ -226,7 +226,7 @@ export function NoteTabBar({ currentId, paneOpen, onTogglePane }: Props) {
                   title="Close"
                   style={{
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    width: 16, height: 16, borderRadius: 3, flexShrink: 0,
+                    width: 20, height: 20, borderRadius: 4, flexShrink: 0,
                     opacity: (isActive || isHovered) ? 1 : 0,
                     pointerEvents: (isActive || isHovered) ? 'auto' : 'none',
                     color: 'var(--muted-foreground)',
@@ -257,7 +257,7 @@ export function NoteTabBar({ currentId, paneOpen, onTogglePane }: Props) {
           type="button"
           onClick={() => scrollRef.current && (scrollRef.current.scrollLeft += 160)}
           style={{
-            flexShrink: 0, width: 24, height: TAB_H,
+            flexShrink: 0, width: 32, height: TAB_H,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             border: 'none', borderLeft: '1px solid var(--border)',
             background: 'linear-gradient(to left, var(--card) 60%, transparent)',
@@ -311,7 +311,7 @@ function IconBtn({ children, title, onClick, active, borderLeft, borderRight, pr
     <button type="button" title={title} onClick={onClick} disabled={disabled}
       onMouseEnter={() => setHov(true)} onMouseLeave={() => setHov(false)}
       style={{
-        width: 40, flexShrink: 0,
+        width: 44, flexShrink: 0,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         border: 'none',
         borderLeft:  borderLeft  ? '1px solid var(--border)' : undefined,

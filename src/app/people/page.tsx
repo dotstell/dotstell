@@ -149,7 +149,7 @@ export default function PeoplePage() {
                     variant="ghost"
                     size="icon"
                     aria-label={`Delete ${person.name}`}
-                    className="opacity-0 group-hover:opacity-100 h-6 w-6 text-[var(--muted-foreground)] hover:text-[var(--destructive)]"
+                    className="opacity-100 sm:opacity-0 sm:group-hover:opacity-100 h-6 w-6 text-[var(--muted-foreground)] hover:text-[var(--destructive)]"
                     onClick={e => { e.stopPropagation(); setConfirmPerson(person) }}
                   >
                     <Trash2 size={12} />

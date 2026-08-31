@@ -118,6 +118,7 @@ function GraphPageInner() {
   const [filter,  setFilter]  = useState('all')
   const [selected, setSelected] = useState<GraphItem | null>(null)
   const [aiPanelOpen, setAiPanelOpen] = useState(false)
+  const [isMobile, setIsMobile] = useState(false)
   const { config: aiConfig, loaded: aiLoaded } = useAISettings()
   // Tracks pending DELETE timers by edge id so Undo can cancel them before the API call fires.
   const deleteCancelRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map())
@@ -174,6 +175,13 @@ function GraphPageInner() {
   }, [])
 
   useEffect(() => { fetchData() }, [fetchData])
+
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768)
+    check()
+    window.addEventListener('resize', check)
+    return () => window.removeEventListener('resize', check)
+  }, [])
 
   // Effect 1: Build nodes ONLY when items or filter changes, then fit viewport
   useEffect(() => {
@@ -452,7 +460,13 @@ function GraphPageInner() {
 
           {/* AI Graph Intelligence panel */}
           {aiPanelOpen && aiConfig.provider && (
-            <div style={{
+            <div style={isMobile ? {
+              position: 'fixed', bottom: 0, left: 0, right: 0, height: '50vh', zIndex: 50,
+              backgroundColor: 'var(--card)',
+              borderTop: '1px solid var(--border)',
+              display: 'flex', flexDirection: 'column',
+              overflow: 'hidden',
+            } : {
               width: 300, flexShrink: 0,
               backgroundColor: 'var(--card)',
               borderLeft: '1px solid var(--border)',
@@ -481,7 +495,13 @@ function GraphPageInner() {
 
           {/* Side panel */}
           {selected && (
-            <div style={{
+            <div style={isMobile ? {
+              position: 'fixed', bottom: 0, left: 0, right: 0, height: '50vh', zIndex: 50,
+              backgroundColor: 'var(--card)',
+              borderTop: '1px solid var(--border)',
+              display: 'flex', flexDirection: 'column',
+              overflow: 'hidden',
+            } : {
               width: 280, flexShrink: 0,
               backgroundColor: 'var(--card)',
               borderLeft: '1px solid var(--border)',

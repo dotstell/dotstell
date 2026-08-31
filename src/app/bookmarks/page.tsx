@@ -505,7 +505,7 @@ export default function BookmarksPage() {
           title="Bookmarks"
           description="Save links — paste, drop, or import"
           action={
-            <div style={{ display: 'flex', gap: 8 }}>
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
               <Button variant="outline" size="sm" onClick={() => setTagManagerOpen(true)}>
                 <Settings2 size={14} /> Manage tags
               </Button>

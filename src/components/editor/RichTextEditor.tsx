@@ -223,6 +223,14 @@ export function RichTextEditor({
   content, onChange, onTextChange, placeholder = 'Start writing… (type / for commands)',
   onFocusMode, focusMode, onWikiLinksChange, onEditorReady, onAIAssist,
 }: RichTextEditorProps) {
+  const [isMobile, setIsMobile] = useState(false)
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768)
+    check()
+    window.addEventListener('resize', check)
+    return () => window.removeEventListener('resize', check)
+  }, [])
+
   // Floating AI Assist bubble — appears above selected text when onAIAssist is wired up
   const [assistBubble, setAssistBubble] = useState<{ x: number; y: number } | null>(null)
 
@@ -583,13 +591,16 @@ export function RichTextEditor({
         display: 'flex', alignItems: 'center',
         borderBottom: '1px solid var(--border)',
         backgroundColor: 'var(--card)', position: 'sticky', top: 0, zIndex: 20,
-        flexWrap: 'wrap', rowGap: 0,
+        flexWrap: isMobile ? 'nowrap' : 'wrap', rowGap: 0,
+        overflowX: isMobile ? 'auto' : 'visible',
+        scrollbarWidth: 'none',
       }}>
       {/* Dimmed tool area */}
       <div style={{
-        display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap',
+        display: 'flex', alignItems: 'center', gap: 2,
+        flexWrap: isMobile ? 'nowrap' : 'wrap',
         padding: '5px 6px 5px 10px',
-        rowGap: 4, flex: 1, minWidth: 0,
+        rowGap: isMobile ? 0 : 4, flex: 1, minWidth: 0,
         opacity: sourceMode ? 0.35 : 1,
         pointerEvents: sourceMode ? 'none' : 'auto',
         transition: 'opacity 0.2s',
@@ -723,8 +734,12 @@ export function RichTextEditor({
 
       </div>{/* end dimmed area */}
 
-        {/* Source mode toggle + focus — always clickable, outside dimmed area */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '5px 8px 5px 4px', flexShrink: 0 }}>
+        {/* Source mode toggle + paste mode — always clickable, outside dimmed area */}
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 4,
+          padding: '5px 8px 5px 4px', flexShrink: 0,
+          ...(isMobile ? { order: 1, width: '100%', borderTop: '1px solid var(--border)', paddingLeft: 10 } : {}),
+        }}>
           {/* Paste mode toggle */}
           <button
             type="button"
@@ -1072,6 +1087,7 @@ function FloatingDialog({ title, icon, children, onClose }: {
         transform: 'translate(-50%, -50%)', zIndex: 300,
         backgroundColor: 'var(--card)', border: '1px solid var(--border)',
         borderRadius: 14, padding: '18px 20px 16px', width: 360,
+        maxWidth: 'calc(100vw - 32px)',
         boxShadow: '0 24px 64px rgba(0,0,0,0.55)',
       }}>
         {/* Header */}

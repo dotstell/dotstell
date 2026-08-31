@@ -983,7 +983,7 @@ export function NotesSidePane({ width = 220, activeNoteId }: Props) {
           onClick={e => { if (e.target === e.currentTarget) setNbSummaryModal(null) }}
         >
           <div style={{
-            width: 440, maxHeight: '70vh', borderRadius: 14,
+            width: 440, maxWidth: 'calc(100vw - 24px)', maxHeight: '70vh', borderRadius: 14,
             backgroundColor: 'var(--card)', border: '1px solid var(--border)',
             boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
             display: 'flex', flexDirection: 'column', overflow: 'hidden',
@@ -1043,7 +1043,7 @@ export function NotesSidePane({ width = 220, activeNoteId }: Props) {
           onClick={e => { if (e.target === e.currentTarget && !deleteConfirmPending) setDeleteConfirm(null) }}
         >
           <div style={{
-            width: 360, borderRadius: 14,
+            width: 360, maxWidth: 'calc(100vw - 24px)', borderRadius: 14,
             backgroundColor: 'var(--card)', border: '1px solid var(--border)',
             boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
             padding: '22px 22px 18px',

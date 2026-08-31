@@ -775,7 +775,7 @@ export default function NotesPage() {
             position: 'fixed', top: '50%', left: '50%',
             transform: 'translate(-50%, -50%)',
             zIndex: 9999,
-            width: '100%', maxWidth: 420,
+            width: '100%', maxWidth: 'min(420px, calc(100vw - 32px))',
             backgroundColor: 'var(--card)',
             border: '1px solid var(--border)',
             borderRadius: 14,

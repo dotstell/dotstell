@@ -344,7 +344,7 @@ export default function DashboardPage() {
                 </div>
                 <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--foreground)' }}>AI Knowledge Digest</span>
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'flex-start' : 'center', gap: 6 }}>
                 {/* Period toggle */}
                 <div style={{ display: 'flex', borderRadius: 7, overflow: 'hidden', border: '1px solid var(--border)' }}>
                   {(['day', 'week'] as const).map(p => (
