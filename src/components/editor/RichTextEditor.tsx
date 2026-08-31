@@ -255,6 +255,8 @@ export function RichTextEditor({
   const pasteModeRef = useRef<'rich' | 'plain'>('rich')
   useEffect(() => { pasteModeRef.current = pasteMode }, [pasteMode])
   // Wikilink [[...]] picker
+  const [tablePicker, setTablePicker] = useState<{ x: number; y: number } | null>(null)
+  const [tableHover, setTableHover] = useState({ r: 0, c: 0 })
   const [wikiOpen,        setWikiOpen]        = useState(false)
   const [wikiQuery,       setWikiQuery]       = useState('')
   const [wikiResults,     setWikiResults]     = useState<NoteSearchResult[]>([])
@@ -496,6 +498,18 @@ export function RichTextEditor({
     if (!editor) return
     const { from } = editor.state.selection
     const deleteCount = slashFilter.length + 1
+    if (cmd.label === 'Table') {
+      const coords = editor.view.coordsAtPos(Math.max(0, from - deleteCount))
+      editor.chain().focus().deleteRange({ from: from - deleteCount, to: from }).run()
+      const pickerH = 230
+      const y = coords.bottom + 4 + pickerH > window.innerHeight
+        ? coords.top - pickerH - 4
+        : coords.bottom + 4
+      setTablePicker({ x: Math.min(coords.left, window.innerWidth - 210), y })
+      setTableHover({ r: 0, c: 0 })
+      setSlashOpen(false)
+      return
+    }
     editor.chain().focus().deleteRange({ from: from - deleteCount, to: from }).run()
     cmd.action(editor)
     setSlashOpen(false)
@@ -1031,6 +1045,58 @@ export function RichTextEditor({
             </div>
           </FloatingDialog>
         )}
+
+      {/* Table size picker — appears when "Table" is selected from the slash menu */}
+      {tablePicker && (
+        <>
+          <div
+            style={{ position: 'fixed', inset: 0, zIndex: 498 }}
+            onClick={() => setTablePicker(null)}
+          />
+          <div style={{
+            position: 'fixed',
+            top: tablePicker.y,
+            left: tablePicker.x,
+            zIndex: 499,
+            backgroundColor: 'var(--card)',
+            border: '1px solid var(--border)',
+            borderRadius: 10,
+            padding: '10px 12px',
+            boxShadow: '0 8px 28px rgba(0,0,0,0.25)',
+            userSelect: 'none',
+          }}>
+            <p style={{ margin: '0 0 8px', fontSize: 11, fontWeight: 500, color: 'var(--muted-foreground)', textAlign: 'center' }}>
+              {tableHover.r > 0 ? `${tableHover.c} × ${tableHover.r} table` : 'Select table size'}
+            </p>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(8, 1fr)', gap: 2 }}>
+              {Array.from({ length: 64 }, (_, i) => {
+                const r = Math.floor(i / 8) + 1
+                const c = (i % 8) + 1
+                const active = r <= tableHover.r && c <= tableHover.c
+                return (
+                  <div
+                    key={i}
+                    onMouseEnter={() => setTableHover({ r, c })}
+                    onClick={() => {
+                      editor?.chain().focus().insertTable({ rows: r, cols: c, withHeaderRow: true }).run()
+                      setTablePicker(null)
+                    }}
+                    style={{
+                      width: 20, height: 20, borderRadius: 3, cursor: 'pointer',
+                      border: `1px solid ${active ? 'var(--primary)' : 'var(--border)'}`,
+                      backgroundColor: active ? 'color-mix(in srgb, var(--primary) 18%, transparent)' : 'transparent',
+                      transition: 'background-color 0.08s, border-color 0.08s',
+                    }}
+                  />
+                )
+              })}
+            </div>
+            <p style={{ margin: '6px 0 0', fontSize: 10, color: 'var(--muted-foreground)', textAlign: 'center' }}>
+              max 8 × 8
+            </p>
+          </div>
+        </>
+      )}
       </div>
 
     </div>

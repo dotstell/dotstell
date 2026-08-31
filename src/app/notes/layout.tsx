@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useLayoutEffect } from 'react'
 import { usePathname } from 'next/navigation'
 import { AppLayout } from '@/components/layout/AppLayout'
 import { NotesSidePane } from '@/components/notes/NotesSidePane'
@@ -13,7 +13,7 @@ export default function NotesLayout({ children }: { children: React.ReactNode })
   const [paneOpen, setPaneOpen] = useState(true)
   const [isMobile, setIsMobile] = useState(false)
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 768)
     check()
     window.addEventListener('resize', check)

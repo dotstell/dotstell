@@ -347,7 +347,19 @@ ${sanitizeHtmlForPrint(note.content ?? '')}
     const headings = editorDom.querySelectorAll('h1,h2,h3,h4')
     for (const el of headings) {
       if (el.textContent?.trim() === text) {
-        el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+        // Walk up from the editor root to find the nearest overflow:auto/scroll container.
+        // Calling scrollBy() on it directly prevents scroll-chaining up to AppLayout's main.
+        let scrollEl: HTMLElement | null = editorDom.parentElement
+        while (scrollEl && scrollEl !== document.body) {
+          const ov = window.getComputedStyle(scrollEl).overflowY
+          if (ov === 'auto' || ov === 'scroll') break
+          scrollEl = scrollEl.parentElement
+        }
+        if (scrollEl && scrollEl !== document.body) {
+          const elTop = (el as HTMLElement).getBoundingClientRect().top
+          const containerTop = scrollEl.getBoundingClientRect().top
+          scrollEl.scrollBy({ top: elTop - containerTop - 16, behavior: 'smooth' })
+        }
         return
       }
     }
