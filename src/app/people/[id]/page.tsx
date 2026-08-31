@@ -129,7 +129,7 @@ export default function PersonPage({ params }: { params: Promise<{ id: string }>
     const res = await fetch(`/api/notes/${noteId}`, { method: 'DELETE' })
     if (res.ok) {
       setNotes(prev => prev.filter(n => n.id !== noteId))
-      toast.success('Note deleted')
+      toast.success('Moved to trash')
     }
   }
 
@@ -246,10 +246,10 @@ export default function PersonPage({ params }: { params: Promise<{ id: string }>
       <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
-            <DialogTitle>Delete note?</DialogTitle>
+            <DialogTitle>Move to trash?</DialogTitle>
           </DialogHeader>
           <p className="text-sm text-[var(--muted-foreground)]">
-            This note will be permanently deleted and cannot be recovered.
+            This note will be moved to trash. You can restore it within 30 days.
           </p>
           <div className="flex justify-end gap-2 mt-4">
             <Button variant="outline" onClick={() => setConfirmOpen(false)}>Cancel</Button>
@@ -261,7 +261,7 @@ export default function PersonPage({ params }: { params: Promise<{ id: string }>
                 setPendingDeleteId(null)
               }}
             >
-              Delete
+              Move to trash
             </Button>
           </div>
         </DialogContent>

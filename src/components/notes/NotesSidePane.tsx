@@ -196,7 +196,7 @@ export function NotesSidePane({ width = 220, activeNoteId }: Props) {
   // Adjusted display position — starts at click coords, shifted after render to stay in viewport
   const [ctxPos, setCtxPos] = useState({ x: 0, y: 0 })
   const [nbSummaryModal, setNbSummaryModal] = useState<{ id: string; name: string } | null>(null)
-  const [deleteConfirm, setDeleteConfirm] = useState<{ id: string; label: string; onConfirm: () => Promise<void> } | null>(null)
+  const [deleteConfirm, setDeleteConfirm] = useState<{ id: string; title: string; body: string; confirmLabel: string; onConfirm: () => Promise<void> } | null>(null)
   const [deleteConfirmPending, setDeleteConfirmPending] = useState(false)
   const { config: aiConfig, loaded: aiLoaded } = useAISettings()
   const { summary: nbSummary, loading: nbSummaryLoading, summarize: summarizeNb, setSummary: setNbSummary } = useAISummarize(aiConfig)
@@ -868,7 +868,9 @@ export function NotesSidePane({ width = 220, activeNoteId }: Props) {
                   setContextMenu(null)
                   setDeleteConfirm({
                     id: nbId,
-                    label: `"${nb?.name || 'Untitled'}" notebook`,
+                    title: `Delete "${nb?.name || 'Untitled'}" notebook?`,
+                    body: 'All notes will be removed from this notebook. This cannot be undone.',
+                    confirmLabel: 'Delete',
                     onConfirm: async () => {
                       await deleteNotebook(nbId)
                       toast.success('Notebook deleted')
@@ -952,7 +954,9 @@ export function NotesSidePane({ width = 220, activeNoteId }: Props) {
                   setContextMenu(null)
                   setDeleteConfirm({
                     id: noteId,
-                    label: `"${note?.title || 'Untitled'}"`,
+                    title: 'Move to trash?',
+                    body: `"${note?.title || 'Untitled'}" will be moved to trash. You can restore it within 30 days.`,
+                    confirmLabel: 'Move to trash',
                     onConfirm: async () => {
                       const res = await fetch(`/api/notes/${noteId}`, { method: 'DELETE' })
                       if (res.ok) {
@@ -1048,8 +1052,8 @@ export function NotesSidePane({ width = 220, activeNoteId }: Props) {
                 <Trash2 size={16} color="#ef4444" />
               </div>
               <div>
-                <p style={{ margin: 0, fontSize: 14, fontWeight: 700, color: 'var(--foreground)' }}>Delete {deleteConfirm.label}?</p>
-                <p style={{ margin: '4px 0 0', fontSize: 12, color: 'var(--muted-foreground)', lineHeight: 1.5 }}>This action cannot be undone.</p>
+                <p style={{ margin: 0, fontSize: 14, fontWeight: 700, color: 'var(--foreground)' }}>{deleteConfirm.title}</p>
+                <p style={{ margin: '4px 0 0', fontSize: 12, color: 'var(--muted-foreground)', lineHeight: 1.5 }}>{deleteConfirm.body}</p>
               </div>
             </div>
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
@@ -1073,7 +1077,7 @@ export function NotesSidePane({ width = 220, activeNoteId }: Props) {
                 }}
                 style={{ padding: '7px 14px', borderRadius: 7, border: 'none', backgroundColor: '#ef4444', color: 'white', fontSize: 13, fontWeight: 600, cursor: deleteConfirmPending ? 'not-allowed' : 'pointer', opacity: deleteConfirmPending ? 0.7 : 1 }}
               >
-                {deleteConfirmPending ? 'Deleting…' : 'Delete'}
+                {deleteConfirmPending ? 'Deleting…' : deleteConfirm.confirmLabel}
               </button>
             </div>
           </div>
