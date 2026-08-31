@@ -1,7 +1,7 @@
 'use client'
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import { X, Plus, SidebarClose, SidebarOpen, FileText } from 'lucide-react'
+import { X, Plus, SidebarClose, SidebarOpen, FileText, ChevronLeft, ChevronRight } from 'lucide-react'
 import { useNoteTabs } from '@/hooks/useNoteTabs'
 
 interface Props {
@@ -15,11 +15,51 @@ const TAB_H = 38
 export function NoteTabBar({ currentId, paneOpen, onTogglePane }: Props) {
   const router = useRouter()
   const { tabs, activeId, openTab, closeTab, closeOtherTabs, closeAllTabs } = useNoteTabs(currentId)
-  const [hovered,    setHovered]    = useState<string | null>(null)
-  const [ctxMenu,    setCtxMenu]    = useState<{ x: number; y: number; id: string } | null>(null)
-  const [creating,   setCreating]   = useState(false)
+  const [hovered,       setHovered]       = useState<string | null>(null)
+  const [ctxMenu,       setCtxMenu]       = useState<{ x: number; y: number; id: string } | null>(null)
+  const [creating,      setCreating]      = useState(false)
+  const [canScrollLeft,  setCanScrollLeft]  = useState(false)
+  const [canScrollRight, setCanScrollRight] = useState(false)
   const scrollRef    = useRef<HTMLDivElement>(null)
   const active = activeId ?? currentId
+
+  // Update scroll-arrow visibility based on current scroll position
+  const updateScrollState = useCallback(() => {
+    const el = scrollRef.current
+    if (!el) return
+    setCanScrollLeft(el.scrollLeft > 2)
+    setCanScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 2)
+  }, [])
+
+  // Re-check arrows whenever tabs change or the container resizes
+  useEffect(() => {
+    const el = scrollRef.current
+    if (!el) return
+    updateScrollState()
+    el.addEventListener('scroll', updateScrollState, { passive: true })
+    const ro = new ResizeObserver(updateScrollState)
+    ro.observe(el)
+    return () => {
+      el.removeEventListener('scroll', updateScrollState)
+      ro.disconnect()
+    }
+  }, [tabs, updateScrollState])
+
+  // Convert vertical mouse-wheel to horizontal scroll (like VS Code / browser tabs)
+  useEffect(() => {
+    const el = scrollRef.current
+    if (!el) return
+    function onWheel(e: WheelEvent) {
+      if (!scrollRef.current) return
+      // Only intercept pure vertical scrolls — let horizontal (trackpad) pass through naturally
+      if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+        e.preventDefault()
+        scrollRef.current.scrollLeft += e.deltaY
+      }
+    }
+    el.addEventListener('wheel', onWheel, { passive: false })
+    return () => el.removeEventListener('wheel', onWheel)
+  }, [])
 
   // Create a blank note immediately — no template modal detour
   async function handleNewNote() {
@@ -95,8 +135,26 @@ export function NoteTabBar({ currentId, paneOpen, onTogglePane }: Props) {
         {paneOpen ? <SidebarClose size={15} /> : <SidebarOpen size={15} />}
       </IconBtn>
 
-      {/* Scrollable tabs */}
-      <div ref={scrollRef} style={{
+      {/* Scroll-left arrow — fades in when there's overflow to the left */}
+      {canScrollLeft && (
+        <button
+          type="button"
+          onClick={() => scrollRef.current && (scrollRef.current.scrollLeft -= 160)}
+          style={{
+            flexShrink: 0, width: 24, height: TAB_H,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            border: 'none', borderRight: '1px solid var(--border)',
+            background: 'linear-gradient(to right, var(--card) 60%, transparent)',
+            color: 'var(--muted-foreground)', cursor: 'pointer',
+            position: 'relative', zIndex: 1,
+          }}
+        >
+          <ChevronLeft size={13} />
+        </button>
+      )}
+
+      {/* Scrollable tabs — 'tab-scroll-container' hides the webkit scrollbar via globals.css */}
+      <div ref={scrollRef} className="tab-scroll-container" style={{
         display: 'flex', alignItems: 'stretch',
         flex: 1, minWidth: 0,
         overflowX: 'auto', overflowY: 'hidden',
@@ -192,6 +250,23 @@ export function NoteTabBar({ currentId, paneOpen, onTogglePane }: Props) {
           )
         })}
       </div>
+
+      {/* Scroll-right arrow — fades in when there's overflow to the right */}
+      {canScrollRight && (
+        <button
+          type="button"
+          onClick={() => scrollRef.current && (scrollRef.current.scrollLeft += 160)}
+          style={{
+            flexShrink: 0, width: 24, height: TAB_H,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            border: 'none', borderLeft: '1px solid var(--border)',
+            background: 'linear-gradient(to left, var(--card) 60%, transparent)',
+            color: 'var(--muted-foreground)', cursor: 'pointer',
+          }}
+        >
+          <ChevronRight size={13} />
+        </button>
+      )}
 
       {/* New note — creates immediately, no template modal */}
       <IconBtn title="New note (Ctrl+N / Alt+N)" onClick={handleNewNote} borderLeft primary disabled={creating}>

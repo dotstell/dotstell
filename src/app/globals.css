@@ -518,6 +518,9 @@ body {
 ::-webkit-scrollbar-thumb:hover { background: var(--primary); opacity: 0.4; }
 ::-webkit-scrollbar-corner { background: transparent; }
 
+/* Tab bar scroll container — hide scrollbar in all browsers (navigation via wheel + arrows) */
+.tab-scroll-container::-webkit-scrollbar { display: none; }
+
 :focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
 
 .react-flow__background { background: var(--background); }
