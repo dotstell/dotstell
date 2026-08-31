@@ -87,8 +87,8 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         e.preventDefault()
         setPaletteOpen(o => !o)
       }
-      // Ctrl+Shift+, → AI Settings
-      if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === ',') {
+      // Ctrl+Shift+, → AI Settings (use e.code so Shift doesn't change ',' to '<')
+      if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.code === 'Comma') {
         e.preventDefault()
         setAISettingsOpen(o => !o)
       }
