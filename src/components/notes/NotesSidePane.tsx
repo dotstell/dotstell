@@ -869,7 +869,7 @@ export function NotesSidePane({ width = 220, activeNoteId }: Props) {
                   setDeleteConfirm({
                     id: nbId,
                     title: `Delete "${nb?.name || 'Untitled'}" notebook?`,
-                    body: 'All notes will be removed from this notebook. This cannot be undone.',
+                    body: 'The notebook will be permanently deleted. Notes inside will not be deleted.',
                     confirmLabel: 'Delete',
                     onConfirm: async () => {
                       await deleteNotebook(nbId)
