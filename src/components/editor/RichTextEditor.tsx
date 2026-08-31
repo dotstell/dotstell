@@ -594,6 +594,7 @@ export function RichTextEditor({
         flexWrap: isMobile ? 'nowrap' : 'wrap', rowGap: 0,
         overflowX: isMobile ? 'auto' : 'visible',
         scrollbarWidth: 'none',
+        touchAction: 'manipulation',
       }}>
       {/* Dimmed tool area */}
       <div style={{
@@ -653,6 +654,7 @@ export function RichTextEditor({
             <ColorPicker
               colors={TEXT_COLORS}
               activeValue={activeColor}
+              isMobile={isMobile}
               onSelect={v => {
                 if (v) editor.chain().focus().setColor(v).run()
                 else editor.chain().focus().unsetColor().run()
@@ -683,6 +685,7 @@ export function RichTextEditor({
             <HighlightPicker
               colors={HIGHLIGHT_COLORS}
               editor={editor}
+              isMobile={isMobile}
               onSelect={v => {
                 if (v) editor.chain().focus().setHighlight({ color: v }).run()
                 else editor.chain().focus().unsetHighlight().run()
@@ -1062,6 +1065,7 @@ function ToolBtn({ onClick, active, disabled, title, children }: {
         backgroundColor: active ? 'color-mix(in srgb, var(--primary) 20%, transparent)' : 'transparent',
         color: active ? 'var(--primary)' : disabled ? 'var(--border)' : 'var(--secondary-foreground)',
         transition: 'all 0.1s', flexShrink: 0,
+        touchAction: 'manipulation',
       }}
       onMouseEnter={e => { if (!active && !disabled) e.currentTarget.style.backgroundColor = 'var(--accent)' }}
       onMouseLeave={e => { if (!active) e.currentTarget.style.backgroundColor = 'transparent' }}
@@ -1130,6 +1134,7 @@ function HeadingDropdown({ editor }: { editor: ReturnType<typeof useEditor> }) {
           padding: '4px 8px', borderRadius: 6, border: '1px solid var(--border)',
           backgroundColor: 'transparent', color: 'var(--secondary-foreground)', fontSize: 12,
           cursor: 'pointer', minWidth: 82, whiteSpace: 'nowrap',
+          touchAction: 'manipulation',
         }}
       >
         {current} <ChevronDown size={11} />
@@ -1186,6 +1191,7 @@ function FontDropdown({ editor, open, setOpen, ref }: {
           backgroundColor: 'transparent', color: 'var(--secondary-foreground)', fontSize: 12,
           cursor: 'pointer', minWidth: 76, whiteSpace: 'nowrap',
           fontFamily: currentFont || 'inherit',
+          touchAction: 'manipulation',
         }}
       >
         <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 72 }}>{currentLabel}</span>
@@ -1330,20 +1336,25 @@ function saveRecentColor(color: string, prev: string[]): string[] {
   return next
 }
 
-function ColorPicker({ colors, activeValue, onSelect }: {
+function ColorPicker({ colors, activeValue, onSelect, isMobile }: {
   colors: { label: string; value: string }[]
   activeValue: string
   onSelect: (v: string) => void
+  isMobile?: boolean
 }) {
   const [showCustom, setShowCustom] = useState(false)
   const [recentColors, setRecentColors] = useState<string[]>(() => loadRecentColors())
 
   const isCustomActive = activeValue !== '' && !colors.some(c => c.value === activeValue)
 
+  const posStyle: React.CSSProperties = isMobile
+    ? { position: 'fixed', bottom: 70, left: '50%', transform: 'translateX(-50%)', zIndex: 500 }
+    : { position: 'absolute', top: '100%', left: 0, zIndex: 200, marginTop: 4 }
+
   return (
     <>
       <div style={{
-        position: 'absolute', top: '100%', left: 0, zIndex: 200, marginTop: 4,
+        ...posStyle,
         backgroundColor: 'var(--card)', border: '1px solid var(--border)',
         borderRadius: 10, padding: '10px 10px 8px', width: 180,
         boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
@@ -1426,14 +1437,19 @@ function ColorPicker({ colors, activeValue, onSelect }: {
   )
 }
 
-function HighlightPicker({ colors, editor, onSelect }: {
+function HighlightPicker({ colors, editor, onSelect, isMobile }: {
   colors: { label: string; value: string; dot: string }[]
   editor: ReturnType<typeof useEditor>
   onSelect: (v: string) => void
+  isMobile?: boolean
 }) {
+  const posStyle: React.CSSProperties = isMobile
+    ? { position: 'fixed', bottom: 70, left: '50%', transform: 'translateX(-50%)', zIndex: 500 }
+    : { position: 'absolute', top: '100%', left: 0, zIndex: 200, marginTop: 4 }
+
   return (
     <div style={{
-      position: 'absolute', top: '100%', left: 0, zIndex: 200, marginTop: 4,
+      ...posStyle,
       backgroundColor: 'var(--card)', border: '1px solid var(--border)',
       borderRadius: 10, padding: '10px 10px 8px', width: 180,
       boxShadow: '0 8px 32px rgba(0,0,0,0.5)',

@@ -18,6 +18,7 @@ export function NoteTabBar({ currentId, paneOpen, onTogglePane }: Props) {
   const [hovered,       setHovered]       = useState<string | null>(null)
   const [ctxMenu,       setCtxMenu]       = useState<{ x: number; y: number; id: string } | null>(null)
   const [creating,      setCreating]      = useState(false)
+  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [canScrollLeft,  setCanScrollLeft]  = useState(false)
   const [canScrollRight, setCanScrollRight] = useState(false)
   const scrollRef    = useRef<HTMLDivElement>(null)
@@ -182,6 +183,22 @@ export function NoteTabBar({ currentId, paneOpen, onTogglePane }: Props) {
               onMouseDown={e => handleMouseDown(e, tab.id)}
               onClick={() => { if (!isActive) router.push(`/notes/${tab.id}`) }}
               onContextMenu={e => handleContextMenu(e, tab.id)}
+              onPointerDown={e => {
+                if (e.pointerType === 'mouse') return
+                const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
+                longPressTimer.current = setTimeout(() => {
+                  setCtxMenu({ x: rect.left + rect.width / 2, y: rect.bottom, id: tab.id })
+                }, 500)
+              }}
+              onPointerUp={() => {
+                if (longPressTimer.current) { clearTimeout(longPressTimer.current); longPressTimer.current = null }
+              }}
+              onPointerCancel={() => {
+                if (longPressTimer.current) { clearTimeout(longPressTimer.current); longPressTimer.current = null }
+              }}
+              onPointerMove={() => {
+                if (longPressTimer.current) { clearTimeout(longPressTimer.current); longPressTimer.current = null }
+              }}
               title={tab.title || 'Untitled'}
               style={{
                 display: 'flex', alignItems: 'center', gap: 6,

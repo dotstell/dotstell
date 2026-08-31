@@ -2,6 +2,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import { Sidebar } from './Sidebar'
+import { BottomNav } from './BottomNav'
 import { CommandPalette } from '@/components/command/CommandPalette'
 import { OnboardingFlow } from '@/components/onboarding/OnboardingFlow'
 import { TaskReminders } from '@/components/tasks/TaskReminders'
@@ -137,7 +138,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <div style={{ display: 'flex', minHeight: '100vh', backgroundColor: 'var(--background)' }}>
       <Sidebar onOpenPalette={() => setPaletteOpen(true)} />
-      <main style={{
+      <main className="app-main" style={{
         flex: 1,
         marginLeft,
         transition: isMobile ? 'none' : 'margin-left 0.22s cubic-bezier(0.4,0,0.2,1)',
@@ -145,9 +146,11 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         overflowX: 'hidden',
         backgroundColor: 'var(--background)',
         color: 'var(--foreground)',
+        paddingBottom: isMobile ? 56 : undefined,
       }}>
         {children}
       </main>
+      {isMobile && <BottomNav />}
       <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
       {aiSettingsOpen && <AISettingsModal onClose={() => setAISettingsOpen(false)} />}
       {gHint && (

@@ -93,14 +93,16 @@ function ColorSwatches({ current, onSelect }: {
 
 // ── Sortable note row — must live at module level so useSortable has stable identity ──
 function SortableNoteItem({
-  note, isActive, isPinned, onClick, onContextMenu,
+  note, isActive, isPinned, onClick, onContextMenu, onLongPress,
 }: {
   note: Note
   isActive: boolean
   isPinned: boolean
   onClick: () => void
   onContextMenu: (e: React.MouseEvent) => void
+  onLongPress?: (rect: DOMRect) => void
 }) {
+  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const {
     attributes, listeners, setNodeRef, setActivatorNodeRef,
     transform, transition, isDragging,
@@ -139,6 +141,19 @@ function SortableNoteItem({
         type="button"
         onClick={onClick}
         onContextMenu={onContextMenu}
+        onPointerDown={e => {
+          if (e.pointerType === 'mouse') return
+          const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
+          longPressTimer.current = setTimeout(() => {
+            onLongPress?.(rect)
+          }, 500)
+        }}
+        onPointerUp={() => {
+          if (longPressTimer.current) { clearTimeout(longPressTimer.current); longPressTimer.current = null }
+        }}
+        onPointerCancel={() => {
+          if (longPressTimer.current) { clearTimeout(longPressTimer.current); longPressTimer.current = null }
+        }}
         title={note.title || 'Untitled'}
         style={{
           display: 'flex', alignItems: 'center', gap: 7,
@@ -190,6 +205,7 @@ export function NotesSidePane({ width = 220, activeNoteId }: Props) {
   const [pinnedIds,      setPinnedIds]      = useState<Set<string>>(new Set())
   const newNbRef         = useRef<HTMLInputElement>(null)
   const ctxMenuRef       = useRef<HTMLDivElement>(null)
+  const longPressTimer   = useRef<ReturnType<typeof setTimeout> | null>(null)
   // Guard against double-invocation: onKeyDown (Enter) and onBlur can both fire handleNewNotebook
   // during the async gap between the await and the state update committing to the DOM.
   const isCreatingNb     = useRef(false)
@@ -463,6 +479,20 @@ export function NotesSidePane({ width = 220, activeNoteId }: Props) {
         type="button"
         onClick={() => openNote(note.id)}
         onContextMenu={e => onContextMenu(e, note.id, 'note')}
+        onPointerDown={e => {
+          if (e.pointerType === 'mouse') return
+          const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
+          longPressTimer.current = setTimeout(() => {
+            setCtxPos({ x: rect.left, y: rect.bottom })
+            setContextMenu({ x: rect.left, y: rect.bottom, id: note.id, type: 'note' })
+          }, 500)
+        }}
+        onPointerUp={() => {
+          if (longPressTimer.current) { clearTimeout(longPressTimer.current); longPressTimer.current = null }
+        }}
+        onPointerCancel={() => {
+          if (longPressTimer.current) { clearTimeout(longPressTimer.current); longPressTimer.current = null }
+        }}
         title={note.title || 'Untitled'}
         style={{
           display: 'flex', alignItems: 'center', gap: 7,
@@ -656,6 +686,10 @@ export function NotesSidePane({ width = 220, activeNoteId }: Props) {
                       isPinned={n.pinned || pinnedIds.has(n.id)}
                       onClick={() => openNote(n.id)}
                       onContextMenu={e => onContextMenu(e, n.id, 'note')}
+                      onLongPress={rect => {
+                        setCtxPos({ x: rect.left, y: rect.bottom })
+                        setContextMenu({ x: rect.left, y: rect.bottom, id: n.id, type: 'note' })
+                      }}
                     />
                   ))}
                 </SortableContext>
@@ -725,6 +759,20 @@ export function NotesSidePane({ width = 220, activeNoteId }: Props) {
                       type="button"
                       onClick={() => toggleSection(`nb-${nb.id}`)}
                       onContextMenu={e => onContextMenu(e, nb.id, 'notebook')}
+                      onPointerDown={e => {
+                        if (e.pointerType === 'mouse') return
+                        const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
+                        longPressTimer.current = setTimeout(() => {
+                          setCtxPos({ x: rect.left, y: rect.bottom })
+                          setContextMenu({ x: rect.left, y: rect.bottom, id: nb.id, type: 'notebook' })
+                        }, 500)
+                      }}
+                      onPointerUp={() => {
+                        if (longPressTimer.current) { clearTimeout(longPressTimer.current); longPressTimer.current = null }
+                      }}
+                      onPointerCancel={() => {
+                        if (longPressTimer.current) { clearTimeout(longPressTimer.current); longPressTimer.current = null }
+                      }}
                       style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, height: ROW_H, paddingLeft: 10, paddingRight: 4, background: 'none', border: 'none', cursor: 'pointer', borderRadius: 8, textAlign: 'left', transition: 'background 0.12s' }}
                       onMouseEnter={e => (e.currentTarget.style.background = 'var(--sidebar-hover-bg)')}
                       onMouseLeave={e => (e.currentTarget.style.background = 'none')}
