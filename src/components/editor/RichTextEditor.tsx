@@ -928,7 +928,11 @@ export function RichTextEditor({
 
         {/* ── Link dialog ── */}
         {linkDialogOpen && (
-          <FloatingDialog onClose={() => setLinkDialogOpen(false)} title="Insert link">
+          <FloatingDialog
+            onClose={() => setLinkDialogOpen(false)}
+            title="Insert link"
+            icon={<LinkIcon size={14} />}
+          >
             <input
               autoFocus
               value={linkUrl}
@@ -947,7 +951,11 @@ export function RichTextEditor({
 
         {/* ── Image dialog ── */}
         {imageDialogOpen && (
-          <FloatingDialog onClose={() => setImageDialogOpen(false)} title="Insert image">
+          <FloatingDialog
+            onClose={() => setImageDialogOpen(false)}
+            title="Insert image"
+            icon={<ImageIcon size={14} />}
+          >
             <input
               autoFocus
               value={imageUrl}
@@ -956,8 +964,23 @@ export function RichTextEditor({
               placeholder="https://... (image URL)"
               style={inputStyle}
             />
+            {imageUrl.startsWith('http') && (
+              <div style={{
+                marginBottom: 14, borderRadius: 8, overflow: 'hidden',
+                border: '1px solid var(--border)', backgroundColor: 'var(--muted)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                minHeight: 80, maxHeight: 180,
+              }}>
+                <img
+                  src={imageUrl}
+                  alt="preview"
+                  style={{ maxWidth: '100%', maxHeight: 180, objectFit: 'contain', display: 'block' }}
+                  onError={e => { (e.currentTarget as HTMLImageElement).parentElement!.style.display = 'none' }}
+                />
+              </div>
+            )}
             <div style={{ display: 'flex', gap: 8 }}>
-              <button type="button" onClick={insertImage} style={primaryBtnStyle}>Insert</button>
+              <button type="button" onClick={insertImage} style={primaryBtnStyle}>Insert image</button>
               <button type="button" onClick={() => setImageDialogOpen(false)} style={secondaryBtnStyle}>Cancel</button>
             </div>
           </FloatingDialog>
@@ -970,21 +993,23 @@ export function RichTextEditor({
 
 // ── Shared dialog styles ─────────────────────────────────────
 const inputStyle: React.CSSProperties = {
-  width: '100%', padding: '8px 10px', borderRadius: 7,
-  border: '1px solid var(--border)', backgroundColor: 'var(--muted)',
-  color: 'var(--foreground)', fontSize: 13, outline: 'none', marginBottom: 10,
+  width: '100%', padding: '9px 12px', borderRadius: 8,
+  border: '1px solid var(--border)', backgroundColor: 'var(--background)',
+  color: 'var(--foreground)', fontSize: 13, outline: 'none',
+  marginBottom: 14, boxSizing: 'border-box',
+  transition: 'border-color 0.15s',
 }
 const primaryBtnStyle: React.CSSProperties = {
-  flex: 1, padding: '7px', borderRadius: 7, backgroundColor: 'var(--primary)',
-  border: 'none', color: 'white', fontSize: 13, cursor: 'pointer',
+  flex: 1, padding: '8px', borderRadius: 8, backgroundColor: 'var(--primary)',
+  border: 'none', color: 'white', fontSize: 13, fontWeight: 600, cursor: 'pointer',
 }
 const secondaryBtnStyle: React.CSSProperties = {
-  flex: 1, padding: '7px', borderRadius: 7, backgroundColor: 'var(--secondary)',
-  border: '1px solid var(--border)', color: 'var(--secondary-foreground)', fontSize: 13, cursor: 'pointer',
+  flex: 1, padding: '8px', borderRadius: 8, backgroundColor: 'transparent',
+  border: '1px solid var(--border)', color: 'var(--foreground)', fontSize: 13, fontWeight: 500, cursor: 'pointer',
 }
 const dangerBtnStyle: React.CSSProperties = {
-  flex: 1, padding: '7px', borderRadius: 7, backgroundColor: 'rgba(239,68,68,0.15)',
-  border: '1px solid rgba(239,68,68,0.3)', color: '#f87171', fontSize: 13, cursor: 'pointer',
+  flex: 1, padding: '8px', borderRadius: 8, backgroundColor: 'rgba(239,68,68,0.12)',
+  border: '1px solid rgba(239,68,68,0.25)', color: '#f87171', fontSize: 13, fontWeight: 500, cursor: 'pointer',
 }
 
 // ── Sub-components ───────────────────────────────────────────
@@ -1017,17 +1042,42 @@ function ToolBtn({ onClick, active, disabled, title, children }: {
   )
 }
 
-function FloatingDialog({ title, children, onClose }: { title: string; children: React.ReactNode; onClose: () => void }) {
+function FloatingDialog({ title, icon, children, onClose }: {
+  title: string; icon?: React.ReactNode; children: React.ReactNode; onClose: () => void
+}) {
   return (
-    <div style={{
-      position: 'absolute', left: '50%', top: 50, transform: 'translateX(-50%)', zIndex: 200,
-      backgroundColor: 'var(--card)', border: '1px solid var(--border)',
-      borderRadius: 12, padding: 18, width: 340,
-      boxShadow: '0 12px 40px rgba(0,0,0,0.7)',
-    }}>
-      <p style={{ fontSize: 12, color: 'var(--secondary-foreground)', margin: '0 0 10px', fontWeight: 600 }}>{title}</p>
-      {children}
-    </div>
+    <>
+      {/* Backdrop */}
+      <div
+        onClick={onClose}
+        style={{ position: 'fixed', inset: 0, zIndex: 299, backgroundColor: 'rgba(0,0,0,0.35)' }}
+      />
+      {/* Dialog */}
+      <div style={{
+        position: 'fixed', left: '50%', top: '50%',
+        transform: 'translate(-50%, -50%)', zIndex: 300,
+        backgroundColor: 'var(--card)', border: '1px solid var(--border)',
+        borderRadius: 14, padding: '18px 20px 16px', width: 360,
+        boxShadow: '0 24px 64px rgba(0,0,0,0.55)',
+      }}>
+        {/* Header */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+            {icon && <span style={{ color: 'var(--primary)', display: 'flex' }}>{icon}</span>}
+            <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--foreground)' }}>{title}</span>
+          </div>
+          <button
+            type="button" onClick={onClose}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted-foreground)', display: 'flex', padding: 3, borderRadius: 5 }}
+            onMouseEnter={e => { e.currentTarget.style.background = 'var(--accent)'; e.currentTarget.style.color = 'var(--foreground)' }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = 'var(--muted-foreground)' }}
+          >
+            <X size={14} />
+          </button>
+        </div>
+        {children}
+      </div>
+    </>
   )
 }
 
