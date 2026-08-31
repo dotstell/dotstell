@@ -645,4 +645,10 @@ body {
   .app-main {
     margin-left: 0 !important;
   }
+  /* Hide the note tab bar (☰) when the user is inside a specific note on mobile.
+     currentNoteId is pathname-derived (SSR-safe), so the class is set before JS
+     runs — no hydration flash on slow Android devices. */
+  .notes-tabar-in-note {
+    display: none !important;
+  }
 }

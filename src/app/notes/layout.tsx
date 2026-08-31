@@ -46,7 +46,9 @@ export default function NotesLayout({ children }: { children: React.ReactNode })
     <AppLayout>
       <div style={{
         display: 'flex',
-        height: isMobile ? 'calc(100dvh - 56px - env(safe-area-inset-bottom))' : '100dvh',
+        height: isMobile
+          ? 'calc(var(--actual-vh, 100dvh) - 56px - env(safe-area-inset-bottom))'
+          : 'var(--actual-vh, 100dvh)',
         overflow: 'hidden',
         backgroundColor: 'var(--background)',
         position: 'relative',
@@ -85,14 +87,16 @@ export default function NotesLayout({ children }: { children: React.ReactNode })
 
         {/* Main area: tab bar + page content */}
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, overflow: 'hidden' }}>
-          {/* Hide tab bar on mobile when inside a note — ← Notes in the editor header is sufficient */}
-          {(!isMobile || !currentNoteId) && (
+          {/* CSS class (not JS) hides the tab bar on mobile when inside a note.
+              currentNoteId is pathname-derived so the class is set during SSR —
+              no hydration flash on slow Android devices. */}
+          <div className={currentNoteId ? 'notes-tabar-in-note' : undefined}>
             <NoteTabBar
               currentId={currentNoteId}
               paneOpen={paneOpen}
               onTogglePane={togglePane}
             />
-          )}
+          </div>
           <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
             {children}
           </div>

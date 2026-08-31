@@ -73,6 +73,22 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     return () => window.removeEventListener('resize', check)
   }, [])
 
+  // Keep --actual-vh in sync with the visual viewport so keyboard-open layouts
+  // use the true visible height instead of the potentially-stale 100dvh value.
+  useEffect(() => {
+    function updateVh() {
+      const h = window.visualViewport?.height ?? window.innerHeight
+      document.documentElement.style.setProperty('--actual-vh', `${h}px`)
+    }
+    updateVh()
+    window.visualViewport?.addEventListener('resize', updateVh)
+    window.addEventListener('resize', updateVh)
+    return () => {
+      window.visualViewport?.removeEventListener('resize', updateVh)
+      window.removeEventListener('resize', updateVh)
+    }
+  }, [])
+
   // Poll localStorage every 150ms rather than using a storage event because storage
   // events only fire in OTHER tabs — the tab that wrote the value never receives one.
   useEffect(() => {
@@ -136,7 +152,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const marginLeft = isMobile ? 0 : collapsed ? 64 : 240
 
   return (
-    <div style={{ display: 'flex', height: '100dvh', backgroundColor: 'var(--background)' }}>
+    <div style={{ display: 'flex', height: 'var(--actual-vh, 100dvh)', backgroundColor: 'var(--background)' }}>
       <Sidebar onOpenPalette={() => setPaletteOpen(true)} />
       <main className="app-main" style={{
         flex: 1,
