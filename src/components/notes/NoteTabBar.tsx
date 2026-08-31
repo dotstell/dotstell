@@ -1,18 +1,19 @@
 'use client'
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import { X, Plus, SidebarClose, SidebarOpen, FileText, ChevronLeft, ChevronRight } from 'lucide-react'
+import { X, Plus, SidebarClose, SidebarOpen, FileText, ChevronLeft, ChevronRight, Maximize2 } from 'lucide-react'
 import { useNoteTabs } from '@/hooks/useNoteTabs'
 
 interface Props {
   currentId?: string
   paneOpen: boolean
   onTogglePane: () => void
+  onEnterFocus?: () => void
 }
 
 const TAB_H = 38
 
-export function NoteTabBar({ currentId, paneOpen, onTogglePane }: Props) {
+export function NoteTabBar({ currentId, paneOpen, onTogglePane, onEnterFocus }: Props) {
   const router = useRouter()
   const { tabs, activeId, openTab, closeTab, closeOtherTabs, closeAllTabs } = useNoteTabs(currentId)
   const [hovered,       setHovered]       = useState<string | null>(null)
@@ -266,6 +267,13 @@ export function NoteTabBar({ currentId, paneOpen, onTogglePane }: Props) {
         >
           <ChevronRight size={13} />
         </button>
+      )}
+
+      {/* Focus mode */}
+      {onEnterFocus && (
+        <IconBtn title="Focus mode (F)" onClick={onEnterFocus} borderLeft>
+          <Maximize2 size={14} />
+        </IconBtn>
       )}
 
       {/* New note — creates immediately, no template modal */}
