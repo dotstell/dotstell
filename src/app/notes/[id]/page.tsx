@@ -944,7 +944,7 @@ ${sanitizeHtmlForPrint(note.content ?? '')}
         </div>
 
         {/* Right panel — hidden on mobile to preserve editor space */}
-        {!focusMode && noteId && !isMobile && (
+        {noteId && !isMobile && (
           <div style={{
             width: 240, flexShrink: 0, borderLeft: '1px solid var(--border)',
             padding: 16, overflowY: 'auto', backgroundColor: 'var(--card)',
