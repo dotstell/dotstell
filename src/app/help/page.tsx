@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import Link from 'next/link'
 import { AppLayout } from '@/components/layout/AppLayout'
 import { RELEASES_URL } from '@/lib/version'
@@ -106,72 +106,9 @@ export default function HelpPage() {
     return () => window.removeEventListener('resize', check)
   }, [])
 
-  return (
-    <AppLayout>
-      <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
-
-        {/* Page header */}
-        <div style={{ padding: isMobile ? '16px 20px 12px' : '24px 32px 16px', flexShrink: 0, borderBottom: '1px solid var(--border)' }}>
-          <h1 style={{ fontSize: 20, fontWeight: 700, color: 'var(--foreground)', margin: 0 }}>Help &amp; features</h1>
-        </div>
-
-        {/* Mobile: horizontal scrollable TOC pills */}
-        {isMobile && (
-          <div style={{
-            display: 'flex', gap: 6, overflowX: 'auto', scrollbarWidth: 'none',
-            padding: '10px 16px', borderBottom: '1px solid var(--border)',
-            flexShrink: 0, flexWrap: 'nowrap',
-          }}>
-            {SECTIONS.map(s => (
-              <a key={s.id} href={`#${s.id}`} style={{
-                display: 'inline-flex', alignItems: 'center', whiteSpace: 'nowrap',
-                padding: '5px 12px', borderRadius: 20,
-                backgroundColor: 'var(--secondary)',
-                color: 'var(--muted-foreground)',
-                fontSize: 12, textDecoration: 'none', flexShrink: 0,
-                touchAction: 'manipulation',
-              }}>
-                {s.label}
-              </a>
-            ))}
-          </div>
-        )}
-
-        <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
-
-          {/* ── Desktop TOC sidebar — hidden on mobile ──────────────────── */}
-          {!isMobile && (
-            <nav style={{
-              width: 220, flexShrink: 0,
-              borderRight: '1px solid var(--border)',
-              padding: '24px 20px 24px 32px',
-              overflowY: 'auto',
-            }}>
-              <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--muted-foreground)', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 12 }}>
-                Contents
-              </div>
-              {SECTIONS.map(s => (
-                <a
-                  key={s.id}
-                  href={`#${s.id}`}
-                  style={{
-                    display: 'block', padding: '5px 0',
-                    fontSize: 13, color: 'var(--muted-foreground)',
-                    textDecoration: 'none', lineHeight: 1.4,
-                    transition: 'color 0.12s',
-                  }}
-                  onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.color = 'var(--foreground)' }}
-                  onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.color = 'var(--muted-foreground)' }}
-                >
-                  {s.label}
-                </a>
-              ))}
-            </nav>
-          )}
-
-          {/* ── Content — independently scrollable ──────────────────────── */}
-          <div style={{ flex: 1, minWidth: 0, overflowY: 'auto', padding: isMobile ? '20px 16px 80px' : '32px 40px 80px' }}>
-          <div style={{ maxWidth: 660 }}>
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const sectionContent = useMemo(() => (
+    <div style={{ maxWidth: 660 }}>
 
             {/* GETTING STARTED */}
             <Section id="getting-started" title="🧭 Getting started">
@@ -739,10 +676,63 @@ export default function HelpPage() {
               </div>
             </div>
 
-          </div>{/* maxWidth wrapper */}
-        </div>{/* content scroll area */}
-        </div>{/* two-panel row */}
-      </div>{/* full-viewport column */}
+    </div>
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  ), [])
+
+  const pillNav = (
+    <div style={{
+      display: 'flex', gap: 6, overflowX: 'auto', scrollbarWidth: 'none', flexWrap: 'nowrap',
+      padding: '10px 16px', borderBottom: '1px solid var(--border)',
+    }}>
+      {SECTIONS.map(s => (
+        <a key={s.id} href={`#${s.id}`} style={{
+          display: 'inline-flex', alignItems: 'center', whiteSpace: 'nowrap',
+          padding: '5px 12px', borderRadius: 20,
+          backgroundColor: 'var(--secondary)', color: 'var(--muted-foreground)',
+          fontSize: 12, textDecoration: 'none', flexShrink: 0, touchAction: 'manipulation',
+        }}>
+          {s.label}
+        </a>
+      ))}
+    </div>
+  )
+
+  /* ── Mobile: sticky pill nav + document scroll ── */
+  if (isMobile) return (
+    <AppLayout>
+      <div style={{ position: 'sticky', top: 0, zIndex: 30, backgroundColor: 'var(--background)' }}>
+        {pillNav}
+      </div>
+      <div style={{ padding: '20px 16px 96px' }}>
+        {sectionContent}
+      </div>
+    </AppLayout>
+  )
+
+  /* ── Desktop: two-panel fixed-height layout ── */
+  return (
+    <AppLayout>
+      <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
+        <div style={{ padding: '24px 32px 16px', flexShrink: 0, borderBottom: '1px solid var(--border)' }}>
+          <h1 style={{ fontSize: 20, fontWeight: 700, color: 'var(--foreground)', margin: 0 }}>Help &amp; features</h1>
+        </div>
+        <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
+          <nav style={{ width: 220, flexShrink: 0, borderRight: '1px solid var(--border)', padding: '24px 20px 24px 32px', overflowY: 'auto' }}>
+            <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--muted-foreground)', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 12 }}>Contents</div>
+            {SECTIONS.map(s => (
+              <a key={s.id} href={`#${s.id}`}
+                style={{ display: 'block', padding: '5px 0', fontSize: 13, color: 'var(--muted-foreground)', textDecoration: 'none', lineHeight: 1.4, transition: 'color 0.12s' }}
+                onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.color = 'var(--foreground)' }}
+                onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.color = 'var(--muted-foreground)' }}
+              >{s.label}</a>
+            ))}
+          </nav>
+          <div style={{ flex: 1, minWidth: 0, overflowY: 'auto', padding: '32px 40px 80px' }}>
+            {sectionContent}
+          </div>
+        </div>
+      </div>
     </AppLayout>
   )
 }

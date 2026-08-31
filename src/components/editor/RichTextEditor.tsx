@@ -592,7 +592,6 @@ export function RichTextEditor({
         borderBottom: '1px solid var(--border)',
         backgroundColor: 'var(--card)', position: 'sticky', top: 0, zIndex: 20,
         flexWrap: 'wrap', rowGap: 0,
-        overflowX: 'hidden',
         touchAction: 'manipulation',
       }}>
       {/* Dimmed tool area */}
