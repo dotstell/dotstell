@@ -83,13 +83,16 @@ export default function NotesLayout({ children }: { children: React.ReactNode })
           </div>
         )}
 
-        {/* Main area: tab bar (always) + page content */}
+        {/* Main area: tab bar + page content */}
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, overflow: 'hidden' }}>
-          <NoteTabBar
-            currentId={currentNoteId}
-            paneOpen={paneOpen}
-            onTogglePane={togglePane}
-          />
+          {/* Hide tab bar on mobile when inside a note — ← Notes in the editor header is sufficient */}
+          {(!isMobile || !currentNoteId) && (
+            <NoteTabBar
+              currentId={currentNoteId}
+              paneOpen={paneOpen}
+              onTogglePane={togglePane}
+            />
+          )}
           <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
             {children}
           </div>
