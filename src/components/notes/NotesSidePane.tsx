@@ -196,6 +196,8 @@ export function NotesSidePane({ width = 220, activeNoteId }: Props) {
   // Adjusted display position — starts at click coords, shifted after render to stay in viewport
   const [ctxPos, setCtxPos] = useState({ x: 0, y: 0 })
   const [nbSummaryModal, setNbSummaryModal] = useState<{ id: string; name: string } | null>(null)
+  const [deleteConfirm, setDeleteConfirm] = useState<{ id: string; label: string; onConfirm: () => Promise<void> } | null>(null)
+  const [deleteConfirmPending, setDeleteConfirmPending] = useState(false)
   const { config: aiConfig, loaded: aiLoaded } = useAISettings()
   const { summary: nbSummary, loading: nbSummaryLoading, summarize: summarizeNb, setSummary: setNbSummary } = useAISummarize(aiConfig)
 
@@ -860,7 +862,19 @@ export function NotesSidePane({ width = 220, activeNoteId }: Props) {
                   onSelect={color => { setNotebookColor(contextMenu.id, color); setContextMenu(null) }}
                 />
                 <div style={{ height: 4 }} />
-                <CtxItem icon={Trash2} label="Delete notebook" danger onClick={() => { deleteNotebook(contextMenu.id); setContextMenu(null) }} />
+                <CtxItem icon={Trash2} label="Delete notebook" danger onClick={() => {
+                  const nb = ctxNb
+                  const nbId = contextMenu.id
+                  setContextMenu(null)
+                  setDeleteConfirm({
+                    id: nbId,
+                    label: `"${nb?.name || 'Untitled'}" notebook`,
+                    onConfirm: async () => {
+                      await deleteNotebook(nbId)
+                      toast.success('Notebook deleted')
+                    },
+                  })
+                }} />
               </>
             )
           })()}
@@ -932,13 +946,24 @@ export function NotesSidePane({ width = 220, activeNoteId }: Props) {
                   )
                 })()}
                 <CtxItem icon={Copy} label="Duplicate" onClick={() => ctxNote && duplicateNote(ctxNote)} />
-                <CtxItem icon={Trash2} label="Delete note" danger onClick={async () => {
-                  const res = await fetch(`/api/notes/${contextMenu.id}`, { method: 'DELETE' })
-                  if (res.ok) {
-                    setNotes(prev => prev.filter(n => n.id !== contextMenu.id))
-                    setContextMenu(null)
-                    window.dispatchEvent(new CustomEvent('dotstell:notes-updated'))
-                  }
+                <CtxItem icon={Trash2} label="Delete note" danger onClick={() => {
+                  const note = ctxNote
+                  const noteId = contextMenu.id
+                  setContextMenu(null)
+                  setDeleteConfirm({
+                    id: noteId,
+                    label: `"${note?.title || 'Untitled'}"`,
+                    onConfirm: async () => {
+                      const res = await fetch(`/api/notes/${noteId}`, { method: 'DELETE' })
+                      if (res.ok) {
+                        setNotes(prev => prev.filter(n => n.id !== noteId))
+                        toast.success('Moved to trash')
+                        window.dispatchEvent(new CustomEvent('dotstell:notes-updated'))
+                      } else {
+                        toast.error('Failed to delete note')
+                      }
+                    },
+                  })
                 }} />
               </>
             )
@@ -1000,6 +1025,55 @@ export function NotesSidePane({ width = 220, activeNoteId }: Props) {
                 style={{ padding: '6px 14px', borderRadius: 7, border: 'none', backgroundColor: 'var(--primary)', color: 'white', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}
               >
                 Done
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete confirmation dialog */}
+      {deleteConfirm && (
+        <div
+          style={{ position: 'fixed', inset: 0, zIndex: 10001, backgroundColor: 'rgba(0,0,0,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          onClick={e => { if (e.target === e.currentTarget && !deleteConfirmPending) setDeleteConfirm(null) }}
+        >
+          <div style={{
+            width: 360, borderRadius: 14,
+            backgroundColor: 'var(--card)', border: '1px solid var(--border)',
+            boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
+            padding: '22px 22px 18px',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 14 }}>
+              <div style={{ width: 34, height: 34, borderRadius: 8, backgroundColor: 'rgba(239,68,68,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <Trash2 size={16} color="#ef4444" />
+              </div>
+              <div>
+                <p style={{ margin: 0, fontSize: 14, fontWeight: 700, color: 'var(--foreground)' }}>Delete {deleteConfirm.label}?</p>
+                <p style={{ margin: '4px 0 0', fontSize: 12, color: 'var(--muted-foreground)', lineHeight: 1.5 }}>This action cannot be undone.</p>
+              </div>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+              <button
+                type="button"
+                disabled={deleteConfirmPending}
+                onClick={() => setDeleteConfirm(null)}
+                style={{ padding: '7px 14px', borderRadius: 7, border: '1px solid var(--border)', background: 'none', color: 'var(--foreground)', fontSize: 13, cursor: 'pointer' }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={deleteConfirmPending}
+                onClick={async () => {
+                  setDeleteConfirmPending(true)
+                  try { await deleteConfirm.onConfirm() } finally {
+                    setDeleteConfirmPending(false)
+                    setDeleteConfirm(null)
+                  }
+                }}
+                style={{ padding: '7px 14px', borderRadius: 7, border: 'none', backgroundColor: '#ef4444', color: 'white', fontSize: 13, fontWeight: 600, cursor: deleteConfirmPending ? 'not-allowed' : 'pointer', opacity: deleteConfirmPending ? 0.7 : 1 }}
+              >
+                {deleteConfirmPending ? 'Deleting…' : 'Delete'}
               </button>
             </div>
           </div>
