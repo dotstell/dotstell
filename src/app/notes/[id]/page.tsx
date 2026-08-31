@@ -440,8 +440,13 @@ ${sanitizeHtmlForPrint(note.content ?? '')}
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', rowGap: 4 }}>
           {!focusMode && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'var(--muted-foreground)', flexShrink: 0 }}>
-              <Link href="/notes" style={{ color: 'var(--muted-foreground)', display: 'flex', alignItems: 'center', gap: 4, textDecoration: 'none' }}>
-                <ArrowLeft size={13} /> Notes
+              <Link href="/notes" style={{
+                display: 'flex', alignItems: 'center', gap: 4, textDecoration: 'none',
+                ...(isMobile
+                  ? { color: 'var(--foreground)', fontWeight: 600, fontSize: 14, backgroundColor: 'var(--secondary)', padding: '5px 10px 5px 8px', borderRadius: 8 }
+                  : { color: 'var(--muted-foreground)', fontSize: 13 }),
+              }}>
+                <ArrowLeft size={isMobile ? 15 : 13} /> Notes
               </Link>
               {note.parent_id && (
                 <>
@@ -1332,11 +1337,12 @@ ${sanitizeHtmlForPrint(note.content ?? '')}
       {noteId && !focusMode && !loading && (
         <div style={{
           display: 'flex', alignItems: 'center', gap: 0,
-          padding: '0 20px',
+          padding: '0 16px',
           height: 28,
           borderTop: '1px solid var(--border)',
           backgroundColor: 'color-mix(in srgb, var(--card) 80%, var(--background))',
           flexShrink: 0,
+          overflow: 'hidden',
         }}>
           {note.type === 'checklist' ? (() => {
             const done  = note.checklist_items?.filter(i => i.checked).length ?? 0
@@ -1458,7 +1464,13 @@ ${sanitizeHtmlForPrint(note.content ?? '')}
 
   return (
     <>
-      <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden', backgroundColor: 'var(--background)' }}>
+      <div style={{
+        display: 'flex', flexDirection: 'column',
+        height: isMobile ? '100dvh' : '100%',
+        paddingBottom: isMobile ? 'calc(56px + env(safe-area-inset-bottom))' : 0,
+        overflow: 'hidden',
+        backgroundColor: 'var(--background)',
+      }}>
         {editorContent}
       </div>
       {aiChatOverlay}

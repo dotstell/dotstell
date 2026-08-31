@@ -656,16 +656,19 @@ export function RichTextEditor({
             <div style={{ width: 14, height: 3, borderRadius: 2, backgroundColor: activeColor || 'var(--secondary-foreground)' }} />
           </button>
           {colorPickerOpen && (
-            <ColorPicker
-              colors={TEXT_COLORS}
-              activeValue={activeColor}
-              isMobile={isMobile}
-              onSelect={v => {
-                if (v) editor.chain().focus().setColor(v).run()
-                else editor.chain().focus().unsetColor().run()
-                setColorPickerOpen(false)
-              }}
-            />
+            <>
+              {isMobile && <div style={{ position: 'fixed', inset: 0, zIndex: 499, backgroundColor: 'rgba(0,0,0,0.35)' }} onClick={() => setColorPickerOpen(false)} />}
+              <ColorPicker
+                colors={TEXT_COLORS}
+                activeValue={activeColor}
+                isMobile={isMobile}
+                onSelect={v => {
+                  if (v) editor.chain().focus().setColor(v).run()
+                  else editor.chain().focus().unsetColor().run()
+                  setColorPickerOpen(false)
+                }}
+              />
+            </>
           )}
         </div>
 
@@ -687,16 +690,19 @@ export function RichTextEditor({
             <div style={{ width: 14, height: 3, borderRadius: 2, backgroundColor: editor.getAttributes('highlight').color || (editor.isActive('highlight') ? '#fbbf24' : 'var(--secondary-foreground)') }} />
           </button>
           {hlPickerOpen && (
-            <HighlightPicker
-              colors={HIGHLIGHT_COLORS}
-              editor={editor}
-              isMobile={isMobile}
-              onSelect={v => {
-                if (v) editor.chain().focus().setHighlight({ color: v }).run()
-                else editor.chain().focus().unsetHighlight().run()
-                setHlPickerOpen(false)
-              }}
-            />
+            <>
+              {isMobile && <div style={{ position: 'fixed', inset: 0, zIndex: 499, backgroundColor: 'rgba(0,0,0,0.35)' }} onClick={() => setHlPickerOpen(false)} />}
+              <HighlightPicker
+                colors={HIGHLIGHT_COLORS}
+                editor={editor}
+                isMobile={isMobile}
+                onSelect={v => {
+                  if (v) editor.chain().focus().setHighlight({ color: v }).run()
+                  else editor.chain().focus().unsetHighlight().run()
+                  setHlPickerOpen(false)
+                }}
+              />
+            </>
           )}
         </div>
 
@@ -1358,7 +1364,7 @@ function ColorPicker({ colors, activeValue, onSelect, isMobile }: {
   const isCustomActive = activeValue !== '' && !colors.some(c => c.value === activeValue)
 
   const posStyle: React.CSSProperties = isMobile
-    ? { position: 'fixed', bottom: 70, left: '50%', transform: 'translateX(-50%)', zIndex: 500 }
+    ? { position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', zIndex: 500 }
     : { position: 'absolute', top: '100%', left: 0, zIndex: 200, marginTop: 4 }
 
   return (
@@ -1454,7 +1460,7 @@ function HighlightPicker({ colors, editor, onSelect, isMobile }: {
   isMobile?: boolean
 }) {
   const posStyle: React.CSSProperties = isMobile
-    ? { position: 'fixed', bottom: 70, left: '50%', transform: 'translateX(-50%)', zIndex: 500 }
+    ? { position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', zIndex: 500 }
     : { position: 'absolute', top: '100%', left: 0, zIndex: 200, marginTop: 4 }
 
   return (
