@@ -136,7 +136,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const marginLeft = isMobile ? 0 : collapsed ? 64 : 240
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', backgroundColor: 'var(--background)' }}>
+    <div style={{ display: 'flex', height: '100dvh', backgroundColor: 'var(--background)' }}>
       <Sidebar onOpenPalette={() => setPaletteOpen(true)} />
       <main className="app-main" style={{
         flex: 1,

@@ -1467,8 +1467,7 @@ ${sanitizeHtmlForPrint(note.content ?? '')}
     <>
       <div style={{
         display: 'flex', flexDirection: 'column',
-        height: isMobile ? '100dvh' : '100%',
-        paddingBottom: isMobile ? 'calc(56px + env(safe-area-inset-bottom))' : 0,
+        height: '100%',
         overflow: 'hidden',
         backgroundColor: 'var(--background)',
       }}>
