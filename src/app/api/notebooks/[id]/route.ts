@@ -65,18 +65,18 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
 
   const updates: Promise<unknown>[] = []
   for (const note of (activeNotes ?? [])) {
-    updates.push(
+    updates.push(Promise.resolve(
       supabase.from('notes')
         .update({ deleted_at: now, tags: (note.tags as string[]).filter(t => t !== tag) })
         .eq('id', note.id).eq('user_id', user.id)
-    )
+    ))
   }
   for (const note of (trashedNotes ?? [])) {
-    updates.push(
+    updates.push(Promise.resolve(
       supabase.from('notes')
         .update({ tags: (note.tags as string[]).filter(t => t !== tag) })
         .eq('id', note.id).eq('user_id', user.id)
-    )
+    ))
   }
   if (updates.length > 0) await Promise.all(updates)
 
