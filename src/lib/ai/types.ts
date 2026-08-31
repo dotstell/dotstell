@@ -80,6 +80,7 @@ export type AssistOperation =
   | 'outline'
   | 'checklist'
   | 'explain'
+  | 'continue'
 
 export const ASSIST_LABELS: Record<AssistOperation, string> = {
   rewrite:   'Rewrite',
@@ -89,4 +90,5 @@ export const ASSIST_LABELS: Record<AssistOperation, string> = {
   outline:   'Make outline',
   checklist: 'Extract tasks',
   explain:   'Explain',
+  continue:  'Continue writing',
 }

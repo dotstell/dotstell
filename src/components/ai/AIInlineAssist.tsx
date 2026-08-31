@@ -1,159 +1,225 @@
 'use client'
-import { useState, useEffect, useRef, useCallback } from 'react'
-import { X, Loader2, Check, RefreshCw, Wand2 } from 'lucide-react'
-import { AIConfig, AssistOperation, ASSIST_LABELS } from '@/lib/ai/types'
+import { useState, useEffect, useRef } from 'react'
+import { marked } from 'marked'
+import { Loader2, RotateCcw, Check, X, Sparkles } from 'lucide-react'
+import { AIConfig, AssistOperation } from '@/lib/ai/types'
 import { useAIAssist } from '@/hooks/useAI'
-import { MarkdownContent } from '@/components/ui/MarkdownContent'
 
-interface AIInlineAssistProps {
-  config:      AIConfig
-  selectedText: string
-  noteContext?: string  // full note content for 'explain' operation context
-  anchorRect:  DOMRect // bounding rect of the selection — toolbar positioned relative to this
-  onApply:     (text: string) => void
-  onClose:     () => void
+interface Props {
+  config: AIConfig
+  selectedText: string     // empty when from === to (continue writing mode)
+  noteContext: string
+  anchorRect: DOMRect
+  from: number
+  to: number               // equals from when no selection (continue mode)
+  onReplace: (html: string) => void
+  onInsertAfter: (html: string) => void
+  onClose: () => void
 }
 
-// Operation groups shown in the toolbar — ordered for visual grouping
-const OP_GROUPS: AssistOperation[][] = [
-  ['fix', 'rewrite'],
-  ['expand', 'shorten'],
-  ['outline', 'checklist'],
-  ['explain'],
-]
+const REPLACE_OPS = new Set<AssistOperation>(['rewrite', 'expand', 'shorten', 'fix', 'outline', 'checklist'])
 
-export function AIInlineAssist({ config, selectedText, noteContext, anchorRect, onApply, onClose }: AIInlineAssistProps) {
-  const [phase,     setPhase]     = useState<'menu' | 'result'>('menu')
-  const [operation, setOperation] = useState<AssistOperation | null>(null)
-  const { result, streaming, error, assist, cancel } = useAIAssist(config)
+const SELECTION_OPS: AssistOperation[] = ['rewrite', 'expand', 'shorten', 'fix', 'outline', 'checklist', 'explain']
+
+const OP_META: Record<AssistOperation, { icon: string; label: string }> = {
+  rewrite:   { icon: '✏️', label: 'Rewrite' },
+  expand:    { icon: '📝', label: 'Expand' },
+  shorten:   { icon: '✂️', label: 'Shorten' },
+  fix:       { icon: '🔧', label: 'Fix grammar' },
+  outline:   { icon: '📋', label: 'Make outline' },
+  checklist: { icon: '☑️', label: 'Extract tasks' },
+  explain:   { icon: '💡', label: 'Explain' },
+  continue:  { icon: '➡️', label: 'Continue writing' },
+}
+
+const PANEL_W = 340
+const PANEL_H = 300
+
+export function AIInlineAssist({
+  config, selectedText, noteContext, anchorRect, from, to,
+  onReplace, onInsertAfter, onClose,
+}: Props) {
+  const isContinue = from === to
+  const [activeOp, setActiveOp] = useState<AssistOperation | null>(null)
   const panelRef = useRef<HTMLDivElement>(null)
+  const startedRef = useRef(false)
+  const { result, streaming, error, assist, cancel } = useAIAssist(config)
 
-  // Reposition panel above/below the selection based on available viewport space
-  const top  = anchorRect.bottom + window.scrollY + 6
-  const left = Math.max(8, Math.min(anchorRect.left + window.scrollX, window.innerWidth - 360))
+  const top = anchorRect.top > PANEL_H + 20
+    ? anchorRect.top - PANEL_H - 10
+    : anchorRect.bottom + 10
+  const left = Math.max(12, Math.min(
+    anchorRect.left + anchorRect.width / 2 - PANEL_W / 2,
+    window.innerWidth - PANEL_W - 12,
+  ))
 
-  // Close on outside click
+  // Close on Escape and outside click
   useEffect(() => {
-    function handle(e: MouseEvent) {
-      if (panelRef.current && !panelRef.current.contains(e.target as Node)) onClose()
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') { cancel(); onClose() } }
+    const onDown = (e: MouseEvent) => {
+      if (panelRef.current && !panelRef.current.contains(e.target as Node)) { cancel(); onClose() }
     }
-    document.addEventListener('mousedown', handle)
-    return () => document.removeEventListener('mousedown', handle)
-  }, [onClose])
-
-  // Close on Escape
-  useEffect(() => {
-    function handle(e: KeyboardEvent) { if (e.key === 'Escape') { cancel(); onClose() } }
-    window.addEventListener('keydown', handle)
-    return () => window.removeEventListener('keydown', handle)
+    document.addEventListener('keydown', onKey)
+    document.addEventListener('mousedown', onDown)
+    return () => {
+      document.removeEventListener('keydown', onKey)
+      document.removeEventListener('mousedown', onDown)
+    }
   }, [cancel, onClose])
 
-  async function run(op: AssistOperation) {
-    setOperation(op)
-    setPhase('result')
-    await assist(op, selectedText, noteContext)
+  // Auto-start continue writing when Ctrl+Space fired without selection
+  useEffect(() => {
+    if (isContinue && !startedRef.current) {
+      startedRef.current = true
+      setActiveOp('continue')
+      assist('continue', selectedText, noteContext)
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  function runOp(op: AssistOperation) {
+    setActiveOp(op)
+    assist(op, selectedText, noteContext)
   }
 
-  function handleApply() {
-    if (result) { onApply(result); onClose() }
+  async function handleApply() {
+    if (!result || !activeOp) return
+    const html = await marked(result, { gfm: true, breaks: true }) as string
+    if (REPLACE_OPS.has(activeOp)) onReplace(html)
+    else onInsertAfter(html)
+    onClose()
   }
 
-  function handleRetry() {
-    if (operation) run(operation)
-  }
-
-  if (phase === 'menu') {
-    return (
-      <div
-        ref={panelRef}
-        style={{
-          position:        'fixed', zIndex: 9999,
-          top:             top, left: left,
-          backgroundColor: 'var(--card)', border: '1px solid var(--border)',
-          borderRadius:    10, boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
-          padding:         '6px', display: 'flex', flexWrap: 'wrap', gap: 4,
-          maxWidth:        352,
-        }}
-      >
-        {OP_GROUPS.flat().map(op => (
-          <button
-            key={op}
-            type="button"
-            onClick={() => run(op)}
-            style={{
-              padding:         '5px 10px', borderRadius: 6, border: '1px solid var(--border)',
-              backgroundColor: 'var(--muted)', color: 'var(--foreground)',
-              fontSize: 12, cursor: 'pointer', fontWeight: 500,
-              transition: 'all 0.12s',
-            }}
-            onMouseEnter={e => { e.currentTarget.style.backgroundColor = 'var(--accent)'; e.currentTarget.style.borderColor = 'var(--primary)' }}
-            onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'var(--muted)';  e.currentTarget.style.borderColor = 'var(--border)' }}
-          >
-            {ASSIST_LABELS[op]}
-          </button>
-        ))}
-      </div>
-    )
-  }
-
-  // Result phase: show streaming output + apply/retry/cancel controls
   return (
     <div
       ref={panelRef}
       style={{
-        position: 'fixed', zIndex: 9999,
-        top: top, left: left,
+        position: 'fixed', top, left, width: PANEL_W, zIndex: 9500,
         backgroundColor: 'var(--card)', border: '1px solid var(--border)',
-        borderRadius: 12, boxShadow: '0 12px 40px rgba(0,0,0,0.5)',
-        width: 340, padding: '12px',
+        borderRadius: 14, boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
+        display: 'flex', flexDirection: 'column', overflow: 'hidden',
+        maxHeight: PANEL_H + 60,
       }}
     >
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-        <p style={{ margin: 0, fontSize: 11, fontWeight: 700, color: 'var(--muted-foreground)', textTransform: 'uppercase', letterSpacing: '0.07em', display: 'flex', alignItems: 'center', gap: 4 }}>
-          <Wand2 size={11} /> {operation ? ASSIST_LABELS[operation] : 'AI Assist'}
-        </p>
-        <div style={{ display: 'flex', gap: 4 }}>
-          {!streaming && result && (
-            <button type="button" onClick={handleRetry} title="Regenerate" style={iconBtn}>
-              <RefreshCw size={12} />
-            </button>
-          )}
-          <button type="button" onClick={() => { cancel(); onClose() }} style={iconBtn}><X size={12} /></button>
-        </div>
-      </div>
-
-      {/* Result text */}
+      {/* Header */}
       <div style={{
-        minHeight: 48, maxHeight: 240, overflowY: 'auto',
-        padding: '8px 10px', borderRadius: 8, backgroundColor: 'var(--muted)',
-        border: '1px solid var(--border)', fontSize: 13, lineHeight: 1.5,
-        color: 'var(--foreground)', wordBreak: 'break-word', marginBottom: 8,
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        padding: '10px 14px', borderBottom: '1px solid var(--border)', flexShrink: 0,
       }}>
-        {result
-          ? <MarkdownContent compact>{result}</MarkdownContent>
-          : (streaming && <Loader2 size={13} color="var(--muted-foreground)" style={{ animation: 'spin 1s linear infinite' }} />)
-        }
+        <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+          <Sparkles size={13} color="var(--primary)" />
+          <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--foreground)' }}>
+            {activeOp ? OP_META[activeOp].label : 'AI Assist'}
+          </span>
+          {streaming && (
+            <Loader2 size={12} color="var(--muted-foreground)" style={{ animation: 'spin 1s linear infinite' }} />
+          )}
+        </div>
+        <button
+          type="button"
+          onClick={() => { cancel(); onClose() }}
+          style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted-foreground)', padding: 2, display: 'flex' }}
+        >
+          <X size={14} />
+        </button>
       </div>
 
-      {error && (
-        <div style={{ padding: '6px 10px', borderRadius: 6, marginBottom: 8, fontSize: 11, color: '#f87171', backgroundColor: 'rgba(248,113,113,0.1)', border: '1px solid rgba(248,113,113,0.3)' }}>
-          {error}
+      {/* Operation picker — shown when no operation is active */}
+      {!activeOp && (
+        <div style={{ padding: 10, display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+          {SELECTION_OPS.map(op => (
+            <button
+              key={op}
+              type="button"
+              onClick={() => runOp(op)}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 5,
+                padding: '6px 11px', borderRadius: 8,
+                border: '1px solid var(--border)', background: 'var(--muted)',
+                color: 'var(--foreground)', fontSize: 12, cursor: 'pointer', fontWeight: 500,
+                transition: 'all 0.1s',
+              }}
+              onMouseEnter={e => {
+                e.currentTarget.style.background = 'color-mix(in srgb, var(--primary) 12%, transparent)'
+                e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--primary) 35%, transparent)'
+                e.currentTarget.style.color = 'var(--primary)'
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.background = 'var(--muted)'
+                e.currentTarget.style.borderColor = 'var(--border)'
+                e.currentTarget.style.color = 'var(--foreground)'
+              }}
+            >
+              <span role="img" aria-hidden>{OP_META[op].icon}</span>
+              {OP_META[op].label}
+            </button>
+          ))}
         </div>
       )}
 
-      <div style={{ display: 'flex', gap: 6 }}>
-        <button type="button" onClick={() => { setPhase('menu'); setOperation(null) }} style={{ flex: 1, padding: '7px', borderRadius: 7, border: '1px solid var(--border)', backgroundColor: 'transparent', color: 'var(--foreground)', fontSize: 12, cursor: 'pointer' }}>
-          Back
-        </button>
-        <button type="button" onClick={handleApply} disabled={!result || streaming} style={{ flex: 2, padding: '7px', borderRadius: 7, border: 'none', backgroundColor: result && !streaming ? 'var(--primary)' : 'var(--muted)', color: result && !streaming ? 'white' : 'var(--muted-foreground)', fontSize: 12, cursor: result && !streaming ? 'pointer' : 'default', fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
-          {streaming ? <><Loader2 size={11} style={{ animation: 'spin 1s linear infinite' }} /> Writing…</> : <><Check size={11} /> Replace selection</>}
-        </button>
-      </div>
+      {/* Streaming result */}
+      {activeOp && (
+        <>
+          <div style={{ flex: 1, overflowY: 'auto', padding: '10px 14px', minHeight: 80, maxHeight: 200 }}>
+            {result ? (
+              <p style={{ margin: 0, fontSize: 13, color: 'var(--foreground)', lineHeight: 1.65, whiteSpace: 'pre-wrap' }}>
+                {result}
+              </p>
+            ) : !error ? (
+              <p style={{ margin: 0, fontSize: 13, color: 'var(--muted-foreground)', fontStyle: 'italic' }}>
+                Generating…
+              </p>
+            ) : null}
+            {error && (
+              <p style={{ margin: 0, fontSize: 12, color: '#ef4444' }}>{error}</p>
+            )}
+          </div>
+
+          {/* Action bar */}
+          <div style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            padding: '8px 12px', borderTop: '1px solid var(--border)', flexShrink: 0,
+          }}>
+            {!isContinue ? (
+              <button
+                type="button"
+                onClick={() => { cancel(); setActiveOp(null) }}
+                style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '5px 10px', borderRadius: 7, border: 'none', background: 'none', color: 'var(--muted-foreground)', fontSize: 12, cursor: 'pointer' }}
+                onMouseEnter={e => { e.currentTarget.style.background = 'var(--accent)'; e.currentTarget.style.color = 'var(--foreground)' }}
+                onMouseLeave={e => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = 'var(--muted-foreground)' }}
+              >
+                <RotateCcw size={11} /> Try another
+              </button>
+            ) : <div />}
+            <div style={{ display: 'flex', gap: 6 }}>
+              <button
+                type="button"
+                onClick={() => { cancel(); onClose() }}
+                style={{ padding: '5px 12px', borderRadius: 7, border: '1px solid var(--border)', background: 'none', color: 'var(--foreground)', fontSize: 12, cursor: 'pointer' }}
+              >
+                Discard
+              </button>
+              <button
+                type="button"
+                onClick={() => { handleApply() }}
+                disabled={streaming || !result}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 5,
+                  padding: '5px 12px', borderRadius: 7, border: 'none',
+                  backgroundColor: !result || streaming ? 'var(--muted)' : 'var(--primary)',
+                  color: !result || streaming ? 'var(--muted-foreground)' : 'white',
+                  fontSize: 12, fontWeight: 600,
+                  cursor: !result || streaming ? 'not-allowed' : 'pointer',
+                  opacity: !result || streaming ? 0.7 : 1,
+                }}
+              >
+                <Check size={11} />
+                {streaming ? 'Generating…' : activeOp && REPLACE_OPS.has(activeOp) ? 'Replace' : 'Insert'}
+              </button>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   )
-}
-
-const iconBtn: React.CSSProperties = {
-  background: 'none', border: 'none', cursor: 'pointer',
-  color: 'var(--muted-foreground)', padding: 4, borderRadius: 5, display: 'flex',
 }

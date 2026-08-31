@@ -260,6 +260,8 @@ export function RichTextEditor({
   // Ref keeps onEditorReady stable so the effect below never re-runs due to prop identity changes
   const onEditorReadyRef = useRef(onEditorReady)
   useEffect(() => { onEditorReadyRef.current = onEditorReady }, [onEditorReady])
+  const onAIAssistRef = useRef(onAIAssist)
+  useEffect(() => { onAIAssistRef.current = onAIAssist }, [onAIAssist])
   // Cancel any pending wiki search timer when the component unmounts to avoid
   // calling setWikiResults on an unmounted component.
   useEffect(() => () => { if (wikiSearchTimer.current) clearTimeout(wikiSearchTimer.current) }, [])
@@ -302,6 +304,14 @@ export function RichTextEditor({
     content,
     editorProps: {
       attributes: { class: 'tiptap-editor' },
+      handleKeyDown: (_view, event) => {
+        if (event.ctrlKey && event.code === 'Space') {
+          event.preventDefault()
+          onAIAssistRef.current?.()
+          return true
+        }
+        return false
+      },
       handlePaste: (_view, event) => {
         if (pasteModeRef.current === 'plain') {
           const text = event.clipboardData?.getData('text/plain') ?? ''

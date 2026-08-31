@@ -407,6 +407,9 @@ export default function HelpPage() {
               <Tip icon="🌐" title="Graph intelligence"
                 body="The Graph page AI panel (click the AI button in the toolbar) provides three analyses: Missing links surfaces highly similar unlinked note pairs; Note clusters groups orphaned notes by topic; Gap detection finds note pairs sharing many neighbours but no direct bridge — a candidate for a new connecting note."
               />
+              <Tip icon="✨" title="AI Inline Assist — Ctrl+Space"
+                body={<>Inside the note editor, press <Keys keys={['Ctrl', 'Space']} /> to trigger inline AI. <strong>With text selected</strong>: a floating panel appears with seven actions — Rewrite, Expand, Shorten, Fix grammar, Make outline, Extract tasks, and Explain. The result streams live; click <em>Replace</em> to swap the selection or <em>Insert</em> to add the result after it. <strong>Without a selection</strong>: AI reads the text before your cursor and continues writing in the same style. You can also click the <strong>✨ AI Assist</strong> bubble that appears above any selection.</>}
+              />
               <Tip icon="✍️" title="AI Writing Assistant"
                 body={<>Click the <strong>AI Write</strong> button (pen icon) in the note toolbar to open the Writing Assistant panel. On an <strong>empty note</strong>, choose from eight starter templates — Outline, Meeting notes, Daily log, Research note, OoO email, Proposal, Status update, or Email draft — or describe your intent in the custom field. On a <strong>note with existing content</strong>, pick an improve action: Improve English, Make formal, Make concise, Expand, or Full rewrite. Results stream live; choose to <em>append</em> to the note or <em>replace</em> all content. When a note is blank, quick-pick chips also appear inline so you can start without opening the panel.</>}
               />
@@ -471,6 +474,7 @@ export default function HelpPage() {
                   { keys: ['G', 'H'],      desc: 'Go to Help' },
                 ]},
                 { category: 'Note editor', rows: [
+                  { keys: ['Ctrl', 'Space'],       desc: 'AI Inline Assist — rewrite / expand / continue writing' },
                   { keys: ['Ctrl', 'Shift', ','],  desc: 'Open AI Settings' },
                   { keys: ['/'],                   desc: 'Open slash command menu' },
                   { keys: ['[['],                  desc: 'Insert a wikilink' },

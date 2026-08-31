@@ -63,8 +63,8 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
   const { config: aiConfig, isConfigured: aiConfigured } = useAISettings()
   const [chatOpen,        setChatOpen]        = useState(false)
   const [aiSettingsOpen,  setAISettingsOpen]  = useState(false)
-  // Inline assist state: set when the user triggers AI on a text selection
-  const [aiAssist, setAIAssist] = useState<{ text: string; rect: DOMRect } | null>(null)
+  // Inline assist: set on text selection (AI Assist bubble) or Ctrl+Space (continue writing)
+  const [aiAssist, setAIAssist] = useState<{ text: string; rect: DOMRect; from: number; to: number } | null>(null)
   // AI Writing panel
   const [writingOpen,   setWritingOpen]   = useState(false)
   const [writingFormat, setWritingFormat] = useState<'outline' | 'meeting' | 'daily' | 'research' | 'ooo' | 'proposal' | 'status' | 'email' | undefined>(undefined)
@@ -852,12 +852,21 @@ ${sanitizeHtmlForPrint(note.content ?? '')}
                   const editor = editorRef.current
                   if (!editor) return
                   const { from, to } = editor.state.selection
-                  if (from === to) return
-                  const text = editor.state.doc.textBetween(from, to, ' ').trim()
-                  if (!text) return
-                  const sel = window.getSelection()
-                  const rect = sel?.rangeCount ? sel.getRangeAt(0).getBoundingClientRect() : null
-                  if (rect) setAIAssist({ text, rect })
+                  if (from !== to) {
+                    // Text selected → show full operation menu
+                    const text = editor.state.doc.textBetween(from, to, ' ').trim()
+                    if (!text) return
+                    const sel = window.getSelection()
+                    const rect = sel?.rangeCount ? sel.getRangeAt(0).getBoundingClientRect() : null
+                    if (rect) setAIAssist({ text, rect, from, to })
+                  } else {
+                    // No selection (Ctrl+Space) → continue writing from cursor
+                    const textBefore = editor.state.doc.textBetween(0, from, ' ').slice(-2000).trim()
+                    if (!textBefore) return
+                    const coords = editor.view.coordsAtPos(from)
+                    const rect = new DOMRect(coords.left, coords.top, 0, coords.bottom - coords.top)
+                    setAIAssist({ text: textBefore, rect, from, to })
+                  }
                 } : undefined}
               />
 
@@ -1221,9 +1230,15 @@ ${sanitizeHtmlForPrint(note.content ?? '')}
           selectedText={aiAssist.text}
           noteContext={editorText}
           anchorRect={aiAssist.rect}
-          onApply={newText => {
+          from={aiAssist.from}
+          to={aiAssist.to}
+          onReplace={html => {
             const editor = editorRef.current
-            if (editor) editor.chain().focus().insertContent(newText).run()
+            if (editor) editor.chain().focus().insertContentAt({ from: aiAssist.from, to: aiAssist.to }, html).run()
+          }}
+          onInsertAfter={html => {
+            const editor = editorRef.current
+            if (editor) editor.chain().focus().insertContentAt(aiAssist.to, html).run()
           }}
           onClose={() => setAIAssist(null)}
         />

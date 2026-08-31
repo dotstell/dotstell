@@ -45,6 +45,7 @@ export async function POST(req: NextRequest) {
     outline:   `You are a writing assistant. Convert the text into a structured outline using markdown headings and bullet points. ${BASE}`,
     checklist: `You are a writing assistant. Extract every action item, task, or to-do as a markdown checklist (- [ ] item). One item per line. ${BASE}`,
     explain:   `You are a knowledgeable assistant. Explain the selected text clearly and concisely in 2–4 sentences. Use the user's note context when relevant. ${BASE}`,
+    continue:  `You are a writing assistant. Continue writing from exactly where the provided text ends, maintaining the same style, tone, voice, and format. Write naturally as if you are the author. Do not repeat or summarise the existing text — only add what comes next. ${BASE}`,
   }
 
   const messages: AIMessage[] = [
