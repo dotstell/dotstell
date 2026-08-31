@@ -835,7 +835,7 @@ ${sanitizeHtmlForPrint(note.content ?? '')}
       <div style={{ flex: 1, display: 'flex', minHeight: 0 }}>
 
         {/* Editor — checklist or rich text depending on note type */}
-        <div style={{ flex: 1, minWidth: 0, overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
+        <div style={{ flex: 1, minWidth: 0, overflowY: 'auto', display: 'flex', flexDirection: 'column', overscrollBehavior: 'contain' }}>
           {note.type === 'checklist' ? (
             <div style={{ flex: 1, padding: '24px 40px', maxWidth: 680, margin: '0 auto', width: '100%', boxSizing: 'border-box' }}>
               {/* Progress bar */}
@@ -1467,7 +1467,8 @@ ${sanitizeHtmlForPrint(note.content ?? '')}
     <>
       <div style={{
         display: 'flex', flexDirection: 'column',
-        height: '100%',
+        flex: 1,
+        minHeight: 0,
         overflow: 'hidden',
         backgroundColor: 'var(--background)',
       }}>
