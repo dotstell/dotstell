@@ -239,9 +239,10 @@ export function RichTextEditor({
   const [slashIdx,        setSlashIdx]        = useState(0)
   const [linkDialogOpen,  setLinkDialogOpen]  = useState(false)
   const [linkUrl,         setLinkUrl]         = useState('')
-  const [colorPickerOpen, setColorPickerOpen] = useState(false)
-  const [hlPickerOpen,    setHlPickerOpen]    = useState(false)
-  const [fontMenuOpen,    setFontMenuOpen]    = useState(false)
+  const [colorPickerOpen,  setColorPickerOpen]  = useState(false)
+  const [hlPickerOpen,     setHlPickerOpen]     = useState(false)
+  const [fontMenuOpen,     setFontMenuOpen]     = useState(false)
+  const [headingMenuOpen,  setHeadingMenuOpen]  = useState(false)
   const [imageDialogOpen, setImageDialogOpen] = useState(false)
   const [imageUrl,        setImageUrl]        = useState('')
   // Source mode (raw markdown)
@@ -273,9 +274,10 @@ export function RichTextEditor({
   // Cancel any pending wiki search timer when the component unmounts to avoid
   // calling setWikiResults on an unmounted component.
   useEffect(() => () => { if (wikiSearchTimer.current) clearTimeout(wikiSearchTimer.current) }, [])
-  const colorRef  = useRef<HTMLDivElement>(null)
-  const hlRef     = useRef<HTMLDivElement>(null)
-  const fontRef   = useRef<HTMLDivElement>(null)
+  const colorRef   = useRef<HTMLDivElement>(null)
+  const hlRef      = useRef<HTMLDivElement>(null)
+  const fontRef    = useRef<HTMLDivElement>(null)
+  const headingRef = useRef<HTMLDivElement>(null)
 
   const editor = useEditor({
     immediatelyRender: true,
@@ -451,13 +453,14 @@ export function RichTextEditor({
   // Close floating menus on outside click
   useEffect(() => {
     function handleClick(e: MouseEvent) {
-      if (colorPickerOpen && colorRef.current && !colorRef.current.contains(e.target as Node)) setColorPickerOpen(false)
-      if (hlPickerOpen    && hlRef.current    && !hlRef.current.contains(e.target as Node))    setHlPickerOpen(false)
-      if (fontMenuOpen    && fontRef.current  && !fontRef.current.contains(e.target as Node))  setFontMenuOpen(false)
+      if (colorPickerOpen  && colorRef.current   && !colorRef.current.contains(e.target as Node))   setColorPickerOpen(false)
+      if (hlPickerOpen     && hlRef.current      && !hlRef.current.contains(e.target as Node))      setHlPickerOpen(false)
+      if (fontMenuOpen     && fontRef.current    && !fontRef.current.contains(e.target as Node))    setFontMenuOpen(false)
+      if (headingMenuOpen  && headingRef.current && !headingRef.current.contains(e.target as Node)) setHeadingMenuOpen(false)
     }
     document.addEventListener('mousedown', handleClick)
     return () => document.removeEventListener('mousedown', handleClick)
-  }, [colorPickerOpen, hlPickerOpen, fontMenuOpen])
+  }, [colorPickerOpen, hlPickerOpen, fontMenuOpen, headingMenuOpen])
 
   // Sync external content
   useEffect(() => {
@@ -616,8 +619,10 @@ export function RichTextEditor({
         <Divider />
 
         {/* Heading + font */}
-        <HeadingDropdown editor={editor} />
-        <FontDropdown editor={editor} open={fontMenuOpen} setOpen={setFontMenuOpen} ref={fontRef} />
+        <HeadingDropdown editor={editor} ref={headingRef} open={headingMenuOpen} isMobile={isMobile}
+          setOpen={v => { if (v) { setFontMenuOpen(false); setColorPickerOpen(false); setHlPickerOpen(false) } setHeadingMenuOpen(v) }} />
+        <FontDropdown editor={editor} open={fontMenuOpen} ref={fontRef} isMobile={isMobile}
+          setOpen={v => { if (v) { setHeadingMenuOpen(false); setColorPickerOpen(false); setHlPickerOpen(false) } setFontMenuOpen(v) }} />
 
         <Divider />
 
@@ -639,7 +644,7 @@ export function RichTextEditor({
           <button
             type="button"
             title="Text color"
-            onClick={() => { setColorPickerOpen(o => !o); setHlPickerOpen(false) }}
+            onClick={() => { setColorPickerOpen(o => !o); setHlPickerOpen(false); setFontMenuOpen(false); setHeadingMenuOpen(false) }}
             style={{
               width: 28, height: 28, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
               gap: 1, borderRadius: 6, border: 'none', cursor: 'pointer', backgroundColor: 'transparent',
@@ -669,7 +674,7 @@ export function RichTextEditor({
           <button
             type="button"
             title="Highlight color"
-            onClick={() => { setHlPickerOpen(o => !o); setColorPickerOpen(false) }}
+            onClick={() => { setHlPickerOpen(o => !o); setColorPickerOpen(false); setFontMenuOpen(false); setHeadingMenuOpen(false) }}
             style={{
               width: 28, height: 28, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
               gap: 1, borderRadius: 6, border: 'none', cursor: 'pointer',
@@ -1115,33 +1120,37 @@ function FloatingDialog({ title, icon, children, onClose }: {
   )
 }
 
-function HeadingDropdown({ editor }: { editor: ReturnType<typeof useEditor> }) {
-  const [open, setOpen] = useState(false)
-  if (!editor) return null
+function HeadingDropdown({ editor, open, setOpen, isMobile, ref }: {
+  editor: ReturnType<typeof useEditor>; open: boolean; setOpen: (v: boolean) => void; isMobile: boolean; ref: React.RefObject<HTMLDivElement | null>
+}) {
+  const btnRef = useRef<HTMLButtonElement>(null)
+  const [rect, setRect] = useState<DOMRect | null>(null)
+  useEffect(() => { if (open && btnRef.current) setRect(btnRef.current.getBoundingClientRect()) }, [open])
 
+  if (!editor) return null
   const current = editor.isActive('heading', { level: 1 }) ? 'Heading 1'
     : editor.isActive('heading', { level: 2 }) ? 'Heading 2'
     : editor.isActive('heading', { level: 3 }) ? 'Heading 3'
     : 'Normal'
+  const panelStyle: React.CSSProperties = isMobile && rect
+    ? { position: 'fixed', top: rect.bottom + 4, left: rect.left, zIndex: 200 }
+    : { position: 'absolute', top: '100%', left: 0, zIndex: 200, marginTop: 4 }
 
   return (
-    <div style={{ position: 'relative' }}>
-      <button
-        type="button"
-        onClick={() => setOpen(o => !o)}
+    <div ref={ref} style={{ position: 'relative' }}>
+      <button ref={btnRef} type="button" onClick={() => setOpen(!open)}
         style={{
           display: 'flex', alignItems: 'center', gap: 4,
           padding: '4px 8px', borderRadius: 6, border: '1px solid var(--border)',
           backgroundColor: 'transparent', color: 'var(--secondary-foreground)', fontSize: 12,
-          cursor: 'pointer', minWidth: 82, whiteSpace: 'nowrap',
-          touchAction: 'manipulation',
+          cursor: 'pointer', minWidth: 82, whiteSpace: 'nowrap', touchAction: 'manipulation',
         }}
       >
         {current} <ChevronDown size={11} />
       </button>
       {open && (
         <div style={{
-          position: 'absolute', top: '100%', left: 0, zIndex: 200, marginTop: 4,
+          ...panelStyle,
           backgroundColor: 'var(--card)', border: '1px solid var(--border)',
           borderRadius: 10, padding: 4, minWidth: 140,
           boxShadow: '0 8px 28px rgba(0,0,0,0.5)',
@@ -1152,11 +1161,8 @@ function HeadingDropdown({ editor }: { editor: ReturnType<typeof useEditor> }) {
             { label: 'Heading 2', fs: 16, fw: 700, action: () => editor.chain().focus().toggleHeading({ level: 2 }).run() },
             { label: 'Heading 3', fs: 14, fw: 600, action: () => editor.chain().focus().toggleHeading({ level: 3 }).run() },
           ].map(item => (
-            <button key={item.label} type="button" onClick={() => { item.action(); setOpen(false) }} style={{
-              width: '100%', padding: '7px 10px', borderRadius: 7, border: 'none',
-              backgroundColor: 'transparent', color: 'var(--foreground)', cursor: 'pointer',
-              textAlign: 'left', fontSize: item.fs, fontWeight: item.fw,
-            }}
+            <button key={item.label} type="button" onClick={() => { item.action(); setOpen(false) }}
+              style={{ width: '100%', padding: '7px 10px', borderRadius: 7, border: 'none', backgroundColor: 'transparent', color: 'var(--foreground)', cursor: 'pointer', textAlign: 'left', fontSize: item.fs, fontWeight: item.fw }}
               onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'color-mix(in srgb, var(--primary) 10%, transparent)')}
               onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
             >{item.label}</button>
@@ -1167,21 +1173,25 @@ function HeadingDropdown({ editor }: { editor: ReturnType<typeof useEditor> }) {
   )
 }
 
-function FontDropdown({ editor, open, setOpen, ref }: {
-  editor: ReturnType<typeof useEditor>; open: boolean; setOpen: (v: boolean) => void; ref: React.RefObject<HTMLDivElement | null>
+function FontDropdown({ editor, open, setOpen, ref, isMobile }: {
+  editor: ReturnType<typeof useEditor>; open: boolean; setOpen: (v: boolean) => void; ref: React.RefObject<HTMLDivElement | null>; isMobile: boolean
 }) {
+  const btnRef = useRef<HTMLButtonElement>(null)
+  const [rect, setRect] = useState<DOMRect | null>(null)
+  useEffect(() => { if (open && btnRef.current) setRect(btnRef.current.getBoundingClientRect()) }, [open])
+
   if (!editor) return null
   const currentFont  = editor.getAttributes('textStyle').fontFamily ?? ''
   const currentEntry = FONT_FAMILIES_FLAT.find(f => f.value === currentFont)
   const currentLabel = currentEntry?.label ?? 'Font'
-
-  const GROUP_ICONS: Record<string, string> = {
-    System: '🔡', Serif: '📖', Monospace: '💻', Handwritten: '✍️',
-  }
+  const GROUP_ICONS: Record<string, string> = { System: '🔡', Serif: '📖', Monospace: '💻', Handwritten: '✍️' }
+  const panelStyle: React.CSSProperties = isMobile && rect
+    ? { position: 'fixed', top: rect.bottom + 4, left: rect.left, zIndex: 200 }
+    : { position: 'absolute', top: '100%', left: 0, zIndex: 200, marginTop: 4 }
 
   return (
     <div ref={ref} style={{ position: 'relative' }}>
-      <button
+      <button ref={btnRef}
         type="button"
         onClick={() => setOpen(!open)}
         title="Font family"
@@ -1200,7 +1210,7 @@ function FontDropdown({ editor, open, setOpen, ref }: {
 
       {open && (
         <div style={{
-          position: 'absolute', top: '100%', left: 0, zIndex: 200, marginTop: 4,
+          ...panelStyle,
           backgroundColor: 'var(--card)', border: '1px solid var(--border)',
           borderRadius: 12, padding: 6, width: 220,
           boxShadow: '0 12px 36px rgba(0,0,0,0.7)',

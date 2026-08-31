@@ -698,14 +698,18 @@ export default function HelpPage() {
     </div>
   )
 
-  /* ── Mobile: sticky pill nav + document scroll ── */
+  /* ── Mobile: fixed-height flex column — pill nav always visible, content scrolls ── */
   if (isMobile) return (
     <AppLayout>
-      <div style={{ position: 'sticky', top: 0, zIndex: 30, backgroundColor: 'var(--background)' }}>
-        {pillNav}
-      </div>
-      <div style={{ padding: '20px 16px 96px' }}>
-        {sectionContent}
+      <div style={{ display: 'flex', flexDirection: 'column', height: '100dvh', overflow: 'hidden' }}>
+        {/* Pill nav — always visible, never scrolls away */}
+        <div style={{ flexShrink: 0, backgroundColor: 'var(--background)' }}>
+          {pillNav}
+        </div>
+        {/* Content — scrolls independently */}
+        <div style={{ flex: 1, overflowY: 'auto', padding: '20px 16px 0', paddingBottom: 'calc(56px + env(safe-area-inset-bottom))' }}>
+          {sectionContent}
+        </div>
       </div>
     </AppLayout>
   )
