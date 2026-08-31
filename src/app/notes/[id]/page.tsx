@@ -4,7 +4,7 @@ import { use } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   X, Maximize2, Minimize2, Plus, FileText,
-  ChevronRight, ArrowLeft, LayoutTemplate, Download,
+  ChevronRight, ArrowLeft, LayoutTemplate, Download, MoreHorizontal,
   List, ChevronDown, Sparkles, Settings2,
   AlignLeft, Loader2, RefreshCw, PenLine, Check, CheckSquare, PanelRight,
 } from 'lucide-react'
@@ -49,6 +49,9 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
   const [tagInput, setTagInput]       = useState('')
   const [focusMode, setFocusMode]     = useState(false)
   const [mobilePanel, setMobilePanel] = useState(false)
+  const [moreMenuOpen, setMoreMenuOpen] = useState(false)
+  const [moreMenuRect, setMoreMenuRect] = useState<DOMRect | null>(null)
+  const moreMenuRef = useRef<HTMLDivElement>(null)
   const [showTemplates, setShowTemplates] = useState(isNew)
   const [noteId, setNoteId]           = useState<string | null>(isNew ? null : id)
   const [subNotes, setSubNotes]       = useState<Note[]>([])
@@ -259,6 +262,15 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
     return () => window.removeEventListener('keydown', onKeyDown, true)
   }, [openTab, router])
 
+  useEffect(() => {
+    if (!moreMenuOpen) return
+    function onClickOutside(e: MouseEvent) {
+      if (moreMenuRef.current && !moreMenuRef.current.contains(e.target as Node)) setMoreMenuOpen(false)
+    }
+    document.addEventListener('mousedown', onClickOutside)
+    return () => document.removeEventListener('mousedown', onClickOutside)
+  }, [moreMenuOpen])
+
   function exportMarkdown() {
     const text = (note.content ?? '')
       .replace(/<h1[^>]*>(.*?)<\/h1>/gi, '# $1\n')
@@ -465,8 +477,8 @@ ${sanitizeHtmlForPrint(note.content ?? '')}
             </div>
           )}
 
-          {/* Export — Markdown and PDF side by side; hidden on mobile to save header space */}
-          {noteId && !isMobile && (
+          {/* Desktop: export buttons + templates inline */}
+          {!isMobile && noteId && (
             <div style={{ display: 'flex', gap: 3 }}>
               {([
                 { label: '.md', title: 'Export as Markdown', onClick: exportMarkdown },
@@ -492,8 +504,6 @@ ${sanitizeHtmlForPrint(note.content ?? '')}
               ))}
             </div>
           )}
-
-          {/* Templates — hidden on mobile */}
           {!isMobile && (
             <button
               type="button"
@@ -511,6 +521,61 @@ ${sanitizeHtmlForPrint(note.content ?? '')}
             >
               <LayoutTemplate size={13} /> Templates
             </button>
+          )}
+
+          {/* Mobile: single ⋯ button that opens a dropdown for export + templates */}
+          {isMobile && noteId && (
+            <div ref={moreMenuRef} style={{ position: 'relative' }}>
+              <button
+                type="button"
+                title="More actions"
+                onClick={e => { setMoreMenuRect((e.currentTarget as HTMLElement).getBoundingClientRect()); setMoreMenuOpen(v => !v) }}
+                style={{
+                  display: 'flex', alignItems: 'center',
+                  padding: 6, borderRadius: 7,
+                  border: '1px solid var(--border)',
+                  background: moreMenuOpen ? 'var(--accent)' : 'none',
+                  color: 'var(--muted-foreground)', cursor: 'pointer',
+                  transition: 'all 0.12s',
+                }}
+              >
+                <MoreHorizontal size={14} />
+              </button>
+              {moreMenuOpen && moreMenuRect && (
+                <div style={{
+                  position: 'fixed',
+                  top: moreMenuRect.bottom + 6,
+                  right: window.innerWidth - moreMenuRect.right,
+                  zIndex: 200,
+                  backgroundColor: 'var(--card)',
+                  border: '1px solid var(--border)',
+                  borderRadius: 10,
+                  boxShadow: '0 8px 24px rgba(0,0,0,0.18)',
+                  minWidth: 180,
+                  padding: '6px 0',
+                }}>
+                  {[
+                    { label: 'Export Markdown (.md)', icon: <Download size={13} />, action: () => { exportMarkdown(); setMoreMenuOpen(false) } },
+                    { label: 'Export PDF', icon: <Download size={13} />, action: () => { exportPdf(); setMoreMenuOpen(false) } },
+                    { label: 'Templates', icon: <LayoutTemplate size={13} />, action: () => { setShowTemplates(true); setMoreMenuOpen(false) } },
+                  ].map(item => (
+                    <button key={item.label} type="button" onClick={item.action}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: 10,
+                        width: '100%', padding: '9px 14px', border: 'none',
+                        background: 'none', color: 'var(--foreground)', fontSize: 13,
+                        cursor: 'pointer', textAlign: 'left',
+                      }}
+                      onMouseEnter={e => (e.currentTarget.style.background = 'var(--accent)')}
+                      onMouseLeave={e => (e.currentTarget.style.background = 'none')}
+                    >
+                      <span style={{ color: 'var(--muted-foreground)' }}>{item.icon}</span>
+                      {item.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           )}
 
           {/* Focus mode */}
@@ -1198,28 +1263,6 @@ ${sanitizeHtmlForPrint(note.content ?? '')}
           }}>
             {/* Drag handle */}
             <div style={{ width: 40, height: 4, borderRadius: 2, backgroundColor: 'var(--border)', margin: '0 auto 4px' }} />
-            {/* Export actions */}
-            <div>
-              <p style={{ margin: '0 0 8px', fontSize: 11, fontWeight: 600, color: 'var(--muted-foreground)', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'flex', alignItems: 'center', gap: 5 }}>
-                <Download size={12} /> Export
-              </p>
-              <div style={{ display: 'flex', gap: 8 }}>
-                {([
-                  { label: 'Markdown (.md)', onClick: exportMarkdown },
-                  { label: 'PDF', onClick: exportPdf },
-                ] as const).map(btn => (
-                  <button key={btn.label} type="button" onClick={() => { btn.onClick(); setMobilePanel(false) }}
-                    style={{
-                      flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
-                      padding: '8px 12px', borderRadius: 8, border: '1px solid var(--border)',
-                      background: 'none', color: 'var(--muted-foreground)', fontSize: 12, cursor: 'pointer',
-                    }}
-                  >
-                    <Download size={12} /> {btn.label}
-                  </button>
-                ))}
-              </div>
-            </div>
             {/* Outline */}
             {note.type === 'checklist' ? null : headings.length > 0 && (
               <div>
