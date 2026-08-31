@@ -579,7 +579,7 @@ export default function NotesPage() {
             <Input placeholder="Search notes…" value={search} onChange={e => setSearch(e.target.value)} style={{ maxWidth: 220, paddingLeft: 30 }} />
           </div>
 
-          <div style={{ display: 'flex', gap: 4 }}>
+          <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
             {TYPE_FILTERS.map(({ value, label }) => (
               <button key={value} type="button" onClick={() => setTypeFilter(value)} style={{
                 padding: '5px 12px', borderRadius: 20, border: 'none', fontSize: 12, cursor: 'pointer', transition: 'all 0.15s',

@@ -588,18 +588,19 @@ export function RichTextEditor({
 
       {/* ── Toolbar wrapper — toggle always clickable, rest dims in source mode ── */}
       <div style={{
-        display: 'flex', alignItems: 'center',
+        display: 'flex', alignItems: 'flex-start',
         borderBottom: '1px solid var(--border)',
         backgroundColor: 'var(--card)', position: 'sticky', top: 0, zIndex: 20,
-        flexWrap: isMobile ? 'nowrap' : 'wrap', rowGap: 0,
-        overflowX: isMobile ? 'auto' : 'visible',
-        scrollbarWidth: 'none',
+        flexWrap: 'wrap', rowGap: 0,
+        overflowX: 'hidden',
         touchAction: 'manipulation',
       }}>
       {/* Dimmed tool area */}
       <div style={{
         display: 'flex', alignItems: 'center', gap: 2,
         flexWrap: isMobile ? 'nowrap' : 'wrap',
+        overflowX: isMobile ? 'auto' : 'visible',
+        scrollbarWidth: 'none',
         padding: '5px 6px 5px 10px',
         rowGap: isMobile ? 0 : 4, flex: 1, minWidth: 0,
         opacity: sourceMode ? 0.35 : 1,
