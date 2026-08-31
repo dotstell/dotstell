@@ -20,7 +20,7 @@ import { Superscript } from '@tiptap/extension-superscript'
 import { Subscript } from '@tiptap/extension-subscript'
 import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight'
 import { createLowlight, common } from 'lowlight'
-import { useEffect, useState, useRef, useCallback } from 'react'
+import React, { useEffect, useState, useRef, useCallback } from 'react'
 import {
   Bold, Italic, Strikethrough, Code, Underline as UnderlineIcon,
   List, ListOrdered, CheckSquare, Quote, Minus, Table as TableIcon,
@@ -146,7 +146,7 @@ const SLASH_COMMANDS = [
   { label: 'Callout',      icon: '💡', desc: 'Info callout block',   group: 'Blocks',  action: (e: ReturnType<typeof useEditor>) => insertCallout(e, 'info') },
   { label: 'Warning',      icon: '⚠️', desc: 'Warning callout',      group: 'Blocks',  action: (e: ReturnType<typeof useEditor>) => insertCallout(e, 'warning') },
   { label: 'Divider',      icon: '—',  desc: 'Horizontal rule',      group: 'Blocks',  action: (e: ReturnType<typeof useEditor>) => e?.chain().focus().setHorizontalRule().run() },
-  { label: 'Table',        icon: '⊞',  desc: '3×3 table',            group: 'Insert',  action: (e: ReturnType<typeof useEditor>) => e?.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run() },
+  { label: 'Table',        icon: '⊞',  desc: 'Custom size',          group: 'Insert',  action: (e: ReturnType<typeof useEditor>) => e?.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run() },
   { label: 'Image',        icon: '🖼',  desc: 'Embed image from URL', group: 'Insert',  action: (e: ReturnType<typeof useEditor>) => promptImage(e) },
 ]
 
@@ -257,6 +257,8 @@ export function RichTextEditor({
   // Wikilink [[...]] picker
   const [tablePicker, setTablePicker] = useState<{ x: number; y: number } | null>(null)
   const [tableHover, setTableHover] = useState({ r: 0, c: 0 })
+  const tableToolbarBtnRef = useRef<HTMLButtonElement>(null)
+  const PICKER_W = 206
   const [wikiOpen,        setWikiOpen]        = useState(false)
   const [wikiQuery,       setWikiQuery]       = useState('')
   const [wikiResults,     setWikiResults]     = useState<NoteSearchResult[]>([])
@@ -494,6 +496,16 @@ export function RichTextEditor({
   }
   const flatFiltered = filteredCommands
 
+  function openTablePicker(anchorX: number, anchorY: number, anchorTop?: number) {
+    const pickerH = 230
+    const x = Math.max(8, Math.min(anchorX, window.innerWidth - PICKER_W - 8))
+    const y = anchorY + pickerH > window.innerHeight
+      ? (anchorTop ?? anchorY) - pickerH - 4
+      : anchorY
+    setTablePicker({ x, y })
+    setTableHover({ r: 0, c: 0 })
+  }
+
   function applySlashCommand(cmd: typeof SLASH_COMMANDS[0]) {
     if (!editor) return
     const { from } = editor.state.selection
@@ -501,12 +513,7 @@ export function RichTextEditor({
     if (cmd.label === 'Table') {
       const coords = editor.view.coordsAtPos(Math.max(0, from - deleteCount))
       editor.chain().focus().deleteRange({ from: from - deleteCount, to: from }).run()
-      const pickerH = 230
-      const y = coords.bottom + 4 + pickerH > window.innerHeight
-        ? coords.top - pickerH - 4
-        : coords.bottom + 4
-      setTablePicker({ x: Math.min(coords.left, window.innerWidth - 210), y })
-      setTableHover({ r: 0, c: 0 })
+      openTablePicker(coords.left, coords.bottom + 4, coords.top)
       setSlashOpen(false)
       return
     }
@@ -749,7 +756,14 @@ export function RichTextEditor({
           <ToolBtn onClick={() => editor.chain().focus().toggleBlockquote().run()}                                              active={editor.isActive('blockquote')} title="Quote">      <Quote size={14} /></ToolBtn>
           <ToolBtn onClick={() => editor.chain().focus().toggleCodeBlock().run()}                                               active={editor.isActive('codeBlock')}  title="Code block"> <Code size={14} /></ToolBtn>
           <ToolBtn onClick={() => editor.chain().focus().setHorizontalRule().run()}                                             title="Divider">                                           <Minus size={14} /></ToolBtn>
-          <ToolBtn onClick={() => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()}         title="Table">                                             <TableIcon size={14} /></ToolBtn>
+          <ToolBtn
+            ref={tableToolbarBtnRef}
+            onClick={() => {
+              const rect = tableToolbarBtnRef.current?.getBoundingClientRect()
+              if (rect) openTablePicker(rect.left, rect.bottom + 4, rect.top)
+            }}
+            title="Insert table"
+          ><TableIcon size={14} /></ToolBtn>
         </ToolbarGroup>
 
         <Divider />
@@ -1066,7 +1080,7 @@ export function RichTextEditor({
             userSelect: 'none',
           }}>
             <p style={{ margin: '0 0 8px', fontSize: 11, fontWeight: 500, color: 'var(--muted-foreground)', textAlign: 'center' }}>
-              {tableHover.r > 0 ? `${tableHover.c} × ${tableHover.r} table` : 'Select table size'}
+              {tableHover.r > 0 ? `${tableHover.r} × ${tableHover.c} table` : 'Select table size'}
             </p>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(8, 1fr)', gap: 2 }}>
               {Array.from({ length: 64 }, (_, i) => {
@@ -1133,11 +1147,12 @@ function Divider() {
   return <div style={{ width: 1, height: 20, backgroundColor: 'var(--border)', margin: '0 4px', flexShrink: 0 }} />
 }
 
-function ToolBtn({ onClick, active, disabled, title, children }: {
+const ToolBtn = React.forwardRef<HTMLButtonElement, {
   onClick: () => void; active?: boolean; disabled?: boolean; title?: string; children: React.ReactNode
-}) {
+}>(function ToolBtn({ onClick, active, disabled, title, children }, ref) {
   return (
     <button
+      ref={ref}
       type="button" title={title} onClick={onClick} disabled={disabled}
       style={{
         width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -1153,7 +1168,7 @@ function ToolBtn({ onClick, active, disabled, title, children }: {
       {children}
     </button>
   )
-}
+})
 
 function FloatingDialog({ title, icon, children, onClose }: {
   title: string; icon?: React.ReactNode; children: React.ReactNode; onClose: () => void
