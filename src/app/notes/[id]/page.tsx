@@ -1198,6 +1198,28 @@ ${sanitizeHtmlForPrint(note.content ?? '')}
           }}>
             {/* Drag handle */}
             <div style={{ width: 40, height: 4, borderRadius: 2, backgroundColor: 'var(--border)', margin: '0 auto 4px' }} />
+            {/* Export actions */}
+            <div>
+              <p style={{ margin: '0 0 8px', fontSize: 11, fontWeight: 600, color: 'var(--muted-foreground)', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'flex', alignItems: 'center', gap: 5 }}>
+                <Download size={12} /> Export
+              </p>
+              <div style={{ display: 'flex', gap: 8 }}>
+                {([
+                  { label: 'Markdown (.md)', onClick: exportMarkdown },
+                  { label: 'PDF', onClick: exportPdf },
+                ] as const).map(btn => (
+                  <button key={btn.label} type="button" onClick={() => { btn.onClick(); setMobilePanel(false) }}
+                    style={{
+                      flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
+                      padding: '8px 12px', borderRadius: 8, border: '1px solid var(--border)',
+                      background: 'none', color: 'var(--muted-foreground)', fontSize: 12, cursor: 'pointer',
+                    }}
+                  >
+                    <Download size={12} /> {btn.label}
+                  </button>
+                ))}
+              </div>
+            </div>
             {/* Outline */}
             {note.type === 'checklist' ? null : headings.length > 0 && (
               <div>
