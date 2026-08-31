@@ -24,7 +24,7 @@ import { useEffect, useState, useRef, useCallback } from 'react'
 import {
   Bold, Italic, Strikethrough, Code, Underline as UnderlineIcon,
   List, ListOrdered, CheckSquare, Quote, Minus, Table as TableIcon,
-  Link as LinkIcon, Highlighter, Undo, Redo, Maximize2, Minimize2,
+  Link as LinkIcon, Highlighter, Undo, Redo,
   ChevronDown, AlignLeft, AlignCenter, AlignRight, AlignJustify,
   Superscript as SuperscriptIcon, Subscript as SubscriptIcon,
   Image as ImageIcon, Type, RotateCcw, FileCode2, Eye, FileText, Check, Palette, X,
@@ -750,12 +750,6 @@ export function RichTextEditor({
             {sourceMode ? <Eye size={12} /> : <FileCode2 size={12} />}
             {sourceMode ? 'Rich text' : 'Markdown'}
           </button>
-          {/* AI Assist is now triggered via the floating bubble above selected text — no toolbar button needed */}
-          {onFocusMode && (
-            <ToolBtn onClick={() => onFocusMode(!focusMode)} title={focusMode ? 'Exit focus mode' : 'Focus mode'}>
-              {focusMode ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
-            </ToolBtn>
-          )}
         </div>
       </div>{/* end toolbar wrapper */}
 
