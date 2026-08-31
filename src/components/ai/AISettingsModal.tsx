@@ -12,6 +12,7 @@ import {
   PROVIDERS_WITHOUT_EMBEDDINGS,
 } from '@/lib/ai/types'
 import { useAISettings } from '@/hooks/useAISettings'
+import { useTheme, THEME_DEFS } from '@/hooks/useTheme'
 import { triggerBulkEmbedBackground } from '@/lib/ai/autoEmbed'
 import { fetchOllamaModelsBrowser, completeOllamaBrowser, checkLocalAgent, LOCAL_AGENT_BASE, isLocalHostname } from '@/lib/ai/ollama-browser'
 import { createClient as createSupabaseBrowserClient } from '@/lib/supabase/client'
@@ -68,6 +69,8 @@ const EMBED_PROVIDER_WHY_NOT: Partial<Record<AIProvider, string>> = {
 
 export function AISettingsModal({ onClose }: AISettingsModalProps) {
   const { config, saveConfig, loaded, isConfigured } = useAISettings()
+  const { theme } = useTheme()
+  const isLight = THEME_DEFS.find(d => d.id === theme)?.dark === false
   const [draft,        setDraft]        = useState<AIConfig>(config)
 
   // useAISettings reads localStorage in a useEffect (async), so `config` starts as
@@ -535,12 +538,12 @@ export function AISettingsModal({ onClose }: AISettingsModalProps) {
               {ollamaFetching
                 ? <><Loader2 size={10} style={{ animation: 'spin 1s linear infinite' }} color="var(--muted-foreground)" /> detecting…</>
                 : ollamaError
-                ? <span style={{ color: '#f87171' }}>
+                ? <span style={{ color: isLight ? '#b91c1c' : '#f87171' }}>
                     {ollamaError.includes('CORS') ? 'CORS not configured — see below'
                       : ollamaError.includes('Private Network') ? 'Browser security blocks Ollama — see below'
                       : 'Ollama not found — is it running?'}
                   </span>
-                : <span style={{ color: '#4ade80' }}>{ollamaModels.length} model{ollamaModels.length !== 1 ? 's' : ''} installed</span>
+                : <span style={{ color: isLight ? '#15803d' : '#4ade80' }}>{ollamaModels.length} model{ollamaModels.length !== 1 ? 's' : ''} installed</span>
               }
               <button type="button" onClick={() => fetchOllamaModels(draft.baseUrl ?? 'http://localhost:11434')} title="Refresh" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted-foreground)', padding: 1, display: 'flex' }}>
                 <RefreshCw size={9} />
@@ -551,7 +554,7 @@ export function AISettingsModal({ onClose }: AISettingsModalProps) {
               {cloudFetching
                 ? <><Loader2 size={10} style={{ animation: 'spin 1s linear infinite' }} /> fetching models…</>
                 : cloudModels.length > 0
-                ? <span style={{ color: '#4ade80' }}>{cloudModels.length} models available</span>
+                ? <span style={{ color: isLight ? '#15803d' : '#4ade80' }}>{cloudModels.length} models available</span>
                 : null
               }
               <button type="button" onClick={() => fetchCloudModels(draft.provider, draft.apiKey ?? '')} title="Refresh" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted-foreground)', padding: 1, display: 'flex' }}>
@@ -572,7 +575,7 @@ export function AISettingsModal({ onClose }: AISettingsModalProps) {
           </p>
           {/* Heavy model warning — shown when user picks a known large model */}
           {HEAVY_MODEL_PATTERN.test(draft.model) && (
-            <div style={{ marginTop: 6, padding: '6px 10px', borderRadius: 7, backgroundColor: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.25)', fontSize: 11, color: '#fbbf24', display: 'flex', gap: 6, alignItems: 'flex-start' }}>
+            <div style={{ marginTop: 6, padding: '6px 10px', borderRadius: 7, backgroundColor: isLight ? 'rgba(180,83,9,0.08)' : 'rgba(251,191,36,0.08)', border: `1px solid ${isLight ? 'rgba(180,83,9,0.3)' : 'rgba(251,191,36,0.25)'}`, fontSize: 11, color: isLight ? '#92400e' : '#fbbf24', display: 'flex', gap: 6, alignItems: 'flex-start' }}>
               <AlertCircle size={11} style={{ flexShrink: 0, marginTop: 1 }} />
               Large model detected — this will be slow without a powerful dedicated GPU. Consider a 7B model for a better experience.
             </div>
@@ -813,7 +816,13 @@ function Notice({ type, children, style, href, hrefLabel }: {
   href?: string
   hrefLabel?: string
 }) {
-  const colors = {
+  const { theme } = useTheme()
+  const light = THEME_DEFS.find(d => d.id === theme)?.dark === false
+  const colors = light ? {
+    success: { bg: 'rgba(22,163,74,0.10)',    border: 'rgba(22,101,52,0.35)',   text: '#166534' },
+    error:   { bg: 'rgba(220,38,38,0.10)',    border: 'rgba(185,28,28,0.35)',   text: '#991b1b' },
+    warning: { bg: 'rgba(180,83,9,0.10)',     border: 'rgba(180,83,9,0.35)',    text: '#92400e' },
+  } : {
     success: { bg: 'rgba(74,222,128,0.08)',   border: 'rgba(74,222,128,0.3)',   text: '#4ade80' },
     error:   { bg: 'rgba(248,113,113,0.08)',  border: 'rgba(248,113,113,0.3)',  text: '#f87171' },
     warning: { bg: 'rgba(251,191,36,0.08)',   border: 'rgba(251,191,36,0.3)',   text: '#fbbf24' },
