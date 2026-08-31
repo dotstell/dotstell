@@ -109,7 +109,7 @@ export default function PeoplePage() {
             placeholder="Search people..."
             value={search}
             onChange={e => setSearch(e.target.value)}
-            className="max-w-xs"
+            className="w-full max-w-xs"
           />
         </div>
 

@@ -465,9 +465,9 @@ ${sanitizeHtmlForPrint(note.content ?? '')}
             </div>
           )}
 
-          {/* Export — Markdown and PDF side by side */}
-          {noteId && (
-            <div style={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
+          {/* Export — Markdown and PDF side by side; hidden on mobile to save header space */}
+          {noteId && !isMobile && (
+            <div style={{ display: 'flex', gap: 3 }}>
               {([
                 { label: '.md', title: 'Export as Markdown', onClick: exportMarkdown },
                 { label: 'PDF', title: 'Export as PDF (print dialog)', onClick: exportPdf },
@@ -493,23 +493,25 @@ ${sanitizeHtmlForPrint(note.content ?? '')}
             </div>
           )}
 
-          {/* Templates */}
-          <button
-            type="button"
-            title="Templates"
-            onClick={() => setShowTemplates(true)}
-            style={{
-              display: 'flex', alignItems: 'center', gap: 5,
-              padding: '5px 10px', borderRadius: 7,
-              border: '1px solid var(--border)', background: 'none',
-              color: 'var(--muted-foreground)', fontSize: 12, cursor: 'pointer',
-              transition: 'all 0.12s',
-            }}
-            onMouseEnter={e => { e.currentTarget.style.background = 'var(--accent)'; e.currentTarget.style.color = 'var(--foreground)' }}
-            onMouseLeave={e => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = 'var(--muted-foreground)' }}
-          >
-            <LayoutTemplate size={13} /> Templates
-          </button>
+          {/* Templates — hidden on mobile */}
+          {!isMobile && (
+            <button
+              type="button"
+              title="Templates"
+              onClick={() => setShowTemplates(true)}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 5,
+                padding: '5px 10px', borderRadius: 7,
+                border: '1px solid var(--border)', background: 'none',
+                color: 'var(--muted-foreground)', fontSize: 12, cursor: 'pointer',
+                transition: 'all 0.12s',
+              }}
+              onMouseEnter={e => { e.currentTarget.style.background = 'var(--accent)'; e.currentTarget.style.color = 'var(--foreground)' }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = 'var(--muted-foreground)' }}
+            >
+              <LayoutTemplate size={13} /> Templates
+            </button>
+          )}
 
           {/* Focus mode */}
           <button
@@ -555,7 +557,7 @@ ${sanitizeHtmlForPrint(note.content ?? '')}
               onClick={() => setChatOpen(c => !c)}
               style={{
                 display: 'flex', alignItems: 'center', gap: 5,
-                padding: '5px 10px', borderRadius: 7,
+                padding: isMobile ? 6 : '5px 10px', borderRadius: 7,
                 border: `1px solid ${chatOpen ? 'color-mix(in srgb, var(--primary) 40%, transparent)' : 'var(--border)'}`,
                 background: chatOpen ? 'color-mix(in srgb, var(--primary) 12%, transparent)' : 'none',
                 color: chatOpen ? 'var(--primary)' : 'var(--muted-foreground)', fontSize: 12, cursor: 'pointer',
@@ -564,7 +566,7 @@ ${sanitizeHtmlForPrint(note.content ?? '')}
               onMouseEnter={e => { if (!chatOpen) { e.currentTarget.style.background = 'var(--accent)'; e.currentTarget.style.color = 'var(--foreground)' } }}
               onMouseLeave={e => { if (!chatOpen) { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = 'var(--muted-foreground)' } }}
             >
-              <Sparkles size={13} /> AI Chat
+              <Sparkles size={13} />{!isMobile && ' AI Chat'}
             </button>
           )}
 
@@ -576,7 +578,7 @@ ${sanitizeHtmlForPrint(note.content ?? '')}
               onClick={() => { setWritingFormat(undefined); setWritingOpen(w => !w) }}
               style={{
                 display: 'flex', alignItems: 'center', gap: 5,
-                padding: '5px 10px', borderRadius: 7,
+                padding: isMobile ? 6 : '5px 10px', borderRadius: 7,
                 border: `1px solid ${writingOpen ? 'color-mix(in srgb, var(--primary) 40%, transparent)' : 'var(--border)'}`,
                 background: writingOpen ? 'color-mix(in srgb, var(--primary) 12%, transparent)' : 'none',
                 color: writingOpen ? 'var(--primary)' : 'var(--muted-foreground)', fontSize: 12, cursor: 'pointer',
@@ -585,7 +587,7 @@ ${sanitizeHtmlForPrint(note.content ?? '')}
               onMouseEnter={e => { if (!writingOpen) { e.currentTarget.style.background = 'var(--accent)'; e.currentTarget.style.color = 'var(--foreground)' } }}
               onMouseLeave={e => { if (!writingOpen) { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = 'var(--muted-foreground)' } }}
             >
-              <PenLine size={13} /> AI Write
+              <PenLine size={13} />{!isMobile && ' AI Write'}
             </button>
           )}
 
@@ -1196,7 +1198,7 @@ ${sanitizeHtmlForPrint(note.content ?? '')}
           }}>
             {/* Drag handle */}
             <div style={{ width: 40, height: 4, borderRadius: 2, backgroundColor: 'var(--border)', margin: '0 auto 4px' }} />
-            {/* Reuse the right panel content inline */}
+            {/* Outline */}
             {note.type === 'checklist' ? null : headings.length > 0 && (
               <div>
                 <p style={{ margin: '0 0 8px', fontSize: 11, fontWeight: 600, color: 'var(--muted-foreground)', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'flex', alignItems: 'center', gap: 5 }}>
@@ -1213,6 +1215,50 @@ ${sanitizeHtmlForPrint(note.content ?? '')}
               </div>
             )}
             <LinkPanel sourceId={noteId} sourceType="note" />
+            {/* Sub-notes */}
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--muted-foreground)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Sub-notes</span>
+                <button type="button" onClick={createSubNote} title="New sub-note" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted-foreground)', padding: 2, borderRadius: 5 }}
+                  onMouseEnter={e => (e.currentTarget.style.color = 'var(--primary)')}
+                  onMouseLeave={e => (e.currentTarget.style.color = 'var(--muted-foreground)')}
+                >
+                  <Plus size={14} />
+                </button>
+              </div>
+              {subNotes.length === 0 ? (
+                <button type="button" onClick={createSubNote} style={{
+                  width: '100%', padding: '8px 10px', borderRadius: 8,
+                  border: '1px dashed var(--border)', background: 'none',
+                  color: 'var(--muted-foreground)', fontSize: 12, cursor: 'pointer', textAlign: 'center',
+                }}
+                  onMouseEnter={e => (e.currentTarget.style.borderColor = 'var(--primary)44')}
+                  onMouseLeave={e => (e.currentTarget.style.borderColor = 'var(--border)')}
+                >
+                  + Add sub-note
+                </button>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  {subNotes.map(sub => (
+                    <button key={sub.id} type="button" onClick={() => router.push(`/notes/${sub.id}`)} style={{
+                      display: 'flex', alignItems: 'center', gap: 8,
+                      padding: '7px 8px', borderRadius: 7, border: 'none',
+                      background: 'none', cursor: 'pointer', textAlign: 'left', width: '100%',
+                    }}
+                      onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'var(--accent)')}
+                      onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
+                    >
+                      <FileText size={12} color="var(--primary)" style={{ flexShrink: 0 }} />
+                      <span style={{ fontSize: 12, color: 'var(--secondary-foreground)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
+                        {sub.title || 'Untitled'}
+                      </span>
+                      <ChevronRight size={11} color="var(--border)" style={{ flexShrink: 0 }} />
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+            <BacklinksPanel noteId={noteId} noteTitle={note.title} syncCount={wikiSyncCount} />
           </div>
         </>
       )}

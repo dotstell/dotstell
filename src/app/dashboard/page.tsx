@@ -267,7 +267,7 @@ export default function DashboardPage() {
             <AlertCircle size={14} color="#ef4444" />
             <span style={{ fontSize: 13, color: '#ef4444', flex: 1 }}>
               {overdueTasks.length} overdue task{overdueTasks.length > 1 ? 's' : ''}
-              {overdueTasks[0] && <span style={{ color: '#f87171', marginLeft: 8, fontStyle: 'italic' }}>— "{overdueTasks[0].title}"</span>}
+              {overdueTasks[0] && <span style={{ color: '#f87171', marginLeft: 8, fontStyle: 'italic', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 160, display: 'inline-block', verticalAlign: 'bottom' }}>— "{overdueTasks[0].title}"</span>}
             </span>
             <Link href="/tasks" style={{ fontSize: 12, color: '#ef4444', textDecoration: 'underline', flexShrink: 0 }}>
               View &amp; resolve →

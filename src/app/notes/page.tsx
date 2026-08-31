@@ -574,9 +574,9 @@ export default function NotesPage() {
 
         {/* Controls + content — hidden when trash view is open */}
         {!showTrash && <><div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 20, flexWrap: 'wrap' }}>
-          <div style={{ position: 'relative' }}>
+          <div style={{ position: 'relative', flex: '1 1 160px', maxWidth: 260 }}>
             <Search size={13} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--muted-foreground)', pointerEvents: 'none' }} />
-            <Input placeholder="Search notes…" value={search} onChange={e => setSearch(e.target.value)} style={{ maxWidth: 220, paddingLeft: 30 }} />
+            <Input placeholder="Search notes…" value={search} onChange={e => setSearch(e.target.value)} style={{ width: '100%', paddingLeft: 30 }} />
           </div>
 
           <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
@@ -592,9 +592,7 @@ export default function NotesPage() {
             ))}
           </div>
 
-          <div style={{ flex: 1 }} />
-
-          <button type="button" onClick={() => setGroupMode(m => m === 'tag' ? 'none' : 'tag')} style={{
+          <button type="button" onClick={() => setGroupMode(m => m === 'tag' ? 'none' : 'tag')} style={{ marginLeft: 'auto',
             display: 'flex', alignItems: 'center', gap: 6,
             padding: '5px 12px', borderRadius: 8, border: '1px solid',
             borderColor: groupMode === 'tag' ? 'var(--primary)' : 'var(--border)',

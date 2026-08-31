@@ -233,7 +233,7 @@ export default function TasksPage() {
                   </span>
                 )}
                 <div className="flex gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100">
-                  <Button variant="ghost" size="icon" className="h-6 w-6 text-[var(--muted-foreground)]" onClick={() => { setEditing(task); setDialogOpen(true) }}>✏️</Button>
+                  <Button variant="ghost" size="icon" className="hidden sm:flex h-6 w-6 text-[var(--muted-foreground)]" onClick={() => { setEditing(task); setDialogOpen(true) }}>✏️</Button>
                   <Button variant="ghost" size="icon" className="h-6 w-6 text-[var(--muted-foreground)] hover:text-[var(--destructive)]" onClick={() => openConfirm({ title: 'Delete task', body: `"${task.title}" will be permanently deleted.`, confirmLabel: 'Delete forever', onConfirm: () => deleteTask(task.id) })}><Trash2 size={12} /></Button>
                 </div>
               </div>

@@ -331,7 +331,7 @@ function GraphPageInner() {
 
         {/* Header */}
         <div style={{ padding: '20px 24px 0', flexShrink: 0 }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, flexWrap: 'wrap', gap: 8 }}>
             <div>
               <h1 style={{ fontSize: 18, fontWeight: 700, color: 'var(--foreground)', margin: 0 }}>Knowledge Graph</h1>
               <p style={{ fontSize: 12, color: 'var(--muted-foreground)', marginTop: 2 }}>
