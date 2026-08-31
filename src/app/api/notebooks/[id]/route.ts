@@ -42,11 +42,43 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
 
   const { id } = await params
 
+  // Fetch name first so we can compute the tag to strip from notes.
+  const { data: notebook } = await supabase
+    .from('notebooks')
+    .select('name')
+    .eq('id', id)
+    .eq('user_id', user.id)
+    .single()
+
+  if (!notebook) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+
+  // Membership is stored as a tag on notes (e.g. "nb:my-notebook"). Strip that tag
+  // from every note — active and trashed — so restored notes don't ghost-join a future
+  // notebook with the same name.
+  const tag = `nb:${notebook.name.toLowerCase().replace(/\s+/g, '-')}`
+  const { data: taggedNotes } = await supabase
+    .from('notes')
+    .select('id, tags')
+    .eq('user_id', user.id)
+    .contains('tags', [tag])
+
+  if (taggedNotes && taggedNotes.length > 0) {
+    await Promise.all(
+      taggedNotes.map(note =>
+        supabase
+          .from('notes')
+          .update({ tags: (note.tags as string[]).filter(t => t !== tag) })
+          .eq('id', note.id)
+          .eq('user_id', user.id)
+      )
+    )
+  }
+
   const { error } = await supabase
     .from('notebooks')
     .delete()
     .eq('id', id)
-    .eq('user_id', user.id) // ownership check in addition to RLS — defense-in-depth
+    .eq('user_id', user.id)
 
   if (error) return NextResponse.json({ error: 'An unexpected error occurred.' }, { status: 500 })
   return new NextResponse(null, { status: 204 })
