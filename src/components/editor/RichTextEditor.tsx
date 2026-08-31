@@ -322,6 +322,20 @@ export function RichTextEditor({
         }
         return false
       },
+      handleDrop: (view, event, _slice, moved) => {
+        if (moved) return false // internal node drag — let Tiptap handle it
+        const url = event.dataTransfer?.getData('text/uri-list')?.trim()
+          || event.dataTransfer?.getData('text/plain')?.trim()
+        if (!url || !url.startsWith('http')) return false
+        event.preventDefault()
+        const pos = view.posAtCoords({ left: event.clientX, top: event.clientY })
+        if (!pos) return false
+        const { schema, tr } = view.state
+        const linkMark = schema.marks.link?.create({ href: url, target: '_blank', rel: 'noopener noreferrer' })
+        if (!linkMark) return false
+        view.dispatch(tr.insert(pos.pos, schema.text(url, [linkMark])))
+        return true
+      },
       // Smart paste: strip unsafe elements and all non-semantic attributes while
       // preserving structure (headings, lists, links, tables). Plain paste mode
       // bypasses this entirely and inserts raw text.
