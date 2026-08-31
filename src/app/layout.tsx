@@ -60,7 +60,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       <body>
         {children}
         <Toaster position="bottom-right" richColors />
-        <Analytics />
+        {process.env.NODE_ENV === 'production' && <Analytics />}
       </body>
     </html>
   )
