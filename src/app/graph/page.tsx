@@ -1,5 +1,6 @@
 'use client'
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
+import { toast } from 'sonner'
 import { useRouter } from 'next/navigation'
 import ReactFlow, {
   Node, Background, Controls, MiniMap,
@@ -118,6 +119,8 @@ function GraphPageInner() {
   const [selected, setSelected] = useState<GraphItem | null>(null)
   const [aiPanelOpen, setAiPanelOpen] = useState(false)
   const { config: aiConfig, loaded: aiLoaded } = useAISettings()
+  // Tracks pending DELETE timers by edge id so Undo can cancel them before the API call fires.
+  const deleteCancelRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map())
 
   const STORAGE_KEY = 'dotstell-graph-positions'
 
@@ -259,17 +262,40 @@ function GraphPageInner() {
     }
   }
 
-  async function handleDeleteEdge(edgeId: string) {
+  function handleDeleteEdge(edgeId: string) {
     const link = links.find(l => l.id === edgeId)
     if (!link) return
-    const res = await fetch('/api/links', {
-      method: 'DELETE',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ source_id: link.source_id, target_id: link.target_id }),
-    })
-    if (!res.ok) return  // keep edge visible on failure
+
+    // Optimistically remove from state so the UI responds immediately.
     setLinks(prev => prev.filter(l => l.id !== edgeId))
     setEdges(prev => prev.filter(e => e.id !== edgeId))
+
+    // Delay the actual API delete by the toast duration so Undo can cancel it.
+    const timer = setTimeout(async () => {
+      deleteCancelRef.current.delete(edgeId)
+      const res = await fetch('/api/links', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ source_id: link.source_id, target_id: link.target_id }),
+      })
+      if (!res.ok) {
+        // Restore the link in state if the server rejects the delete.
+        setLinks(prev => [...prev, link])
+      }
+    }, 4000)
+    deleteCancelRef.current.set(edgeId, timer)
+
+    toast('Link removed', {
+      duration: 4000,
+      action: {
+        label: 'Undo',
+        onClick: () => {
+          clearTimeout(deleteCancelRef.current.get(edgeId))
+          deleteCancelRef.current.delete(edgeId)
+          setLinks(prev => [...prev, link])
+        },
+      },
+    })
   }
 
   function handleNodeClick(_: React.MouseEvent, node: Node) {

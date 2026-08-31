@@ -34,6 +34,43 @@ export async function POST(req: NextRequest) {
   if (!body.name || typeof body.name !== 'string') {
     return NextResponse.json({ error: 'Invalid name' }, { status: 400 })
   }
+  if (body.name.length > 200) {
+    return NextResponse.json({ error: 'name must be 200 characters or fewer' }, { status: 400 })
+  }
+  if (body.role && typeof body.role === 'string' && body.role.length > 200) {
+    return NextResponse.json({ error: 'role must be 200 characters or fewer' }, { status: 400 })
+  }
+  if (body.company && typeof body.company === 'string' && body.company.length > 200) {
+    return NextResponse.json({ error: 'company must be 200 characters or fewer' }, { status: 400 })
+  }
+  if (body.email && typeof body.email === 'string' && body.email.length > 254) {
+    return NextResponse.json({ error: 'email must be 254 characters or fewer' }, { status: 400 })
+  }
+  if (body.phone && typeof body.phone === 'string' && body.phone.length > 50) {
+    return NextResponse.json({ error: 'phone must be 50 characters or fewer' }, { status: 400 })
+  }
+  if (body.notes && typeof body.notes === 'string' && body.notes.length > 5000) {
+    return NextResponse.json({ error: 'notes must be 5000 characters or fewer' }, { status: 400 })
+  }
+  if (body.tags !== undefined) {
+    if (!Array.isArray(body.tags)) return NextResponse.json({ error: 'tags must be an array' }, { status: 400 })
+    if (body.tags.length > 20) return NextResponse.json({ error: 'tags array must contain 20 items or fewer' }, { status: 400 })
+    if (body.tags.some((t: unknown) => typeof t !== 'string' || t.length > 50)) {
+      return NextResponse.json({ error: 'each tag must be a string of 50 characters or fewer' }, { status: 400 })
+    }
+  }
+  // Validate avatar_url scheme: must be http(s) only (blocks javascript:, data: etc.)
+  if (body.avatar_url !== undefined && body.avatar_url !== null && body.avatar_url !== '') {
+    if (typeof body.avatar_url !== 'string' || body.avatar_url.length > 2000) {
+      return NextResponse.json({ error: 'avatar_url must be a string of 2000 characters or fewer' }, { status: 400 })
+    }
+    try {
+      const parsed = new URL(body.avatar_url)
+      if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') throw new Error()
+    } catch {
+      return NextResponse.json({ error: 'Invalid avatar_url — must be http or https' }, { status: 400 })
+    }
+  }
   const { data, error } = await supabase.from('people').insert({
     user_id:    user.id,
     name:       body.name,

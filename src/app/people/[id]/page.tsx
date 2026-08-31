@@ -1,6 +1,7 @@
 'use client'
 import { useState, useEffect, useCallback } from 'react'
 import { use } from 'react'
+import { useRouter } from 'next/navigation'
 import { ArrowLeft, Plus, Mail, Building2, Phone, FileText, CheckSquare, Bookmark, Users } from 'lucide-react'
 import Link from 'next/link'
 import { toast } from 'sonner'
@@ -12,6 +13,7 @@ import { NoteCard } from '@/components/notes/NoteCard'
 import { NoteEditor } from '@/components/notes/NoteEditor'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { PageContainer } from '@/components/layout/PageContainer'
+import { EmptyState } from '@/components/ui/empty-state'
 
 const DEFAULT_NOTE: Partial<Note> = { title: '', content: '', type: 'plain', checklist_items: [], tags: [] }
 
@@ -36,6 +38,9 @@ export default function PersonPage({ params }: { params: Promise<{ id: string }>
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editingNote, setEditingNote] = useState<Partial<Note>>(DEFAULT_NOTE)
   const [saving, setSaving] = useState(false)
+  const [confirmOpen, setConfirmOpen] = useState(false)
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null)
+  const router = useRouter()
 
   const fetchData = useCallback(async () => {
     const [personRes, notesRes, linksRes] = await Promise.all([
@@ -115,6 +120,11 @@ export default function PersonPage({ params }: { params: Promise<{ id: string }>
     }
   }
 
+  function openDeleteConfirm(noteId: string) {
+    setPendingDeleteId(noteId)
+    setConfirmOpen(true)
+  }
+
   async function deleteNote(noteId: string) {
     const res = await fetch(`/api/notes/${noteId}`, { method: 'DELETE' })
     if (res.ok) {
@@ -124,7 +134,19 @@ export default function PersonPage({ params }: { params: Promise<{ id: string }>
   }
 
   if (loading) return <AppLayout><div className="p-6 text-[var(--muted-foreground)]">Loading...</div></AppLayout>
-  if (!person) return <AppLayout><div className="p-6">Person not found</div></AppLayout>
+  if (!person) return (
+    <AppLayout>
+      <PageContainer narrow>
+        <EmptyState
+          icon="👤"
+          title="Person not found"
+          description="This person doesn't exist or may have been deleted."
+          action="Back to People"
+          onAction={() => router.push('/people')}
+        />
+      </PageContainer>
+    </AppLayout>
+  )
 
   return (
     <AppLayout>
@@ -172,7 +194,7 @@ export default function PersonPage({ params }: { params: Promise<{ id: string }>
                 key={note.id}
                 note={note}
                 onClick={() => { setEditingNote(note); setDialogOpen(true) }}
-                onDelete={deleteNote}
+                onDelete={openDeleteConfirm}
                 linkedTypes={noteLinkedTypes[note.id]}
               />
             ))}
@@ -217,6 +239,30 @@ export default function PersonPage({ params }: { params: Promise<{ id: string }>
           <div className="flex justify-end gap-2 mt-4">
             <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
             <Button onClick={saveNote} disabled={saving}>{saving ? 'Saving...' : 'Save'}</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Delete note?</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-[var(--muted-foreground)]">
+            This note will be permanently deleted and cannot be recovered.
+          </p>
+          <div className="flex justify-end gap-2 mt-4">
+            <Button variant="outline" onClick={() => setConfirmOpen(false)}>Cancel</Button>
+            <Button
+              variant="destructive"
+              onClick={async () => {
+                if (pendingDeleteId) await deleteNote(pendingDeleteId)
+                setConfirmOpen(false)
+                setPendingDeleteId(null)
+              }}
+            >
+              Delete
+            </Button>
           </div>
         </DialogContent>
       </Dialog>

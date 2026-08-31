@@ -29,6 +29,7 @@ export default function PeoplePage() {
   const [editingPerson, setEditingPerson] = useState<Partial<Person>>(DEFAULT_PERSON)
   const [tagInput, setTagInput] = useState('')
   const [saving, setSaving] = useState(false)
+  const [confirmPerson, setConfirmPerson] = useState<Person | null>(null)
 
   const fetchPeople = useCallback(async () => {
     const params = new URLSearchParams()
@@ -38,7 +39,7 @@ export default function PeoplePage() {
       if (!res.ok) throw new Error()
       const data = await res.json()
       setPeople(Array.isArray(data) ? data : [])
-    } catch { setPeople([]) }
+    } catch { toast.error('Failed to load contacts') }
     finally { setLoading(false) }
   }, [search])
 
@@ -147,8 +148,9 @@ export default function PeoplePage() {
                   <Button
                     variant="ghost"
                     size="icon"
+                    aria-label={`Delete ${person.name}`}
                     className="opacity-0 group-hover:opacity-100 h-6 w-6 text-[var(--muted-foreground)] hover:text-[var(--destructive)]"
-                    onClick={e => { e.stopPropagation(); deletePerson(person.id) }}
+                    onClick={e => { e.stopPropagation(); setConfirmPerson(person) }}
                   >
                     <Trash2 size={12} />
                   </Button>
@@ -192,7 +194,7 @@ export default function PeoplePage() {
             <DialogTitle>{(editingPerson as Person).id ? 'Edit contact' : 'Add contact'}</DialogTitle>
           </DialogHeader>
           <div className="flex flex-col gap-3">
-            <Input placeholder="Full name *" value={editingPerson.name ?? ''} onChange={e => setEditingPerson(p => ({ ...p, name: e.target.value }))} />
+            <Input autoFocus placeholder="Full name *" value={editingPerson.name ?? ''} onChange={e => setEditingPerson(p => ({ ...p, name: e.target.value }))} />
             <Input placeholder="Role / Title" value={editingPerson.role ?? ''} onChange={e => setEditingPerson(p => ({ ...p, role: e.target.value }))} />
             <Input placeholder="Company" value={editingPerson.company ?? ''} onChange={e => setEditingPerson(p => ({ ...p, company: e.target.value }))} />
             <Input placeholder="Email" type="email" value={editingPerson.email ?? ''} onChange={e => setEditingPerson(p => ({ ...p, email: e.target.value }))} />
@@ -214,6 +216,29 @@ export default function PeoplePage() {
           <div className="flex justify-end gap-2 mt-4">
             <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
             <Button onClick={savePerson} disabled={saving}>{saving ? 'Saving...' : 'Save'}</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+      <Dialog open={!!confirmPerson} onOpenChange={open => { if (!open) setConfirmPerson(null) }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Delete contact?</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-[var(--muted-foreground)]">
+            <strong>{confirmPerson?.name}</strong> and all linked notes and tasks will be permanently deleted. This cannot be undone.
+          </p>
+          <div className="flex justify-end gap-2 mt-4">
+            <Button variant="outline" onClick={() => setConfirmPerson(null)}>Cancel</Button>
+            <Button
+              variant="destructive"
+              onClick={async () => {
+                if (!confirmPerson) return
+                await deletePerson(confirmPerson.id)
+                setConfirmPerson(null)
+              }}
+            >
+              Delete
+            </Button>
           </div>
         </DialogContent>
       </Dialog>

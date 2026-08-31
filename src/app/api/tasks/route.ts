@@ -39,6 +39,18 @@ export async function POST(req: NextRequest) {
   const VALID_PRIORITY = ['low', 'medium', 'high', 'urgent']
   if (body.status   && !VALID_STATUS.includes(body.status))   return NextResponse.json({ error: 'Invalid status' },   { status: 400 })
   if (body.priority && !VALID_PRIORITY.includes(body.priority)) return NextResponse.json({ error: 'Invalid priority' }, { status: 400 })
+
+  // Ownership check: person_id must belong to the current user
+  if (body.person_id) {
+    const { data: person } = await supabase
+      .from('people')
+      .select('id')
+      .eq('id', body.person_id)
+      .eq('user_id', user.id)
+      .single()
+    if (!person) return NextResponse.json({ error: 'person_id not found' }, { status: 400 })
+  }
+
   const { data, error } = await supabase.from('tasks').insert({
     user_id:     user.id,
     title:       body.title,

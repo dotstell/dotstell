@@ -1293,7 +1293,7 @@ export default function BookmarksPage() {
             <DialogTitle>{(editing as Bookmark).id ? 'Edit bookmark' : 'Add bookmark'}</DialogTitle>
           </DialogHeader>
           <div className="flex flex-col gap-3">
-            <Input placeholder="URL *" type="url" value={editing.url ?? ''} onChange={e => setEditing(p => ({ ...p, url: e.target.value }))} />
+            <Input autoFocus placeholder="URL *" type="url" value={editing.url ?? ''} onChange={e => setEditing(p => ({ ...p, url: e.target.value }))} />
             <Input placeholder="Title" value={editing.title ?? ''} onChange={e => setEditing(p => ({ ...p, title: e.target.value }))} />
             <Textarea placeholder="Description..." rows={3} value={editing.description ?? ''} onChange={e => setEditing(p => ({ ...p, description: e.target.value }))} />
             <div>

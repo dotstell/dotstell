@@ -259,7 +259,7 @@ export default function DashboardPage() {
 
         {/* ── Overdue alert ── */}
         {!loading && overdueTasks.length > 0 && (
-          <div style={{
+          <div role='alert' aria-live='polite' style={{
             display: 'flex', alignItems: 'center', gap: 10,
             padding: '11px 16px', borderRadius: 10, marginBottom: 20,
             backgroundColor: 'rgba(239,68,68,0.07)', border: '1px solid rgba(239,68,68,0.18)',
@@ -417,7 +417,7 @@ export default function DashboardPage() {
                 >
                   <div style={{ width: 7, height: 7, borderRadius: '50%', backgroundColor: NOTE_TYPE_COLOR[note.type] ?? 'var(--primary)', flexShrink: 0 }} />
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <p style={rowTitleStyle}>{note.title || 'Untitled'}</p>
+                    <p style={rowTitleStyle} title={note.title || 'Untitled'}>{note.title || 'Untitled'}</p>
                     <p style={rowSubStyle}>{NOTE_TYPE_LABEL[note.type] ?? note.type}</p>
                   </div>
                   <span style={rowTimeStyle}>{formatRelative(note.updated_at)}</span>
@@ -441,7 +441,7 @@ export default function DashboardPage() {
                   <div key={task.id} style={{ ...rowStyle, cursor: 'default' }}>
                     <span style={{ flexShrink: 0 }}>{STATUS_ICON[task.status]}</span>
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <p style={rowTitleStyle}>{task.title}</p>
+                      <p style={rowTitleStyle} title={task.title}>{task.title}</p>
                       {task.due_date && (
                         <p style={{ ...rowSubStyle, color: overdue ? '#ef4444' : 'var(--muted-foreground)' }}>
                           {overdue ? '⚠ ' : ''}Due {formatDate(task.due_date)}
@@ -476,7 +476,7 @@ export default function DashboardPage() {
                     : <div style={{ width: 14, height: 14, borderRadius: 3, backgroundColor: '#f59e0b22', flexShrink: 0 }} />
                   }
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <p style={rowTitleStyle}>{bm.title || bm.url}</p>
+                    <p style={rowTitleStyle} title={bm.title || bm.url}>{bm.title || bm.url}</p>
                     <p style={rowSubStyle}>{bm.hostname ?? (() => { try { return new URL(bm.url).hostname } catch { return bm.url } })()}</p>
                   </div>
                   <span style={rowTimeStyle}>{formatRelative(bm.created_at)}</span>
@@ -516,7 +516,7 @@ export default function DashboardPage() {
                     {item.type === 'task'     && <CheckCircle2 size={12} color={item.color} />}
                   </div>
                   <div style={{ minWidth: 0, flex: 1 }}>
-                    <p style={{ fontSize: 12, fontWeight: 500, color: 'var(--foreground)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    <p style={{ fontSize: 12, fontWeight: 500, color: 'var(--foreground)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={item.label}>
                       {item.label}
                     </p>
                     <p style={{ fontSize: 10, color: 'var(--muted-foreground)', margin: '1px 0 0' }}>

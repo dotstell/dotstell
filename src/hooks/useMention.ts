@@ -30,7 +30,7 @@ export function useMention(content: string, onInsert: (updated: string) => void,
   useEffect(() => {
     if (mentionQuery === null) { setSuggestions([]); return }
     fetch(`/api/people?q=${encodeURIComponent(debouncedQ)}`)
-      .then(r => r.json())
+      .then(r => r.ok ? r.json() : [])
       .then(d => setSuggestions(Array.isArray(d) ? d.slice(0, 6) : []))
       .catch(() => setSuggestions([]))
   }, [debouncedQ, mentionQuery])

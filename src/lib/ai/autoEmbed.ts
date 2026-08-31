@@ -66,7 +66,7 @@ async function embedViaLocalAgent(
     .update({ embedding, embedding_model: config.embeddingModel })
     .eq('id', entityId)
     .eq('user_id', user.id)
-  if (error) console.warn('[autoEmbed] embedding write failed:', error.message)
+  if (error) return
 }
 
 /**

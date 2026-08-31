@@ -80,6 +80,7 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
   const editorRef    = useRef<Editor | null>(null)
   const lastCheckRef = useRef<HTMLInputElement>(null)
   const prevCheckLen = useRef(0)
+  const titleRef     = useRef<HTMLInputElement>(null)
 
   // Parse headings from HTML content so the ToC stays in sync with the editor
   const headings = useMemo(() => {
@@ -116,6 +117,10 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
     return () => window.removeEventListener('resize', check)
   }, [])
 
+  // Cancel any pending auto-save when the component unmounts to prevent setState
+  // calls on an unmounted component (e.g. user navigates away within 1.5 s of typing).
+  useEffect(() => () => { if (saveTimer.current) clearTimeout(saveTimer.current) }, [])
+
   useEffect(() => {
     const len = note.checklist_items?.length ?? 0
     if (len > prevCheckLen.current) lastCheckRef.current?.focus()
@@ -148,7 +153,7 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
       setSubNotes(Array.isArray(subs) ? subs : [])
       setLoading(false)
     }).catch(() => setLoading(false))
-  }, [id, isNew]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [id, isNew, openTab])
 
   async function createSubNote() {
     if (!noteId) return
@@ -208,7 +213,11 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
           openTab(saved.id, saved.title || 'Untitled')
         } else setSaveStatus('unsaved')
       }
-    } catch { setSaveStatus('unsaved') }
+    } catch {
+      setSaveStatus('unsaved')
+      toast.error('Failed to save — retrying…')
+      setTimeout(() => save(data, currentId), 3000)
+    }
   }, [syncWikiLinks, openTab, updateTitle])
 
   // Ctrl+N → new note
@@ -567,6 +576,7 @@ ${sanitizeHtmlForPrint(note.content ?? '')}
         {/* Row 2: title + optional AI suggest button */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <input
+            ref={titleRef}
             id="note-title"
             name="note-title"
             value={note.title ?? ''}
@@ -1170,7 +1180,7 @@ ${sanitizeHtmlForPrint(note.content ?? '')}
       {/* Template modal */}
       <NoteTemplateModal
         open={showTemplates}
-        onClose={() => setShowTemplates(false)}
+        onClose={() => { setShowTemplates(false); titleRef.current?.focus() }}
         onSelect={tmpl => {
           const today = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
           const content = tmpl.content.replace(/\{\{DATE\}\}/g, today)

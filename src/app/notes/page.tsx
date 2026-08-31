@@ -423,6 +423,36 @@ export default function NotesPage() {
     setCtxMenu({ x, y, note, subMenu: null })
   }
 
+  // Move focus to the first menuitem whenever the context menu opens
+  useEffect(() => {
+    if (!ctxMenu) return
+    const id = setTimeout(() => {
+      const firstItem = ctxRef.current?.querySelector<HTMLElement>('[role="menuitem"]')
+      firstItem?.focus()
+    }, 0)
+    return () => clearTimeout(id)
+  }, [ctxMenu])
+
+  function handleCtxKeyDown(e: React.KeyboardEvent) {
+    if (e.key === 'Escape') {
+      setCtxMenu(null)
+      return
+    }
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      e.preventDefault()
+      const items = Array.from(
+        ctxRef.current?.querySelectorAll<HTMLElement>('[role="menuitem"]') ?? []
+      )
+      if (!items.length) return
+      const idx = items.indexOf(document.activeElement as HTMLElement)
+      if (e.key === 'ArrowDown') {
+        items[idx < items.length - 1 ? idx + 1 : 0]?.focus()
+      } else {
+        items[idx > 0 ? idx - 1 : items.length - 1]?.focus()
+      }
+    }
+  }
+
   // ── Render ───────────────────────────────────────────────────────────────
   return (
     <div style={{ height: '100%', overflowY: 'auto' }}>
@@ -794,6 +824,8 @@ export default function NotesPage() {
       {ctxMenu && (
         <div
           ref={ctxRef}
+          role="menu"
+          onKeyDown={handleCtxKeyDown}
           style={{
             position: 'fixed',
             top: ctxMenu.y,
@@ -932,6 +964,7 @@ function CtxBtn({ icon: Icon, label, onClick, danger = false, active = false, su
   return (
     <button
       type="button"
+      role="menuitem"
       onClick={onClick}
       style={{
         display: 'flex', alignItems: 'center', gap: 9,

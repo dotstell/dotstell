@@ -1,5 +1,6 @@
 'use client'
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
+import { toast } from 'sonner'
 import { Notebook } from '@/types'
 
 // Note membership is stored as a tag, not a foreign key. "My Notebook" → tag "nb:my-notebook".
@@ -64,6 +65,9 @@ async function migrateFromLocalStorage(): Promise<void> {
 
 export function useNotebooks() {
   const [notebooks, setNotebooks] = useState<Notebook[]>([])
+  // Always reflects the latest notebooks value so useCallback deps can stay stable.
+  const notebooksRef = useRef<Notebook[]>(notebooks)
+  notebooksRef.current = notebooks
 
   useEffect(() => {
     migrateFromLocalStorage().then(() => {
@@ -102,19 +106,38 @@ export function useNotebooks() {
   }, [])
 
   const deleteNotebook = useCallback(async (id: string) => {
-    const snapshot = notebooks
+    // Read the current list via ref so this callback never needs `notebooks` as a dep.
+    const current = notebooksRef.current
+    const deletedIndex = current.findIndex(n => n.id === id)
+    const deletedItem  = current[deletedIndex]
     setNotebooks(prev => prev.filter(n => n.id !== id))
     try {
       const res = await fetch(`/api/notebooks/${id}`, { method: 'DELETE' })
-      if (!res.ok) setNotebooks(snapshot)
+      if (!res.ok && deletedItem) {
+        // Re-insert at the original position rather than replacing the whole list,
+        // so concurrent mutations that happened during the request are not discarded.
+        setNotebooks(prev => {
+          const next = [...prev]
+          next.splice(Math.min(deletedIndex, next.length), 0, deletedItem)
+          return next
+        })
+      }
     } catch {
-      setNotebooks(snapshot)
+      if (deletedItem) {
+        setNotebooks(prev => {
+          const next = [...prev]
+          next.splice(Math.min(deletedIndex, next.length), 0, deletedItem)
+          return next
+        })
+      }
     }
-  }, [notebooks])
+  }, [])
 
   const renameNotebook = useCallback(async (id: string, name: string) => {
     const trimmed = name.trim()
-    const snapshot = notebooks
+    // Capture the original name via ref before the optimistic update so a rollback
+    // only touches this notebook, preserving any concurrent mutations to the rest.
+    const originalName = notebooksRef.current.find(n => n.id === id)?.name
     setNotebooks(prev => prev.map(n => n.id === id ? { ...n, name: trimmed } : n))
     try {
       const res = await fetch(`/api/notebooks/${id}`, {
@@ -122,45 +145,51 @@ export function useNotebooks() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: trimmed }),
       })
-      if (!res.ok) setNotebooks(snapshot)
+      if (!res.ok && originalName !== undefined) {
+        setNotebooks(prev => prev.map(n => n.id === id ? { ...n, name: originalName } : n))
+      }
     } catch {
-      setNotebooks(snapshot)
+      if (originalName !== undefined) {
+        setNotebooks(prev => prev.map(n => n.id === id ? { ...n, name: originalName } : n))
+      }
     }
-  }, [notebooks])
+  }, [])
 
-  // Known limitation: the N PATCHes are fire-and-forget inside the state updater.
-  // If any fail, server order diverges silently. Fixing requires moving fetches outside
-  // the updater, awaiting them, and rolling back — deferred until drag-reorder is used in prod.
-  // Side-effect inside setState is also risky under React Strict Mode (double-invocation in dev),
-  // but drag events only fire in a real browser so Strict Mode's double-call never triggers here.
   const reorderNotebook = useCallback(async (dragId: string, targetId: string) => {
-    setNotebooks(prev => {
-      const next = [...prev]
-      const from = next.findIndex(n => n.id === dragId)
-      const to   = next.findIndex(n => n.id === targetId)
-      if (from === -1 || to === -1) return prev
-      const [item] = next.splice(from, 1)
-      next.splice(to, 0, item)
-      next.forEach((nb, i) => {
-        fetch(`/api/notebooks/${nb.id}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ sort_order: i }),
-        }).catch(() => {})
-      })
-      return next
+    // Compute the reordered array outside the setter so network calls are never
+    // fired from inside a state updater (which must be a pure function and would
+    // be invoked twice under React Strict Mode, doubling the requests).
+    const arr  = [...notebooksRef.current]
+    const from = arr.findIndex(n => n.id === dragId)
+    const to   = arr.findIndex(n => n.id === targetId)
+    if (from === -1 || to === -1) return
+    const [item] = arr.splice(from, 1)
+    arr.splice(to, 0, item)
+    setNotebooks(arr)
+    arr.forEach((nb, i) => {
+      fetch(`/api/notebooks/${nb.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sort_order: i }),
+      }).catch(() => {})
     })
   }, [])
 
   const setNotebookColor = useCallback(async (id: string, color: string | null) => {
+    const originalColor = notebooksRef.current.find(n => n.id === id)?.color ?? null
     setNotebooks(prev => prev.map(n => n.id === id ? { ...n, color: color ?? undefined } : n))
     try {
-      await fetch(`/api/notebooks/${id}`, {
+      const res = await fetch(`/api/notebooks/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ color }),
       })
-    } catch {}
+      if (!res.ok) throw new Error('Failed to update color')
+    } catch {
+      // Roll back to the original color so the UI stays in sync with the server.
+      setNotebooks(prev => prev.map(n => n.id === id ? { ...n, color: originalColor ?? undefined } : n))
+      toast.error('Failed to update notebook color')
+    }
   }, [])
 
   return { notebooks, createNotebook, deleteNotebook, renameNotebook, reorderNotebook, setNotebookColor }

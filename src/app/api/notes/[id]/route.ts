@@ -39,6 +39,28 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       return NextResponse.json({ error: 'Invalid color value' }, { status: 400 })
   }
 
+  // Ownership check: person_id must belong to the current user
+  if ('person_id' in allowed && allowed.person_id) {
+    const { data: person } = await supabase
+      .from('people')
+      .select('id')
+      .eq('id', allowed.person_id as string)
+      .eq('user_id', user.id)
+      .single()
+    if (!person) return NextResponse.json({ error: 'person_id not found' }, { status: 400 })
+  }
+
+  // Ownership check: parent_id must belong to the current user
+  if ('parent_id' in allowed && allowed.parent_id) {
+    const { data: parentNote } = await supabase
+      .from('notes')
+      .select('id')
+      .eq('id', allowed.parent_id as string)
+      .eq('user_id', user.id)
+      .single()
+    if (!parentNote) return NextResponse.json({ error: 'parent_id not found' }, { status: 400 })
+  }
+
   const { data, error } = await supabase.from('notes').update(allowed).eq('id', id).eq('user_id', user.id).select().single()
   if (error) return NextResponse.json({ error: 'An unexpected error occurred.' }, { status: 500 })
   return NextResponse.json(data)

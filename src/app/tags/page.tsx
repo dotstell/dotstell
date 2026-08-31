@@ -27,6 +27,15 @@ export default function TagsPage() {
   const [selected,   setSelected]   = useState<string | null>(null)
   const [tagSearch,  setTagSearch]  = useState('')
   const [itemSearch, setItemSearch] = useState('')
+  const [isMobile,   setIsMobile]   = useState(false)
+
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 640px)')
+    setIsMobile(mq.matches)
+    const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches)
+    mq.addEventListener('change', handler)
+    return () => mq.removeEventListener('change', handler)
+  }, [])
 
   useEffect(() => {
     async function load() {
@@ -89,7 +98,13 @@ export default function TagsPage() {
             <p style={{ color: 'var(--border)', fontSize: 12, marginTop: 4 }}>Add tags to your notes, people, tasks or bookmarks and they&apos;ll appear here.</p>
           </div>
         ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: '240px 1fr', gap: 16, alignItems: 'start' }}>
+          <div style={{
+            display: isMobile ? 'flex' : 'grid',
+            flexDirection: isMobile ? 'column' : undefined,
+            gridTemplateColumns: isMobile ? undefined : '240px 1fr',
+            gap: 16,
+            alignItems: 'start',
+          }}>
             {/* Tag list */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {/* Tag search */}
@@ -141,8 +156,8 @@ export default function TagsPage() {
               </div>
             </div>
 
-            {/* Items in selected tag */}
-            <div style={{ backgroundColor: 'var(--card)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
+            {/* Items in selected tag — hidden on mobile until a tag is selected */}
+            {(!isMobile || selected) && <div style={{ backgroundColor: 'var(--card)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
               {selectedGroup && (
                 <>
                   <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)' }}>
@@ -196,7 +211,7 @@ export default function TagsPage() {
                   </div>
                 </>
               )}
-            </div>
+            </div>}
           </div>
         )}
       </PageContainer>

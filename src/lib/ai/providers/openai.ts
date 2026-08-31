@@ -69,6 +69,8 @@ export async function groqStream(
  */
 export async function openaiEmbed(config: AIConfig, text: string): Promise<number[]> {
   const baseUrl = config.embeddingBaseUrl?.replace(/\/$/, '') || 'https://api.openai.com/v1'
+  // Validate the embeddingBaseUrl hostname when a custom one is provided (skip Ollama — it uses assertLocalhost)
+  if (config.embeddingBaseUrl && config.embeddingProvider !== 'ollama') sanitizeBaseUrl(baseUrl)
   const res = await fetch(`${baseUrl}/embeddings`, {
     method: 'POST',
     headers: {

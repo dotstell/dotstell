@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { generateId } from '@/lib/utils'
 import { useMention } from '@/hooks/useMention'
+import { useTheme, THEME_DEFS } from '@/hooks/useTheme'
 import { LinkPanel } from '@/components/links/LinkPanel'
 
 // ssr: false — @uiw/react-md-editor accesses document directly and cannot render server-side
@@ -26,6 +27,8 @@ const TYPE_TABS: { value: NoteType; label: string }[] = [
 ]
 
 export function NoteEditor({ note, onChange }: NoteEditorProps) {
+  const { theme } = useTheme()
+  const colorMode = THEME_DEFS.find(t => t.id === theme)?.dark ? 'dark' : 'light'
   const [tagInput, setTagInput] = useState('')
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const lastCheckRef = useRef<HTMLInputElement>(null)
@@ -145,7 +148,7 @@ export function NoteEditor({ note, onChange }: NoteEditorProps) {
       )}
 
       {note.type === 'markdown' && (
-        <div data-color-mode="dark">
+        <div data-color-mode={colorMode}>
           <MDEditor
             value={note.content ?? ''}
             onChange={val => onChange({ content: val ?? '' })}

@@ -89,7 +89,7 @@ export default function RegisterPage() {
                     {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
                   </button>
                 </div>
-                {error && <p className="text-[var(--destructive)] text-sm">{error}</p>}
+                {error && <p className="text-[var(--destructive)] text-sm bg-red-500/10 border border-red-500/20 rounded-md px-3 py-2">{error}</p>}
                 <Button type="submit" disabled={loading} className="w-full mt-1">
                   {loading ? 'Creating...' : 'Create account'}
                 </Button>

@@ -50,6 +50,14 @@ export default function TasksPage() {
   const [tagInput, setTagInput] = useState('')
   const [saving, setSaving] = useState(false)
   const [viewMode, setViewMode] = useState<'board' | 'list'>('board')
+  const [confirmState, setConfirmState] = useState<{
+    open: boolean; title: string; body: string; confirmLabel: string; onConfirm: () => void
+  }>({ open: false, title: '', body: '', confirmLabel: '', onConfirm: () => {} })
+
+  function openConfirm(opts: { title: string; body: string; confirmLabel: string; onConfirm: () => void }) {
+    setConfirmState({ ...opts, open: true })
+  }
+  function closeConfirm() { setConfirmState(s => ({ ...s, open: false })) }
 
   const fetchTasks = useCallback(async () => {
     try {
@@ -159,9 +167,11 @@ export default function TasksPage() {
         />
 
         {loading ? (
-          <div className="text-[var(--muted-foreground)] text-sm">Loading...</div>
+          <div className="flex items-center justify-center py-20" aria-label="Loading tasks">
+            <div className="w-8 h-8 rounded-full border-2 border-[var(--primary)] border-t-transparent animate-spin" />
+          </div>
         ) : viewMode === 'board' ? (
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             {STATUS_COLUMNS.map(status => {
               const colTasks = tasks.filter(t => t.status === status)
               return (
@@ -177,7 +187,7 @@ export default function TasksPage() {
                         task={task}
                         isOverdue={!!isOverdue(task)}
                         onEdit={() => { setEditing(task); setDialogOpen(true) }}
-                        onDelete={() => deleteTask(task.id)}
+                        onDelete={() => openConfirm({ title: 'Delete task', body: `"${task.title}" will be permanently deleted.`, confirmLabel: 'Delete forever', onConfirm: () => deleteTask(task.id) })}
                         onStatusChange={s => updateStatus(task, s)}
                       />
                     ))}
@@ -224,7 +234,7 @@ export default function TasksPage() {
                 )}
                 <div className="flex gap-1 opacity-0 group-hover:opacity-100">
                   <Button variant="ghost" size="icon" className="h-6 w-6 text-[var(--muted-foreground)]" onClick={() => { setEditing(task); setDialogOpen(true) }}>✏️</Button>
-                  <Button variant="ghost" size="icon" className="h-6 w-6 text-[var(--muted-foreground)] hover:text-[var(--destructive)]" onClick={() => deleteTask(task.id)}><Trash2 size={12} /></Button>
+                  <Button variant="ghost" size="icon" className="h-6 w-6 text-[var(--muted-foreground)] hover:text-[var(--destructive)]" onClick={() => openConfirm({ title: 'Delete task', body: `"${task.title}" will be permanently deleted.`, confirmLabel: 'Delete forever', onConfirm: () => deleteTask(task.id) })}><Trash2 size={12} /></Button>
                 </div>
               </div>
             ))}
@@ -238,7 +248,7 @@ export default function TasksPage() {
             <DialogTitle>{(editing as Task).id ? 'Edit task' : 'New task'}</DialogTitle>
           </DialogHeader>
           <div className="flex flex-col gap-3">
-            <Input placeholder="Task title *" value={editing.title ?? ''} onChange={e => setEditing(p => ({ ...p, title: e.target.value }))} />
+            <Input autoFocus placeholder="Task title *" value={editing.title ?? ''} onChange={e => setEditing(p => ({ ...p, title: e.target.value }))} />
             <Textarea placeholder="Description..." rows={3} value={editing.description ?? ''} onChange={e => setEditing(p => ({ ...p, description: e.target.value }))} />
             <div className="grid grid-cols-2 gap-2">
               <div>
@@ -304,6 +314,69 @@ export default function TasksPage() {
           </div>
         </DialogContent>
       </Dialog>
+      {confirmState.open && (
+        <>
+          <div onClick={closeConfirm} style={{
+            position: 'fixed', inset: 0, zIndex: 9998,
+            backgroundColor: 'rgba(0,0,0,0.65)',
+            backdropFilter: 'blur(4px)',
+          }} />
+          <div style={{
+            position: 'fixed', top: '50%', left: '50%',
+            transform: 'translate(-50%, -50%)',
+            zIndex: 9999,
+            width: '100%', maxWidth: 420,
+            backgroundColor: 'var(--card)',
+            border: '1px solid var(--border)',
+            borderRadius: 14,
+            boxShadow: '0 24px 60px rgba(0,0,0,0.65)',
+            padding: '24px 24px 20px',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14, marginBottom: 20 }}>
+              <div style={{
+                width: 38, height: 38, borderRadius: 10, flexShrink: 0,
+                backgroundColor: 'rgba(239,68,68,0.12)',
+                border: '1px solid rgba(239,68,68,0.25)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}>
+                <Trash2 size={17} color="var(--destructive)" />
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <p style={{ margin: 0, fontSize: 15, fontWeight: 700, color: 'var(--foreground)' }}>
+                  {confirmState.title}
+                </p>
+                <p style={{ margin: '5px 0 0', fontSize: 13, color: 'var(--muted-foreground)', lineHeight: 1.55 }}>
+                  {confirmState.body}
+                </p>
+              </div>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+              <button type="button" onClick={closeConfirm} style={{
+                padding: '7px 18px', borderRadius: 8,
+                border: '1px solid var(--border)',
+                backgroundColor: 'transparent', color: 'var(--foreground)',
+                fontSize: 13, cursor: 'pointer', fontWeight: 500,
+              }}
+                onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'var(--accent)')}
+                onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
+              >
+                Cancel
+              </button>
+              <button type="button" onClick={async () => { await confirmState.onConfirm(); closeConfirm() }} style={{
+                padding: '7px 18px', borderRadius: 8, border: 'none',
+                backgroundColor: 'var(--destructive)', color: 'white',
+                fontSize: 13, cursor: 'pointer', fontWeight: 600,
+                transition: 'opacity 0.15s',
+              }}
+                onMouseEnter={e => (e.currentTarget.style.opacity = '0.85')}
+                onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
+              >
+                {confirmState.confirmLabel}
+              </button>
+            </div>
+          </div>
+        </>
+      )}
     </AppLayout>
   )
 }

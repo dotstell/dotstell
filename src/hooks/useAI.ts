@@ -363,7 +363,8 @@ export function useAIPersonIntel(config: AIConfig) {
         const supabase = createSupabaseBrowserClient()
         const { data: { user } } = await supabase.auth.getUser()
         if (!user) throw new Error('Unauthorized')
-        const pattern  = `%${name}%`
+        const safeName = name.replace(/%/g, '\\%').replace(/_/g, '\\_')
+        const pattern  = `%${safeName}%`
         const [notesRes, bookmarksRes] = await Promise.all([
           supabase.from('notes').select('id, title, content, updated_at')
             .eq('user_id', user.id)

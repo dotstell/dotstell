@@ -18,6 +18,7 @@ interface AIChatPanelProps {
 }
 
 interface ChatMessage {
+  id:      string
   role:    'user' | 'assistant'
   content: string
 }
@@ -71,8 +72,8 @@ export function AIChatPanel({ config, noteId, noteTitle, noteContent, onClose }:
     sendingRef.current = true
     setInput('')
 
-    const userMsg: ChatMessage = { role: 'user', content: text }
-    const placeholder: ChatMessage = { role: 'assistant', content: '' }
+    const userMsg: ChatMessage = { id: crypto.randomUUID(), role: 'user', content: text }
+    const placeholder: ChatMessage = { id: crypto.randomUUID(), role: 'assistant', content: '' }
     setMessages(prev => [...prev, userMsg, placeholder])
     pendingRole.current = true
 
@@ -331,7 +332,7 @@ export function AIChatPanel({ config, noteId, noteTitle, noteContent, onClose }:
         {messages.map((msg, i) => {
           const isStreaming = streaming && i === messages.length - 1 && msg.role === 'assistant'
           return (
-            <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'flex-start', justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start' }}>
+            <div key={msg.id} style={{ display: 'flex', gap: 8, alignItems: 'flex-start', justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start' }}>
               {msg.role === 'assistant' && (
                 <div style={{ width: 24, height: 24, borderRadius: 6, backgroundColor: 'color-mix(in srgb, var(--primary) 12%, transparent)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 2 }}>
                   <Sparkles size={12} color="var(--primary)" />

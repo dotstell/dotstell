@@ -260,6 +260,9 @@ export function RichTextEditor({
   // Ref keeps onEditorReady stable so the effect below never re-runs due to prop identity changes
   const onEditorReadyRef = useRef(onEditorReady)
   useEffect(() => { onEditorReadyRef.current = onEditorReady }, [onEditorReady])
+  // Cancel any pending wiki search timer when the component unmounts to avoid
+  // calling setWikiResults on an unmounted component.
+  useEffect(() => () => { if (wikiSearchTimer.current) clearTimeout(wikiSearchTimer.current) }, [])
   const colorRef  = useRef<HTMLDivElement>(null)
   const hlRef     = useRef<HTMLDivElement>(null)
   const fontRef   = useRef<HTMLDivElement>(null)

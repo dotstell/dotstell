@@ -73,6 +73,29 @@ export async function POST(req: NextRequest) {
   if (typeof body.content === 'string' && body.content.length > 2_000_000) {
     return NextResponse.json({ error: 'Content too large (max 2 MB)' }, { status: 413 })
   }
+
+  // Ownership check: person_id must belong to the current user
+  if (body.person_id) {
+    const { data: person } = await supabase
+      .from('people')
+      .select('id')
+      .eq('id', body.person_id)
+      .eq('user_id', user.id)
+      .single()
+    if (!person) return NextResponse.json({ error: 'person_id not found' }, { status: 400 })
+  }
+
+  // Ownership check: parent_id must belong to the current user
+  if (body.parent_id) {
+    const { data: parentNote } = await supabase
+      .from('notes')
+      .select('id')
+      .eq('id', body.parent_id)
+      .eq('user_id', user.id)
+      .single()
+    if (!parentNote) return NextResponse.json({ error: 'parent_id not found' }, { status: 400 })
+  }
+
   const { data, error } = await supabase.from('notes').insert({
     user_id:         user.id,
     title:           body.title,

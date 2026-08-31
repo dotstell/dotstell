@@ -274,9 +274,9 @@ export function AISettingsModal({ onClose }: AISettingsModalProps) {
       const apiKey = draft.embeddingApiKey ?? (draft.provider === 'gemini' ? draft.apiKey : '') ?? ''
       if (!apiKey) return { ok: false, message: 'Embedding (Gemini): API key missing — add it under Search engine API Key' }
       const GEMINI_BASE = 'https://generativelanguage.googleapis.com/v1beta'
-      const res = await fetch(`${GEMINI_BASE}/models/${draft.embeddingModel}:embedContent?key=${apiKey}`, {
+      const res = await fetch(`${GEMINI_BASE}/models/${draft.embeddingModel}:embedContent`, {
         method:  'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
         body:    JSON.stringify({ model: `models/${draft.embeddingModel}`, content: { parts: [{ text: 'test' }] }, outputDimensionality: 768 }),
         signal:  AbortSignal.timeout(8000),
       })

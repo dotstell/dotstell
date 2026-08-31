@@ -48,6 +48,28 @@ export function LinkPanel({ sourceId, sourceType }: LinkPanelProps) {
     const filtered = data.filter((l: { label?: string }) => l.label !== '__wikilink__')
     if (!Array.isArray(filtered) || filtered.length === 0) { setLinks([]); return }
 
+    // Prefer a single batch request to avoid N+1 round trips on every panel load
+    const ids   = filtered.map((l: { target_id: string }) => l.target_id).join(',')
+    const types = filtered.map((l: { target_type: string }) => l.target_type).join(',')
+    try {
+      const batchRes = await fetch(`/api/links/batch?ids=${encodeURIComponent(ids)}&types=${encodeURIComponent(types)}`)
+      if (batchRes.ok) {
+        const batchData: Record<string, { name?: string; title?: string }> = await batchRes.json()
+        const enriched: LinkedItem[] = filtered.map((link: { id: string; target_id: string; target_type: string }) => {
+          const item = batchData[link.target_id]
+          return {
+            id: link.target_id,
+            type: link.target_type as LinkableType,
+            label: item?.name ?? item?.title ?? link.target_id,
+            link_id: link.id,
+          }
+        })
+        setLinks(enriched)
+        return
+      }
+    } catch {}
+
+    // Fallback: fire all individual fetches in parallel if the batch endpoint is unavailable
     const enriched: LinkedItem[] = await Promise.all(
       filtered.map(async (link: { id: string; target_id: string; target_type: string }) => {
         try {
@@ -83,24 +105,40 @@ export function LinkPanel({ sourceId, sourceType }: LinkPanelProps) {
   async function addLink(target: SearchResult) {
     const already = links.some(l => l.id === target.id)
     if (already) return
-    await fetch('/api/links', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ source_id: sourceId, source_type: sourceType, target_id: target.id, target_type: target._type }),
-    })
-    setLinks(prev => [...prev, { id: target.id, type: target._type as LinkableType, label: target._label }])
-    setQuery('')
-    setResults([])
-    setSearching(false)
+    try {
+      const res = await fetch('/api/links', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ source_id: sourceId, source_type: sourceType, target_id: target.id, target_type: target._type }),
+      })
+      if (!res.ok) {
+        console.error('Failed to add link:', res.status, res.statusText)
+        return
+      }
+      setLinks(prev => [...prev, { id: target.id, type: target._type as LinkableType, label: target._label }])
+      setQuery('')
+      setResults([])
+      setSearching(false)
+    } catch (err) {
+      console.error('Failed to add link:', err)
+    }
   }
 
   async function removeLink(linkItem: LinkedItem) {
-    await fetch('/api/links', {
-      method: 'DELETE',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ source_id: sourceId, target_id: linkItem.id }),
-    })
-    setLinks(prev => prev.filter(l => l.id !== linkItem.id))
+    try {
+      const res = await fetch('/api/links', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ source_id: sourceId, target_id: linkItem.id }),
+      })
+      if (!res.ok) {
+        console.error('Failed to remove link:', res.status, res.statusText)
+        return
+      }
+      setLinks(prev => prev.filter(l => l.id !== linkItem.id))
+    } catch (err) {
+      console.error('Failed to remove link:', err)
+    }
   }
 
   return (
