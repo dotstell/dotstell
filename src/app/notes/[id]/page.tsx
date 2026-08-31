@@ -96,6 +96,12 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
     } catch { return [] }
   }, [note.content])
 
+  // True only when the note genuinely has no content — checked against both the DB value
+  // (available immediately on load) and the live editor text (accurate after first keystroke).
+  // Using editorText alone causes a false-empty flash while the editor initialises.
+  const noteIsEmpty = editorText.trim() === '' &&
+    (!note.content || note.content.replace(/<[^>]+>/g, '').trim() === '')
+
   // Word / char counts from the editor's own plain text (accurate, includes spaces)
   const wordCount = editorText ? editorText.split(/\s+/).filter(Boolean).length : 0
   const charCount = editorText.length
@@ -845,8 +851,8 @@ ${sanitizeHtmlForPrint(note.content ?? '')}
                 } : undefined}
               />
 
-              {/* AI Draft hint — shown when note is empty, AI configured, and panel is not open */}
-              {aiConfigured && !loading && !writingOpen && editorText.trim() === '' && (
+              {/* AI Draft hint — shown only when the note is genuinely empty */}
+              {aiConfigured && !loading && !writingOpen && noteIsEmpty && (
                 <div style={{
                   margin: '0 20px 20px',
                   padding: '14px 16px', borderRadius: 12,
@@ -1181,7 +1187,7 @@ ${sanitizeHtmlForPrint(note.content ?? '')}
           config={aiConfig}
           noteTitle={note.title}
           noteContent={editorText}
-          isEmpty={editorText.trim() === ''}
+          isEmpty={noteIsEmpty}
           initialFormat={writingFormat}
           onInsert={html => {
             const editor = editorRef.current
