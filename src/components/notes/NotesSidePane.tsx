@@ -869,11 +869,12 @@ export function NotesSidePane({ width = 220, activeNoteId }: Props) {
                   setDeleteConfirm({
                     id: nbId,
                     title: `Delete "${nb?.name || 'Untitled'}" notebook?`,
-                    body: 'The notebook will be permanently deleted. Notes inside will be unlinked but not deleted.',
+                    body: 'The notebook will be permanently deleted. Notes inside will be moved to trash — you can restore them within 30 days.',
                     confirmLabel: 'Delete',
                     onConfirm: async () => {
                       await deleteNotebook(nbId)
                       toast.success('Notebook deleted')
+                      window.dispatchEvent(new CustomEvent('dotstell:notes-updated'))
                     },
                   })
                 }} />

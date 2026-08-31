@@ -52,27 +52,33 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
 
   if (!notebook) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
-  // Membership is stored as a tag on notes (e.g. "nb:my-notebook"). Strip that tag
-  // from every note — active and trashed — so restored notes don't ghost-join a future
-  // notebook with the same name.
+  // Membership is stored as a tag on notes (e.g. "nb:my-notebook").
+  // Active notes are moved to trash; already-trashed notes just have the tag stripped
+  // so they don't ghost-join a future notebook with the same name when restored.
   const tag = `nb:${notebook.name.toLowerCase().replace(/\s+/g, '-')}`
-  const { data: taggedNotes } = await supabase
-    .from('notes')
-    .select('id, tags')
-    .eq('user_id', user.id)
-    .contains('tags', [tag])
+  const now = new Date().toISOString()
 
-  if (taggedNotes && taggedNotes.length > 0) {
-    await Promise.all(
-      taggedNotes.map(note =>
-        supabase
-          .from('notes')
-          .update({ tags: (note.tags as string[]).filter(t => t !== tag) })
-          .eq('id', note.id)
-          .eq('user_id', user.id)
-      )
+  const [{ data: activeNotes }, { data: trashedNotes }] = await Promise.all([
+    supabase.from('notes').select('id, tags').eq('user_id', user.id).is('deleted_at', null).contains('tags', [tag]),
+    supabase.from('notes').select('id, tags').eq('user_id', user.id).not('deleted_at', 'is', null).contains('tags', [tag]),
+  ])
+
+  const updates: Promise<unknown>[] = []
+  for (const note of (activeNotes ?? [])) {
+    updates.push(
+      supabase.from('notes')
+        .update({ deleted_at: now, tags: (note.tags as string[]).filter(t => t !== tag) })
+        .eq('id', note.id).eq('user_id', user.id)
     )
   }
+  for (const note of (trashedNotes ?? [])) {
+    updates.push(
+      supabase.from('notes')
+        .update({ tags: (note.tags as string[]).filter(t => t !== tag) })
+        .eq('id', note.id).eq('user_id', user.id)
+    )
+  }
+  if (updates.length > 0) await Promise.all(updates)
 
   const { error } = await supabase
     .from('notebooks')
