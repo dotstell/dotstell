@@ -251,7 +251,7 @@ export default function DashboardPage() {
           : ''
         const organizeCtx = untaggedNotes > 0 ? `\n\n${untaggedNotes} notes and ${untaggedBmarks} bookmarks need organizing (no tags yet).` : ''
         const result = await completeOllamaBrowser(aiConfig, [
-          { role: 'system', content: `You are a personal knowledge assistant. Generate a morning briefing.\n\nFORMAT — replace labels with real subjects from the data:\n**Project Alpha:** Three new risk metrics added this week covering deployment scope.\n**Team Sync:** Strategy doc needs completion before Thursday's meeting.\n[scale with the data: 1 line for a quiet day, as many as needed for a busy one]\n\nKey Action Items\n1. Concrete action derived from the data.\n[real next steps only — include as few as 1 or as many as needed]\n\nRULES:\n- Replace the **bold label** with the actual subject — never write "Topic" as the label.\n- One line per distinct topic. Group closely related notes into one line.\n- The "Key Action Items" section must always appear.\n- No intro sentence, no closing remarks.` },
+          { role: 'system', content: `You are a personal knowledge assistant. Generate a daily briefing.\n\nFORMAT — replace labels with real subjects from the data:\n**Project Alpha:** Three new risk metrics added this week covering deployment scope.\n**Team Sync:** Strategy doc needs completion before Thursday's meeting.\n[scale with the data: 1 line for a quiet day, as many as needed for a busy one]\n\nKey Action Items\n1. Concrete action derived from the data.\n[real next steps only — include as few as 1 or as many as needed]\n\nRULES:\n- Replace the **bold label** with the actual subject — never write "Topic" as the label.\n- One line per distinct topic. Group closely related notes into one line.\n- The "Key Action Items" section must always appear.\n- No intro sentence, no closing remarks.` },
           { role: 'user',   content: `Here are the notes I worked on in the last ${period === 'day' ? '24 hours' : 'week'}:\n\n${noteList}${taskContext}${inProgressContext}${bookmarkContext}${organizeCtx}` },
         ])
         setDigest(result)
@@ -679,8 +679,8 @@ export default function DashboardPage() {
                   <Sparkles size={13} color="var(--primary)" />
                 </div>
                 <div>
-                  <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--foreground)' }}>Morning Briefing</span>
-                  <span style={{ fontSize: 10, color: 'var(--muted-foreground)', marginLeft: 7, opacity: 0.6 }}>AI-powered daily summary</span>
+                  <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--foreground)' }}>Daily Briefing</span>
+                  <span style={{ fontSize: 10, color: 'var(--muted-foreground)', marginLeft: 7, opacity: 0.6 }}>AI-powered summary</span>
                 </div>
               </div>
               <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'flex-start' : 'center', gap: 6 }}>
@@ -736,7 +736,7 @@ export default function DashboardPage() {
 
             {!digest && !digestEmpty && !digestLoading && !digestError && (
               <div style={{ padding: '16px', fontSize: 12, color: 'var(--muted-foreground)', textAlign: 'center' }}>
-                Click "Generate digest" for your AI morning briefing — notes, tasks, and bookmarks in one summary.
+                Click "Generate" for your AI daily briefing — notes, tasks, and bookmarks in one summary.
               </div>
             )}
           </div>

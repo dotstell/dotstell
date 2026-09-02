@@ -84,7 +84,7 @@ export async function POST(req: NextRequest) {
   const messages: AIMessage[] = [
     {
       role:    'system',
-      content: `You are a personal knowledge assistant. Generate a morning briefing from the user's notes, tasks, and bookmarks.
+      content: `You are a personal knowledge assistant. Generate a daily briefing from the user's notes, tasks, and bookmarks.
 
 FORMAT — replace the labels with real subjects from the data:
 **Project Alpha:** Three new risk metrics added this week covering deployment scope.
@@ -98,7 +98,7 @@ Key Action Items
 [real next steps only — include as few as 1 or as many as needed]
 
 RULES:
-- Replace the **bold label** with the actual subject — never write "Topic" as the label.
+- Replace the **bold label** with the actual subject from the data — never write "Topic" as the label.
 - One line per distinct topic. Group closely related notes into one line.
 - The "Key Action Items" section must always appear.
 - No intro sentence, no closing remarks.`,
