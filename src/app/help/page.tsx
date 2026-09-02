@@ -509,7 +509,7 @@ export default function HelpPage() {
                   body="A daily AI summary that pulls from your notes, open tasks, and saved bookmarks together. Each insight line is labelled by its real topic. The briefing scales with how much is happening — a quiet day stays concise, a busy week covers everything that matters. Choose Today or This Week and regenerate any time."
                 />
                 <Tip icon="📊" title="Dashboard Knowledge Health redesign"
-                  body="The dashboard top card is rebuilt as Knowledge Health. Four stat boxes show capture volume, week-over-week trend, unique topic count, and notes organised %. Each box shows a tap-to-reveal tooltip on mobile and hover on desktop — built with pointer:coarse detection so it works correctly on iPads and Android tablets as well as phones. A dynamic streak badge appears after 2+ consecutive days, with an icon that escalates as your streak grows."
+                  body="The Knowledge Health section on the dashboard now shows four stat boxes: capture volume, week-over-week trend, unique topic count, and notes organised %. Each box reveals a plain-language explanation on tap (mobile) or hover (desktop) — works correctly on phones, iPads, and Android tablets. A dynamic streak badge appears after 2+ consecutive days, with an icon that escalates as your streak grows."
                 />
                 <Tip icon="🧹" title="Cleanup signals in Knowledge Health"
                   body="Three new signals in the Worth a cleanup section: stale notes (not touched in 30+ days), stale bookmarks (saved 90+ days ago, never revisited), and empty notes (blank notes that were never filled). Each shows a count — click an item to open it directly."
