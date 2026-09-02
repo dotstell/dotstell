@@ -11,15 +11,15 @@ const PANE_OPEN_KEY = 'dotstell-notes-pane-open'
 export default function NotesLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const [paneOpen, setPaneOpen] = useState(true)
-  // Initialise from the data-mobile attribute that the syncScript in app/layout.tsx
-  // sets before first paint, so the first client render already has the right value.
-  // useLayoutEffect keeps it correct on window resize (desktop users).
+  // Read the html[data-mobile] attribute set by syncScript before first paint so the
+  // very first client render already has the correct value — no useLayoutEffect delay.
   const [isMobile, setIsMobile] = useState(() =>
     typeof document !== 'undefined'
       ? document.documentElement.hasAttribute('data-mobile')
       : false
   )
 
+  // Keep in sync on window resize (desktop users resizing the viewport)
   useLayoutEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 768)
     check()
@@ -94,12 +94,13 @@ export default function NotesLayout({ children }: { children: React.ReactNode })
 
         {/* Main area: tab bar + page content */}
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, overflow: 'hidden' }}>
-          {/* On mobile inside a note the tab bar is redundant: the note header has
-              ← Notes and the bottom nav has the Notes icon.  Don't render it so it
-              cannot overlap the note header regardless of paint/hydration timing.
-              The CSS class + suppressHydrationWarning covers the brief SSR window. */}
-          <div suppressHydrationWarning className={currentNoteId ? 'notes-tabar-in-note' : undefined}>
-            {(!isMobile || !currentNoteId) && (
+          {/* Desktop only: tab bar with panel toggle, open-note tabs, new-note button.
+              On mobile the bottom nav Notes icon and the ← Notes back button in the
+              note header already cover all navigation — no tab bar needed.
+              The wrapper class lets the CSS in globals.css hide it during the brief
+              SSR window before the data-mobile attribute is read by React. */}
+          <div suppressHydrationWarning className="notes-tabar-wrapper">
+            {!isMobile && (
               <NoteTabBar
                 currentId={currentNoteId}
                 paneOpen={paneOpen}

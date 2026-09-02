@@ -653,8 +653,9 @@ body {
   }
 }
 
-/* Attribute-based rule — set by the inline syncScript in layout.tsx BEFORE first paint,
-   so this fires with zero race-condition risk even on slow Android CPUs. */
-html[data-mobile] .notes-tabar-in-note {
+/* Hide the note tab bar entirely on mobile — it is desktop-only.
+   Set by the syncScript before first paint as a zero-race-condition fallback
+   while React hydrates and removes it from the virtual DOM. */
+html[data-mobile] .notes-tabar-wrapper {
   display: none !important;
 }
