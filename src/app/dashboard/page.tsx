@@ -396,7 +396,7 @@ export default function DashboardPage() {
   }
 
   useEffect(() => {
-    function check() { setIsMobile(window.innerWidth < 768) }
+    function check() { setIsMobile(window.innerWidth < 768 || window.matchMedia('(pointer: coarse)').matches) }
     check()
     window.addEventListener('resize', check)
     const h = new Date().getHours()
