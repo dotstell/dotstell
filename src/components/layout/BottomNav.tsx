@@ -1,7 +1,7 @@
 'use client'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutDashboard, FileText, Bookmark, CheckSquare, Users } from 'lucide-react'
+import { LayoutDashboard, FileText, Bookmark, CheckSquare, Users, Menu } from 'lucide-react'
 
 const NAV_ITEMS = [
   { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard', exact: true  },
@@ -11,7 +11,7 @@ const NAV_ITEMS = [
   { href: '/people',    icon: Users,           label: 'People',    exact: false },
 ]
 
-export function BottomNav() {
+export function BottomNav({ onMenuOpen }: { onMenuOpen?: () => void }) {
   const pathname = usePathname()
 
   return (
@@ -22,6 +22,27 @@ export function BottomNav() {
       borderTop: '1px solid var(--border)',
       display: 'flex', alignItems: 'stretch',
     }}>
+      {onMenuOpen && (
+        <button
+          type="button"
+          aria-label="Open navigation"
+          onClick={onMenuOpen}
+          style={{
+            flex: 1,
+            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+            gap: 3,
+            backgroundColor: 'transparent',
+            color: 'var(--muted-foreground)',
+            border: 'none',
+            cursor: 'pointer',
+            touchAction: 'manipulation',
+            padding: 0,
+          }}
+        >
+          <Menu size={20} />
+          <span style={{ fontSize: 10, fontWeight: 400, lineHeight: 1 }}>Menu</span>
+        </button>
+      )}
       {NAV_ITEMS.map(({ href, icon: Icon, label, exact }) => {
         const active = exact ? pathname === href : pathname.startsWith(href)
         return (

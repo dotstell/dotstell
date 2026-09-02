@@ -44,10 +44,11 @@ const USER_SCOPED_KEYS = [
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const router   = useRouter()
   const pathname = usePathname()
-  const [collapsed, setCollapsed]       = useState(false)
-  const [paletteOpen, setPaletteOpen]   = useState(false)
+  const [collapsed, setCollapsed]           = useState(false)
+  const [paletteOpen, setPaletteOpen]       = useState(false)
   const [aiSettingsOpen, setAISettingsOpen] = useState(false)
-  const [isMobile, setIsMobile]         = useState(false)
+  const [isMobile, setIsMobile]             = useState(false)
+  const [sidebarOpen, setSidebarOpen]       = useState(false)
   const [gHint, setGHint]               = useState(false)
   const gTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const waitingRef = useRef(false)
@@ -72,6 +73,11 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     window.addEventListener('resize', check)
     return () => window.removeEventListener('resize', check)
   }, [])
+
+  // Close mobile sidebar drawer on route change
+  useEffect(() => {
+    setSidebarOpen(false)
+  }, [pathname])
 
   // Keep --actual-vh and --bottom-nav-h in sync with the visual viewport.
   // When the software keyboard opens, --bottom-nav-h drops to 0 so the notes
@@ -158,7 +164,12 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <div style={{ display: 'flex', height: 'var(--actual-vh, 100dvh)', backgroundColor: 'var(--background)' }}>
-      <Sidebar onOpenPalette={() => setPaletteOpen(true)} />
+      <Sidebar
+        onOpenPalette={() => setPaletteOpen(true)}
+        mobileOpen={sidebarOpen}
+        onMobileOpen={() => setSidebarOpen(true)}
+        onMobileClose={() => setSidebarOpen(false)}
+      />
       <main className="app-main" style={{
         flex: 1,
         marginLeft,
@@ -171,7 +182,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       }}>
         {children}
       </main>
-      {isMobile && <BottomNav />}
+      {isMobile && <BottomNav onMenuOpen={() => setSidebarOpen(true)} />}
       <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
       {aiSettingsOpen && <AISettingsModal onClose={() => setAISettingsOpen(false)} />}
       {gHint && (
