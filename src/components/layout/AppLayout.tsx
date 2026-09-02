@@ -213,7 +213,15 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       <TaskReminders />
       {/* Hide on the note editor — its status bar occupies the same bottom-right corner */}
       {!/^\/notes\/.+/.test(pathname) && (
-        <div style={{ position: 'fixed', bottom: 12, right: 16, zIndex: 10, display: 'flex', alignItems: 'center', gap: 8 }}>
+        <div style={{
+          position: 'fixed',
+          // On mobile the BottomNav is 56px tall at bottom:0 with zIndex:60.
+          // Raise this badge above it so it remains tappable.
+          bottom: isMobile ? 'calc(var(--bottom-nav-h, 56px) + env(safe-area-inset-bottom) + 10px)' : 12,
+          right: 16,
+          zIndex: isMobile ? 70 : 10,
+          display: 'flex', alignItems: 'center', gap: 8,
+        }}>
           <AIStatusBadge onClick={() => setAISettingsOpen(true)} />
           <a
             href={RELEASES_URL}
