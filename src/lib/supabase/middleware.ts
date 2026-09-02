@@ -35,9 +35,8 @@ export async function updateSession(request: NextRequest) {
     const { data } = await supabase.auth.getUser()
     user = data.user
   } catch {
-    // Session refresh failed — treat as anonymous for this request only.
-    // The client-side Supabase listener will handle re-auth on the next interaction.
-    return supabaseResponse
+    // Session refresh failed — treat as anonymous and fall through to the
+    // redirect logic below so protected routes still require authentication.
   }
 
   const isAuthRoute = request.nextUrl.pathname.startsWith('/auth')

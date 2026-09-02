@@ -73,6 +73,7 @@ export async function POST(req: NextRequest) {
         .eq('user_id', user.id)
         .contains('tags', [nbTag])
         .is('deleted_at', null)
+        .limit(50)
       if (!notes?.length) return NextResponse.json({ summary: 'No notes in this notebook yet.' })
       title   = `Notebook: ${nb.name}`
       const joined = notes.map(n =>

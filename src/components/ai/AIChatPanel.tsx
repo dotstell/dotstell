@@ -215,13 +215,11 @@ export function AIChatPanel({ config, noteId, noteTitle, noteContent, onClose }:
           return copy
         })
       } else {
-        // Stream returned nothing — remove the empty placeholder bubble so the error
-        // banner is the only feedback the user sees, not a blank assistant message.
+        // Stream returned nothing — remove the placeholder bubble (partial or empty)
+        // so the error banner is the only feedback the user sees.
         setMessages(prev => {
           const copy = [...prev]
-          if (copy[copy.length - 1]?.role === 'assistant' && !copy[copy.length - 1].content) {
-            copy.pop()
-          }
+          if (copy[copy.length - 1]?.role === 'assistant') copy.pop()
           return copy
         })
       }

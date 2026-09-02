@@ -53,13 +53,15 @@ export async function POST(req: NextRequest) {
       if (format !== 'custom' && !(format in DRAFT_PROMPTS)) {
         return NextResponse.json({ error: `Unknown draft format: ${format}` }, { status: 400 })
       }
+      const intent = body.intent?.slice(0, 500) ?? ''
+      const title  = body.title?.slice(0, 200)  ?? ''
       const formatInstruction = format === 'custom'
-        ? `Write content based on this intent: "${body.intent ?? 'a general note'}". Choose the most fitting structure and format.`
+        ? `Write content based on this intent: "${intent || 'a general note'}". Choose the most fitting structure and format.`
         : DRAFT_PROMPTS[format]
 
-      const titleContext  = body.title  ? ` The note title is: "${body.title}".`         : ''
-      const intentContext = body.intent && format !== 'custom'
-        ? ` Additional context from the user: "${body.intent}".` : ''
+      const titleContext  = title  ? ` The note title is: "${title}".`                            : ''
+      const intentContext = intent && format !== 'custom'
+        ? ` Additional context from the user: "${intent}".` : ''
 
       messages = [
         {
@@ -68,9 +70,9 @@ export async function POST(req: NextRequest) {
         },
         {
           role:    'user',
-          content: body.intent
-            ? `Write this: ${body.intent}${body.title ? ` (titled "${body.title}")` : ''}`
-            : `Generate a ${format === 'custom' ? 'note' : format}${body.title ? ` titled "${body.title}"` : ''}`,
+          content: intent
+            ? `Write this: ${intent}${title ? ` (titled "${title}")` : ''}`
+            : `Generate a ${format === 'custom' ? 'note' : format}${title ? ` titled "${title}"` : ''}`,
         },
       ]
     } else {
