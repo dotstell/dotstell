@@ -211,9 +211,11 @@ export default function DashboardPage() {
   const [selectedTags, setSelectedTags] = useState<Record<string, Set<string>>>({})
   const [unindexedCount, setUnindexedCount] = useState<number | null>(null)
   const [activeTip, setActiveTip] = useState<string | null>(null)
+  const [digestEmpty, setDigestEmpty] = useState(false)
+  const [tagSuggestError, setTagSuggestError] = useState<string | null>(null)
 
   async function generateDigest(period: 'day' | 'week') {
-    setDigest(''); setDigestError(null); setDigestLoading(true)
+    setDigest(''); setDigestError(null); setDigestEmpty(false); setDigestLoading(true)
     try {
       // On live app + Ollama: fetch notes browser-side and call Ollama through the Local Agent
       if (aiConfig.provider === 'ollama' && !isLocalHostname()) {
@@ -228,11 +230,12 @@ export default function DashboardPage() {
           .gte('updated_at', since.toISOString())
           .order('updated_at', { ascending: false })
           .limit(30)
-        if (!recentNotes?.length) {
-          setDigest(`No notes were updated in the last ${period === 'day' ? '24 hours' : '7 days'}.`)
+        const hasOllamaContent = (recentNotes?.length ?? 0) > 0 || overdueTasks.length > 0 || inProgress.length > 0 || bookmarks.length > 0
+        if (!hasOllamaContent) {
+          setDigestEmpty(true)
           return
         }
-        const noteList = recentNotes.map(n =>
+        const noteList = (recentNotes ?? []).map(n =>
           `• ${n.title || 'Untitled'} (updated ${new Date(n.updated_at).toLocaleDateString()}): ${
             n.content.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').slice(0, 300)
           }`
@@ -248,7 +251,7 @@ export default function DashboardPage() {
           : ''
         const organizeCtx = untaggedNotes > 0 ? `\n\n${untaggedNotes} notes and ${untaggedBmarks} bookmarks need organizing (no tags yet).` : ''
         const result = await completeOllamaBrowser(aiConfig, [
-          { role: 'system', content: `You are a personal knowledge assistant. Generate a morning briefing.\n\nFORMAT (follow exactly):\n**Topic:** One insight sentence.\n**Topic:** One insight sentence.\n[include everything genuinely important — typically 5-8, but more if needed]\n\nKey Action Items\n1. First concrete action.\n2. Second action.\n[2-4 numbered items — only real actions, not summaries]\n\nRULES:\n- Cover everything that matters. Group similar topics into one line instead of listing each note separately.\n- Start each insight line with **Bold topic:** (no leading dash needed).\n- The "Key Action Items" section must always appear.\n- No intro sentence, no closing remarks.` },
+          { role: 'system', content: `You are a personal knowledge assistant. Generate a morning briefing.\n\nFORMAT — replace labels with real subjects from the data:\n**SIGMA Dashboard:** Three new risk metrics added this week covering cloud exposure.\n**1-on-1 Prep:** Team strategy doc needs completion before Thursday's meeting.\n[scale with the data: 1 line for a quiet day, as many as needed for a busy one]\n\nKey Action Items\n1. Concrete action derived from the data.\n[real next steps only — include as few as 1 or as many as needed]\n\nRULES:\n- Replace the **bold label** with the actual subject — never write "Topic" as the label.\n- One line per distinct topic. Group closely related notes into one line.\n- The "Key Action Items" section must always appear.\n- No intro sentence, no closing remarks.` },
           { role: 'user',   content: `Here are the notes I worked on in the last ${period === 'day' ? '24 hours' : 'week'}:\n\n${noteList}${taskContext}${inProgressContext}${bookmarkContext}${organizeCtx}` },
         ])
         setDigest(result)
@@ -262,6 +265,7 @@ export default function DashboardPage() {
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error ?? 'Digest failed')
+      if (data.empty) { setDigestEmpty(true); return }
       setDigest(data.digest)
     } catch (err) {
       setDigestError(err instanceof Error ? err.message : 'Failed')
@@ -273,6 +277,7 @@ export default function DashboardPage() {
   async function generateTagSuggestions() {
     if (!aiConfigured || suggestingTags || (queueNotes.length === 0 && queueBmarks.length === 0)) return
     setSuggestingTags(true)
+    setTagSuggestError(null)
     // Collect existing tag vocabulary for context — helps AI reuse consistent tags
     const existingTags = [...new Set([
       ...notes.flatMap(n => (n.tags ?? []).filter(t => !t.startsWith('nb:'))),
@@ -340,14 +345,18 @@ export default function DashboardPage() {
         } catch { /* skip individual failures silently */ }
       }))
 
-      setTagSuggestions(prev => ({ ...prev, ...results }))
-      setSelectedTags(prev => {
-        const next = { ...prev }
-        for (const [id, tags] of Object.entries(results)) {
-          next[id] = new Set(tags)
-        }
-        return next
-      })
+      if (Object.keys(results).length === 0) {
+        setTagSuggestError('No suggestions returned — check your AI connection or try again.')
+      } else {
+        setTagSuggestions(prev => ({ ...prev, ...results }))
+        setSelectedTags(prev => {
+          const next = { ...prev }
+          for (const [id, tags] of Object.entries(results)) {
+            next[id] = new Set(tags)
+          }
+          return next
+        })
+      }
     } finally {
       setSuggestingTags(false)
     }
@@ -719,7 +728,13 @@ export default function DashboardPage() {
               </div>
             )}
 
-            {!digest && !digestLoading && !digestError && (
+            {digestEmpty && !digestLoading && (
+              <div style={{ padding: '20px 16px', fontSize: 12, color: 'var(--muted-foreground)', textAlign: 'center', lineHeight: 1.6 }}>
+                Nothing captured yet today — add a note, task, or bookmark to get your briefing.
+              </div>
+            )}
+
+            {!digest && !digestEmpty && !digestLoading && !digestError && (
               <div style={{ padding: '16px', fontSize: 12, color: 'var(--muted-foreground)', textAlign: 'center' }}>
                 Click "Generate digest" for your AI morning briefing — notes, tasks, and bookmarks in one summary.
               </div>
@@ -1004,6 +1019,9 @@ export default function DashboardPage() {
                       }}>
                       {suggestingTags ? <><Loader2 size={10} style={{ animation: 'spin 1s linear infinite' }} /> Getting suggestions…</> : <><Sparkles size={10} /> AI suggest tags</>}
                     </button>
+                  )}
+                  {tagSuggestError && !suggestingTags && (
+                    <p style={{ fontSize: 11, color: '#f87171', margin: '4px 0 0' }}>{tagSuggestError}</p>
                   )}
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>

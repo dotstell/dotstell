@@ -25,33 +25,34 @@ export async function POST(req: NextRequest) {
   if (period === 'day')  since.setDate(since.getDate() - 1)
   else                   since.setDate(since.getDate() - 7)
 
-  const { data: notes } = await supabase
-    .from('notes')
-    .select('title, content, updated_at, tags')
-    .eq('user_id', user.id)
-    .is('deleted_at', null)
-    .gte('updated_at', since.toISOString())
-    .order('updated_at', { ascending: false })
-    .limit(30)
+  const [{ data: notes }, { data: openTasks }, { data: recentBookmarks }] = await Promise.all([
+    supabase
+      .from('notes')
+      .select('title, content, updated_at, tags')
+      .eq('user_id', user.id)
+      .is('deleted_at', null)
+      .gte('updated_at', since.toISOString())
+      .order('updated_at', { ascending: false })
+      .limit(30),
+    supabase
+      .from('tasks')
+      .select('title, status, priority, due_date')
+      .eq('user_id', user.id)
+      .neq('status', 'done')
+      .order('due_date', { ascending: true, nullsFirst: false })
+      .limit(10),
+    supabase
+      .from('bookmarks')
+      .select('title, url, tags')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false })
+      .limit(5),
+  ])
 
-  if (!notes?.length) {
-    return NextResponse.json({ digest: `No notes were updated in the last ${period === 'day' ? '24 hours' : '7 days'}.` })
+  const hasContent = (notes?.length ?? 0) > 0 || (openTasks?.length ?? 0) > 0 || (recentBookmarks?.length ?? 0) > 0
+  if (!hasContent) {
+    return NextResponse.json({ empty: true, period })
   }
-
-  const { data: openTasks } = await supabase
-    .from('tasks')
-    .select('title, status, priority, due_date')
-    .eq('user_id', user.id)
-    .neq('status', 'done')
-    .order('due_date', { ascending: true, nullsFirst: false })
-    .limit(10)
-
-  const { data: recentBookmarks } = await supabase
-    .from('bookmarks')
-    .select('title, url, tags')
-    .eq('user_id', user.id)
-    .order('created_at', { ascending: false })
-    .limit(5)
 
   const { count: untaggedCount } = await supabase
     .from('notes')
@@ -64,7 +65,7 @@ export async function POST(req: NextRequest) {
   const overdueTasks = (openTasks ?? []).filter(t => t.due_date && new Date(t.due_date) < now)
   const inProgressTasks = (openTasks ?? []).filter(t => t.status === 'in_progress')
 
-  const noteList = notes.map(n =>
+  const noteList = (notes ?? []).map(n =>
     `• ${n.title || 'Untitled'} (updated ${new Date(n.updated_at).toLocaleDateString()}): ${
       n.content.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').slice(0, 300)
     }`
@@ -85,19 +86,19 @@ export async function POST(req: NextRequest) {
       role:    'system',
       content: `You are a personal knowledge assistant. Generate a morning briefing from the user's notes, tasks, and bookmarks.
 
-FORMAT — replace the bracketed labels with real content from the data:
+FORMAT — replace the labels with real subjects from the data:
 **SIGMA Dashboard:** Three new risk metrics added this week covering cloud exposure.
 **1-on-1 Prep:** Team strategy doc needs completion before Thursday's meeting.
 **Japan Research:** Residency application research saved as bookmarks, no notes yet.
-[include every distinct topic that genuinely matters — typically 5-8 lines, more if needed]
+[scale with the data: 1 line for a quiet day, as many as needed for a busy one]
 
 Key Action Items
 1. Concrete action derived from the data.
 2. Another concrete action.
-[2-5 items — real next steps only, not summaries of what was already done]
+[real next steps only — include as few as 1 or as many as needed]
 
 RULES:
-- Replace the **bold label** with the actual subject (e.g. "SIGMA", "1-on-1", "Deployment") — never write "Topic" as the label.
+- Replace the **bold label** with the actual subject — never write "Topic" as the label.
 - One line per distinct topic. Group closely related notes into one line.
 - The "Key Action Items" section must always appear.
 - No intro sentence, no closing remarks.`,
@@ -110,7 +111,7 @@ RULES:
 
   try {
     const digest = await complete(body.config, messages)
-    return NextResponse.json({ digest, noteCount: notes.length, period })
+    return NextResponse.json({ digest, noteCount: notes?.length ?? 0, period })
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Digest generation failed'
     return NextResponse.json({ error: msg }, { status: 502 })
