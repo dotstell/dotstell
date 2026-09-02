@@ -652,3 +652,9 @@ body {
     display: none !important;
   }
 }
+
+/* Attribute-based rule — set by the inline syncScript in layout.tsx BEFORE first paint,
+   so this fires with zero race-condition risk even on slow Android CPUs. */
+html[data-mobile] .notes-tabar-in-note {
+  display: none !important;
+}

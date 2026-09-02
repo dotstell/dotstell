@@ -34,6 +34,7 @@ const syncScript = `(function(){
     document.documentElement.style.colorScheme = light.indexOf(ls) !== -1 ? 'light' : 'dark';
     document.cookie = 'dotstell-theme=' + ls + ';path=/;max-age=31536000;samesite=lax';
   }
+  if (window.innerWidth < 768) document.documentElement.setAttribute('data-mobile', '1');
 })()`
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
