@@ -93,6 +93,38 @@ function build14DayActivity(notes: Note[], bookmarks: BookmarkType[]): number[] 
   )
 }
 
+// ── Normalize digest output from models that skip bullet markers ─
+// Ollama small models often output "**Topic:** text" without a leading "- ".
+// This adds the "- " prefix so marked renders them as <li> not <p>.
+// Also numbers bare lines under "### Key Action Items" that lack "1." markers.
+function normalizeDigestOutput(text: string): string {
+  const lines = text.split('\n')
+  const out: string[] = []
+  let inActions = false
+  let actionIdx = 1
+  for (const line of lines) {
+    const t = line.trim()
+    if (/key action items/i.test(t)) {
+      inActions = true
+      out.push(t.startsWith('#') ? t : '### Key Action Items')
+      continue
+    }
+    if (inActions) {
+      if (!t) { out.push(''); continue }
+      if (/^\d+\./.test(t) || t.startsWith('#')) { out.push(line); continue }
+      out.push(`${actionIdx++}. ${t}`)
+      continue
+    }
+    // Main bullet: "**Topic:**" line without a list marker → add "- "
+    if (t && !t.startsWith('-') && !t.startsWith('#') && !t.startsWith('>') && /^\*\*[^*]+\*\*/.test(t)) {
+      out.push(`- ${t}`)
+      continue
+    }
+    out.push(line)
+  }
+  return out.join('\n')
+}
+
 // ── Knowledge Connections (pure client-side) ─────────────────
 function findKnowledgeConnections(notes: Note[], bookmarks: BookmarkType[]): {
   source: Note; keywords: string[]; connections: { type: 'note' | 'bookmark'; id: string; title: string; href: string; external?: boolean }[]
@@ -482,9 +514,14 @@ export default function DashboardPage() {
 
               {/* Right — focus next: tasks sorted by urgency */}
               <div style={{ padding: '14px 18px' }}>
-                <p title="Sorted by urgency: overdue first, then by due date, then by priority. Different from the Open Tasks list which shows all tasks in order." style={{ fontSize: 11, fontWeight: 600, color: 'var(--muted-foreground)', textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 10px' }}>
-                  Focus next
-                </p>
+                <div style={{ marginBottom: 10 }}>
+                  <p style={{ fontSize: 11, fontWeight: 600, color: 'var(--muted-foreground)', textTransform: 'uppercase', letterSpacing: '0.08em', margin: 0 }}>
+                    Focus next
+                  </p>
+                  <p style={{ fontSize: 10, color: 'var(--muted-foreground)', opacity: 0.55, margin: '3px 0 0' }}>
+                    Overdue first · then due date · then priority
+                  </p>
+                </div>
                 {focusTasks.length === 0 ? (
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 0' }}>
                     <CheckCircle2 size={14} color="#10b981" />
@@ -581,8 +618,14 @@ export default function DashboardPage() {
             )}
 
             {digest && !digestLoading && (
-              <div style={{ padding: '14px 16px', fontSize: 13, lineHeight: 1.7, color: 'var(--foreground)' }}>
-                <MarkdownContent>{digest}</MarkdownContent>
+              <div style={{ padding: '16px 20px 18px' }}>
+                <div style={{
+                  borderLeft: '3px solid color-mix(in srgb, var(--primary) 35%, transparent)',
+                  paddingLeft: 14,
+                  fontSize: 13, lineHeight: 1.75, color: 'var(--foreground)',
+                }}>
+                  <MarkdownContent>{normalizeDigestOutput(digest)}</MarkdownContent>
+                </div>
               </div>
             )}
 
@@ -625,6 +668,7 @@ export default function DashboardPage() {
           {/* Open Tasks */}
           <Panel
             title="Open Tasks"
+            subtitle="All open · sorted by creation date"
             icon={<CheckSquare size={13} color="var(--primary)" />}
             href="/tasks"
             action="New task"
@@ -847,12 +891,12 @@ export default function DashboardPage() {
                                 return (
                                   <button key={tag} type="button" onClick={() => toggleTagSelection(n.id, tag)}
                                     style={{
-                                      fontSize: 10, padding: '2px 8px', borderRadius: 99, cursor: 'pointer',
-                                      backgroundColor: on ? 'color-mix(in srgb, var(--primary) 18%, transparent)' : 'transparent',
-                                      color: on ? 'var(--primary)' : 'var(--muted-foreground)',
+                                      fontSize: 10, padding: '2px 9px', borderRadius: 99, cursor: 'pointer',
+                                      backgroundColor: on ? 'var(--primary)' : 'transparent',
+                                      color: on ? 'white' : 'var(--muted-foreground)',
                                       fontWeight: on ? 600 : 400,
-                                      border: `1px solid ${on ? 'color-mix(in srgb, var(--primary) 35%, transparent)' : 'var(--border)'}`,
-                                      opacity: on ? 1 : 0.5,
+                                      border: `1px solid ${on ? 'var(--primary)' : 'var(--border)'}`,
+                                      opacity: on ? 1 : 0.45,
                                       transition: 'all 0.12s',
                                     }}>
                                     {tag}
@@ -1021,15 +1065,18 @@ export default function DashboardPage() {
 }
 
 // ── Shared panel shell ───────────────────────────────────────
-function Panel({ title, icon, href, action, actionHref, children }: {
-  title: string; icon: React.ReactNode; href: string; action: string; actionHref: string; children: React.ReactNode
+function Panel({ title, subtitle, icon, href, action, actionHref, children }: {
+  title: string; subtitle?: string; icon: React.ReactNode; href: string; action: string; actionHref: string; children: React.ReactNode
 }) {
   return (
     <div style={{ backgroundColor: 'var(--card)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 14px', borderBottom: '1px solid var(--secondary)', flexShrink: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
           {icon}
-          <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--foreground)' }}>{title}</span>
+          <div>
+            <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--foreground)' }}>{title}</span>
+            {subtitle && <p style={{ fontSize: 10, color: 'var(--muted-foreground)', opacity: 0.55, margin: '2px 0 0' }}>{subtitle}</p>}
+          </div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <Link href={actionHref} style={{ fontSize: 11, color: 'var(--muted-foreground)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 3 }}
