@@ -206,6 +206,7 @@ export default function DashboardPage() {
   const [suggestingTags, setSuggestingTags] = useState(false)
   const [selectedTags, setSelectedTags] = useState<Record<string, Set<string>>>({})
   const [unindexedCount, setUnindexedCount] = useState<number | null>(null)
+  const [activeTip, setActiveTip] = useState<string | null>(null)
 
   async function generateDigest(period: 'day' | 'week') {
     setDigest(''); setDigestError(null); setDigestLoading(true)
@@ -870,23 +871,54 @@ export default function DashboardPage() {
                   valueColor: pctOrganized >= 70 ? '#10b981' : pctOrganized >= 40 ? 'var(--foreground)' : '#f59e0b',
                   tip: `${notes.length - untaggedNotes} notes have at least one tag — ${100 - pctOrganized}% still need tagging`,
                 },
-              ] as { icon: React.ReactNode; value: string | number; label: string; sub: string; valueColor: string; tip: string }[]).map(({ icon, value, label, sub, valueColor, tip }, i) => (
-                <div key={i} title={tip} style={{
-                  padding: '10px 4px',
-                  textAlign: 'center',
-                  borderRight: i < 3 ? '1px solid var(--secondary)' : 'none',
-                  cursor: 'default',
-                }}>
-                  {icon && (
-                    <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 4, opacity: 0.7 }}>
-                      {icon}
-                    </div>
-                  )}
-                  <p style={{ fontSize: 17, fontWeight: 800, color: valueColor, margin: 0, lineHeight: 1 }}>{value}</p>
-                  <p style={{ fontSize: 10, color: 'var(--muted-foreground)', margin: '3px 0 0', letterSpacing: '0.04em' }}>{label}</p>
-                  <p style={{ fontSize: 10, color: 'var(--muted-foreground)', margin: '2px 0 0', opacity: 0.7 }}>{sub}</p>
-                </div>
-              ))}
+              ] as { icon: React.ReactNode; value: string | number; label: string; sub: string; valueColor: string; tip: string }[]).map(({ icon, value, label, sub, valueColor, tip }, i) => {
+                const tipKey = `stat-${i}`
+                const open = activeTip === tipKey
+                return (
+                  <div
+                    key={i}
+                    onClick={() => setActiveTip(open ? null : tipKey)}
+                    onMouseEnter={() => !isMobile && setActiveTip(tipKey)}
+                    onMouseLeave={() => !isMobile && setActiveTip(null)}
+                    style={{
+                      padding: '10px 4px',
+                      textAlign: 'center',
+                      borderRight: i < 3 ? '1px solid var(--secondary)' : 'none',
+                      cursor: 'pointer',
+                      position: 'relative',
+                    }}
+                  >
+                    {icon && (
+                      <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 4, opacity: 0.7 }}>
+                        {icon}
+                      </div>
+                    )}
+                    <p style={{ fontSize: 17, fontWeight: 800, color: valueColor, margin: 0, lineHeight: 1 }}>{value}</p>
+                    <p style={{ fontSize: 10, color: 'var(--muted-foreground)', margin: '3px 0 0', letterSpacing: '0.04em' }}>{label}</p>
+                    <p style={{ fontSize: 10, color: 'var(--muted-foreground)', margin: '2px 0 0', opacity: 0.7 }}>{sub}</p>
+                    {open && (
+                      <div style={{
+                        position: 'absolute',
+                        bottom: 'calc(100% + 6px)',
+                        left: '50%',
+                        transform: 'translateX(-50%)',
+                        background: 'var(--popover)',
+                        border: '1px solid var(--border)',
+                        borderRadius: 6,
+                        padding: '6px 10px',
+                        fontSize: 11,
+                        color: 'var(--popover-foreground)',
+                        whiteSpace: 'nowrap',
+                        zIndex: 50,
+                        boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                        pointerEvents: 'none',
+                      }}>
+                        {tip}
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
             </div>
 
             {/* Unindexed items notice — shown only when some items lack embeddings */}
@@ -907,9 +939,33 @@ export default function DashboardPage() {
               const emoji   = activityStreak >= 21 ? '🚀' : activityStreak >= 14 ? '🏆' : activityStreak >= 7 ? '🔥' : activityStreak >= 4 ? '⚡' : '✨'
               const message = activityStreak >= 21 ? 'legendary streak — unstoppable!' : activityStreak >= 14 ? 'two-week streak — incredible!' : activityStreak >= 7 ? 'one-week streak — on fire!' : activityStreak >= 4 ? 'building momentum!' : 'keep it going!'
               return (
-                <div title={`${activityStreak}-day capture streak: you've added or updated at least one note or bookmark every day for ${activityStreak} consecutive days`} style={{ padding: '8px 18px', borderBottom: '1px solid var(--secondary)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                <div
+                  onClick={() => setActiveTip(activeTip === 'streak' ? null : 'streak')}
+                  onMouseEnter={() => !isMobile && setActiveTip('streak')}
+                  onMouseLeave={() => !isMobile && setActiveTip(null)}
+                  style={{ padding: '8px 18px', borderBottom: '1px solid var(--secondary)', display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', position: 'relative' }}
+                >
                   <span style={{ fontSize: 12, color: 'var(--primary)', fontWeight: 600 }}>{emoji} {activityStreak}-day capture streak</span>
                   <span style={{ fontSize: 11, color: 'var(--muted-foreground)' }}>— {message}</span>
+                  {activeTip === 'streak' && (
+                    <div style={{
+                      position: 'absolute',
+                      bottom: 'calc(100% + 6px)',
+                      left: 18,
+                      background: 'var(--popover)',
+                      border: '1px solid var(--border)',
+                      borderRadius: 6,
+                      padding: '6px 10px',
+                      fontSize: 11,
+                      color: 'var(--popover-foreground)',
+                      whiteSpace: 'nowrap',
+                      zIndex: 50,
+                      boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                      pointerEvents: 'none',
+                    }}>
+                      You&apos;ve added or updated at least one note or bookmark every day for {activityStreak} consecutive days
+                    </div>
+                  )}
                 </div>
               )
             })()}
