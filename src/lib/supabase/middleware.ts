@@ -27,7 +27,18 @@ export async function updateSession(request: NextRequest) {
     }
   )
 
-  const { data: { user } } = await supabase.auth.getUser()
+  // getUser() contacts Supabase to verify/refresh the session token.
+  // On cold starts or transient network hiccups it can throw instead of returning null.
+  // Catch here so a Supabase failure degrades to pass-through instead of a 500 crash.
+  let user = null
+  try {
+    const { data } = await supabase.auth.getUser()
+    user = data.user
+  } catch {
+    // Session refresh failed — treat as anonymous for this request only.
+    // The client-side Supabase listener will handle re-auth on the next interaction.
+    return supabaseResponse
+  }
 
   const isAuthRoute = request.nextUrl.pathname.startsWith('/auth')
   const isPublicRoute = request.nextUrl.pathname === '/'
