@@ -17,6 +17,7 @@ const FEATURES: Array<{
       'Knowledge Health — activity chart, streak, % organised, and connections score',
       'AI Digest — smart recap of your notes, tasks, and bookmarks any time of day',
       'Focus Next — highest-priority open task surfaced automatically',
+      'Fully responsive — works on phone, iPad, and desktop',
     ],
     mock: <DashboardMock />,
   },

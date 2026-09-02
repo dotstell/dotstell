@@ -96,11 +96,12 @@ export default function LandingPage() {
 
       {/* ── Values strip ── */}
       <section style={{ borderTop: '1px solid var(--border)', borderBottom: '1px solid var(--border)', background: 'var(--card)', padding: '56px 16px' }}>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-10" style={{ maxWidth: 800, margin: '0 auto', textAlign: 'center' }}>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10" style={{ maxWidth: 960, margin: '0 auto', textAlign: 'center' }}>
           {[
             { icon: '🔓', label: 'Open source',    sub: 'AGPL-3.0 licensed. Fork it, self-host it, audit the code — the source is always open.' },
             { icon: '🔒', label: 'No lock-in',      sub: 'Your notes are yours. No proprietary formats, no walled gardens, no vendor chains.'    },
             { icon: '📡', label: 'Built in public', sub: 'Development happens openly on GitHub — issues, roadmap and every change are visible to anyone.' },
+            { icon: '📱', label: 'Mobile ready',    sub: 'Fully responsive on phone, tablet, and desktop — touch-optimised with a native-feeling bottom nav.' },
           ].map(item => (
             <div key={item.label}>
               <div style={{ fontSize: 28, marginBottom: 12 }}>{item.icon}</div>
