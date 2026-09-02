@@ -189,6 +189,16 @@ export default function DashboardPage() {
   const inProgress   = tasks.filter(t => t.status === 'in_progress')
   const progress     = tasks.length > 0 ? Math.round((doneTasks.length / tasks.length) * 100) : 0
 
+  // Live clock — updates every minute
+  const [clockDate, setClockDate] = useState(() => new Date())
+  useEffect(() => {
+    const tick = () => setClockDate(new Date())
+    const id = setInterval(tick, 60_000)
+    return () => clearInterval(id)
+  }, [])
+  const clockTime = clockDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+  const clockDay  = clockDate.toLocaleDateString([], { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })
+
   const topTags         = buildTagFrequency(notes, bookmarks)
   const maxTagCount     = topTags[0]?.[1] ?? 1
   const now             = Date.now()
@@ -221,13 +231,21 @@ export default function DashboardPage() {
     <AppLayout>
       <PageContainer>
 
-        {/* ── Greeting ── */}
-        <div style={{ marginBottom: 24, paddingTop: isMobile ? 8 : 0 }}>
-          <h1 style={{ fontSize: 22, fontWeight: 700, color: 'var(--foreground)', margin: 0 }}>{greeting} 👋</h1>
-          <p style={{ fontSize: 13, color: 'var(--muted-foreground)', marginTop: 4 }}>
-            {loading ? 'Loading your knowledge…' :
-              `${openTasks.length} open task${openTasks.length !== 1 ? 's' : ''}${overdueTasks.length > 0 ? ` · ${overdueTasks.length} overdue` : ' · all on track'} · ${notes.length} notes · ${bookmarks.length} bookmarks`}
-          </p>
+        {/* ── Greeting + live clock ── */}
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, marginBottom: 24, paddingTop: isMobile ? 8 : 0 }}>
+          <div style={{ minWidth: 0 }}>
+            <h1 style={{ fontSize: 22, fontWeight: 700, color: 'var(--foreground)', margin: 0 }}>{greeting} 👋</h1>
+            <p style={{ fontSize: 13, color: 'var(--muted-foreground)', marginTop: 4 }}>
+              {loading ? 'Loading your knowledge…' :
+                `${openTasks.length} open task${openTasks.length !== 1 ? 's' : ''}${overdueTasks.length > 0 ? ` · ${overdueTasks.length} overdue` : ' · all on track'} · ${notes.length} notes · ${bookmarks.length} bookmarks`}
+            </p>
+          </div>
+          <div style={{ textAlign: 'right', flexShrink: 0 }}>
+            <p style={{ fontSize: isMobile ? 20 : 24, fontWeight: 700, color: 'var(--foreground)', margin: 0, lineHeight: 1, letterSpacing: '-0.02em', fontVariantNumeric: 'tabular-nums' }}>
+              {clockTime}
+            </p>
+            <p style={{ fontSize: 11, color: 'var(--muted-foreground)', marginTop: 3 }}>{clockDay}</p>
+          </div>
         </div>
 
         {/* ── Overdue alert ── */}

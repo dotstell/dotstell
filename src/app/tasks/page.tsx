@@ -410,16 +410,26 @@ function TaskCard({ task, isOverdue, onEdit, onDelete, onStatusChange }: {
           </span>
         )}
       </div>
-      <select
-        value={task.status}
-        onChange={e => onStatusChange(e.target.value as TaskStatus)}
-        onClick={e => e.stopPropagation()}
-        className="mt-2 w-full bg-[var(--muted)] text-xs rounded px-1.5 py-1 border border-[var(--border)] text-[var(--muted-foreground)]"
-      >
-        <option value="todo">To Do</option>
-        <option value="in_progress">In Progress</option>
-        <option value="done">Done</option>
-      </select>
+      <div className="mt-2 flex rounded-md overflow-hidden border border-[var(--border)]">
+        {(['todo', 'in_progress', 'done'] as TaskStatus[]).map(s => {
+          const active = task.status === s
+          const activeStyle = s === 'done'
+            ? 'bg-emerald-500/20 text-emerald-400 font-semibold'
+            : s === 'in_progress'
+            ? 'bg-[var(--primary)]/15 text-[var(--primary)] font-semibold'
+            : 'bg-[var(--muted-foreground)]/10 text-[var(--muted-foreground)] font-semibold'
+          return (
+            <button
+              key={s}
+              type="button"
+              onClick={e => { e.stopPropagation(); if (!active) onStatusChange(s) }}
+              className={`flex-1 text-xs py-1 transition-colors ${active ? activeStyle : 'text-[var(--muted-foreground)] hover:bg-[var(--accent)]'}`}
+            >
+              {s === 'todo' ? 'To do' : s === 'in_progress' ? 'In prog' : 'Done'}
+            </button>
+          )
+        })}
+      </div>
     </div>
   )
 }
