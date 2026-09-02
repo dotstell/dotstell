@@ -383,7 +383,7 @@ export default function HelpPage() {
                 body={<>Summaries are available in three places: <strong>Notes</strong> — click Summarize in the right sidebar; <strong>Bookmarks</strong> — click the ✨ button on any bookmark card; <strong>Notebooks</strong> — right-click any notebook in the sidebar and choose Summarize notebook. All summaries use bullet points and can be regenerated.</>}
               />
               <Tip icon="🌅" title="Morning Briefing"
-                body="The dashboard Morning Briefing card generates a smart summary of your recent activity. Choose Today or This Week and click Generate. The AI covers notes, open tasks, and saved bookmarks together — formatted as labelled insight lines (e.g. SIGMA Dashboard: …) followed by Key Action Items. The number of lines scales with how much is happening: quiet days produce fewer, busy weeks produce more."
+                body="The dashboard Morning Briefing card generates a smart summary of your recent activity. Choose Today or This Week and click Generate. The AI covers notes, open tasks, and saved bookmarks together — formatted as labelled insight lines followed by Key Action Items. The number of lines scales with how much is happening: quiet days produce fewer, busy weeks produce more."
               />
               <Tip icon="🔎" title="Related items (semantic search)"
                 body="The Related Items panel in the note editor right sidebar uses vector embeddings to find semantically similar notes and tasks — not just keyword matches. Requires an embedding provider configured in AI Settings. Click Build search index in AI Settings to index all existing content."
@@ -505,8 +505,8 @@ export default function HelpPage() {
                   <span style={{ fontSize: 12, fontWeight: 600, color: '#10b981', background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.2)', padding: '2px 8px', borderRadius: 99 }}>Latest</span>
                   <span style={{ fontSize: 12, color: 'var(--muted-foreground)' }}>Sep 2026</span>
                 </div>
-                <Tip icon="🌅" title="Morning Briefing (enhanced AI Digest)"
-                  body="The AI Digest card is now Morning Briefing. It covers notes, open tasks, and bookmarks together — not notes alone. The output format uses real subject labels (e.g. SIGMA Dashboard: …) instead of a generic Topic: placeholder, and scales naturally with how much data exists: a quiet day produces 1–2 lines, a busy week produces more. The empty-state for days with no activity shows a friendly message instead of a broken bullet."
+                <Tip icon="🌅" title="Morning Briefing"
+                  body="A daily AI summary that pulls from your notes, open tasks, and saved bookmarks together. Each insight line is labelled by its real topic. The briefing scales with how much is happening — a quiet day stays concise, a busy week covers everything that matters. Choose Today or This Week and regenerate any time."
                 />
                 <Tip icon="📊" title="Dashboard Knowledge Health redesign"
                   body="The dashboard top card is rebuilt as Knowledge Health. Four stat boxes show capture volume, week-over-week trend, unique topic count, and notes organised %. Each box shows a tap-to-reveal tooltip on mobile and hover on desktop — built with pointer:coarse detection so it works correctly on iPads and Android tablets as well as phones. A dynamic streak badge appears after 2+ consecutive days, with an icon that escalates as your streak grows."
