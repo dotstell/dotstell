@@ -38,16 +38,52 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ digest: `No notes were updated in the last ${period === 'day' ? '24 hours' : '7 days'}.` })
   }
 
+  const { data: openTasks } = await supabase
+    .from('tasks')
+    .select('title, status, priority, due_date')
+    .eq('user_id', user.id)
+    .neq('status', 'done')
+    .order('due_date', { ascending: true, nullsFirst: false })
+    .limit(10)
+
+  const { data: recentBookmarks } = await supabase
+    .from('bookmarks')
+    .select('title, url, tags')
+    .eq('user_id', user.id)
+    .order('created_at', { ascending: false })
+    .limit(5)
+
+  const { count: untaggedCount } = await supabase
+    .from('notes')
+    .select('id', { count: 'exact', head: true })
+    .eq('user_id', user.id)
+    .is('deleted_at', null)
+    .eq('tags', '{}')
+
+  const now = new Date()
+  const overdueTasks = (openTasks ?? []).filter(t => t.due_date && new Date(t.due_date) < now)
+  const inProgressTasks = (openTasks ?? []).filter(t => t.status === 'in_progress')
+
   const noteList = notes.map(n =>
     `• ${n.title || 'Untitled'} (updated ${new Date(n.updated_at).toLocaleDateString()}): ${
       n.content.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').slice(0, 300)
     }`
   ).join('\n')
 
+  const taskSection = overdueTasks.length > 0
+    ? `\n\nOverdue tasks (${overdueTasks.length}): ${overdueTasks.map(t => `"${t.title}" (${t.priority}, was due ${new Date(t.due_date!).toLocaleDateString()})`).join(', ')}`
+    : inProgressTasks.length > 0
+    ? `\n\nIn-progress tasks: ${inProgressTasks.map(t => `"${t.title}"`).join(', ')}`
+    : ''
+  const bookmarkSection = (recentBookmarks ?? []).length > 0
+    ? `\n\nRecently saved bookmarks: ${(recentBookmarks ?? []).map(b => b.title || b.url).join(' | ')}`
+    : ''
+  const organizeNote = (untaggedCount ?? 0) > 0 ? `\n\n${untaggedCount} notes need organizing (no tags yet).` : ''
+
   const messages: AIMessage[] = [
     {
       role:    'system',
-      content: `You are a personal knowledge assistant. Summarise the user's recent note activity as a structured digest.
+      content: `You are a personal knowledge assistant. Generate a morning briefing that covers the user's notes, tasks, and bookmarks as a structured daily digest.
 
 FORMAT — follow exactly:
 - Start directly with the content. No preamble like "Here is your digest".
@@ -58,7 +94,7 @@ FORMAT — follow exactly:
     },
     {
       role:    'user',
-      content: `Here are the notes I worked on in the last ${period === 'day' ? '24 hours' : 'week'}:\n\n${noteList}`,
+      content: `Here are the notes I worked on in the last ${period === 'day' ? '24 hours' : 'week'}:\n\n${noteList}${taskSection}${bookmarkSection}${organizeNote}`,
     },
   ]
 

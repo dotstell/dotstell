@@ -93,6 +93,36 @@ function build14DayActivity(notes: Note[], bookmarks: BookmarkType[]): number[] 
   )
 }
 
+// ── Knowledge Connections (pure client-side) ─────────────────
+function findKnowledgeConnections(notes: Note[], bookmarks: BookmarkType[]): {
+  source: Note; keywords: string[]; connections: { type: 'note' | 'bookmark'; id: string; title: string; href: string; external?: boolean }[]
+} | null {
+  const STOP = new Set(['with', 'that', 'this', 'from', 'your', 'have', 'been', 'will', 'about', 'into', 'more', 'when', 'what', 'which', 'their', 'there', 'here', 'note', 'just', 'also', 'some', 'than', 'then', 'them', 'they', 'were', 'would', 'could', 'should', 'does', 'make', 'like', 'very', 'using', 'used', 'need', 'want', 'each', 'both'])
+
+  const source = notes.find(n => n.title && n.title.trim().length > 4)
+  if (!source) return null
+
+  const keywords = source.title
+    .toLowerCase()
+    .split(/[\s\-_/,]+/)
+    .filter(w => w.length > 3 && !STOP.has(w) && /^[a-z]/.test(w))
+  if (keywords.length === 0) return null
+
+  const scored = [
+    ...notes.filter(n => n.id !== source.id && n.title && n.title.trim().length > 3).map(n => ({
+      type: 'note' as const, id: n.id, title: n.title, href: `/notes/${n.id}`,
+      score: keywords.filter(kw => n.title.toLowerCase().includes(kw) || (n.tags ?? []).some(t => t.includes(kw))).length,
+    })),
+    ...bookmarks.filter(b => b.title).map(b => ({
+      type: 'bookmark' as const, id: b.id, title: b.title || b.hostname || '', href: b.url, external: true,
+      score: keywords.filter(kw => (b.title || '').toLowerCase().includes(kw) || (b.tags ?? []).some(t => t.includes(kw))).length,
+    })),
+  ].filter(c => c.score > 0 && c.title).sort((a, b) => b.score - a.score).slice(0, 4)
+
+  if (scored.length < 2) return null
+  return { source, keywords: keywords.slice(0, 3), connections: scored }
+}
+
 export default function DashboardPage() {
   const [notes,     setNotes]     = useState<Note[]>([])
   const [tasks,     setTasks]     = useState<Task[]>([])
@@ -106,6 +136,9 @@ export default function DashboardPage() {
   const [digestLoading, setDigestLoading] = useState(false)
   const [digestError,   setDigestError]   = useState<string | null>(null)
   const [digestPeriod,  setDigestPeriod]  = useState<'day' | 'week'>('week')
+  const [tagSuggestions, setTagSuggestions] = useState<Record<string, string[]>>({})
+  const [dismissedSugs, setDismissedSugs] = useState<Set<string>>(new Set())
+  const [suggestingTags, setSuggestingTags] = useState(false)
 
   async function generateDigest(period: 'day' | 'week') {
     setDigest(''); setDigestError(null); setDigestLoading(true)
@@ -132,9 +165,19 @@ export default function DashboardPage() {
             n.content.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').slice(0, 300)
           }`
         ).join('\n')
+        const taskContext = overdueTasks.length > 0
+          ? `\n\nOverdue tasks (${overdueTasks.length}): ${overdueTasks.map(t => `"${t.title}" (${t.priority} priority, was due ${new Date(t.due_date!).toLocaleDateString()})`).join(', ')}`
+          : ''
+        const inProgressContext = inProgress.length > 0
+          ? `\nIn-progress tasks: ${inProgress.map(t => `"${t.title}"`).join(', ')}`
+          : ''
+        const bookmarkContext = bookmarks.length > 0
+          ? `\n\nRecently saved bookmarks (${bookmarks.slice(0,5).length}): ${bookmarks.slice(0,5).map(b => b.title || b.url).join(' | ')}`
+          : ''
+        const organizeCtx = untaggedNotes > 0 ? `\n\n${untaggedNotes} notes and ${untaggedBmarks} bookmarks need organizing (no tags yet).` : ''
         const result = await completeOllamaBrowser(aiConfig, [
-          { role: 'system', content: `You are a personal knowledge assistant. Summarise the user's recent note activity as a structured digest.\n\nFORMAT — follow exactly:\n- Start directly with the content. No preamble like "Here is your digest".\n- Use 3–6 bullet points. Each bullet: "**Topic name:** one sentence insight."\n- After the bullets, add a "### Key Action Items" section with 2–4 numbered items.\n- No closing remarks, sign-offs, or meta commentary.\n- Use markdown bold (**text**) only for topic names at the start of each bullet.` },
-          { role: 'user',   content: `Here are the notes I worked on in the last ${period === 'day' ? '24 hours' : 'week'}:\n\n${noteList}` },
+          { role: 'system', content: `You are a personal knowledge assistant. Generate a morning briefing that covers the user's notes, tasks, and bookmarks as a structured daily digest.\n\nFORMAT — follow exactly:\n- Start directly with the content. No preamble like "Here is your digest".\n- Use 3–6 bullet points. Each bullet: "**Topic name:** one sentence insight."\n- After the bullets, add a "### Key Action Items" section with 2–4 numbered items.\n- No closing remarks, sign-offs, or meta commentary.\n- Use markdown bold (**text**) only for topic names at the start of each bullet.` },
+          { role: 'user',   content: `Here are the notes I worked on in the last ${period === 'day' ? '24 hours' : 'week'}:\n\n${noteList}${taskContext}${inProgressContext}${bookmarkContext}${organizeCtx}` },
         ])
         setDigest(result)
         return
@@ -153,6 +196,59 @@ export default function DashboardPage() {
     } finally {
       setDigestLoading(false)
     }
+  }
+
+  async function generateTagSuggestions() {
+    if (!aiConfigured || suggestingTags || queueNotes.length === 0) return
+    setSuggestingTags(true)
+    try {
+      const results: Record<string, string[]> = {}
+      await Promise.all(queueNotes.map(async (note) => {
+        if (dismissedSugs.has(note.id)) return
+        const plainText = (note.content ?? '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()
+        if (plainText.length < 20 && !note.title) return
+        try {
+          if (aiConfig.provider === 'ollama' && !isLocalHostname()) {
+            const result = await completeOllamaBrowser(aiConfig, [
+              { role: 'system', content: 'You are a tagging assistant. Suggest 3-5 tags for this note. Return ONLY a JSON array of lowercase kebab-case strings. Example: ["tag-one","tag-two","tag-three"]' },
+              { role: 'user', content: `Title: ${note.title || 'Untitled'}\n${plainText.slice(0, 500)}` },
+            ])
+            const cleaned = result.replace(/```[a-z]*\n?/g, '').trim()
+            const tags = JSON.parse(cleaned)
+            if (Array.isArray(tags)) results[note.id] = (tags as string[]).slice(0, 5)
+          } else {
+            const res = await fetch('/api/ai/tags', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ config: aiConfig, content: note.content, title: note.title }),
+            })
+            const data = await res.json()
+            if (data.tags) results[note.id] = data.tags as string[]
+          }
+        } catch { /* skip individual failures silently */ }
+      }))
+      setTagSuggestions(prev => ({ ...prev, ...results }))
+    } finally {
+      setSuggestingTags(false)
+    }
+  }
+
+  async function applyTagSuggestion(noteId: string, tags: string[]) {
+    const note = notes.find(n => n.id === noteId)
+    if (!note) return
+    const merged = [...new Set([...(note.tags ?? []), ...tags])]
+    await fetch(`/api/notes/${noteId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tags: merged }),
+    })
+    setNotes(prev => prev.map(n => n.id === noteId ? { ...n, tags: merged } : n))
+    setTagSuggestions(prev => { const p = { ...prev }; delete p[noteId]; return p })
+  }
+
+  function dismissTagSuggestion(noteId: string) {
+    setDismissedSugs(prev => new Set([...prev, noteId]))
+    setTagSuggestions(prev => { const p = { ...prev }; delete p[noteId]; return p })
   }
 
   useEffect(() => {
@@ -226,6 +322,8 @@ export default function DashboardPage() {
     const p: Record<string, number> = { high: 0, medium: 1, low: 2 }
     return (p[a.priority] ?? 1) - (p[b.priority] ?? 1)
   }).slice(0, 4)
+
+  const connections = findKnowledgeConnections(notes, bookmarks)
 
   const STATS = [
     {
@@ -351,7 +449,7 @@ export default function DashboardPage() {
 
               {/* Right — focus next: tasks sorted by urgency */}
               <div style={{ padding: '14px 18px' }}>
-                <p style={{ fontSize: 11, fontWeight: 600, color: 'var(--muted-foreground)', textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 10px' }}>
+                <p title="Sorted by urgency: overdue first, then by due date, then by priority. Different from the Open Tasks list which shows all tasks in order." style={{ fontSize: 11, fontWeight: 600, color: 'var(--muted-foreground)', textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 10px' }}>
                   Focus next
                 </p>
                 {focusTasks.length === 0 ? (
@@ -621,14 +719,14 @@ export default function DashboardPage() {
                   )}
                   <p style={{ fontSize: 17, fontWeight: 800, color: valueColor, margin: 0, lineHeight: 1 }}>{value}</p>
                   <p style={{ fontSize: 10, color: 'var(--muted-foreground)', margin: '3px 0 0', letterSpacing: '0.04em' }}>{label}</p>
-                  <p style={{ fontSize: 9, color: 'var(--muted-foreground)', margin: '2px 0 0', opacity: 0.55 }}>{sub}</p>
+                  <p style={{ fontSize: 10, color: 'var(--muted-foreground)', margin: '2px 0 0', opacity: 0.7 }}>{sub}</p>
                 </div>
               ))}
             </div>
 
             {/* Capture streak badge */}
             {activityStreak >= 2 && (
-              <div style={{ padding: '8px 18px', borderBottom: '1px solid var(--secondary)', display: 'flex', alignItems: 'center', gap: 6 }}>
+              <div title={`${activityStreak}-day capture streak: you've captured something every day for ${activityStreak} consecutive days`} style={{ padding: '8px 18px', borderBottom: '1px solid var(--secondary)', display: 'flex', alignItems: 'center', gap: 6 }}>
                 <span style={{ fontSize: 12, color: 'var(--primary)', fontWeight: 600 }}>🔥 {activityStreak}-day capture streak</span>
                 <span style={{ fontSize: 11, color: 'var(--muted-foreground)' }}>— keep it going!</span>
               </div>
@@ -651,25 +749,61 @@ export default function DashboardPage() {
                   <p style={{ fontSize: 10, color: 'var(--muted-foreground)', opacity: 0.55, margin: '3px 0 0' }}>
                     Notes → opens editor to add tags · Bookmarks → opens bookmarks manager
                   </p>
+                  {aiConfigured && queueNotes.length > 0 && (
+                    <button type="button" onClick={generateTagSuggestions} disabled={suggestingTags}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: 5,
+                        padding: '4px 10px', borderRadius: 6,
+                        border: '1px solid color-mix(in srgb, var(--primary) 30%, transparent)',
+                        backgroundColor: 'color-mix(in srgb, var(--primary) 8%, transparent)',
+                        color: 'var(--primary)', fontSize: 11, fontWeight: 600,
+                        cursor: suggestingTags ? 'wait' : 'pointer', opacity: suggestingTags ? 0.6 : 1,
+                        marginTop: 6,
+                      }}>
+                      {suggestingTags ? <><Loader2 size={10} style={{ animation: 'spin 1s linear infinite' }} /> Getting suggestions…</> : <><Sparkles size={10} /> AI suggest tags</>}
+                    </button>
+                  )}
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                   {queueNotes.map(n => (
-                    <Link key={n.id} href={`/notes/${n.id}`}
-                      style={{ display: 'flex', alignItems: 'flex-start', gap: 9, padding: '7px 8px', borderRadius: 7, textDecoration: 'none', transition: 'background 0.1s' }}
-                      onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'var(--accent)')}
-                      onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
-                    >
-                      <FileText size={13} color="var(--muted-foreground)" style={{ flexShrink: 0, marginTop: 1, opacity: 0.55 }} />
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <p style={{ fontSize: 12, fontWeight: 500, color: n.title ? 'var(--foreground)' : 'var(--muted-foreground)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontStyle: n.title ? 'normal' : 'italic' }}>
-                          {n.title || 'Untitled note'}
-                        </p>
-                        <p style={{ fontSize: 10, color: 'var(--muted-foreground)', margin: '2px 0 0' }}>
-                          {NOTE_TYPE_LABEL[n.type] ?? n.type} · captured {formatRelative(n.created_at)} · no tags yet
-                        </p>
-                      </div>
-                      <span style={{ fontSize: 10, color: 'var(--primary)', flexShrink: 0, opacity: 0.7, whiteSpace: 'nowrap', marginTop: 1 }}>Add tags →</span>
-                    </Link>
+                    <div key={n.id}>
+                      <Link href={`/notes/${n.id}`}
+                        style={{ display: 'flex', alignItems: 'flex-start', gap: 9, padding: '7px 8px', borderRadius: 7, textDecoration: 'none', transition: 'background 0.1s' }}
+                        onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'var(--accent)')}
+                        onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
+                      >
+                        <FileText size={13} color="var(--muted-foreground)" style={{ flexShrink: 0, marginTop: 1, opacity: 0.55 }} />
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <p style={{ fontSize: 12, fontWeight: 500, color: n.title ? 'var(--foreground)' : 'var(--muted-foreground)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontStyle: n.title ? 'normal' : 'italic' }}>
+                            {n.title || 'Untitled note'}
+                          </p>
+                          <p style={{ fontSize: 10, color: 'var(--muted-foreground)', margin: '2px 0 0' }}>
+                            {NOTE_TYPE_LABEL[n.type] ?? n.type} · captured {formatRelative(n.created_at)} · no tags yet
+                          </p>
+                        </div>
+                        <span style={{ fontSize: 10, color: 'var(--primary)', flexShrink: 0, opacity: 0.7, whiteSpace: 'nowrap', marginTop: 1 }}>Add tags →</span>
+                      </Link>
+                      {tagSuggestions[n.id] && !dismissedSugs.has(n.id) && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 8px 6px 30px', flexWrap: 'wrap' }}>
+                          <Sparkles size={9} color="var(--primary)" style={{ flexShrink: 0, opacity: 0.7 }} />
+                          {tagSuggestions[n.id].map(tag => (
+                            <span key={tag} style={{
+                              fontSize: 10, padding: '2px 7px', borderRadius: 99,
+                              backgroundColor: 'color-mix(in srgb, var(--primary) 12%, transparent)',
+                              color: 'var(--primary)', fontWeight: 500,
+                            }}>{tag}</span>
+                          ))}
+                          <button type="button" onClick={() => applyTagSuggestion(n.id, tagSuggestions[n.id])}
+                            style={{ fontSize: 10, fontWeight: 600, color: 'var(--primary)', background: 'none', border: 'none', cursor: 'pointer', padding: '2px 4px', borderRadius: 4, marginLeft: 2 }}>
+                            Apply
+                          </button>
+                          <button type="button" onClick={() => dismissTagSuggestion(n.id)}
+                            style={{ fontSize: 10, color: 'var(--muted-foreground)', background: 'none', border: 'none', cursor: 'pointer', padding: '2px 4px', opacity: 0.6 }}>
+                            ✕
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   ))}
                   {queueBmarks.map(b => (
                     <Link key={b.id} href="/bookmarks"
@@ -728,6 +862,48 @@ export default function DashboardPage() {
               </div>
             )}
 
+          </div>
+        )}
+
+        {/* ── Knowledge connections ── */}
+        {!loading && connections && (
+          <div style={{ backgroundColor: 'var(--card)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden', marginBottom: 24 }}>
+            <div style={{ padding: '12px 18px', borderBottom: '1px solid var(--secondary)', display: 'flex', alignItems: 'center', gap: 8 }}>
+              <Zap size={14} color="var(--primary)" />
+              <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--foreground)' }}>Connections to explore</span>
+              <span style={{ fontSize: 11, color: 'var(--muted-foreground)', marginLeft: 'auto', opacity: 0.6 }}>based on your recent notes</span>
+            </div>
+            <div style={{ padding: '12px 18px' }}>
+              <p style={{ fontSize: 12, color: 'var(--muted-foreground)', margin: '0 0 10px' }}>
+                Your note <strong style={{ color: 'var(--foreground)' }}>&ldquo;{connections.source.title}&rdquo;</strong> shares topics with:
+              </p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                {connections.connections.map(c => (
+                  c.external
+                    ? <a key={c.id} href={c.href} target="_blank" rel="noopener noreferrer"
+                        style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '7px 8px', borderRadius: 7, textDecoration: 'none', transition: 'background 0.1s' }}
+                        onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'var(--accent)')}
+                        onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
+                      >
+                        <Bookmark size={12} color="var(--muted-foreground)" style={{ flexShrink: 0, opacity: 0.55 }} />
+                        <span style={{ fontSize: 12, color: 'var(--foreground)', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.title}</span>
+                        <span style={{ fontSize: 10, color: 'var(--muted-foreground)', flexShrink: 0, opacity: 0.45 }}>bookmark ↗</span>
+                      </a>
+                    : <Link key={c.id} href={c.href}
+                        style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '7px 8px', borderRadius: 7, textDecoration: 'none', transition: 'background 0.1s' }}
+                        onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'var(--accent)')}
+                        onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
+                      >
+                        <FileText size={12} color="var(--primary)" style={{ flexShrink: 0, opacity: 0.7 }} />
+                        <span style={{ fontSize: 12, color: 'var(--foreground)', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.title}</span>
+                        <span style={{ fontSize: 10, color: 'var(--primary)', flexShrink: 0, opacity: 0.6 }}>note →</span>
+                      </Link>
+                ))}
+              </div>
+              <p style={{ fontSize: 11, color: 'var(--muted-foreground)', margin: '10px 0 0', opacity: 0.6 }}>
+                Shared keywords: {connections.keywords.map(k => <code key={k} style={{ fontSize: 10, padding: '1px 5px', borderRadius: 3, backgroundColor: 'var(--secondary)', marginRight: 4 }}>{k}</code>)}
+              </p>
+            </div>
           </div>
         )}
 
