@@ -243,7 +243,7 @@ export default function DashboardPage() {
           : ''
         const organizeCtx = untaggedNotes > 0 ? `\n\n${untaggedNotes} notes and ${untaggedBmarks} bookmarks need organizing (no tags yet).` : ''
         const result = await completeOllamaBrowser(aiConfig, [
-          { role: 'system', content: `You are a personal knowledge assistant. Generate a focused morning briefing.\n\nFORMAT (follow exactly):\n**Topic:** One insight sentence.\n**Topic:** One insight sentence.\n[3-6 items MAXIMUM — prioritise the most important]\n\nKey Action Items\n1. First concrete action.\n2. Second action.\n[2-3 items only]\n\nRULES:\n- Max 6 insight lines. Never list every note — synthesise and prioritise.\n- Start each insight line with **Bold topic:** (no leading dash needed).\n- The "Key Action Items" section must always appear, with 2-3 numbered items.\n- No intro sentence, no closing remarks.` },
+          { role: 'system', content: `You are a personal knowledge assistant. Generate a morning briefing.\n\nFORMAT (follow exactly):\n**Topic:** One insight sentence.\n**Topic:** One insight sentence.\n[include everything genuinely important — typically 5-8, but more if needed]\n\nKey Action Items\n1. First concrete action.\n2. Second action.\n[2-4 numbered items — only real actions, not summaries]\n\nRULES:\n- Cover everything that matters. Group similar topics into one line instead of listing each note separately.\n- Start each insight line with **Bold topic:** (no leading dash needed).\n- The "Key Action Items" section must always appear.\n- No intro sentence, no closing remarks.` },
           { role: 'user',   content: `Here are the notes I worked on in the last ${period === 'day' ? '24 hours' : 'week'}:\n\n${noteList}${taskContext}${inProgressContext}${bookmarkContext}${organizeCtx}` },
         ])
         setDigest(result)
@@ -450,12 +450,15 @@ export default function DashboardPage() {
   const clockDay  = clockDate.toLocaleDateString([], { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })
 
   const now             = Date.now()
-  const STALE_MS        = 30 * 24 * 60 * 60 * 1000
+  const STALE_MS           = 30 * 24 * 60 * 60 * 1000
+  const STALE_BMARK_MS     = 90 * 24 * 60 * 60 * 1000
   const untaggedNoteItems  = notes.filter(n => !(n.tags ?? []).filter(t => !t.startsWith('nb:')).length)
   const untaggedBmarkItems = bookmarks.filter(b => !(b.tags ?? []).length)
   const untaggedNotes      = untaggedNoteItems.length
   const untaggedBmarks     = untaggedBmarkItems.length
   const staleNotes         = notes.filter(n => (now - new Date(n.updated_at).getTime()) > STALE_MS).length
+  const staleBookmarks     = bookmarks.filter(b => (now - new Date(b.created_at).getTime()) > STALE_BMARK_MS).length
+  const emptyNotes         = notes.filter(n => (n.content ?? '').replace(/<[^>]+>/g, '').trim().length < 10).length
   const uniqueTopics       = new Set(notes.flatMap(n => (n.tags ?? []).filter(t => !t.startsWith('nb:')))).size
   const activity14         = build14DayActivity(notes, bookmarks)
   const activityThisWeek   = activity14.slice(7).reduce((s, v) => s + v, 0)
@@ -912,7 +915,7 @@ export default function DashboardPage() {
             })()}
 
             {/* Unorganized items — shown only when there's something to do */}
-            {(queueNotes.length > 0 || queueBmarks.length > 0 || staleNotes > 0) ? (
+            {(queueNotes.length > 0 || queueBmarks.length > 0 || staleNotes > 0 || staleBookmarks > 0 || emptyNotes > 0) ? (
               <div style={{ padding: '12px 18px' }}>
                 <div style={{ marginBottom: 8 }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -1087,18 +1090,51 @@ export default function DashboardPage() {
                     )}
                   </div>
                 )}
-                {staleNotes > 0 && (
-                  <Link href="/notes"
-                    style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 10, paddingTop: 10, borderTop: '1px solid var(--border)', padding: '10px 8px 4px', borderRadius: 7, textDecoration: 'none', transition: 'background 0.1s' }}
-                    onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'var(--accent)')}
-                    onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
-                  >
-                    <AlertCircle size={12} color="#f59e0b" style={{ flexShrink: 0 }} />
-                    <span style={{ fontSize: 12, color: 'var(--muted-foreground)', flex: 1 }}>
-                      <span style={{ color: 'var(--foreground)', fontWeight: 600 }}>{staleNotes}</span> notes untouched for 30+ days — worth a review
+                {(staleNotes > 0 || staleBookmarks > 0 || emptyNotes > 0) && (
+                  <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid var(--secondary)', display: 'flex', flexDirection: 'column', gap: 2 }}>
+                    <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--muted-foreground)', textTransform: 'uppercase', letterSpacing: '0.08em', padding: '0 8px 4px' }}>
+                      Worth a cleanup
                     </span>
-                    <ArrowRight size={10} color="var(--muted-foreground)" style={{ flexShrink: 0, opacity: 0.4 }} />
-                  </Link>
+                    {staleNotes > 0 && (
+                      <Link href="/notes"
+                        style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 8px', borderRadius: 7, textDecoration: 'none', transition: 'background 0.1s' }}
+                        onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'var(--accent)')}
+                        onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
+                      >
+                        <AlertCircle size={12} color="#f59e0b" style={{ flexShrink: 0 }} />
+                        <span style={{ fontSize: 12, color: 'var(--muted-foreground)', flex: 1 }}>
+                          <span style={{ color: 'var(--foreground)', fontWeight: 600 }}>{staleNotes}</span> notes untouched 30+ days
+                        </span>
+                        <ArrowRight size={10} color="var(--muted-foreground)" style={{ flexShrink: 0, opacity: 0.4 }} />
+                      </Link>
+                    )}
+                    {staleBookmarks > 0 && (
+                      <Link href="/bookmarks"
+                        style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 8px', borderRadius: 7, textDecoration: 'none', transition: 'background 0.1s' }}
+                        onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'var(--accent)')}
+                        onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
+                      >
+                        <AlertCircle size={12} color="#f59e0b" style={{ flexShrink: 0 }} />
+                        <span style={{ fontSize: 12, color: 'var(--muted-foreground)', flex: 1 }}>
+                          <span style={{ color: 'var(--foreground)', fontWeight: 600 }}>{staleBookmarks}</span> bookmarks saved 90+ days ago — still relevant?
+                        </span>
+                        <ArrowRight size={10} color="var(--muted-foreground)" style={{ flexShrink: 0, opacity: 0.4 }} />
+                      </Link>
+                    )}
+                    {emptyNotes > 0 && (
+                      <Link href="/notes"
+                        style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 8px', borderRadius: 7, textDecoration: 'none', transition: 'background 0.1s' }}
+                        onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'var(--accent)')}
+                        onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
+                      >
+                        <AlertCircle size={12} color="var(--muted-foreground)" style={{ flexShrink: 0, opacity: 0.55 }} />
+                        <span style={{ fontSize: 12, color: 'var(--muted-foreground)', flex: 1 }}>
+                          <span style={{ color: 'var(--foreground)', fontWeight: 600 }}>{emptyNotes}</span> empty notes — fill them in or delete
+                        </span>
+                        <ArrowRight size={10} color="var(--muted-foreground)" style={{ flexShrink: 0, opacity: 0.4 }} />
+                      </Link>
+                    )}
+                  </div>
                 )}
               </div>
             ) : (

@@ -83,24 +83,23 @@ export async function POST(req: NextRequest) {
   const messages: AIMessage[] = [
     {
       role:    'system',
-      content: `You are a personal knowledge assistant. Generate a morning briefing as a markdown bullet list.
+      content: `You are a personal knowledge assistant. Generate a morning briefing.
 
-STRICT FORMAT — copy exactly:
-- **Topic name:** One insight sentence.
-- **Topic name:** One insight sentence.
-- **Topic name:** One insight sentence.
+FORMAT (follow exactly):
+**Topic:** One insight sentence.
+**Topic:** One insight sentence.
+[include everything genuinely important — typically 5-8, but more if needed]
 
-### Key Action Items
-1. First action to take today.
+Key Action Items
+1. First concrete action.
 2. Second action.
-3. Third action.
+[2-4 numbered items — only real actions, not summaries]
 
 RULES:
-- Use EXACTLY the "- **Bold topic:**" bullet format. Never use plain numbered lists for the notes section.
-- Include 4-8 bullets from the notes/tasks/bookmarks provided.
-- After the bullets, always include the "### Key Action Items" section with 2-4 numbered items.
-- No preamble, no closing remarks, no "Here is your briefing" intro.
-- Keep each bullet to one sentence maximum.`,
+- Cover everything that matters. Group similar topics into one line instead of listing each note separately.
+- Start each insight line with **Bold topic:** (no leading dash needed).
+- The "Key Action Items" section must always appear.
+- No intro sentence, no closing remarks.`,
     },
     {
       role:    'user',
