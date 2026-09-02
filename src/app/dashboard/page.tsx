@@ -503,7 +503,10 @@ export default function DashboardPage() {
                 <div style={{ width: 26, height: 26, borderRadius: 7, backgroundColor: 'color-mix(in srgb, var(--primary) 15%, transparent)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <Sparkles size={13} color="var(--primary)" />
                 </div>
-                <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--foreground)' }}>AI Knowledge Digest</span>
+                <div>
+                  <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--foreground)' }}>Morning Briefing</span>
+                  <span style={{ fontSize: 10, color: 'var(--muted-foreground)', marginLeft: 7, opacity: 0.6 }}>AI-powered daily summary</span>
+                </div>
               </div>
               <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'flex-start' : 'center', gap: 6 }}>
                 {/* Period toggle */}
@@ -552,7 +555,7 @@ export default function DashboardPage() {
 
             {!digest && !digestLoading && !digestError && (
               <div style={{ padding: '16px', fontSize: 12, color: 'var(--muted-foreground)', textAlign: 'center' }}>
-                Click "Generate digest" for an AI summary of your recent note activity.
+                Click "Generate digest" for your AI morning briefing — notes, tasks, and bookmarks in one summary.
               </div>
             )}
           </div>
@@ -724,13 +727,17 @@ export default function DashboardPage() {
               ))}
             </div>
 
-            {/* Capture streak badge */}
-            {activityStreak >= 2 && (
-              <div title={`${activityStreak}-day capture streak: you've captured something every day for ${activityStreak} consecutive days`} style={{ padding: '8px 18px', borderBottom: '1px solid var(--secondary)', display: 'flex', alignItems: 'center', gap: 6 }}>
-                <span style={{ fontSize: 12, color: 'var(--primary)', fontWeight: 600 }}>🔥 {activityStreak}-day capture streak</span>
-                <span style={{ fontSize: 11, color: 'var(--muted-foreground)' }}>— keep it going!</span>
-              </div>
-            )}
+            {/* Capture streak badge — emoji and message vary with streak length */}
+            {activityStreak >= 2 && (() => {
+              const emoji   = activityStreak >= 21 ? '🚀' : activityStreak >= 14 ? '🏆' : activityStreak >= 7 ? '🔥' : activityStreak >= 4 ? '⚡' : '✨'
+              const message = activityStreak >= 21 ? 'legendary streak — unstoppable!' : activityStreak >= 14 ? 'two-week streak — incredible!' : activityStreak >= 7 ? 'one-week streak — on fire!' : activityStreak >= 4 ? 'building momentum!' : 'keep it going!'
+              return (
+                <div title={`${activityStreak}-day capture streak: you've added or updated at least one note or bookmark every day for ${activityStreak} consecutive days`} style={{ padding: '8px 18px', borderBottom: '1px solid var(--secondary)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span style={{ fontSize: 12, color: 'var(--primary)', fontWeight: 600 }}>{emoji} {activityStreak}-day capture streak</span>
+                  <span style={{ fontSize: 11, color: 'var(--muted-foreground)' }}>— {message}</span>
+                </div>
+              )
+            })()}
 
             {/* Unorganized items — shown only when there's something to do */}
             {(queueNotes.length > 0 || queueBmarks.length > 0 || staleNotes > 0) ? (
