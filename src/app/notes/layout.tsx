@@ -94,20 +94,11 @@ export default function NotesLayout({ children }: { children: React.ReactNode })
 
         {/* Main area: tab bar + page content */}
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, overflow: 'hidden' }}>
-          {/* Desktop only: tab bar with panel toggle, open-note tabs, new-note button.
-              On mobile the bottom nav Notes icon and the ← Notes back button in the
-              note header already cover all navigation — no tab bar needed.
-              The wrapper class lets the CSS in globals.css hide it during the brief
-              SSR window before the data-mobile attribute is read by React. */}
-          <div suppressHydrationWarning className="notes-tabar-wrapper">
-            {!isMobile && (
-              <NoteTabBar
-                currentId={currentNoteId}
-                paneOpen={paneOpen}
-                onTogglePane={togglePane}
-              />
-            )}
-          </div>
+          <NoteTabBar
+            currentId={currentNoteId}
+            paneOpen={paneOpen}
+            onTogglePane={togglePane}
+          />
           <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
             {children}
           </div>

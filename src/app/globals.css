@@ -645,17 +645,4 @@ body {
   .app-main {
     margin-left: 0 !important;
   }
-  /* Hide the note tab bar (☰) when the user is inside a specific note on mobile.
-     currentNoteId is pathname-derived (SSR-safe), so the class is set before JS
-     runs — no hydration flash on slow Android devices. */
-  .notes-tabar-in-note {
-    display: none !important;
-  }
-}
-
-/* Hide the note tab bar entirely on mobile — it is desktop-only.
-   Set by the syncScript before first paint as a zero-race-condition fallback
-   while React hydrates and removes it from the virtual DOM. */
-html[data-mobile] .notes-tabar-wrapper {
-  display: none !important;
 }
