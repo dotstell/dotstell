@@ -132,7 +132,7 @@ export default function HelpPage() {
                 body="The top card shows your knowledge base health at a glance. Four stat boxes — captured this week, last week (with trend direction), unique topics, and notes organised % — update in real time. A 14-day activity chart sits above them. Tap any stat box (or hover on desktop) to see a plain-language explanation of what it measures."
               />
               <Tip icon="🔥" title="Capture streak"
-                body="Below the stats, a streak badge appears after 2+ consecutive days of activity. The icon changes with your streak length: ✨ 2–3 days → ⚡ 4–6 → 🔥 7–13 → 🏆 14–20 → 🚀 21+."
+                body="Below the stats, a streak badge appears after 2+ consecutive days of activity. The icon changes with your streak length: ✨ 2–3 days → ⚡ 4–6 → 🔥 7–13 → 🏆 14–20 → 👑 21+."
               />
               <Tip icon="🧹" title="Worth a cleanup"
                 body="The Knowledge Health card surfaces three clutter signals: stale notes (not touched in 30+ days), stale bookmarks (saved 90+ days ago), and empty notes (blank or nearly blank notes that were never filled). Each shows a count so you know where to focus."

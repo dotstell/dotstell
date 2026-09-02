@@ -955,7 +955,7 @@ export default function DashboardPage() {
 
             {/* Capture streak badge — emoji and message vary with streak length */}
             {activityStreak >= 2 && (() => {
-              const emoji   = activityStreak >= 21 ? '🚀' : activityStreak >= 14 ? '🏆' : activityStreak >= 7 ? '🔥' : activityStreak >= 4 ? '⚡' : '✨'
+              const emoji   = activityStreak >= 21 ? '👑' : activityStreak >= 14 ? '🏆' : activityStreak >= 7 ? '🔥' : activityStreak >= 4 ? '⚡' : '✨'
               const message = activityStreak >= 21 ? 'legendary streak — unstoppable!' : activityStreak >= 14 ? 'two-week streak — incredible!' : activityStreak >= 7 ? 'one-week streak — on fire!' : activityStreak >= 4 ? 'building momentum!' : 'keep it going!'
               return (
                 <div
