@@ -263,6 +263,10 @@ export default function DashboardPage() {
         headers: { 'Content-Type': 'application/json' },
         body:    JSON.stringify({ config: aiConfig, period }),
       })
+      const ct = res.headers.get('content-type') ?? ''
+      if (!ct.includes('application/json')) {
+        throw new Error(`Digest request failed (${res.status})`)
+      }
       const data = await res.json()
       if (!res.ok) throw new Error(data.error ?? 'Digest failed')
       if (data.empty) { setDigestEmpty(true); return }
