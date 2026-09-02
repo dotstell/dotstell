@@ -101,7 +101,7 @@ export default function LandingPage() {
             { icon: '🔓', label: 'Open source',    sub: 'AGPL-3.0 licensed. Fork it, self-host it, audit the code — the source is always open.' },
             { icon: '🔒', label: 'No lock-in',      sub: 'Your notes are yours. No proprietary formats, no walled gardens, no vendor chains.'    },
             { icon: '📡', label: 'Built in public', sub: 'Development happens openly on GitHub — issues, roadmap and every change are visible to anyone.' },
-            { icon: '📱', label: 'Mobile ready',    sub: 'Fully responsive on phone, tablet, and desktop — touch-optimised with a native-feeling bottom nav.' },
+            { icon: '📱', label: 'Mobile ready',    sub: 'Fully responsive on phone, tablet, and desktop — touch-optimised with a native-feeling nav.' },
           ].map(item => (
             <div key={item.label}>
               <div style={{ fontSize: 28, marginBottom: 12 }}>{item.icon}</div>
