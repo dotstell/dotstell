@@ -80,16 +80,17 @@ function buildSparkline(items: { created_at: string }[]): number[] {
   return days.map(day => items.filter(i => i.created_at.slice(0, 10) === day).length)
 }
 
-// Tag frequency across notes and bookmarks — excludes internal notebook tags (nb:*)
-function buildTagFrequency(notes: Note[], bookmarks: BookmarkType[]): [string, number][] {
-  const freq: Record<string, number> = {}
-  const add = (tag: string) => {
-    if (tag.startsWith('nb:')) return
-    freq[tag] = (freq[tag] ?? 0) + 1
-  }
-  notes.forEach(n => n.tags?.forEach(add))
-  bookmarks.forEach(b => b.tags?.forEach(add))
-  return Object.entries(freq).sort((a, b) => b[1] - a[1]).slice(0, 10)
+// Items captured or updated per day over the last 14 days
+function build14DayActivity(notes: Note[], bookmarks: BookmarkType[]): number[] {
+  const days = Array.from({ length: 14 }, (_, i) => {
+    const d = new Date()
+    d.setDate(d.getDate() - (13 - i))
+    return d.toISOString().slice(0, 10)
+  })
+  return days.map(day =>
+    notes.filter(n => n.updated_at.slice(0, 10) === day).length +
+    bookmarks.filter(b => b.created_at.slice(0, 10) === day).length
+  )
 }
 
 export default function DashboardPage() {
@@ -199,13 +200,20 @@ export default function DashboardPage() {
   const clockTime = clockDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
   const clockDay  = clockDate.toLocaleDateString([], { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })
 
-  const topTags         = buildTagFrequency(notes, bookmarks)
-  const maxTagCount     = topTags[0]?.[1] ?? 1
   const now             = Date.now()
   const STALE_MS        = 30 * 24 * 60 * 60 * 1000
-  const untaggedNotes   = notes.filter(n => !n.tags?.filter(t => !t.startsWith('nb:')).length).length
-  const staleNotes      = notes.filter(n => (now - new Date(n.updated_at).getTime()) > STALE_MS).length
-  const untaggedBmarks  = bookmarks.filter(b => !b.tags?.length).length
+  const untaggedNoteItems  = notes.filter(n => !(n.tags ?? []).filter(t => !t.startsWith('nb:')).length)
+  const untaggedBmarkItems = bookmarks.filter(b => !(b.tags ?? []).length)
+  const untaggedNotes      = untaggedNoteItems.length
+  const untaggedBmarks     = untaggedBmarkItems.length
+  const staleNotes         = notes.filter(n => (now - new Date(n.updated_at).getTime()) > STALE_MS).length
+  const uniqueTopics       = new Set(notes.flatMap(n => (n.tags ?? []).filter(t => !t.startsWith('nb:')))).size
+  const activity14         = build14DayActivity(notes, bookmarks)
+  const activityThisWeek   = activity14.slice(7).reduce((s, v) => s + v, 0)
+  const activityLastWeek   = activity14.slice(0, 7).reduce((s, v) => s + v, 0)
+  const activityStreak     = (() => { let s = 0; for (let i = activity14.length - 1; i >= 0; i--) { if (activity14[i] > 0) s++; else break } return s })()
+  const queueNotes  = untaggedNoteItems.slice(0, 4)
+  const queueBmarks = untaggedBmarkItems.slice(0, Math.max(0, 5 - queueNotes.length))
 
   const STATS = [
     {
@@ -469,7 +477,7 @@ export default function DashboardPage() {
         </div>
 
         {/* ── Knowledge health ── */}
-        {!loading && notes.length > 0 && (
+        {!loading && (notes.length > 0 || bookmarks.length > 0) && (
           <div style={{ backgroundColor: 'var(--card)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden', marginBottom: 24 }}>
             <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--secondary)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -479,48 +487,105 @@ export default function DashboardPage() {
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr' }}>
 
-              {/* Top topics */}
+              {/* Activity panel — 14-day bar chart */}
               <div style={{
                 padding: '14px 16px',
                 borderRight: isMobile ? 'none' : '1px solid var(--border)',
                 borderBottom: isMobile ? '1px solid var(--border)' : 'none',
               }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 12 }}>
-                  <Tag size={11} color="var(--muted-foreground)" />
-                  <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--muted-foreground)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Top topics</span>
+                <p style={{ fontSize: 11, fontWeight: 600, color: 'var(--muted-foreground)', textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 10px' }}>
+                  14-day activity
+                </p>
+                <ActivityBars data={activity14} />
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 8 }}>
+                  <span style={{ fontSize: 11, color: 'var(--muted-foreground)' }}>
+                    <span style={{ fontWeight: 700, color: 'var(--foreground)' }}>{activityThisWeek}</span> this week
+                    {activityLastWeek > 0 && (
+                      <span style={{ marginLeft: 8, opacity: 0.6 }}>
+                        {activityThisWeek >= activityLastWeek ? '↑' : '↓'} {activityLastWeek} last week
+                      </span>
+                    )}
+                  </span>
+                  <span style={{ fontSize: 11, color: 'var(--muted-foreground)' }}>
+                    <span style={{ fontWeight: 600, color: 'var(--foreground)' }}>{uniqueTopics}</span> topics
+                  </span>
                 </div>
-                {topTags.length === 0 ? (
-                  <p style={{ fontSize: 12, color: 'var(--muted-foreground)', margin: 0 }}>
-                    Tag your notes to build your knowledge map.
+                {activityStreak >= 2 && (
+                  <p style={{ fontSize: 11, color: 'var(--primary)', margin: '6px 0 0', fontWeight: 500 }}>
+                    🔥 {activityStreak}-day capture streak
                   </p>
-                ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                    {topTags.map(([tag, count]) => (
-                      <div key={tag}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                          <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--foreground)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '80%' }}>{tag}</span>
-                          <span style={{ fontSize: 11, color: 'var(--muted-foreground)', flexShrink: 0 }}>{count}</span>
-                        </div>
-                        <div style={{ height: 4, borderRadius: 99, backgroundColor: 'var(--secondary)', overflow: 'hidden' }}>
-                          <div style={{ height: '100%', width: `${(count / maxTagCount) * 100}%`, backgroundColor: 'var(--primary)', borderRadius: 99, opacity: 0.65, transition: 'width 0.6s ease' }} />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
                 )}
               </div>
 
-              {/* Needs attention */}
+              {/* Process queue — actual items to act on */}
               <div style={{ padding: '14px 16px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 12 }}>
-                  <AlertCircle size={11} color="var(--muted-foreground)" />
-                  <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--muted-foreground)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Needs attention</span>
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                  <HealthMetric value={untaggedNotes}  label="untagged notes"              href="/notes"     empty="All notes are tagged" />
-                  <HealthMetric value={staleNotes}     label="notes not updated in 30 days" href="/notes"     empty="Everything is fresh" />
-                  <HealthMetric value={untaggedBmarks} label="unorganised bookmarks"        href="/bookmarks" empty="All bookmarks are tagged" />
-                </div>
+                <p style={{ fontSize: 11, fontWeight: 600, color: 'var(--muted-foreground)', textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 10px' }}>
+                  Process queue
+                </p>
+                {queueNotes.length === 0 && queueBmarks.length === 0 ? (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 0' }}>
+                    <CheckCircle2 size={14} color="#10b981" />
+                    <span style={{ fontSize: 12, color: 'var(--muted-foreground)' }}>All items organized — nothing to process</span>
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                    {queueNotes.map(n => (
+                      <Link key={n.id} href={`/notes/${n.id}`}
+                        style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '5px 6px', borderRadius: 6, textDecoration: 'none', transition: 'background 0.1s' }}
+                        onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'var(--accent)')}
+                        onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
+                      >
+                        <FileText size={11} color="var(--muted-foreground)" style={{ flexShrink: 0, opacity: 0.55 }} />
+                        <span style={{ fontSize: 12, color: 'var(--foreground)', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {n.title || 'Untitled'}
+                        </span>
+                        <span style={{ fontSize: 10, color: 'var(--primary)', flexShrink: 0, opacity: 0.7, letterSpacing: '0.02em' }}>+ tag</span>
+                      </Link>
+                    ))}
+                    {queueBmarks.map(b => (
+                      <a key={b.id} href={b.url} target="_blank" rel="noopener noreferrer"
+                        style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '5px 6px', borderRadius: 6, textDecoration: 'none', transition: 'background 0.1s' }}
+                        onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'var(--accent)')}
+                        onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
+                      >
+                        <Bookmark size={11} color="var(--muted-foreground)" style={{ flexShrink: 0, opacity: 0.55 }} />
+                        <span style={{ fontSize: 12, color: 'var(--foreground)', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {b.title || b.hostname || b.url}
+                        </span>
+                        <span style={{ fontSize: 10, color: 'var(--muted-foreground)', flexShrink: 0, opacity: 0.45 }}>↗</span>
+                      </a>
+                    ))}
+                    {(untaggedNotes > queueNotes.length || untaggedBmarks > queueBmarks.length) && (
+                      <div style={{ display: 'flex', gap: 10, marginTop: 4, paddingLeft: 6 }}>
+                        {untaggedNotes > queueNotes.length && (
+                          <Link href="/notes" style={{ fontSize: 11, color: 'var(--primary)', textDecoration: 'none', opacity: 0.75 }}>
+                            +{untaggedNotes - queueNotes.length} more notes →
+                          </Link>
+                        )}
+                        {untaggedBmarks > queueBmarks.length && (
+                          <Link href="/bookmarks" style={{ fontSize: 11, color: 'var(--muted-foreground)', textDecoration: 'none', opacity: 0.75 }}>
+                            +{untaggedBmarks - queueBmarks.length} bookmarks →
+                          </Link>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
+                {staleNotes > 0 && (
+                  <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid var(--border)' }}>
+                    <Link href="/notes"
+                      style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '5px 6px', borderRadius: 6, textDecoration: 'none', transition: 'background 0.1s' }}
+                      onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'var(--accent)')}
+                      onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
+                    >
+                      <AlertCircle size={11} color="#f59e0b" style={{ flexShrink: 0 }} />
+                      <span style={{ fontSize: 12, color: 'var(--muted-foreground)', flex: 1 }}>
+                        <span style={{ color: 'var(--foreground)', fontWeight: 600 }}>{staleNotes}</span> notes not updated in 30+ days
+                      </span>
+                      <ArrowRight size={10} color="var(--muted-foreground)" style={{ flexShrink: 0, opacity: 0.4 }} />
+                    </Link>
+                  </div>
+                )}
               </div>
 
             </div>
@@ -632,6 +697,35 @@ const rowTimeStyle: React.CSSProperties = {
   fontSize: 10, color: 'var(--muted-foreground)', flexShrink: 0, marginLeft: 4,
 }
 
+// ── Activity bar chart (div-based, fully theme-aware via CSS vars) ──
+function ActivityBars({ data }: { data: number[] }) {
+  const max = Math.max(...data, 1)
+  const MAX_H = 40
+  return (
+    <div style={{ display: 'flex', alignItems: 'flex-end', gap: 3, height: MAX_H + 2, width: '100%' }}>
+      {data.map((v, i) => {
+        const h = v === 0 ? 3 : Math.max(6, Math.round((v / max) * MAX_H))
+        const isToday = i === data.length - 1
+        return (
+          <div
+            key={i}
+            title={v === 0 ? 'No activity' : `${v} item${v > 1 ? 's' : ''}`}
+            style={{
+              flex: 1,
+              height: h,
+              minWidth: 4,
+              borderRadius: '3px 3px 2px 2px',
+              backgroundColor: v > 0 ? 'var(--primary)' : 'var(--secondary)',
+              opacity: isToday ? 1 : v > 0 ? 0.55 : 0.35,
+              transition: 'height 0.4s ease',
+            }}
+          />
+        )
+      })}
+    </div>
+  )
+}
+
 // ── Task Donut ───────────────────────────────────────────────
 function TaskDonut({ todo, inProgress, done, overdue }: {
   todo: number; inProgress: number; done: number; overdue: number
@@ -689,8 +783,8 @@ function TaskDonut({ todo, inProgress, done, overdue }: {
         </div>
       </div>
 
-      {/* Legend */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 8, flex: 1, minWidth: 120 }}>
+      {/* Legend — maxWidth keeps numbers tight to labels on wide screens */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8, minWidth: 120, maxWidth: 210 }}>
         {segments.map(seg => (
           <div key={seg.label} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <div style={{ width: 9, height: 9, borderRadius: '50%', backgroundColor: seg.color, flexShrink: 0 }} />
@@ -709,32 +803,3 @@ function TaskDonut({ todo, inProgress, done, overdue }: {
   )
 }
 
-// ── Knowledge health metric row ──────────────────────────────
-function HealthMetric({ value, label, href, empty }: {
-  value: number; label: string; href: string; empty: string
-}) {
-  const color = value === 0 ? '#10b981' : label.includes('30 day') ? (value > 5 ? '#ef4444' : '#f59e0b') : '#f59e0b'
-  return (
-    <Link href={href} style={{
-      display: 'flex', alignItems: 'center', gap: 10,
-      padding: '7px 8px', borderRadius: 8, textDecoration: 'none',
-      transition: 'background 0.12s',
-    }}
-      onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'var(--accent)')}
-      onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
-    >
-      {value > 0 ? (
-        <>
-          <span style={{ fontSize: 20, fontWeight: 800, color, lineHeight: 1, minWidth: 30, textAlign: 'right', flexShrink: 0 }}>{value}</span>
-          <span style={{ fontSize: 12, color: 'var(--muted-foreground)', flex: 1 }}>{label}</span>
-          <ArrowRight size={11} color="var(--muted-foreground)" style={{ flexShrink: 0, opacity: 0.4 }} />
-        </>
-      ) : (
-        <>
-          <CheckCircle2 size={14} color="#10b981" style={{ flexShrink: 0 }} />
-          <span style={{ fontSize: 12, color: 'var(--muted-foreground)' }}>{empty}</span>
-        </>
-      )}
-    </Link>
-  )
-}
