@@ -143,8 +143,8 @@ export default function HelpPage() {
               <Tip icon="🔮" title="Unindexed items"
                 body="If some notes or bookmarks were created before AI was configured and have no embeddings yet, an amber indicator strip appears at the bottom of the Knowledge Health card. Go to AI Settings and click Build search index to index them."
               />
-              <Tip icon="🌅" title="Daily Briefing"
-                body="When AI is configured, the Daily Briefing card generates a smart daily summary. Choose Today or This Week and click Generate. The briefing covers your recent notes, open tasks, and saved bookmarks — formatted as labelled insight lines followed by numbered Key Action Items. It scales naturally: a quiet day with two notes produces two lines; a busy week with many sources produces more. Regenerate at any time."
+              <Tip icon="🌅" title="AI Digest"
+                body="When AI is configured, the AI Digest card generates a smart summary of your recent activity. Choose Today or This Week and click Generate. It covers your recent notes, open tasks, and saved bookmarks — formatted as labelled insight lines followed by numbered Key Action Items. It scales naturally: a quiet day with two notes produces two lines; a busy week with many sources produces more. Regenerate any time."
               />
               <Tip icon="🎯" title="Focus Next"
                 body="The Focus Next panel shows your most urgent actionable task — overdue items first, then items due soonest, then by priority. Subtitle reads 'Overdue first · then due date · then priority' so you always know the sort logic."
@@ -382,8 +382,8 @@ export default function HelpPage() {
               <Tip icon="📋" title="Summaries"
                 body={<>Summaries are available in three places: <strong>Notes</strong> — click Summarize in the right sidebar; <strong>Bookmarks</strong> — click the ✨ button on any bookmark card; <strong>Notebooks</strong> — right-click any notebook in the sidebar and choose Summarize notebook. All summaries use bullet points and can be regenerated.</>}
               />
-              <Tip icon="🌅" title="Daily Briefing"
-                body="The dashboard Daily Briefing card generates a smart summary of your recent activity. Choose Today or This Week and click Generate. The AI covers notes, open tasks, and saved bookmarks together — formatted as labelled insight lines followed by Key Action Items. The number of lines scales with how much is happening: quiet days produce fewer, busy weeks produce more."
+              <Tip icon="🌅" title="AI Digest"
+                body="The dashboard AI Digest card generates a smart summary of your recent activity. Choose Today or This Week and click Generate. It covers notes, open tasks, and saved bookmarks together — formatted as labelled insight lines followed by Key Action Items. The number of lines scales with how much is happening: quiet days produce fewer, busy weeks produce more."
               />
               <Tip icon="🔎" title="Related items (semantic search)"
                 body="The Related Items panel in the note editor right sidebar uses vector embeddings to find semantically similar notes and tasks — not just keyword matches. Requires an embedding provider configured in AI Settings. Click Build search index in AI Settings to index all existing content."
@@ -506,8 +506,8 @@ export default function HelpPage() {
                   <span style={{ fontSize: 12, fontWeight: 600, color: '#10b981', background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.2)', padding: '2px 8px', borderRadius: 99 }}>Latest</span>
                   <span style={{ fontSize: 12, color: 'var(--muted-foreground)' }}>Sep 2026</span>
                 </div>
-                <Tip icon="🌅" title="Daily Briefing"
-                  body="A daily AI summary that pulls from your notes, open tasks, and saved bookmarks together. Each insight line is labelled by its real topic. The briefing scales with how much is happening — a quiet day stays concise, a busy week covers everything that matters. Choose Today or This Week and regenerate any time."
+                <Tip icon="🌅" title="AI Digest"
+                  body="An AI summary that pulls from your notes, open tasks, and saved bookmarks together. Each insight line is labelled by its real topic. The digest scales with how much is happening — a quiet day stays concise, a busy week covers everything that matters. Choose Today or This Week and regenerate any time."
                 />
                 <Tip icon="📊" title="Dashboard Knowledge Health redesign"
                   body="The Knowledge Health section on the dashboard now shows four stat boxes: capture volume, week-over-week trend, unique topic count, and notes organised %. Each box reveals a plain-language explanation on tap (mobile) or hover (desktop) — works correctly on phones, iPads, and Android tablets. A dynamic streak badge appears after 2+ consecutive days, with an icon that escalates as your streak grows."

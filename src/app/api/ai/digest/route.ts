@@ -84,7 +84,7 @@ export async function POST(req: NextRequest) {
   const messages: AIMessage[] = [
     {
       role:    'system',
-      content: `You are a personal knowledge assistant. Generate a daily briefing from the user's notes, tasks, and bookmarks.
+      content: `You are a personal knowledge assistant. Generate an AI digest from the user's notes, tasks, and bookmarks.
 
 FORMAT — replace the labels with real subjects from the data:
 **Project Alpha:** Three new risk metrics added this week covering deployment scope.

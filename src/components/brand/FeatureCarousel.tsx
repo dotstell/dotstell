@@ -12,10 +12,10 @@ const FEATURES: Array<{
     tab: '🏠 Dashboard',
     accent: '#f59e0b',
     headline: 'Know your knowledge health at a glance',
-    desc: 'The redesigned Dashboard shows your capture streak, organisation score, untagged notes inbox, and a 14-day activity chart — plus Daily Briefing and Focus Next so you always know what to do next.',
+    desc: 'The redesigned Dashboard shows your capture streak, organisation score, untagged notes inbox, and a 14-day activity chart — plus AI Digest and Focus Next so you always know what to do next.',
     bullets: [
       'Knowledge Health — activity chart, streak, % organised, and connections score',
-      'Daily Briefing — AI recap of your notes, tasks, and bookmarks any time of day',
+      'AI Digest — smart recap of your notes, tasks, and bookmarks any time of day',
       'Focus Next — highest-priority open task surfaced automatically',
     ],
     mock: <DashboardMock />,
@@ -113,12 +113,12 @@ const FEATURES: Array<{
   },
   {
     key: 'ai-digest',
-    tab: '🗞️ Daily Briefing',
+    tab: '🧠 AI Digest & Insights',
     accent: '#f97316',
     headline: 'AI that keeps up so you can catch up',
-    desc: 'Daily Briefing recaps your notes, open tasks, and bookmarks any time of day — not just mornings. Smart titles and auto-tags as you write. Related Notes shows semantic matches as you read.',
+    desc: 'AI Digest recaps your notes, open tasks, and bookmarks on demand — any time of day. Smart titles and auto-tags as you write. Related Notes shows semantic matches as you read.',
     bullets: [
-      'Daily Briefing — AI recap of notes, tasks, and bookmarks on demand',
+      'AI Digest — smart recap of notes, tasks, and bookmarks on demand',
       'Related Notes sidebar — semantically similar notes surface as you read',
       'Smart title + 5 auto-tags · Person Intelligence on any contact',
     ],
@@ -129,18 +129,23 @@ const FEATURES: Array<{
 // ── Inline mocks ──────────────────────────────────────────────────────────────
 
 function DashboardMock() {
-  const bars = [3,5,2,7,4,8,6,5,9,4,6,8,7,10]
-  const max  = Math.max(...bars)
+  const pts = [3,5,2,7,4,8,6,5,9,4,6,8,7,10]
+  const max = Math.max(...pts)
+  const w = 220, h = 36, pad = 2
+  const xs = pts.map((_, i) => pad + (i / (pts.length - 1)) * (w - pad * 2))
+  const ys = pts.map(v => h - pad - ((v / max) * (h - pad * 2)))
+  const linePath  = xs.map((x, i) => `${i === 0 ? 'M' : 'L'}${x.toFixed(1)},${ys[i].toFixed(1)}`).join(' ')
+  const areaPath  = `${linePath} L${xs[xs.length-1].toFixed(1)},${h} L${xs[0].toFixed(1)},${h} Z`
   return (
     <MockShell title="Dashboard · Good morning" accent="#f59e0b" noPad>
       <div style={{ padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: 9, height: '100%', overflow: 'hidden' }}>
         {/* Knowledge Health strip */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 6 }}>
           {[
-            { val: '47',  label: 'Notes',        color: '#7c6aff' },
-            { val: '🔥9', label: 'Day streak',   color: '#f59e0b' },
-            { val: '82%', label: 'Organised',    color: '#22c55e' },
-            { val: '124', label: 'Connections',  color: '#3b82f6' },
+            { val: '47',  label: 'Notes',       color: '#7c6aff' },
+            { val: '🔥9', label: 'Day streak',  color: '#f59e0b' },
+            { val: '82%', label: 'Tagged',      color: '#22c55e' },
+            { val: '124', label: 'Connections', color: '#3b82f6' },
           ].map(s => (
             <div key={s.label} style={{ padding: '7px 6px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--secondary)', textAlign: 'center' }}>
               <div style={{ fontSize: 13, fontWeight: 700, color: s.color }}>{s.val}</div>
@@ -148,20 +153,25 @@ function DashboardMock() {
             </div>
           ))}
         </div>
-        {/* Activity chart */}
+        {/* Area chart */}
         <div style={{ padding: '8px 10px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--secondary)' }}>
-          <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'var(--muted-foreground)', marginBottom: 6 }}>14-day activity</div>
-          <div style={{ display: 'flex', alignItems: 'flex-end', gap: 3, height: 32 }}>
-            {bars.map((v, i) => (
-              <div key={i} style={{ flex: 1, borderRadius: 2, background: `color-mix(in srgb, #7c6aff ${40 + (v/max)*55}%, transparent)`, height: `${(v/max)*100}%` }} />
-            ))}
-          </div>
+          <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'var(--muted-foreground)', marginBottom: 5 }}>14-day activity</div>
+          <svg viewBox={`0 0 ${w} ${h}`} style={{ width: '100%', height: 36, overflow: 'visible' }}>
+            <defs>
+              <linearGradient id="ag" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#7c6aff" stopOpacity="0.35" />
+                <stop offset="100%" stopColor="#7c6aff" stopOpacity="0.03" />
+              </linearGradient>
+            </defs>
+            <path d={areaPath} fill="url(#ag)" />
+            <path d={linePath} fill="none" stroke="#7c6aff" strokeWidth="1.5" strokeLinejoin="round" strokeLinecap="round" />
+          </svg>
         </div>
-        {/* Daily Briefing */}
+        {/* AI Digest */}
         <div style={{ padding: '9px 11px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--secondary)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 5 }}>
-            <span style={{ fontSize: 10 }}>🗞️</span>
-            <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#f97316' }}>Daily Briefing</span>
+            <span style={{ fontSize: 10 }}>✨</span>
+            <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#f97316' }}>AI Digest</span>
           </div>
           <p style={{ fontSize: 10, color: 'var(--muted-foreground)', lineHeight: 1.55, margin: 0 }}>
             <strong style={{ color: 'var(--foreground)' }}>Auth strategy:</strong> JWT decision finalised. <strong style={{ color: 'var(--foreground)' }}>Launch plan:</strong> wireframes under review.
@@ -353,7 +363,7 @@ function AIWriteMock() {
 
 function AIIntelMock() {
   return (
-    <MockShell title="Daily Briefing · Today" accent="#f97316" noPad>
+    <MockShell title="AI Digest · Today" accent="#f97316" noPad>
       <div style={{ padding: '14px', display: 'flex', flexDirection: 'column', gap: 12 }}>
         <div>
           <Label>Today's activity summary</Label>
