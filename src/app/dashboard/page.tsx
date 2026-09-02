@@ -114,7 +114,11 @@ function DigestContent({ text }: { text: string }) {
       <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 8 }}>
         {insights.map((item, i) => (
           <li key={i} style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
-            <span style={{ color: 'var(--primary)', flexShrink: 0, fontWeight: 700, fontSize: 14, lineHeight: 1.6 }}>·</span>
+            <span style={{
+              width: 7, height: 7, borderRadius: '50%',
+              backgroundColor: 'var(--primary)', flexShrink: 0,
+              marginTop: 7, opacity: 0.75,
+            }} />
             <span style={{ flex: 1, lineHeight: 1.65 }}>
               <MarkdownContent compact>{item}</MarkdownContent>
             </span>
