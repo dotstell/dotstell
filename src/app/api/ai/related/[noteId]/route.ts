@@ -43,7 +43,7 @@ export async function POST(
       user_id_param:   user.id,
       match_count:     limit + 1, // +1 because the source note itself will appear
       match_threshold: 0.4,
-    }),
+    }).then(r => r, () => ({ data: null, error: { message: 'match_notes RPC failed' } })),
     supabase.rpc('match_tasks', {
       query_embedding: note.embedding,
       user_id_param:   user.id,
@@ -51,6 +51,7 @@ export async function POST(
       match_threshold: 0.4,
     }).then(r => r, () => ({ data: null, error: null })), // graceful degradation if migration not yet applied
   ])
+  if (notesResult.error) return NextResponse.json({ error: 'Semantic search failed' }, { status: 502 })
   const relatedNotes = notesResult.data
   const relatedTasks = tasksResult.data
 

@@ -2,6 +2,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import { Sidebar } from './Sidebar'
+import { BottomNav } from './BottomNav'
 import { CommandPalette } from '@/components/command/CommandPalette'
 import { OnboardingFlow } from '@/components/onboarding/OnboardingFlow'
 import { TaskReminders } from '@/components/tasks/TaskReminders'
@@ -43,10 +44,11 @@ const USER_SCOPED_KEYS = [
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const router   = useRouter()
   const pathname = usePathname()
-  const [collapsed, setCollapsed]       = useState(false)
-  const [paletteOpen, setPaletteOpen]   = useState(false)
+  const [collapsed, setCollapsed]           = useState(false)
+  const [paletteOpen, setPaletteOpen]       = useState(false)
   const [aiSettingsOpen, setAISettingsOpen] = useState(false)
-  const [isMobile, setIsMobile]         = useState(false)
+  const [isMobile, setIsMobile]             = useState(false)
+  const [sidebarOpen, setSidebarOpen]       = useState(false)
   const [gHint, setGHint]               = useState(false)
   const gTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const waitingRef = useRef(false)
@@ -70,6 +72,34 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     check()
     window.addEventListener('resize', check)
     return () => window.removeEventListener('resize', check)
+  }, [])
+
+  // Close mobile sidebar drawer on route change
+  useEffect(() => {
+    setSidebarOpen(false)
+  }, [pathname])
+
+  // Keep --actual-vh and --bottom-nav-h in sync with the visual viewport.
+  // On Android Chrome, window.innerHeight is the stable layout viewport; only
+  // visualViewport.height shrinks when the keyboard opens. A delta > 150px
+  // reliably means the keyboard is up — no fragile percentage thresholds needed.
+  // On iOS both values shrink together (delta ≈ 0), so BottomNav space is
+  // preserved (iOS fixed elements float above the keyboard anyway).
+  useEffect(() => {
+    function updateVh() {
+      const layoutH = window.innerHeight
+      const visualH = window.visualViewport?.height ?? window.innerHeight
+      document.documentElement.style.setProperty('--actual-vh', `${visualH}px`)
+      const kbOpen = (layoutH - visualH) > 150
+      document.documentElement.style.setProperty('--bottom-nav-h', kbOpen ? '0px' : '56px')
+    }
+    updateVh()
+    window.visualViewport?.addEventListener('resize', updateVh)
+    window.addEventListener('resize', updateVh)
+    return () => {
+      window.visualViewport?.removeEventListener('resize', updateVh)
+      window.removeEventListener('resize', updateVh)
+    }
   }, [])
 
   // Poll localStorage every 150ms rather than using a storage event because storage
@@ -135,9 +165,14 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const marginLeft = isMobile ? 0 : collapsed ? 64 : 240
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', backgroundColor: 'var(--background)' }}>
-      <Sidebar onOpenPalette={() => setPaletteOpen(true)} />
-      <main style={{
+    <div style={{ display: 'flex', height: 'var(--actual-vh, 100dvh)', backgroundColor: 'var(--background)' }}>
+      <Sidebar
+        onOpenPalette={() => setPaletteOpen(true)}
+        mobileOpen={sidebarOpen}
+        onMobileOpen={() => setSidebarOpen(true)}
+        onMobileClose={() => setSidebarOpen(false)}
+      />
+      <main className="app-main" style={{
         flex: 1,
         marginLeft,
         transition: isMobile ? 'none' : 'margin-left 0.22s cubic-bezier(0.4,0,0.2,1)',
@@ -145,9 +180,11 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         overflowX: 'hidden',
         backgroundColor: 'var(--background)',
         color: 'var(--foreground)',
+        paddingBottom: isMobile ? 'calc(var(--bottom-nav-h, 56px) + env(safe-area-inset-bottom))' : undefined,
       }}>
         {children}
       </main>
+      {isMobile && <BottomNav onMenuOpen={() => setSidebarOpen(true)} />}
       <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
       {aiSettingsOpen && <AISettingsModal onClose={() => setAISettingsOpen(false)} />}
       {gHint && (

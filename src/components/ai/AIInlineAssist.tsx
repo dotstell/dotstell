@@ -45,6 +45,8 @@ export function AIInlineAssist({
   const startedRef = useRef(false)
   const { result, streaming, error, assist, cancel } = useAIAssist(config)
 
+  const isMobile = typeof window !== 'undefined' && window.innerWidth < 768
+
   const top = anchorRect.top > PANEL_H + 20
     ? anchorRect.top - PANEL_H - 10
     : anchorRect.bottom + 10
@@ -90,16 +92,27 @@ export function AIInlineAssist({
     onClose()
   }
 
-  return (
-    <div
-      ref={panelRef}
-      style={{
+  const panelStyle: React.CSSProperties = isMobile
+    ? {
+        position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 9500,
+        borderRadius: '14px 14px 0 0',
+        maxHeight: '60vh',
+        backgroundColor: 'var(--card)', border: '1px solid var(--border)',
+        boxShadow: '0 -8px 40px rgba(0,0,0,0.5)',
+        display: 'flex', flexDirection: 'column', overflow: 'hidden',
+      }
+    : {
         position: 'fixed', top, left, width: PANEL_W, zIndex: 9500,
         backgroundColor: 'var(--card)', border: '1px solid var(--border)',
         borderRadius: 14, boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
         display: 'flex', flexDirection: 'column', overflow: 'hidden',
         maxHeight: PANEL_H + 60,
-      }}
+      }
+
+  return (
+    <div
+      ref={panelRef}
+      style={panelStyle}
     >
       {/* Header */}
       <div style={{

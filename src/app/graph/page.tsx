@@ -118,6 +118,7 @@ function GraphPageInner() {
   const [filter,  setFilter]  = useState('all')
   const [selected, setSelected] = useState<GraphItem | null>(null)
   const [aiPanelOpen, setAiPanelOpen] = useState(false)
+  const [isMobile, setIsMobile] = useState(false)
   const { config: aiConfig, loaded: aiLoaded } = useAISettings()
   // Tracks pending DELETE timers by edge id so Undo can cancel them before the API call fires.
   const deleteCancelRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map())
@@ -174,6 +175,13 @@ function GraphPageInner() {
   }, [])
 
   useEffect(() => { fetchData() }, [fetchData])
+
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768)
+    check()
+    window.addEventListener('resize', check)
+    return () => window.removeEventListener('resize', check)
+  }, [])
 
   // Effect 1: Build nodes ONLY when items or filter changes, then fit viewport
   useEffect(() => {
@@ -319,11 +327,11 @@ function GraphPageInner() {
 
   return (
     <AppLayout>
-      <div style={{ display: 'flex', flexDirection: 'column', height: '100vh' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', height: isMobile ? 'calc(100dvh - 56px - env(safe-area-inset-bottom))' : '100dvh' }}>
 
         {/* Header */}
         <div style={{ padding: '20px 24px 0', flexShrink: 0 }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, flexWrap: 'wrap', gap: 8 }}>
             <div>
               <h1 style={{ fontSize: 18, fontWeight: 700, color: 'var(--foreground)', margin: 0 }}>Knowledge Graph</h1>
               <p style={{ fontSize: 12, color: 'var(--muted-foreground)', marginTop: 2 }}>
@@ -398,7 +406,7 @@ function GraphPageInner() {
           </div>
 
           {/* Hint bar */}
-          <div style={{ display: 'flex', gap: 16, marginBottom: 12 }}>
+          <div style={{ display: 'flex', gap: 16, marginBottom: 12, flexWrap: 'wrap' }}>
             {[
               { key: 'Drag handle → node', desc: 'Create a link' },
               { key: 'Click node', desc: 'Inspect & navigate' },
@@ -451,8 +459,14 @@ function GraphPageInner() {
           </div>
 
           {/* AI Graph Intelligence panel */}
-          {aiPanelOpen && aiConfig.provider && (
-            <div style={{
+          {aiPanelOpen && !selected && aiConfig.provider && (
+            <div style={isMobile ? {
+              position: 'fixed', bottom: 0, left: 0, right: 0, height: '50vh', zIndex: 50,
+              backgroundColor: 'var(--card)',
+              borderTop: '1px solid var(--border)',
+              display: 'flex', flexDirection: 'column',
+              overflow: 'hidden',
+            } : {
               width: 300, flexShrink: 0,
               backgroundColor: 'var(--card)',
               borderLeft: '1px solid var(--border)',
@@ -470,7 +484,7 @@ function GraphPageInner() {
                   <X size={14} />
                 </button>
               </div>
-              <div style={{ flex: 1, overflowY: 'auto', padding: 14 }}>
+              <div style={{ flex: 1, overflowY: 'auto', padding: 14, paddingBottom: isMobile ? 'calc(56px + env(safe-area-inset-bottom))' : 14 }}>
                 <AIGraphIntelPanel
                   config={aiConfig}
                   onOpenNote={id => router.push(`/notes/${id}`)}
@@ -481,7 +495,13 @@ function GraphPageInner() {
 
           {/* Side panel */}
           {selected && (
-            <div style={{
+            <div style={isMobile ? {
+              position: 'fixed', bottom: 0, left: 0, right: 0, height: '50vh', zIndex: 50,
+              backgroundColor: 'var(--card)',
+              borderTop: '1px solid var(--border)',
+              display: 'flex', flexDirection: 'column',
+              overflow: 'hidden',
+            } : {
               width: 280, flexShrink: 0,
               backgroundColor: 'var(--card)',
               borderLeft: '1px solid var(--border)',
@@ -531,7 +551,7 @@ function GraphPageInner() {
               </div>
 
               {/* Connections */}
-              <div style={{ flex: 1, overflowY: 'auto', padding: '12px 16px' }}>
+              <div style={{ flex: 1, overflowY: 'auto', padding: '12px 16px', paddingBottom: isMobile ? 'calc(56px + env(safe-area-inset-bottom))' : 12 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 }}>
                   <Link2 size={13} color="var(--muted-foreground)" />
                   <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--muted-foreground)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>

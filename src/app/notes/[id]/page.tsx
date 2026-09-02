@@ -4,9 +4,9 @@ import { use } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   X, Maximize2, Minimize2, Plus, FileText,
-  ChevronRight, ArrowLeft, LayoutTemplate, Download,
+  ChevronRight, ArrowLeft, LayoutTemplate, Download, MoreHorizontal,
   List, ChevronDown, Sparkles, Settings2,
-  AlignLeft, Loader2, RefreshCw, PenLine, Check, CheckSquare,
+  AlignLeft, Loader2, RefreshCw, PenLine, Check, CheckSquare, PanelRight,
 } from 'lucide-react'
 import type { Editor } from '@tiptap/react'
 import Link from 'next/link'
@@ -48,11 +48,19 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
   const [saveStatus, setSaveStatus]   = useState<SaveStatus>(null)
   const [tagInput, setTagInput]       = useState('')
   const [focusMode, setFocusMode]     = useState(false)
+  const [mobilePanel, setMobilePanel] = useState(false)
+  const [moreMenuOpen, setMoreMenuOpen] = useState(false)
+  const [moreMenuRect, setMoreMenuRect] = useState<DOMRect | null>(null)
+  const moreMenuRef = useRef<HTMLDivElement>(null)
   const [showTemplates, setShowTemplates] = useState(isNew)
   const [noteId, setNoteId]           = useState<string | null>(isNew ? null : id)
   const [subNotes, setSubNotes]       = useState<Note[]>([])
   const [wikiSyncCount, setWikiSyncCount] = useState(0)
-  const [isMobile, setIsMobile]       = useState(false)
+  const [isMobile, setIsMobile]       = useState(() =>
+    typeof document !== 'undefined'
+      ? document.documentElement.hasAttribute('data-mobile')
+      : false
+  )
   // Live plain-text from the editor — updated on every keystroke via onTextChange
   const [editorText, setEditorText]   = useState('')
   // ToC visibility — persisted so the user's preference survives navigation
@@ -258,6 +266,15 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
     return () => window.removeEventListener('keydown', onKeyDown, true)
   }, [openTab, router])
 
+  useEffect(() => {
+    if (!moreMenuOpen) return
+    function onClickOutside(e: MouseEvent) {
+      if (moreMenuRef.current && !moreMenuRef.current.contains(e.target as Node)) setMoreMenuOpen(false)
+    }
+    document.addEventListener('mousedown', onClickOutside)
+    return () => document.removeEventListener('mousedown', onClickOutside)
+  }, [moreMenuOpen])
+
   function exportMarkdown() {
     const text = (note.content ?? '')
       .replace(/<h1[^>]*>(.*?)<\/h1>/gi, '# $1\n')
@@ -334,7 +351,19 @@ ${sanitizeHtmlForPrint(note.content ?? '')}
     const headings = editorDom.querySelectorAll('h1,h2,h3,h4')
     for (const el of headings) {
       if (el.textContent?.trim() === text) {
-        el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+        // Walk up from the editor root to find the nearest overflow:auto/scroll container.
+        // Calling scrollBy() on it directly prevents scroll-chaining up to AppLayout's main.
+        let scrollEl: HTMLElement | null = editorDom.parentElement
+        while (scrollEl && scrollEl !== document.body) {
+          const ov = window.getComputedStyle(scrollEl).overflowY
+          if (ov === 'auto' || ov === 'scroll') break
+          scrollEl = scrollEl.parentElement
+        }
+        if (scrollEl && scrollEl !== document.body) {
+          const elTop = (el as HTMLElement).getBoundingClientRect().top
+          const containerTop = scrollEl.getBoundingClientRect().top
+          scrollEl.scrollBy({ top: elTop - containerTop - 16, behavior: 'smooth' })
+        }
         return
       }
     }
@@ -417,17 +446,20 @@ ${sanitizeHtmlForPrint(note.content ?? '')}
       {/* ── Header ── */}
       <div style={{
         display: 'flex', flexDirection: 'column',
-        padding: '12px 20px 0',
+        padding: isMobile ? '8px 16px 0' : '12px 20px 0',
         borderBottom: '1px solid var(--border)',
         backgroundColor: 'var(--background)',
         flexShrink: 0,
         gap: 8,
       }}>
         {/* Row 1: breadcrumb + actions */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', rowGap: 4 }}>
           {!focusMode && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'var(--muted-foreground)', flexShrink: 0 }}>
-              <Link href="/notes" style={{ color: 'var(--muted-foreground)', display: 'flex', alignItems: 'center', gap: 4, textDecoration: 'none' }}>
+              <Link href="/notes" style={{
+                display: 'flex', alignItems: 'center', gap: 4, textDecoration: 'none',
+                color: 'var(--muted-foreground)', fontSize: 13,
+              }}>
                 <ArrowLeft size={13} /> Notes
               </Link>
               {note.parent_id && (
@@ -464,8 +496,8 @@ ${sanitizeHtmlForPrint(note.content ?? '')}
             </div>
           )}
 
-          {/* Export — Markdown and PDF side by side */}
-          {noteId && (
+          {/* Desktop: export buttons + templates inline */}
+          {!isMobile && noteId && (
             <div style={{ display: 'flex', gap: 3 }}>
               {([
                 { label: '.md', title: 'Export as Markdown', onClick: exportMarkdown },
@@ -491,24 +523,79 @@ ${sanitizeHtmlForPrint(note.content ?? '')}
               ))}
             </div>
           )}
+          {!isMobile && (
+            <button
+              type="button"
+              title="Templates"
+              onClick={() => setShowTemplates(true)}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 5,
+                padding: '5px 10px', borderRadius: 7,
+                border: '1px solid var(--border)', background: 'none',
+                color: 'var(--muted-foreground)', fontSize: 12, cursor: 'pointer',
+                transition: 'all 0.12s',
+              }}
+              onMouseEnter={e => { e.currentTarget.style.background = 'var(--accent)'; e.currentTarget.style.color = 'var(--foreground)' }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = 'var(--muted-foreground)' }}
+            >
+              <LayoutTemplate size={13} /> Templates
+            </button>
+          )}
 
-          {/* Templates */}
-          <button
-            type="button"
-            title="Templates"
-            onClick={() => setShowTemplates(true)}
-            style={{
-              display: 'flex', alignItems: 'center', gap: 5,
-              padding: '5px 10px', borderRadius: 7,
-              border: '1px solid var(--border)', background: 'none',
-              color: 'var(--muted-foreground)', fontSize: 12, cursor: 'pointer',
-              transition: 'all 0.12s',
-            }}
-            onMouseEnter={e => { e.currentTarget.style.background = 'var(--accent)'; e.currentTarget.style.color = 'var(--foreground)' }}
-            onMouseLeave={e => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = 'var(--muted-foreground)' }}
-          >
-            <LayoutTemplate size={13} /> Templates
-          </button>
+          {/* Mobile: single ⋯ button that opens a dropdown for export + templates */}
+          {isMobile && noteId && (
+            <div ref={moreMenuRef} style={{ position: 'relative' }}>
+              <button
+                type="button"
+                title="More actions"
+                onClick={e => { setMoreMenuRect((e.currentTarget as HTMLElement).getBoundingClientRect()); setMoreMenuOpen(v => !v) }}
+                style={{
+                  display: 'flex', alignItems: 'center',
+                  padding: 6, borderRadius: 7,
+                  border: '1px solid var(--border)',
+                  background: moreMenuOpen ? 'var(--accent)' : 'none',
+                  color: 'var(--muted-foreground)', cursor: 'pointer',
+                  transition: 'all 0.12s',
+                }}
+              >
+                <MoreHorizontal size={14} />
+              </button>
+              {moreMenuOpen && moreMenuRect && (
+                <div style={{
+                  position: 'fixed',
+                  top: moreMenuRect.bottom + 6,
+                  right: window.innerWidth - moreMenuRect.right,
+                  zIndex: 200,
+                  backgroundColor: 'var(--card)',
+                  border: '1px solid var(--border)',
+                  borderRadius: 10,
+                  boxShadow: '0 8px 24px rgba(0,0,0,0.18)',
+                  minWidth: 180,
+                  padding: '6px 0',
+                }}>
+                  {[
+                    { label: 'Export Markdown (.md)', icon: <Download size={13} />, action: () => { exportMarkdown(); setMoreMenuOpen(false) } },
+                    { label: 'Export PDF', icon: <Download size={13} />, action: () => { exportPdf(); setMoreMenuOpen(false) } },
+                    { label: 'Templates', icon: <LayoutTemplate size={13} />, action: () => { setShowTemplates(true); setMoreMenuOpen(false) } },
+                  ].map(item => (
+                    <button key={item.label} type="button" onClick={item.action}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: 10,
+                        width: '100%', padding: '9px 14px', border: 'none',
+                        background: 'none', color: 'var(--foreground)', fontSize: 13,
+                        cursor: 'pointer', textAlign: 'left',
+                      }}
+                      onMouseEnter={e => (e.currentTarget.style.background = 'var(--accent)')}
+                      onMouseLeave={e => (e.currentTarget.style.background = 'none')}
+                    >
+                      <span style={{ color: 'var(--muted-foreground)' }}>{item.icon}</span>
+                      {item.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Focus mode */}
           <button
@@ -528,6 +615,24 @@ ${sanitizeHtmlForPrint(note.content ?? '')}
             {focusMode ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
           </button>
 
+          {/* Panel button — mobile only: opens outline/links/sub-notes as a bottom sheet */}
+          {isMobile && noteId && (
+            <button
+              type="button"
+              title="Outline & links"
+              onClick={() => setMobilePanel(p => !p)}
+              style={{
+                display: 'flex', alignItems: 'center',
+                padding: 6, borderRadius: 7,
+                border: '1px solid var(--border)', background: mobilePanel ? 'var(--accent)' : 'none',
+                color: mobilePanel ? 'var(--foreground)' : 'var(--muted-foreground)', cursor: 'pointer',
+                transition: 'all 0.12s',
+              }}
+            >
+              <PanelRight size={14} />
+            </button>
+          )}
+
           {/* AI Chat — only shown when AI is configured; discovery handled by the global AIStatusBadge */}
           {aiConfigured && (
             <button
@@ -536,7 +641,7 @@ ${sanitizeHtmlForPrint(note.content ?? '')}
               onClick={() => setChatOpen(c => !c)}
               style={{
                 display: 'flex', alignItems: 'center', gap: 5,
-                padding: '5px 10px', borderRadius: 7,
+                padding: isMobile ? 6 : '5px 10px', borderRadius: 7,
                 border: `1px solid ${chatOpen ? 'color-mix(in srgb, var(--primary) 40%, transparent)' : 'var(--border)'}`,
                 background: chatOpen ? 'color-mix(in srgb, var(--primary) 12%, transparent)' : 'none',
                 color: chatOpen ? 'var(--primary)' : 'var(--muted-foreground)', fontSize: 12, cursor: 'pointer',
@@ -545,7 +650,7 @@ ${sanitizeHtmlForPrint(note.content ?? '')}
               onMouseEnter={e => { if (!chatOpen) { e.currentTarget.style.background = 'var(--accent)'; e.currentTarget.style.color = 'var(--foreground)' } }}
               onMouseLeave={e => { if (!chatOpen) { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = 'var(--muted-foreground)' } }}
             >
-              <Sparkles size={13} /> AI Chat
+              <Sparkles size={13} />{!isMobile && ' AI Chat'}
             </button>
           )}
 
@@ -557,7 +662,7 @@ ${sanitizeHtmlForPrint(note.content ?? '')}
               onClick={() => { setWritingFormat(undefined); setWritingOpen(w => !w) }}
               style={{
                 display: 'flex', alignItems: 'center', gap: 5,
-                padding: '5px 10px', borderRadius: 7,
+                padding: isMobile ? 6 : '5px 10px', borderRadius: 7,
                 border: `1px solid ${writingOpen ? 'color-mix(in srgb, var(--primary) 40%, transparent)' : 'var(--border)'}`,
                 background: writingOpen ? 'color-mix(in srgb, var(--primary) 12%, transparent)' : 'none',
                 color: writingOpen ? 'var(--primary)' : 'var(--muted-foreground)', fontSize: 12, cursor: 'pointer',
@@ -566,7 +671,7 @@ ${sanitizeHtmlForPrint(note.content ?? '')}
               onMouseEnter={e => { if (!writingOpen) { e.currentTarget.style.background = 'var(--accent)'; e.currentTarget.style.color = 'var(--foreground)' } }}
               onMouseLeave={e => { if (!writingOpen) { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = 'var(--muted-foreground)' } }}
             >
-              <PenLine size={13} /> AI Write
+              <PenLine size={13} />{!isMobile && ' AI Write'}
             </button>
           )}
 
@@ -744,7 +849,7 @@ ${sanitizeHtmlForPrint(note.content ?? '')}
       <div style={{ flex: 1, display: 'flex', minHeight: 0 }}>
 
         {/* Editor — checklist or rich text depending on note type */}
-        <div style={{ flex: 1, minWidth: 0, overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
+        <div style={{ flex: 1, minWidth: 0, overflowY: 'auto', display: 'flex', flexDirection: 'column', overscrollBehavior: 'contain' }}>
           {note.type === 'checklist' ? (
             <div style={{ flex: 1, padding: '24px 40px', maxWidth: 680, margin: '0 auto', width: '100%', boxSizing: 'border-box' }}>
               {/* Progress bar */}
@@ -1159,15 +1264,100 @@ ${sanitizeHtmlForPrint(note.content ?? '')}
         )}
       </div>
 
+      {/* ── Mobile panel bottom sheet — outline, links, sub-notes ── */}
+      {isMobile && mobilePanel && noteId && (
+        <>
+          <div
+            onClick={() => setMobilePanel(false)}
+            style={{ position: 'fixed', inset: 0, zIndex: 149, backgroundColor: 'rgba(0,0,0,0.4)' }}
+          />
+          <div style={{
+            position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 150,
+            backgroundColor: 'var(--card)',
+            borderRadius: '14px 14px 0 0',
+            borderTop: '1px solid var(--border)',
+            maxHeight: '65vh', overflowY: 'auto',
+            padding: '12px 16px',
+            paddingBottom: 'calc(56px + env(safe-area-inset-bottom))',
+            display: 'flex', flexDirection: 'column', gap: 20,
+          }}>
+            {/* Drag handle */}
+            <div style={{ width: 40, height: 4, borderRadius: 2, backgroundColor: 'var(--border)', margin: '0 auto 4px' }} />
+            {/* Outline */}
+            {note.type === 'checklist' ? null : headings.length > 0 && (
+              <div>
+                <p style={{ margin: '0 0 8px', fontSize: 11, fontWeight: 600, color: 'var(--muted-foreground)', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'flex', alignItems: 'center', gap: 5 }}>
+                  <List size={12} /> Outline
+                </p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  {headings.map((h, i) => (
+                    <button key={i} type="button" onClick={() => { scrollToHeading(h.text); setMobilePanel(false) }}
+                      style={{ textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer', fontSize: 12, color: 'var(--foreground)', padding: '3px 0', paddingLeft: (h.level - 1) * 12, opacity: 0.85 }}>
+                      {h.text}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+            <LinkPanel sourceId={noteId} sourceType="note" />
+            {/* Sub-notes */}
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--muted-foreground)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Sub-notes</span>
+                <button type="button" onClick={createSubNote} title="New sub-note" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted-foreground)', padding: 2, borderRadius: 5 }}
+                  onMouseEnter={e => (e.currentTarget.style.color = 'var(--primary)')}
+                  onMouseLeave={e => (e.currentTarget.style.color = 'var(--muted-foreground)')}
+                >
+                  <Plus size={14} />
+                </button>
+              </div>
+              {subNotes.length === 0 ? (
+                <button type="button" onClick={createSubNote} style={{
+                  width: '100%', padding: '8px 10px', borderRadius: 8,
+                  border: '1px dashed var(--border)', background: 'none',
+                  color: 'var(--muted-foreground)', fontSize: 12, cursor: 'pointer', textAlign: 'center',
+                }}
+                  onMouseEnter={e => (e.currentTarget.style.borderColor = 'var(--primary)44')}
+                  onMouseLeave={e => (e.currentTarget.style.borderColor = 'var(--border)')}
+                >
+                  + Add sub-note
+                </button>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  {subNotes.map(sub => (
+                    <button key={sub.id} type="button" onClick={() => router.push(`/notes/${sub.id}`)} style={{
+                      display: 'flex', alignItems: 'center', gap: 8,
+                      padding: '7px 8px', borderRadius: 7, border: 'none',
+                      background: 'none', cursor: 'pointer', textAlign: 'left', width: '100%',
+                    }}
+                      onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'var(--accent)')}
+                      onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
+                    >
+                      <FileText size={12} color="var(--primary)" style={{ flexShrink: 0 }} />
+                      <span style={{ fontSize: 12, color: 'var(--secondary-foreground)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
+                        {sub.title || 'Untitled'}
+                      </span>
+                      <ChevronRight size={11} color="var(--border)" style={{ flexShrink: 0 }} />
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+            <BacklinksPanel noteId={noteId} noteTitle={note.title} syncCount={wikiSyncCount} />
+          </div>
+        </>
+      )}
+
       {/* ── Status bar ── */}
       {noteId && !focusMode && !loading && (
         <div style={{
           display: 'flex', alignItems: 'center', gap: 0,
-          padding: '0 20px',
+          padding: '0 16px',
           height: 28,
           borderTop: '1px solid var(--border)',
           backgroundColor: 'color-mix(in srgb, var(--card) 80%, var(--background))',
           flexShrink: 0,
+          overflow: 'hidden',
         }}>
           {note.type === 'checklist' ? (() => {
             const done  = note.checklist_items?.filter(i => i.checked).length ?? 0
@@ -1279,7 +1469,7 @@ ${sanitizeHtmlForPrint(note.content ?? '')}
   if (focusMode) {
     return (
       <>
-        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'var(--background)', zIndex: 100, display: 'flex', flexDirection: 'column' }}>
+        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'var(--background)', zIndex: 100, display: 'flex', flexDirection: 'column', paddingBottom: isMobile ? 'calc(var(--bottom-nav-h, 56px) + env(safe-area-inset-bottom))' : 0 }}>
           {editorContent}
         </div>
         {aiChatOverlay}
@@ -1289,7 +1479,13 @@ ${sanitizeHtmlForPrint(note.content ?? '')}
 
   return (
     <>
-      <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden', backgroundColor: 'var(--background)' }}>
+      <div style={{
+        display: 'flex', flexDirection: 'column',
+        flex: 1,
+        minHeight: 0,
+        overflow: 'hidden',
+        backgroundColor: 'var(--background)',
+      }}>
         {editorContent}
       </div>
       {aiChatOverlay}

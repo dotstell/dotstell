@@ -642,4 +642,7 @@ body {
   .note-header-bar {
     padding-left: 56px !important;
   }
+  .app-main {
+    margin-left: 0 !important;
+  }
 }

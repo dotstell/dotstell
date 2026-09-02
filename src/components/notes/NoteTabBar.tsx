@@ -18,6 +18,7 @@ export function NoteTabBar({ currentId, paneOpen, onTogglePane }: Props) {
   const [hovered,       setHovered]       = useState<string | null>(null)
   const [ctxMenu,       setCtxMenu]       = useState<{ x: number; y: number; id: string } | null>(null)
   const [creating,      setCreating]      = useState(false)
+  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [canScrollLeft,  setCanScrollLeft]  = useState(false)
   const [canScrollRight, setCanScrollRight] = useState(false)
   const scrollRef    = useRef<HTMLDivElement>(null)
@@ -141,7 +142,7 @@ export function NoteTabBar({ currentId, paneOpen, onTogglePane }: Props) {
           type="button"
           onClick={() => scrollRef.current && (scrollRef.current.scrollLeft -= 160)}
           style={{
-            flexShrink: 0, width: 24, height: TAB_H,
+            flexShrink: 0, width: 32, height: TAB_H,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             border: 'none', borderRight: '1px solid var(--border)',
             background: 'linear-gradient(to right, var(--card) 60%, transparent)',
@@ -159,6 +160,7 @@ export function NoteTabBar({ currentId, paneOpen, onTogglePane }: Props) {
         flex: 1, minWidth: 0,
         overflowX: 'auto', overflowY: 'hidden',
         scrollbarWidth: 'none',
+        touchAction: 'pan-x',
       }}>
         {tabs.length === 0 ? (
           <div style={{
@@ -182,6 +184,22 @@ export function NoteTabBar({ currentId, paneOpen, onTogglePane }: Props) {
               onMouseDown={e => handleMouseDown(e, tab.id)}
               onClick={() => { if (!isActive) router.push(`/notes/${tab.id}`) }}
               onContextMenu={e => handleContextMenu(e, tab.id)}
+              onPointerDown={e => {
+                if (e.pointerType === 'mouse') return
+                const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
+                longPressTimer.current = setTimeout(() => {
+                  setCtxMenu({ x: rect.left + rect.width / 2, y: rect.bottom, id: tab.id })
+                }, 500)
+              }}
+              onPointerUp={() => {
+                if (longPressTimer.current) { clearTimeout(longPressTimer.current); longPressTimer.current = null }
+              }}
+              onPointerCancel={() => {
+                if (longPressTimer.current) { clearTimeout(longPressTimer.current); longPressTimer.current = null }
+              }}
+              onPointerMove={() => {
+                if (longPressTimer.current) { clearTimeout(longPressTimer.current); longPressTimer.current = null }
+              }}
               title={tab.title || 'Untitled'}
               style={{
                 display: 'flex', alignItems: 'center', gap: 6,
@@ -226,7 +244,7 @@ export function NoteTabBar({ currentId, paneOpen, onTogglePane }: Props) {
                   title="Close"
                   style={{
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    width: 16, height: 16, borderRadius: 3, flexShrink: 0,
+                    width: 20, height: 20, borderRadius: 4, flexShrink: 0,
                     opacity: (isActive || isHovered) ? 1 : 0,
                     pointerEvents: (isActive || isHovered) ? 'auto' : 'none',
                     color: 'var(--muted-foreground)',
@@ -257,7 +275,7 @@ export function NoteTabBar({ currentId, paneOpen, onTogglePane }: Props) {
           type="button"
           onClick={() => scrollRef.current && (scrollRef.current.scrollLeft += 160)}
           style={{
-            flexShrink: 0, width: 24, height: TAB_H,
+            flexShrink: 0, width: 32, height: TAB_H,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             border: 'none', borderLeft: '1px solid var(--border)',
             background: 'linear-gradient(to left, var(--card) 60%, transparent)',
@@ -311,7 +329,7 @@ function IconBtn({ children, title, onClick, active, borderLeft, borderRight, pr
     <button type="button" title={title} onClick={onClick} disabled={disabled}
       onMouseEnter={() => setHov(true)} onMouseLeave={() => setHov(false)}
       style={{
-        width: 40, flexShrink: 0,
+        width: 44, flexShrink: 0,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         border: 'none',
         borderLeft:  borderLeft  ? '1px solid var(--border)' : undefined,

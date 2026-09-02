@@ -1,4 +1,5 @@
 'use client'
+import { useState, useEffect, useMemo } from 'react'
 import Link from 'next/link'
 import { AppLayout } from '@/components/layout/AppLayout'
 import { RELEASES_URL } from '@/lib/version'
@@ -97,49 +98,17 @@ const SECTIONS = [
 // ── page ─────────────────────────────────────────────────────────────────────
 
 export default function HelpPage() {
-  return (
-    <AppLayout>
-      {/* Full-viewport two-panel layout — TOC and content each scroll independently */}
-      <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
+  const [isMobile, setIsMobile] = useState(false)
+  useEffect(() => {
+    function check() { setIsMobile(window.innerWidth < 768) }
+    check()
+    window.addEventListener('resize', check)
+    return () => window.removeEventListener('resize', check)
+  }, [])
 
-        {/* Page header — fixed, doesn't scroll */}
-        <div style={{ padding: '24px 32px 16px', flexShrink: 0, borderBottom: '1px solid var(--border)' }}>
-          <h1 style={{ fontSize: 20, fontWeight: 700, color: 'var(--foreground)', margin: 0 }}>Help &amp; features</h1>
-        </div>
-
-        <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
-
-          {/* ── TOC sidebar — fixed, never scrolls away ──────────────────── */}
-          <nav style={{
-            width: 220, flexShrink: 0,
-            borderRight: '1px solid var(--border)',
-            padding: '24px 20px 24px 32px',
-            overflowY: 'auto',
-          }}>
-            <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--muted-foreground)', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 12 }}>
-              Contents
-            </div>
-            {SECTIONS.map(s => (
-              <a
-                key={s.id}
-                href={`#${s.id}`}
-                style={{
-                  display: 'block', padding: '5px 0',
-                  fontSize: 13, color: 'var(--muted-foreground)',
-                  textDecoration: 'none', lineHeight: 1.4,
-                  transition: 'color 0.12s',
-                }}
-                onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.color = 'var(--foreground)' }}
-                onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.color = 'var(--muted-foreground)' }}
-              >
-                {s.label}
-              </a>
-            ))}
-          </nav>
-
-          {/* ── Content — independently scrollable ──────────────────────── */}
-          <div style={{ flex: 1, minWidth: 0, overflowY: 'auto', padding: '32px 40px 80px' }}>
-          <div style={{ maxWidth: 660 }}>
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const sectionContent = useMemo(() => (
+    <div style={{ maxWidth: 660 }}>
 
             {/* GETTING STARTED */}
             <Section id="getting-started" title="🧭 Getting started">
@@ -159,23 +128,35 @@ export default function HelpPage() {
 
             {/* DASHBOARD */}
             <Section id="dashboard" title="🏠 Dashboard">
-              <Tip icon="📊" title="Live stats and sparklines"
-                body="Four stat cards at the top show your note count, people, bookmarks, and open task count — each with a 7-day sparkline trend. The tasks card turns red when you have overdue items."
+              <Tip icon="📊" title="Knowledge Health"
+                body="The top card shows your knowledge base health at a glance. Four stat boxes — captured this week, last week (with trend direction), unique topics, and notes organised % — update in real time. A 14-day activity chart sits above them. Tap any stat box (or hover on desktop) to see a plain-language explanation of what it measures."
               />
-              <Tip icon="⚠️" title="Overdue alert banner"
-                body="If any task is past its due date, an alert banner appears below the stat cards with a direct link to view and resolve those tasks."
+              <Tip icon="🔥" title="Capture streak"
+                body="Below the stats, a streak badge appears after 2+ consecutive days of activity. The icon changes with your streak length: ✨ 2–3 days → ⚡ 4–6 → 🔥 7–13 → 🏆 14–20 → 👑 21+."
               />
-              <Tip icon="📋" title="Task progress bar"
-                body="Below the stats, a progress bar shows your overall task completion broken down by status: to do / in progress / done / overdue."
+              <Tip icon="🧹" title="Worth a cleanup"
+                body="The Knowledge Health card surfaces three clutter signals: stale notes (not touched in 30+ days), stale bookmarks (saved 90+ days ago), and empty notes (blank or nearly blank notes that were never filled). Each shows a count so you know where to focus."
+              />
+              <Tip icon="🏷️" title="AI Tag Suggestions"
+                body="When AI is configured, an AI suggest tags button appears in the Knowledge Health card for untagged notes and bookmarks. Click it to batch-generate tag suggestions for all untagged items at once. Your existing tag vocabulary is used as context so new suggestions align with how you already tag content. Select or deselect individual tags per item, then apply them all in one click."
+              />
+              <Tip icon="🔮" title="Unindexed items"
+                body="If some notes or bookmarks were created before AI was configured and have no embeddings yet, an amber indicator strip appears at the bottom of the Knowledge Health card. Go to AI Settings and click Build search index to index them."
+              />
+              <Tip icon="🌅" title="AI Digest"
+                body="When AI is configured, the AI Digest card generates a smart summary of your recent activity. Choose Today or This Week and click Generate. It covers your recent notes, open tasks, and saved bookmarks — formatted as labelled insight lines followed by numbered Key Action Items. It scales naturally: a quiet day with two notes produces two lines; a busy week with many sources produces more. Regenerate any time."
+              />
+              <Tip icon="🎯" title="Focus Next"
+                body="The Focus Next panel shows your most urgent actionable task — overdue items first, then items due soonest, then by priority. Subtitle reads 'Overdue first · then due date · then priority' so you always know the sort logic."
+              />
+              <Tip icon="✅" title="Open Tasks panel"
+                body="Separate from Focus Next, the Open Tasks panel lists all open tasks sorted by creation date — useful for a full picture of what's in flight rather than just the next priority."
+              />
+              <Tip icon="🔗" title="Knowledge Connections"
+                body="When you have notes with titles and shared keywords, a Knowledge Connections panel surfaces related note pairs automatically. It uses client-side keyword matching on titles and tags — no AI required. Useful for spotting connections you didn't explicitly create."
               />
               <Tip icon="⚡" title="Quick actions"
-                body={<>A row of quick action buttons lets you create a new note, add a person, add a task, or save a bookmark without navigating away. The same actions are available via <Keys keys={['Ctrl', 'K']} />.</>}
-              />
-              <Tip icon="🕐" title="Activity feed"
-                body="The bottom of the dashboard shows your last 12 activities across 7 days — notes edited, bookmarks saved, tasks completed."
-              />
-              <Tip icon="✨" title="AI Knowledge Digest"
-                body="When AI is configured, an AI Digest card appears on the dashboard. Choose Today or This Week and click Generate — the AI summarises your recent note activity into a concise digest. Regenerate at any time."
+                body={<>Five shortcut buttons at the bottom of the dashboard: <strong>New note</strong>, <strong>Add person</strong>, <strong>New task</strong>, <strong>Save bookmark</strong>, and <strong>View graph</strong> — create or navigate without leaving the page. The same actions are available via <Keys keys={['Ctrl', 'K']} />.</>}
               />
             </Section>
 
@@ -326,6 +307,9 @@ export default function HelpPage() {
               <Tip icon="✨" title="AI: Bookmark summary"
                 body="When AI is configured, a sparkle (✨) button appears on each bookmark card. Click it to expand an inline AI bullet summary. Click again to collapse. A regenerate button re-runs the summary."
               />
+              <Tip icon="🏷️" title="AI: Tag suggestions for bookmarks"
+                body="Untagged bookmarks are included in the dashboard AI Tag Suggestions batch. When you click AI suggest tags in the Knowledge Health card, suggestions are generated for both untagged notes and untagged bookmarks together. Select and apply in one step from the dashboard."
+              />
             </Section>
 
             {/* TASKS */}
@@ -384,7 +368,7 @@ export default function HelpPage() {
                 body={<>When using <strong>Ollama</strong> from <strong>dotstell.app</strong> (the hosted version), browsers block direct connections to localhost for security reasons (Private Network Access spec). Run the <strong>Dotstell Local AI Agent</strong> to bridge the gap — it's a tiny Node.js proxy that adds the required headers and forwards requests to your local Ollama. First make sure Ollama is running (on Windows it usually auto-starts — check the system tray). Then start the agent with: <code style={{ fontSize: 11, backgroundColor: 'rgba(0,0,0,0.15)', padding: '1px 5px', borderRadius: 3 }}>npx @dotstell/agent</code> (no install needed — runs directly via npx). The AI Settings modal shows a green <strong>"Local Agent is running"</strong> badge when detected. You do not need the agent when running dotstell locally at localhost:3000.</>}
               />
               <Tip icon="💬" title="AI Chat"
-                body="Open AI Chat from the note editor toolbar. In This note mode the chat is scoped to the current note. In All knowledge mode it searches your notes, tasks, and bookmarks for each question. RAG can be toggled off for direct model answers. New items are indexed automatically — you only need to run Build search index once for existing content."
+                body={<>Open AI Chat from the note editor toolbar. In <strong>This note</strong> mode the chat is scoped to the current note. In <strong>All knowledge</strong> mode it searches your notes, tasks, and bookmarks for each question. RAG can be toggled off for direct model answers. New items are indexed automatically when you save them — you only need to run <strong>Build search index</strong> once for existing content. <em>Ollama users:</em> auto-indexing requires the Local AI Agent to be running at save time; items saved while the agent is offline won't be indexed until you rebuild manually.</>}
               />
               <Tip icon="👤" title="Person intelligence"
                 body="Switch to the People tab in the AI Chat panel and type a name. The AI searches across all your notes and bookmarks for mentions, then generates a structured brief — role, key topics, last mentioned. Useful before meetings or when picking up an old context."
@@ -398,8 +382,8 @@ export default function HelpPage() {
               <Tip icon="📋" title="Summaries"
                 body={<>Summaries are available in three places: <strong>Notes</strong> — click Summarize in the right sidebar; <strong>Bookmarks</strong> — click the ✨ button on any bookmark card; <strong>Notebooks</strong> — right-click any notebook in the sidebar and choose Summarize notebook. All summaries use bullet points and can be regenerated.</>}
               />
-              <Tip icon="📊" title="AI Digest"
-                body="The dashboard AI Digest card summarises your recent note activity. Choose Today or This Week and click Generate. Useful for a quick review of what you've been working on."
+              <Tip icon="🌅" title="AI Digest"
+                body="The dashboard AI Digest card generates a smart summary of your recent activity. Choose Today or This Week and click Generate. It covers notes, open tasks, and saved bookmarks together — formatted as labelled insight lines followed by Key Action Items. The number of lines scales with how much is happening: quiet days produce fewer, busy weeks produce more."
               />
               <Tip icon="🔎" title="Related items (semantic search)"
                 body="The Related Items panel in the note editor right sidebar uses vector embeddings to find semantically similar notes and tasks — not just keyword matches. Requires an embedding provider configured in AI Settings. Click Build search index in AI Settings to index all existing content."
@@ -463,7 +447,8 @@ export default function HelpPage() {
               {[
                 { category: 'Global', rows: [
                   { keys: ['Ctrl', 'K'],   desc: 'Open command palette / universal search' },
-                  { keys: ['Ctrl', 'N'],   desc: 'Create a new note (from within notes area)' },
+                  { keys: ['Ctrl', 'N'],   desc: 'Create a new note from the note editor (browsers may intercept this — use Alt+N as the reliable alternative)' },
+                  { keys: ['Alt', 'N'],    desc: 'Create a new note — browser-safe alternative to Ctrl+N' },
                   { keys: ['G', 'D'],      desc: 'Go to Dashboard' },
                   { keys: ['G', 'N'],      desc: 'Go to Notes' },
                   { keys: ['G', 'P'],      desc: 'Go to People' },
@@ -514,11 +499,40 @@ export default function HelpPage() {
             {/* WHAT'S NEW */}
             <Section id="whats-new" title="✨ Changelog">
 
+              {/* v0.6.0 */}
+              <div style={{ marginBottom: 32 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--primary)', background: 'color-mix(in srgb, var(--primary) 10%, transparent)', border: '1px solid color-mix(in srgb, var(--primary) 25%, transparent)', padding: '3px 10px', borderRadius: 99 }}>v0.6.0</span>
+                  <span style={{ fontSize: 12, fontWeight: 600, color: '#10b981', background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.2)', padding: '2px 8px', borderRadius: 99 }}>Latest</span>
+                  <span style={{ fontSize: 12, color: 'var(--muted-foreground)' }}>Sep 2026</span>
+                </div>
+                <Tip icon="🌅" title="AI Digest"
+                  body="An AI summary that pulls from your notes, open tasks, and saved bookmarks together. Each insight line is labelled by its real topic. The digest scales with how much is happening — a quiet day stays concise, a busy week covers everything that matters. Choose Today or This Week and regenerate any time."
+                />
+                <Tip icon="📊" title="Dashboard Knowledge Health redesign"
+                  body="The Knowledge Health section on the dashboard now shows four stat boxes: capture volume, week-over-week trend, unique topic count, and notes organised %. Each box reveals a plain-language explanation on tap (mobile) or hover (desktop) — works correctly on phones, iPads, and Android tablets. A dynamic streak badge appears after 2+ consecutive days, with an icon that escalates as your streak grows."
+                />
+                <Tip icon="🧹" title="Cleanup signals in Knowledge Health"
+                  body="Three new signals in the Worth a cleanup section: stale notes (not touched in 30+ days), stale bookmarks (saved 90+ days ago, never revisited), and empty notes (blank notes that were never filled). Each shows a count — click an item to open it directly."
+                />
+                <Tip icon="🏷️" title="AI Tag Suggestions on dashboard"
+                  body="A new AI suggest tags button in the Knowledge Health card batch-generates tag suggestions for all untagged notes and bookmarks at once. Suggestions are generated in parallel using your existing tag vocabulary as context. Select or deselect individual tags per item, then apply all in one click. Works with both cloud providers and local Ollama."
+                />
+                <Tip icon="🔗" title="Knowledge Connections panel"
+                  body="A new panel on the dashboard surfaces related note pairs using client-side keyword matching on titles and tags — no AI or embeddings needed. Shows up automatically when there are 2+ keyword connections across your notes."
+                />
+                <Tip icon="🛡️" title="Stability fix: first-load page error"
+                  body="Fixed an intermittent 'This page couldn't load' error that could appear when navigating to the app for the first time or after a long idle. Reloading always fixed it, but the root cause is now resolved — the app handles the case where the session check fails on a cold start gracefully instead of crashing."
+                />
+                <Tip icon="🔧" title="AI reliability improvements"
+                  body="Several reliability fixes across AI features: Related notes now shows an error when search fails instead of silently showing nothing. Notebook summaries now cover all notes in a notebook — there was a hidden cap that silently omitted notes in large notebooks. Auto-link suggestions now scan your full set of note titles — a hidden cap was causing some matches to be missed. The AI Chat panel no longer leaves a blank empty message after a connection failure."
+                />
+              </div>
+
               {/* v0.5.1 */}
               <div style={{ marginBottom: 32 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
                   <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--primary)', background: 'color-mix(in srgb, var(--primary) 10%, transparent)', border: '1px solid color-mix(in srgb, var(--primary) 25%, transparent)', padding: '3px 10px', borderRadius: 99 }}>v0.5.1</span>
-                  <span style={{ fontSize: 12, fontWeight: 600, color: '#10b981', background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.2)', padding: '2px 8px', borderRadius: 99 }}>Latest</span>
                   <span style={{ fontSize: 12, color: 'var(--muted-foreground)' }}>Aug 2026</span>
                 </div>
                 <Tip icon="🧠" title="Tasks in AI Chat, semantic search, and Related"
@@ -707,10 +721,67 @@ export default function HelpPage() {
               </div>
             </div>
 
-          </div>{/* maxWidth wrapper */}
-        </div>{/* content scroll area */}
-        </div>{/* two-panel row */}
-      </div>{/* full-viewport column */}
+    </div>
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  ), [])
+
+  const pillNav = (
+    <div style={{
+      display: 'flex', gap: 6, overflowX: 'auto', scrollbarWidth: 'none', flexWrap: 'nowrap',
+      padding: '10px 16px', borderBottom: '1px solid var(--border)',
+    }}>
+      {SECTIONS.map(s => (
+        <a key={s.id} href={`#${s.id}`} style={{
+          display: 'inline-flex', alignItems: 'center', whiteSpace: 'nowrap',
+          padding: '5px 12px', borderRadius: 20,
+          backgroundColor: 'var(--secondary)', color: 'var(--muted-foreground)',
+          fontSize: 12, textDecoration: 'none', flexShrink: 0, touchAction: 'manipulation',
+        }}>
+          {s.label}
+        </a>
+      ))}
+    </div>
+  )
+
+  /* ── Mobile: fixed-height flex column — pill nav always visible, content scrolls ── */
+  if (isMobile) return (
+    <AppLayout>
+      <div style={{ display: 'flex', flexDirection: 'column', height: 'calc(100dvh - 56px - env(safe-area-inset-bottom))', overflow: 'hidden' }}>
+        {/* Pill nav — always visible, never scrolls away */}
+        <div style={{ flexShrink: 0, backgroundColor: 'var(--background)' }}>
+          {pillNav}
+        </div>
+        {/* Content — scrolls independently */}
+        <div style={{ flex: 1, overflowY: 'auto', padding: '20px 16px 0', paddingBottom: 'calc(56px + env(safe-area-inset-bottom))' }}>
+          {sectionContent}
+        </div>
+      </div>
+    </AppLayout>
+  )
+
+  /* ── Desktop: two-panel fixed-height layout ── */
+  return (
+    <AppLayout>
+      <div style={{ display: 'flex', flexDirection: 'column', height: '100dvh', overflow: 'hidden' }}>
+        <div style={{ padding: '24px 32px 16px', flexShrink: 0, borderBottom: '1px solid var(--border)' }}>
+          <h1 style={{ fontSize: 20, fontWeight: 700, color: 'var(--foreground)', margin: 0 }}>Help &amp; features</h1>
+        </div>
+        <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
+          <nav style={{ width: 220, flexShrink: 0, borderRight: '1px solid var(--border)', padding: '24px 20px 24px 32px', overflowY: 'auto' }}>
+            <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--muted-foreground)', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 12 }}>Contents</div>
+            {SECTIONS.map(s => (
+              <a key={s.id} href={`#${s.id}`}
+                style={{ display: 'block', padding: '5px 0', fontSize: 13, color: 'var(--muted-foreground)', textDecoration: 'none', lineHeight: 1.4, transition: 'color 0.12s' }}
+                onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.color = 'var(--foreground)' }}
+                onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.color = 'var(--muted-foreground)' }}
+              >{s.label}</a>
+            ))}
+          </nav>
+          <div style={{ flex: 1, minWidth: 0, overflowY: 'auto', padding: '32px 40px 80px' }}>
+            {sectionContent}
+          </div>
+        </div>
+      </div>
     </AppLayout>
   )
 }

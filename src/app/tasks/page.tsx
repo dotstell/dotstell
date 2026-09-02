@@ -232,8 +232,8 @@ export default function TasksPage() {
                     <Calendar size={10} />{formatDate(task.due_date)}
                   </span>
                 )}
-                <div className="flex gap-1 opacity-0 group-hover:opacity-100">
-                  <Button variant="ghost" size="icon" className="h-6 w-6 text-[var(--muted-foreground)]" onClick={() => { setEditing(task); setDialogOpen(true) }}>✏️</Button>
+                <div className="flex gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100">
+                  <Button variant="ghost" size="icon" className="hidden sm:flex h-6 w-6 text-[var(--muted-foreground)]" onClick={() => { setEditing(task); setDialogOpen(true) }}>✏️</Button>
                   <Button variant="ghost" size="icon" className="h-6 w-6 text-[var(--muted-foreground)] hover:text-[var(--destructive)]" onClick={() => openConfirm({ title: 'Delete task', body: `"${task.title}" will be permanently deleted.`, confirmLabel: 'Delete forever', onConfirm: () => deleteTask(task.id) })}><Trash2 size={12} /></Button>
                 </div>
               </div>
@@ -325,7 +325,7 @@ export default function TasksPage() {
             position: 'fixed', top: '50%', left: '50%',
             transform: 'translate(-50%, -50%)',
             zIndex: 9999,
-            width: '100%', maxWidth: 420,
+            width: '100%', maxWidth: 'min(420px, calc(100vw - 32px))',
             backgroundColor: 'var(--card)',
             border: '1px solid var(--border)',
             borderRadius: 14,
@@ -397,7 +397,7 @@ function TaskCard({ task, isOverdue, onEdit, onDelete, onStatusChange }: {
         <p className={cn('font-medium text-xs', task.status === 'done' && 'line-through text-[var(--muted-foreground)]')}>
           {task.title}
         </p>
-        <div className="flex gap-1 opacity-0 group-hover:opacity-100">
+        <div className="flex gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100">
           <button onClick={onEdit} className="text-[var(--muted-foreground)] hover:text-[var(--foreground)] text-xs">✏️</button>
           <button onClick={onDelete} className="text-[var(--muted-foreground)] hover:text-[var(--destructive)] text-xs"><Trash2 size={10} /></button>
         </div>
@@ -410,16 +410,26 @@ function TaskCard({ task, isOverdue, onEdit, onDelete, onStatusChange }: {
           </span>
         )}
       </div>
-      <select
-        value={task.status}
-        onChange={e => onStatusChange(e.target.value as TaskStatus)}
-        onClick={e => e.stopPropagation()}
-        className="mt-2 w-full bg-[var(--muted)] text-xs rounded px-1.5 py-1 border border-[var(--border)] text-[var(--muted-foreground)]"
-      >
-        <option value="todo">To Do</option>
-        <option value="in_progress">In Progress</option>
-        <option value="done">Done</option>
-      </select>
+      <div className="mt-2 flex rounded-md overflow-hidden border border-[var(--border)]">
+        {(['todo', 'in_progress', 'done'] as TaskStatus[]).map(s => {
+          const active = task.status === s
+          const activeStyle = s === 'done'
+            ? 'bg-emerald-500/20 text-emerald-400 font-semibold'
+            : s === 'in_progress'
+            ? 'bg-[var(--primary)]/15 text-[var(--primary)] font-semibold'
+            : 'bg-[var(--muted-foreground)]/10 text-[var(--muted-foreground)] font-semibold'
+          return (
+            <button
+              key={s}
+              type="button"
+              onClick={e => { e.stopPropagation(); if (!active) onStatusChange(s) }}
+              className={`flex-1 text-xs py-1 transition-colors ${active ? activeStyle : 'text-[var(--muted-foreground)] hover:bg-[var(--accent)]'}`}
+            >
+              {s === 'todo' ? 'To do' : s === 'in_progress' ? 'In prog' : 'Done'}
+            </button>
+          )
+        })}
+      </div>
     </div>
   )
 }

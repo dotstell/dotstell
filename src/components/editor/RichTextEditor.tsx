@@ -20,7 +20,7 @@ import { Superscript } from '@tiptap/extension-superscript'
 import { Subscript } from '@tiptap/extension-subscript'
 import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight'
 import { createLowlight, common } from 'lowlight'
-import { useEffect, useState, useRef, useCallback } from 'react'
+import React, { useEffect, useState, useRef, useCallback } from 'react'
 import {
   Bold, Italic, Strikethrough, Code, Underline as UnderlineIcon,
   List, ListOrdered, CheckSquare, Quote, Minus, Table as TableIcon,
@@ -146,7 +146,7 @@ const SLASH_COMMANDS = [
   { label: 'Callout',      icon: '💡', desc: 'Info callout block',   group: 'Blocks',  action: (e: ReturnType<typeof useEditor>) => insertCallout(e, 'info') },
   { label: 'Warning',      icon: '⚠️', desc: 'Warning callout',      group: 'Blocks',  action: (e: ReturnType<typeof useEditor>) => insertCallout(e, 'warning') },
   { label: 'Divider',      icon: '—',  desc: 'Horizontal rule',      group: 'Blocks',  action: (e: ReturnType<typeof useEditor>) => e?.chain().focus().setHorizontalRule().run() },
-  { label: 'Table',        icon: '⊞',  desc: '3×3 table',            group: 'Insert',  action: (e: ReturnType<typeof useEditor>) => e?.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run() },
+  { label: 'Table',        icon: '⊞',  desc: 'Custom size',          group: 'Insert',  action: (e: ReturnType<typeof useEditor>) => e?.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run() },
   { label: 'Image',        icon: '🖼',  desc: 'Embed image from URL', group: 'Insert',  action: (e: ReturnType<typeof useEditor>) => promptImage(e) },
 ]
 
@@ -223,6 +223,14 @@ export function RichTextEditor({
   content, onChange, onTextChange, placeholder = 'Start writing… (type / for commands)',
   onFocusMode, focusMode, onWikiLinksChange, onEditorReady, onAIAssist,
 }: RichTextEditorProps) {
+  const [isMobile, setIsMobile] = useState(false)
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768)
+    check()
+    window.addEventListener('resize', check)
+    return () => window.removeEventListener('resize', check)
+  }, [])
+
   // Floating AI Assist bubble — appears above selected text when onAIAssist is wired up
   const [assistBubble, setAssistBubble] = useState<{ x: number; y: number } | null>(null)
 
@@ -231,9 +239,10 @@ export function RichTextEditor({
   const [slashIdx,        setSlashIdx]        = useState(0)
   const [linkDialogOpen,  setLinkDialogOpen]  = useState(false)
   const [linkUrl,         setLinkUrl]         = useState('')
-  const [colorPickerOpen, setColorPickerOpen] = useState(false)
-  const [hlPickerOpen,    setHlPickerOpen]    = useState(false)
-  const [fontMenuOpen,    setFontMenuOpen]    = useState(false)
+  const [colorPickerOpen,  setColorPickerOpen]  = useState(false)
+  const [hlPickerOpen,     setHlPickerOpen]     = useState(false)
+  const [fontMenuOpen,     setFontMenuOpen]     = useState(false)
+  const [headingMenuOpen,  setHeadingMenuOpen]  = useState(false)
   const [imageDialogOpen, setImageDialogOpen] = useState(false)
   const [imageUrl,        setImageUrl]        = useState('')
   // Source mode (raw markdown)
@@ -246,6 +255,11 @@ export function RichTextEditor({
   const pasteModeRef = useRef<'rich' | 'plain'>('rich')
   useEffect(() => { pasteModeRef.current = pasteMode }, [pasteMode])
   // Wikilink [[...]] picker
+  const [tablePicker, setTablePicker] = useState<{ x: number; y: number } | null>(null)
+  const [tableHover, setTableHover] = useState({ r: 0, c: 0 })
+  const tableToolbarBtnRef = useRef<HTMLButtonElement>(null)
+  const tableGridRef = useRef<HTMLDivElement>(null)
+  const PICKER_W = 206
   const [wikiOpen,        setWikiOpen]        = useState(false)
   const [wikiQuery,       setWikiQuery]       = useState('')
   const [wikiResults,     setWikiResults]     = useState<NoteSearchResult[]>([])
@@ -265,9 +279,10 @@ export function RichTextEditor({
   // Cancel any pending wiki search timer when the component unmounts to avoid
   // calling setWikiResults on an unmounted component.
   useEffect(() => () => { if (wikiSearchTimer.current) clearTimeout(wikiSearchTimer.current) }, [])
-  const colorRef  = useRef<HTMLDivElement>(null)
-  const hlRef     = useRef<HTMLDivElement>(null)
-  const fontRef   = useRef<HTMLDivElement>(null)
+  const colorRef   = useRef<HTMLDivElement>(null)
+  const hlRef      = useRef<HTMLDivElement>(null)
+  const fontRef    = useRef<HTMLDivElement>(null)
+  const headingRef = useRef<HTMLDivElement>(null)
 
   const editor = useEditor({
     immediatelyRender: true,
@@ -423,7 +438,10 @@ export function RichTextEditor({
       if (!sel || sel.rangeCount === 0) { setAssistBubble(null); return }
       const rect = sel.getRangeAt(0).getBoundingClientRect()
       if (!rect.width) { setAssistBubble(null); return }
-      setAssistBubble({ x: rect.left + rect.width / 2, y: rect.top - 8 })
+      const BUBBLE_HALF = 60
+      const rawX = rect.left + rect.width / 2
+      const clampedX = Math.max(BUBBLE_HALF, Math.min(rawX, window.innerWidth - BUBBLE_HALF))
+      setAssistBubble({ x: clampedX, y: rect.top - 8 })
     },
   })
 
@@ -443,13 +461,14 @@ export function RichTextEditor({
   // Close floating menus on outside click
   useEffect(() => {
     function handleClick(e: MouseEvent) {
-      if (colorPickerOpen && colorRef.current && !colorRef.current.contains(e.target as Node)) setColorPickerOpen(false)
-      if (hlPickerOpen    && hlRef.current    && !hlRef.current.contains(e.target as Node))    setHlPickerOpen(false)
-      if (fontMenuOpen    && fontRef.current  && !fontRef.current.contains(e.target as Node))  setFontMenuOpen(false)
+      if (colorPickerOpen  && colorRef.current   && !colorRef.current.contains(e.target as Node))   setColorPickerOpen(false)
+      if (hlPickerOpen     && hlRef.current      && !hlRef.current.contains(e.target as Node))      setHlPickerOpen(false)
+      if (fontMenuOpen     && fontRef.current    && !fontRef.current.contains(e.target as Node))    setFontMenuOpen(false)
+      if (headingMenuOpen  && headingRef.current && !headingRef.current.contains(e.target as Node)) setHeadingMenuOpen(false)
     }
     document.addEventListener('mousedown', handleClick)
     return () => document.removeEventListener('mousedown', handleClick)
-  }, [colorPickerOpen, hlPickerOpen, fontMenuOpen])
+  }, [colorPickerOpen, hlPickerOpen, fontMenuOpen, headingMenuOpen])
 
   // Sync external content
   useEffect(() => {
@@ -478,10 +497,39 @@ export function RichTextEditor({
   }
   const flatFiltered = filteredCommands
 
+  function openTablePicker(anchorX: number, anchorY: number, anchorTop?: number) {
+    const pickerH = 230
+    const x = Math.max(8, Math.min(anchorX, window.innerWidth - PICKER_W - 8))
+    const y = anchorY + pickerH > window.innerHeight
+      ? (anchorTop ?? anchorY) - pickerH - 4
+      : anchorY
+    setTablePicker({ x, y })
+    setTableHover({ r: 0, c: 0 })
+  }
+
+  function getCellFromTouch(touch: React.Touch | Touch): { r: number; c: number } | null {
+    const grid = tableGridRef.current
+    if (!grid) return null
+    const rect = grid.getBoundingClientRect()
+    const x = touch.clientX - rect.left
+    const y = touch.clientY - rect.top
+    if (x < 0 || y < 0 || x > rect.width || y > rect.height) return null
+    const c = Math.min(8, Math.max(1, Math.ceil(x / (rect.width / 8))))
+    const r = Math.min(8, Math.max(1, Math.ceil(y / (rect.height / 8))))
+    return { r, c }
+  }
+
   function applySlashCommand(cmd: typeof SLASH_COMMANDS[0]) {
     if (!editor) return
     const { from } = editor.state.selection
     const deleteCount = slashFilter.length + 1
+    if (cmd.label === 'Table') {
+      const coords = editor.view.coordsAtPos(Math.max(0, from - deleteCount))
+      editor.chain().focus().deleteRange({ from: from - deleteCount, to: from }).run()
+      openTablePicker(coords.left, coords.bottom + 4, coords.top)
+      setSlashOpen(false)
+      return
+    }
     editor.chain().focus().deleteRange({ from: from - deleteCount, to: from }).run()
     cmd.action(editor)
     setSlashOpen(false)
@@ -580,16 +628,20 @@ export function RichTextEditor({
 
       {/* ── Toolbar wrapper — toggle always clickable, rest dims in source mode ── */}
       <div style={{
-        display: 'flex', alignItems: 'center',
+        display: 'flex', alignItems: 'flex-start',
         borderBottom: '1px solid var(--border)',
         backgroundColor: 'var(--card)', position: 'sticky', top: 0, zIndex: 20,
         flexWrap: 'wrap', rowGap: 0,
+        touchAction: 'manipulation',
       }}>
       {/* Dimmed tool area */}
       <div style={{
-        display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap',
+        display: 'flex', alignItems: 'center', gap: 2,
+        flexWrap: isMobile ? 'nowrap' : 'wrap',
+        overflowX: isMobile ? 'auto' : 'visible',
+        scrollbarWidth: 'none',
         padding: '5px 6px 5px 10px',
-        rowGap: 4, flex: 1, minWidth: 0,
+        rowGap: isMobile ? 0 : 4, flex: 1, minWidth: 0,
         opacity: sourceMode ? 0.35 : 1,
         pointerEvents: sourceMode ? 'none' : 'auto',
         transition: 'opacity 0.2s',
@@ -604,8 +656,10 @@ export function RichTextEditor({
         <Divider />
 
         {/* Heading + font */}
-        <HeadingDropdown editor={editor} />
-        <FontDropdown editor={editor} open={fontMenuOpen} setOpen={setFontMenuOpen} ref={fontRef} />
+        <HeadingDropdown editor={editor} ref={headingRef} open={headingMenuOpen} isMobile={isMobile}
+          setOpen={v => { if (v) { setFontMenuOpen(false); setColorPickerOpen(false); setHlPickerOpen(false) } setHeadingMenuOpen(v) }} />
+        <FontDropdown editor={editor} open={fontMenuOpen} ref={fontRef} isMobile={isMobile}
+          setOpen={v => { if (v) { setHeadingMenuOpen(false); setColorPickerOpen(false); setHlPickerOpen(false) } setFontMenuOpen(v) }} />
 
         <Divider />
 
@@ -627,7 +681,7 @@ export function RichTextEditor({
           <button
             type="button"
             title="Text color"
-            onClick={() => { setColorPickerOpen(o => !o); setHlPickerOpen(false) }}
+            onClick={() => { setColorPickerOpen(o => !o); setHlPickerOpen(false); setFontMenuOpen(false); setHeadingMenuOpen(false) }}
             style={{
               width: 28, height: 28, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
               gap: 1, borderRadius: 6, border: 'none', cursor: 'pointer', backgroundColor: 'transparent',
@@ -639,15 +693,19 @@ export function RichTextEditor({
             <div style={{ width: 14, height: 3, borderRadius: 2, backgroundColor: activeColor || 'var(--secondary-foreground)' }} />
           </button>
           {colorPickerOpen && (
-            <ColorPicker
-              colors={TEXT_COLORS}
-              activeValue={activeColor}
-              onSelect={v => {
-                if (v) editor.chain().focus().setColor(v).run()
-                else editor.chain().focus().unsetColor().run()
-                setColorPickerOpen(false)
-              }}
-            />
+            <>
+              {isMobile && <div style={{ position: 'fixed', inset: 0, zIndex: 499, backgroundColor: 'rgba(0,0,0,0.35)' }} onClick={() => setColorPickerOpen(false)} />}
+              <ColorPicker
+                colors={TEXT_COLORS}
+                activeValue={activeColor}
+                isMobile={isMobile}
+                onSelect={v => {
+                  if (v) editor.chain().focus().setColor(v).run()
+                  else editor.chain().focus().unsetColor().run()
+                  setColorPickerOpen(false)
+                }}
+              />
+            </>
           )}
         </div>
 
@@ -656,7 +714,7 @@ export function RichTextEditor({
           <button
             type="button"
             title="Highlight color"
-            onClick={() => { setHlPickerOpen(o => !o); setColorPickerOpen(false) }}
+            onClick={() => { setHlPickerOpen(o => !o); setColorPickerOpen(false); setFontMenuOpen(false); setHeadingMenuOpen(false) }}
             style={{
               width: 28, height: 28, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
               gap: 1, borderRadius: 6, border: 'none', cursor: 'pointer',
@@ -669,15 +727,19 @@ export function RichTextEditor({
             <div style={{ width: 14, height: 3, borderRadius: 2, backgroundColor: editor.getAttributes('highlight').color || (editor.isActive('highlight') ? '#fbbf24' : 'var(--secondary-foreground)') }} />
           </button>
           {hlPickerOpen && (
-            <HighlightPicker
-              colors={HIGHLIGHT_COLORS}
-              editor={editor}
-              onSelect={v => {
-                if (v) editor.chain().focus().setHighlight({ color: v }).run()
-                else editor.chain().focus().unsetHighlight().run()
-                setHlPickerOpen(false)
-              }}
-            />
+            <>
+              {isMobile && <div style={{ position: 'fixed', inset: 0, zIndex: 499, backgroundColor: 'rgba(0,0,0,0.35)' }} onClick={() => setHlPickerOpen(false)} />}
+              <HighlightPicker
+                colors={HIGHLIGHT_COLORS}
+                editor={editor}
+                isMobile={isMobile}
+                onSelect={v => {
+                  if (v) editor.chain().focus().setHighlight({ color: v }).run()
+                  else editor.chain().focus().unsetHighlight().run()
+                  setHlPickerOpen(false)
+                }}
+              />
+            </>
           )}
         </div>
 
@@ -707,7 +769,14 @@ export function RichTextEditor({
           <ToolBtn onClick={() => editor.chain().focus().toggleBlockquote().run()}                                              active={editor.isActive('blockquote')} title="Quote">      <Quote size={14} /></ToolBtn>
           <ToolBtn onClick={() => editor.chain().focus().toggleCodeBlock().run()}                                               active={editor.isActive('codeBlock')}  title="Code block"> <Code size={14} /></ToolBtn>
           <ToolBtn onClick={() => editor.chain().focus().setHorizontalRule().run()}                                             title="Divider">                                           <Minus size={14} /></ToolBtn>
-          <ToolBtn onClick={() => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()}         title="Table">                                             <TableIcon size={14} /></ToolBtn>
+          <ToolBtn
+            ref={tableToolbarBtnRef}
+            onClick={() => {
+              const rect = tableToolbarBtnRef.current?.getBoundingClientRect()
+              if (rect) openTablePicker(rect.left, rect.bottom + 4, rect.top)
+            }}
+            title="Insert table"
+          ><TableIcon size={14} /></ToolBtn>
         </ToolbarGroup>
 
         <Divider />
@@ -723,8 +792,12 @@ export function RichTextEditor({
 
       </div>{/* end dimmed area */}
 
-        {/* Source mode toggle + focus — always clickable, outside dimmed area */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '5px 8px 5px 4px', flexShrink: 0 }}>
+        {/* Source mode toggle + paste mode — always clickable, outside dimmed area */}
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 4,
+          padding: '5px 8px 5px 4px', flexShrink: 0,
+          ...(isMobile ? { order: 1, width: '100%', borderTop: '1px solid var(--border)', paddingLeft: 10 } : {}),
+        }}>
           {/* Paste mode toggle */}
           <button
             type="button"
@@ -999,6 +1072,75 @@ export function RichTextEditor({
             </div>
           </FloatingDialog>
         )}
+
+      {/* Table size picker — appears when "Table" is selected from the slash menu */}
+      {tablePicker && (
+        <>
+          <div
+            style={{ position: 'fixed', inset: 0, zIndex: 498 }}
+            onClick={() => setTablePicker(null)}
+          />
+          <div style={{
+            position: 'fixed',
+            top: tablePicker.y,
+            left: tablePicker.x,
+            zIndex: 499,
+            backgroundColor: 'var(--card)',
+            border: '1px solid var(--border)',
+            borderRadius: 10,
+            padding: '10px 12px',
+            boxShadow: '0 8px 28px rgba(0,0,0,0.25)',
+            userSelect: 'none',
+          }}>
+            <p style={{ margin: '0 0 8px', fontSize: 11, fontWeight: 500, color: 'var(--muted-foreground)', textAlign: 'center' }}>
+              {tableHover.r > 0 ? `${tableHover.r} × ${tableHover.c} table` : 'Select table size'}
+            </p>
+            <div
+              ref={tableGridRef}
+              style={{ display: 'grid', gridTemplateColumns: 'repeat(8, 1fr)', gap: 2 }}
+              onTouchStart={e => {
+                const cell = getCellFromTouch(e.touches[0])
+                if (cell) setTableHover(cell)
+              }}
+              onTouchMove={e => {
+                const cell = getCellFromTouch(e.touches[0])
+                if (cell) setTableHover(cell)
+              }}
+              onTouchEnd={() => {
+                if (tableHover.r > 0 && tableHover.c > 0) {
+                  editor?.chain().focus().insertTable({ rows: tableHover.r, cols: tableHover.c, withHeaderRow: true }).run()
+                  setTablePicker(null)
+                }
+              }}
+            >
+              {Array.from({ length: 64 }, (_, i) => {
+                const r = Math.floor(i / 8) + 1
+                const c = (i % 8) + 1
+                const active = r <= tableHover.r && c <= tableHover.c
+                return (
+                  <div
+                    key={i}
+                    onMouseEnter={() => setTableHover({ r, c })}
+                    onClick={() => {
+                      editor?.chain().focus().insertTable({ rows: r, cols: c, withHeaderRow: true }).run()
+                      setTablePicker(null)
+                    }}
+                    style={{
+                      width: 20, height: 20, borderRadius: 3, cursor: 'pointer',
+                      border: `1px solid ${active ? 'var(--primary)' : 'var(--border)'}`,
+                      backgroundColor: active ? 'color-mix(in srgb, var(--primary) 18%, transparent)' : 'transparent',
+                      transition: 'background-color 0.08s, border-color 0.08s',
+                    }}
+                  />
+                )
+              })}
+            </div>
+            <p style={{ margin: '6px 0 0', fontSize: 10, color: 'var(--muted-foreground)', textAlign: 'center' }}>
+              max 8 × 8
+            </p>
+          </div>
+        </>
+      )}
       </div>
 
     </div>
@@ -1035,11 +1177,12 @@ function Divider() {
   return <div style={{ width: 1, height: 20, backgroundColor: 'var(--border)', margin: '0 4px', flexShrink: 0 }} />
 }
 
-function ToolBtn({ onClick, active, disabled, title, children }: {
+const ToolBtn = React.forwardRef<HTMLButtonElement, {
   onClick: () => void; active?: boolean; disabled?: boolean; title?: string; children: React.ReactNode
-}) {
+}>(function ToolBtn({ onClick, active, disabled, title, children }, ref) {
   return (
     <button
+      ref={ref}
       type="button" title={title} onClick={onClick} disabled={disabled}
       style={{
         width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -1047,6 +1190,7 @@ function ToolBtn({ onClick, active, disabled, title, children }: {
         backgroundColor: active ? 'color-mix(in srgb, var(--primary) 20%, transparent)' : 'transparent',
         color: active ? 'var(--primary)' : disabled ? 'var(--border)' : 'var(--secondary-foreground)',
         transition: 'all 0.1s', flexShrink: 0,
+        touchAction: 'manipulation',
       }}
       onMouseEnter={e => { if (!active && !disabled) e.currentTarget.style.backgroundColor = 'var(--accent)' }}
       onMouseLeave={e => { if (!active) e.currentTarget.style.backgroundColor = 'transparent' }}
@@ -1054,7 +1198,7 @@ function ToolBtn({ onClick, active, disabled, title, children }: {
       {children}
     </button>
   )
-}
+})
 
 function FloatingDialog({ title, icon, children, onClose }: {
   title: string; icon?: React.ReactNode; children: React.ReactNode; onClose: () => void
@@ -1072,6 +1216,7 @@ function FloatingDialog({ title, icon, children, onClose }: {
         transform: 'translate(-50%, -50%)', zIndex: 300,
         backgroundColor: 'var(--card)', border: '1px solid var(--border)',
         borderRadius: 14, padding: '18px 20px 16px', width: 360,
+        maxWidth: 'calc(100vw - 32px)',
         boxShadow: '0 24px 64px rgba(0,0,0,0.55)',
       }}>
         {/* Header */}
@@ -1095,32 +1240,37 @@ function FloatingDialog({ title, icon, children, onClose }: {
   )
 }
 
-function HeadingDropdown({ editor }: { editor: ReturnType<typeof useEditor> }) {
-  const [open, setOpen] = useState(false)
-  if (!editor) return null
+function HeadingDropdown({ editor, open, setOpen, isMobile, ref }: {
+  editor: ReturnType<typeof useEditor>; open: boolean; setOpen: (v: boolean) => void; isMobile: boolean; ref: React.RefObject<HTMLDivElement | null>
+}) {
+  const btnRef = useRef<HTMLButtonElement>(null)
+  const [rect, setRect] = useState<DOMRect | null>(null)
+  useEffect(() => { if (open && btnRef.current) setRect(btnRef.current.getBoundingClientRect()) }, [open])
 
+  if (!editor) return null
   const current = editor.isActive('heading', { level: 1 }) ? 'Heading 1'
     : editor.isActive('heading', { level: 2 }) ? 'Heading 2'
     : editor.isActive('heading', { level: 3 }) ? 'Heading 3'
     : 'Normal'
+  const panelStyle: React.CSSProperties = isMobile && rect
+    ? { position: 'fixed', top: rect.bottom + 4, left: rect.left, zIndex: 200 }
+    : { position: 'absolute', top: '100%', left: 0, zIndex: 200, marginTop: 4 }
 
   return (
-    <div style={{ position: 'relative' }}>
-      <button
-        type="button"
-        onClick={() => setOpen(o => !o)}
+    <div ref={ref} style={{ position: 'relative' }}>
+      <button ref={btnRef} type="button" onClick={() => setOpen(!open)}
         style={{
           display: 'flex', alignItems: 'center', gap: 4,
           padding: '4px 8px', borderRadius: 6, border: '1px solid var(--border)',
           backgroundColor: 'transparent', color: 'var(--secondary-foreground)', fontSize: 12,
-          cursor: 'pointer', minWidth: 82, whiteSpace: 'nowrap',
+          cursor: 'pointer', minWidth: 82, whiteSpace: 'nowrap', touchAction: 'manipulation',
         }}
       >
         {current} <ChevronDown size={11} />
       </button>
       {open && (
         <div style={{
-          position: 'absolute', top: '100%', left: 0, zIndex: 200, marginTop: 4,
+          ...panelStyle,
           backgroundColor: 'var(--card)', border: '1px solid var(--border)',
           borderRadius: 10, padding: 4, minWidth: 140,
           boxShadow: '0 8px 28px rgba(0,0,0,0.5)',
@@ -1131,11 +1281,8 @@ function HeadingDropdown({ editor }: { editor: ReturnType<typeof useEditor> }) {
             { label: 'Heading 2', fs: 16, fw: 700, action: () => editor.chain().focus().toggleHeading({ level: 2 }).run() },
             { label: 'Heading 3', fs: 14, fw: 600, action: () => editor.chain().focus().toggleHeading({ level: 3 }).run() },
           ].map(item => (
-            <button key={item.label} type="button" onClick={() => { item.action(); setOpen(false) }} style={{
-              width: '100%', padding: '7px 10px', borderRadius: 7, border: 'none',
-              backgroundColor: 'transparent', color: 'var(--foreground)', cursor: 'pointer',
-              textAlign: 'left', fontSize: item.fs, fontWeight: item.fw,
-            }}
+            <button key={item.label} type="button" onClick={() => { item.action(); setOpen(false) }}
+              style={{ width: '100%', padding: '7px 10px', borderRadius: 7, border: 'none', backgroundColor: 'transparent', color: 'var(--foreground)', cursor: 'pointer', textAlign: 'left', fontSize: item.fs, fontWeight: item.fw }}
               onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'color-mix(in srgb, var(--primary) 10%, transparent)')}
               onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
             >{item.label}</button>
@@ -1146,21 +1293,25 @@ function HeadingDropdown({ editor }: { editor: ReturnType<typeof useEditor> }) {
   )
 }
 
-function FontDropdown({ editor, open, setOpen, ref }: {
-  editor: ReturnType<typeof useEditor>; open: boolean; setOpen: (v: boolean) => void; ref: React.RefObject<HTMLDivElement | null>
+function FontDropdown({ editor, open, setOpen, ref, isMobile }: {
+  editor: ReturnType<typeof useEditor>; open: boolean; setOpen: (v: boolean) => void; ref: React.RefObject<HTMLDivElement | null>; isMobile: boolean
 }) {
+  const btnRef = useRef<HTMLButtonElement>(null)
+  const [rect, setRect] = useState<DOMRect | null>(null)
+  useEffect(() => { if (open && btnRef.current) setRect(btnRef.current.getBoundingClientRect()) }, [open])
+
   if (!editor) return null
   const currentFont  = editor.getAttributes('textStyle').fontFamily ?? ''
   const currentEntry = FONT_FAMILIES_FLAT.find(f => f.value === currentFont)
   const currentLabel = currentEntry?.label ?? 'Font'
-
-  const GROUP_ICONS: Record<string, string> = {
-    System: '🔡', Serif: '📖', Monospace: '💻', Handwritten: '✍️',
-  }
+  const GROUP_ICONS: Record<string, string> = { System: '🔡', Serif: '📖', Monospace: '💻', Handwritten: '✍️' }
+  const panelStyle: React.CSSProperties = isMobile && rect
+    ? { position: 'fixed', top: rect.bottom + 4, left: rect.left, zIndex: 200 }
+    : { position: 'absolute', top: '100%', left: 0, zIndex: 200, marginTop: 4 }
 
   return (
     <div ref={ref} style={{ position: 'relative' }}>
-      <button
+      <button ref={btnRef}
         type="button"
         onClick={() => setOpen(!open)}
         title="Font family"
@@ -1170,6 +1321,7 @@ function FontDropdown({ editor, open, setOpen, ref }: {
           backgroundColor: 'transparent', color: 'var(--secondary-foreground)', fontSize: 12,
           cursor: 'pointer', minWidth: 76, whiteSpace: 'nowrap',
           fontFamily: currentFont || 'inherit',
+          touchAction: 'manipulation',
         }}
       >
         <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 72 }}>{currentLabel}</span>
@@ -1178,7 +1330,7 @@ function FontDropdown({ editor, open, setOpen, ref }: {
 
       {open && (
         <div style={{
-          position: 'absolute', top: '100%', left: 0, zIndex: 200, marginTop: 4,
+          ...panelStyle,
           backgroundColor: 'var(--card)', border: '1px solid var(--border)',
           borderRadius: 12, padding: 6, width: 220,
           boxShadow: '0 12px 36px rgba(0,0,0,0.7)',
@@ -1314,20 +1466,25 @@ function saveRecentColor(color: string, prev: string[]): string[] {
   return next
 }
 
-function ColorPicker({ colors, activeValue, onSelect }: {
+function ColorPicker({ colors, activeValue, onSelect, isMobile }: {
   colors: { label: string; value: string }[]
   activeValue: string
   onSelect: (v: string) => void
+  isMobile?: boolean
 }) {
   const [showCustom, setShowCustom] = useState(false)
   const [recentColors, setRecentColors] = useState<string[]>(() => loadRecentColors())
 
   const isCustomActive = activeValue !== '' && !colors.some(c => c.value === activeValue)
 
+  const posStyle: React.CSSProperties = isMobile
+    ? { position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', zIndex: 500 }
+    : { position: 'absolute', top: '100%', left: 0, zIndex: 200, marginTop: 4 }
+
   return (
     <>
       <div style={{
-        position: 'absolute', top: '100%', left: 0, zIndex: 200, marginTop: 4,
+        ...posStyle,
         backgroundColor: 'var(--card)', border: '1px solid var(--border)',
         borderRadius: 10, padding: '10px 10px 8px', width: 180,
         boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
@@ -1410,14 +1567,19 @@ function ColorPicker({ colors, activeValue, onSelect }: {
   )
 }
 
-function HighlightPicker({ colors, editor, onSelect }: {
+function HighlightPicker({ colors, editor, onSelect, isMobile }: {
   colors: { label: string; value: string; dot: string }[]
   editor: ReturnType<typeof useEditor>
   onSelect: (v: string) => void
+  isMobile?: boolean
 }) {
+  const posStyle: React.CSSProperties = isMobile
+    ? { position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', zIndex: 500 }
+    : { position: 'absolute', top: '100%', left: 0, zIndex: 200, marginTop: 4 }
+
   return (
     <div style={{
-      position: 'absolute', top: '100%', left: 0, zIndex: 200, marginTop: 4,
+      ...posStyle,
       backgroundColor: 'var(--card)', border: '1px solid var(--border)',
       borderRadius: 10, padding: '10px 10px 8px', width: 180,
       boxShadow: '0 8px 32px rgba(0,0,0,0.5)',

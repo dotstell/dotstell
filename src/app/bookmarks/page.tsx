@@ -505,7 +505,7 @@ export default function BookmarksPage() {
           title="Bookmarks"
           description="Save links — paste, drop, or import"
           action={
-            <div style={{ display: 'flex', gap: 8 }}>
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
               <Button variant="outline" size="sm" onClick={() => setTagManagerOpen(true)}>
                 <Settings2 size={14} /> Manage tags
               </Button>
@@ -802,7 +802,7 @@ export default function BookmarksPage() {
 
         {/* Search + filters + view toggle */}
         <div style={{ display: 'flex', gap: 10, marginBottom: 14, flexWrap: 'wrap', alignItems: 'center' }}>
-          <div style={{ position: 'relative', flex: '0 0 260px' }}>
+          <div style={{ position: 'relative', flex: '1 1 220px', maxWidth: 280 }}>
             <Search size={14} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--muted-foreground)' }} />
             <Input placeholder="Search bookmarks..." value={search} onChange={e => setSearch(e.target.value)} style={{ paddingLeft: 32 }} />
           </div>

@@ -244,6 +244,8 @@ importers:
         specifier: ^5
         version: 5.9.3
 
+  packages/agent: {}
+
 packages:
 
   '@alloc/quick-lru@5.2.0':

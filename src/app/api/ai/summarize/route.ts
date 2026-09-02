@@ -73,12 +73,13 @@ export async function POST(req: NextRequest) {
         .eq('user_id', user.id)
         .contains('tags', [nbTag])
         .is('deleted_at', null)
-        .limit(20)
+        .limit(50)
       if (!notes?.length) return NextResponse.json({ summary: 'No notes in this notebook yet.' })
       title   = `Notebook: ${nb.name}`
-      content = notes.map(n =>
+      const joined = notes.map(n =>
         `## ${n.title || 'Untitled'}\n${n.content.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').slice(0, 1000)}`
-      ).join('\n\n').slice(0, 14_000)
+      ).join('\n\n')
+      content = joined.slice(0, 14_000)
     } else {
       return NextResponse.json({ error: 'Provide entityType+entityId or text' }, { status: 400 })
     }

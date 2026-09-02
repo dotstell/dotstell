@@ -81,14 +81,14 @@ export function NoteRow({ note, onClick, onDelete, onContextMenu, onPin }: NoteR
         )}
       </div>
 
-      <div style={{ display: 'flex', gap: 4, flexShrink: 0, alignItems: 'center' }}>
+      <div style={{ display: 'flex', gap: 4, alignItems: 'center', flexShrink: 0, overflow: 'hidden', maxWidth: 'min(200px, 40vw)' }}>
         {note.tags?.filter(t => !t.startsWith('nb:')).slice(0, 3).map(tag => (
-          <span key={tag} style={{ fontSize: 10, color: 'var(--primary)', backgroundColor: 'color-mix(in srgb, var(--primary) 12%, transparent)', padding: '2px 7px', borderRadius: 99 }}>
+          <span key={tag} style={{ fontSize: 10, color: 'var(--primary)', backgroundColor: 'color-mix(in srgb, var(--primary) 12%, transparent)', padding: '2px 7px', borderRadius: 99, maxWidth: 90, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flexShrink: 0 }}>
             {tag}
           </span>
         ))}
         {(note.tags?.filter(t => !t.startsWith('nb:')).length ?? 0) > 3 && (
-          <span style={{ fontSize: 10, color: 'var(--muted-foreground)' }}>+{note.tags.filter(t => !t.startsWith('nb:')).length - 3}</span>
+          <span style={{ fontSize: 10, color: 'var(--muted-foreground)', flexShrink: 0 }}>+{note.tags.filter(t => !t.startsWith('nb:')).length - 3}</span>
         )}
         {(note.sub_notes_count ?? 0) > 0 && (
           <span style={{ display: 'flex', alignItems: 'center', gap: 3, fontSize: 10, color: 'var(--muted-foreground)', backgroundColor: 'var(--muted)', padding: '2px 7px', borderRadius: 99 }}>

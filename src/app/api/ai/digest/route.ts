@@ -25,46 +25,93 @@ export async function POST(req: NextRequest) {
   if (period === 'day')  since.setDate(since.getDate() - 1)
   else                   since.setDate(since.getDate() - 7)
 
-  const { data: notes } = await supabase
-    .from('notes')
-    .select('title, content, updated_at, tags')
-    .eq('user_id', user.id)
-    .is('deleted_at', null)
-    .gte('updated_at', since.toISOString())
-    .order('updated_at', { ascending: false })
-    .limit(30)
+  const [{ data: notes }, { data: openTasks }, { data: recentBookmarks }] = await Promise.all([
+    supabase
+      .from('notes')
+      .select('title, content, updated_at, tags')
+      .eq('user_id', user.id)
+      .is('deleted_at', null)
+      .gte('updated_at', since.toISOString())
+      .order('updated_at', { ascending: false })
+      .limit(30),
+    supabase
+      .from('tasks')
+      .select('title, status, priority, due_date')
+      .eq('user_id', user.id)
+      .neq('status', 'done')
+      .order('due_date', { ascending: true, nullsFirst: false })
+      .limit(10),
+    supabase
+      .from('bookmarks')
+      .select('title, url, tags')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false })
+      .limit(5),
+  ])
 
-  if (!notes?.length) {
-    return NextResponse.json({ digest: `No notes were updated in the last ${period === 'day' ? '24 hours' : '7 days'}.` })
+  const hasContent = (notes?.length ?? 0) > 0 || (openTasks?.length ?? 0) > 0 || (recentBookmarks?.length ?? 0) > 0
+  if (!hasContent) {
+    return NextResponse.json({ empty: true, period })
   }
 
-  const noteList = notes.map(n =>
+  const { count: untaggedCount } = await supabase
+    .from('notes')
+    .select('id', { count: 'exact', head: true })
+    .eq('user_id', user.id)
+    .is('deleted_at', null)
+    .eq('tags', '{}')
+
+  const now = new Date()
+  const overdueTasks = (openTasks ?? []).filter(t => t.due_date && new Date(t.due_date) < now)
+  const inProgressTasks = (openTasks ?? []).filter(t => t.status === 'in_progress')
+
+  const noteList = (notes ?? []).map(n =>
     `• ${n.title || 'Untitled'} (updated ${new Date(n.updated_at).toLocaleDateString()}): ${
       n.content.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').slice(0, 300)
     }`
   ).join('\n')
 
+  const taskSection = overdueTasks.length > 0
+    ? `\n\nOverdue tasks (${overdueTasks.length}): ${overdueTasks.map(t => `"${t.title}" (${t.priority}, was due ${new Date(t.due_date!).toLocaleDateString()})`).join(', ')}`
+    : inProgressTasks.length > 0
+    ? `\n\nIn-progress tasks: ${inProgressTasks.map(t => `"${t.title}"`).join(', ')}`
+    : ''
+  const bookmarkSection = (recentBookmarks ?? []).length > 0
+    ? `\n\nRecently saved bookmarks: ${(recentBookmarks ?? []).map(b => b.title || b.url).join(' | ')}`
+    : ''
+  const organizeNote = (untaggedCount ?? 0) > 0 ? `\n\n${untaggedCount} notes need organizing (no tags yet).` : ''
+
   const messages: AIMessage[] = [
     {
       role:    'system',
-      content: `You are a personal knowledge assistant. Summarise the user's recent note activity as a structured digest.
+      content: `You are a personal knowledge assistant. Generate an AI digest from the user's notes, tasks, and bookmarks.
 
-FORMAT — follow exactly:
-- Start directly with the content. No preamble like "Here is your digest".
-- Use 3–6 bullet points. Each bullet: "**Topic name:** one sentence insight."
-- After the bullets, add a "### Key Action Items" section with 2–4 numbered items.
-- No closing remarks, sign-offs, or meta commentary.
-- Use markdown bold (**text**) only for topic names at the start of each bullet.`,
+FORMAT — replace the labels with real subjects from the data:
+**Project Alpha:** Three new risk metrics added this week covering deployment scope.
+**Team Sync:** Strategy doc needs completion before Thursday's meeting.
+**Research:** Background reading saved as bookmarks, no notes written yet.
+[scale with the data: 1 line for a quiet day, as many as needed for a busy one]
+
+Key Action Items
+1. Concrete action derived from the data.
+2. Another concrete action.
+[real next steps only — include as few as 1 or as many as needed]
+
+RULES:
+- Replace the **bold label** with the actual subject from the data — never write "Topic" as the label.
+- One line per distinct topic. Group closely related notes into one line.
+- The "Key Action Items" section must always appear.
+- No intro sentence, no closing remarks.`,
     },
     {
       role:    'user',
-      content: `Here are the notes I worked on in the last ${period === 'day' ? '24 hours' : 'week'}:\n\n${noteList}`,
+      content: `Here are the notes I worked on in the last ${period === 'day' ? '24 hours' : 'week'}:\n\n${noteList}${taskSection}${bookmarkSection}${organizeNote}`,
     },
   ]
 
   try {
     const digest = await complete(body.config, messages)
-    return NextResponse.json({ digest, noteCount: notes.length, period })
+    return NextResponse.json({ digest, noteCount: notes?.length ?? 0, period })
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Digest generation failed'
     return NextResponse.json({ error: msg }, { status: 502 })

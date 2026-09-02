@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useLayoutEffect } from 'react'
 import { usePathname } from 'next/navigation'
 import { AppLayout } from '@/components/layout/AppLayout'
 import { NotesSidePane } from '@/components/notes/NotesSidePane'
@@ -11,9 +11,16 @@ const PANE_OPEN_KEY = 'dotstell-notes-pane-open'
 export default function NotesLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const [paneOpen, setPaneOpen] = useState(true)
-  const [isMobile, setIsMobile] = useState(false)
+  // Read the html[data-mobile] attribute set by syncScript before first paint so the
+  // very first client render already has the correct value — no useLayoutEffect delay.
+  const [isMobile, setIsMobile] = useState(() =>
+    typeof document !== 'undefined'
+      ? document.documentElement.hasAttribute('data-mobile')
+      : false
+  )
 
-  useEffect(() => {
+  // Keep in sync on window resize (desktop users resizing the viewport)
+  useLayoutEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 768)
     check()
     window.addEventListener('resize', check)
@@ -46,7 +53,9 @@ export default function NotesLayout({ children }: { children: React.ReactNode })
     <AppLayout>
       <div style={{
         display: 'flex',
-        height: '100vh',
+        height: isMobile
+          ? 'calc(var(--actual-vh, 100dvh) - var(--bottom-nav-h, 56px) - env(safe-area-inset-bottom))'
+          : 'var(--actual-vh, 100dvh)',
         overflow: 'hidden',
         backgroundColor: 'var(--background)',
         position: 'relative',
@@ -83,7 +92,7 @@ export default function NotesLayout({ children }: { children: React.ReactNode })
           </div>
         )}
 
-        {/* Main area: tab bar (always) + page content */}
+        {/* Main area: tab bar + page content */}
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, overflow: 'hidden' }}>
           <NoteTabBar
             currentId={currentNoteId}

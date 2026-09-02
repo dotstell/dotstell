@@ -27,7 +27,12 @@ interface TooltipState {
   top: number
 }
 
-export function Sidebar({ onOpenPalette }: { onOpenPalette?: () => void }) {
+export function Sidebar({ onOpenPalette, mobileOpen: mobileOpenProp, onMobileOpen, onMobileClose }: {
+  onOpenPalette?: () => void
+  mobileOpen?: boolean
+  onMobileOpen?: () => void
+  onMobileClose?: () => void
+}) {
   const pathname  = usePathname()
   const router    = useRouter()
   const [collapsed, setCollapsed] = useState(false)
@@ -87,32 +92,19 @@ export function Sidebar({ onOpenPalette }: { onOpenPalette?: () => void }) {
 
   const sidebarWidth = collapsed ? 64 : 240
 
-  // Mobile: render hamburger button + slide-in drawer
+  // When controlled from outside (AppLayout), use the prop values; otherwise fall back to local state.
+  const isDrawerOpen = mobileOpenProp !== undefined ? mobileOpenProp : mobileOpen
+  const openDrawer   = onMobileOpen  ?? (() => setMobileOpen(true))
+  const closeDrawer  = onMobileClose ?? (() => setMobileOpen(false))
+
+  // Mobile: render slide-in drawer only (hamburger button lives in BottomNav)
   if (isMobile) {
     return (
       <>
-        {/* Hamburger button — fixed top-left */}
-        <button
-          type="button"
-          aria-label="Open navigation"
-          onClick={() => setMobileOpen(true)}
-          style={{
-            position: 'fixed', top: 14, left: 14, zIndex: 50,
-            width: 38, height: 38, borderRadius: 10,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            backgroundColor: 'var(--sidebar-bg)',
-            border: '1px solid var(--sidebar-border)',
-            color: 'var(--foreground)',
-            cursor: 'pointer',
-          }}
-        >
-          <Menu size={18} />
-        </button>
-
         {/* Backdrop */}
-        {mobileOpen && (
+        {isDrawerOpen && (
           <div
-            onClick={() => setMobileOpen(false)}
+            onClick={closeDrawer}
             style={{
               position: 'fixed', inset: 0, zIndex: 48,
               backgroundColor: 'rgba(0,0,0,0.55)',
@@ -128,7 +120,7 @@ export function Sidebar({ onOpenPalette }: { onOpenPalette?: () => void }) {
           backgroundColor: 'var(--sidebar-bg)',
           borderRight: '1px solid var(--sidebar-border)',
           display: 'flex', flexDirection: 'column',
-          transform: mobileOpen ? 'translateX(0)' : 'translateX(-100%)',
+          transform: isDrawerOpen ? 'translateX(0)' : 'translateX(-100%)',
           transition: 'transform 0.25s cubic-bezier(0.4,0,0.2,1)',
           overflowY: 'auto',
         }}>
@@ -143,7 +135,7 @@ export function Sidebar({ onOpenPalette }: { onOpenPalette?: () => void }) {
             <DotstellLogo size="md" />
             <button
               type="button"
-              onClick={() => setMobileOpen(false)}
+              onClick={closeDrawer}
               style={{
                 width: 32, height: 32, borderRadius: 8,
                 border: '1px solid var(--sidebar-border)',
@@ -161,7 +153,7 @@ export function Sidebar({ onOpenPalette }: { onOpenPalette?: () => void }) {
           <div style={{ padding: '10px 10px 4px', flexShrink: 0 }}>
             <button
               type="button"
-              onClick={() => { setMobileOpen(false); onOpenPalette?.() }}
+              onClick={() => { closeDrawer(); onOpenPalette?.() }}
               style={{
                 display: 'flex', alignItems: 'center', gap: 8,
                 padding: '9px 12px', borderRadius: 8, width: '100%',
