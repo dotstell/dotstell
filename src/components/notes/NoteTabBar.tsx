@@ -160,6 +160,7 @@ export function NoteTabBar({ currentId, paneOpen, onTogglePane }: Props) {
         flex: 1, minWidth: 0,
         overflowX: 'auto', overflowY: 'hidden',
         scrollbarWidth: 'none',
+        touchAction: 'pan-x',
       }}>
         {tabs.length === 0 ? (
           <div style={{

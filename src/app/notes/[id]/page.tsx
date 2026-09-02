@@ -1469,7 +1469,7 @@ ${sanitizeHtmlForPrint(note.content ?? '')}
   if (focusMode) {
     return (
       <>
-        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'var(--background)', zIndex: 100, display: 'flex', flexDirection: 'column', paddingBottom: isMobile ? 'calc(56px + env(safe-area-inset-bottom))' : 0 }}>
+        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'var(--background)', zIndex: 100, display: 'flex', flexDirection: 'column', paddingBottom: isMobile ? 'calc(var(--bottom-nav-h, 56px) + env(safe-area-inset-bottom))' : 0 }}>
           {editorContent}
         </div>
         {aiChatOverlay}

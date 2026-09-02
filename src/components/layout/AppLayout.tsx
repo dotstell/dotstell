@@ -80,15 +80,17 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   }, [pathname])
 
   // Keep --actual-vh and --bottom-nav-h in sync with the visual viewport.
-  // When the software keyboard opens, --bottom-nav-h drops to 0 so the notes
-  // content fills the full visible area instead of leaving a dead zone below.
+  // On Android Chrome, window.innerHeight is the stable layout viewport; only
+  // visualViewport.height shrinks when the keyboard opens. A delta > 150px
+  // reliably means the keyboard is up — no fragile percentage thresholds needed.
+  // On iOS both values shrink together (delta ≈ 0), so BottomNav space is
+  // preserved (iOS fixed elements float above the keyboard anyway).
   useEffect(() => {
-    const maxVh = { current: 0 }
     function updateVh() {
-      const h = window.visualViewport?.height ?? window.innerHeight
-      maxVh.current = Math.max(maxVh.current, h)
-      document.documentElement.style.setProperty('--actual-vh', `${h}px`)
-      const kbOpen = maxVh.current > 100 && h < maxVh.current * 0.65
+      const layoutH = window.innerHeight
+      const visualH = window.visualViewport?.height ?? window.innerHeight
+      document.documentElement.style.setProperty('--actual-vh', `${visualH}px`)
+      const kbOpen = (layoutH - visualH) > 150
       document.documentElement.style.setProperty('--bottom-nav-h', kbOpen ? '0px' : '56px')
     }
     updateVh()
