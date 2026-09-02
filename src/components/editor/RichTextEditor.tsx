@@ -258,6 +258,7 @@ export function RichTextEditor({
   const [tablePicker, setTablePicker] = useState<{ x: number; y: number } | null>(null)
   const [tableHover, setTableHover] = useState({ r: 0, c: 0 })
   const tableToolbarBtnRef = useRef<HTMLButtonElement>(null)
+  const tableGridRef = useRef<HTMLDivElement>(null)
   const PICKER_W = 206
   const [wikiOpen,        setWikiOpen]        = useState(false)
   const [wikiQuery,       setWikiQuery]       = useState('')
@@ -504,6 +505,18 @@ export function RichTextEditor({
       : anchorY
     setTablePicker({ x, y })
     setTableHover({ r: 0, c: 0 })
+  }
+
+  function getCellFromTouch(touch: React.Touch | Touch): { r: number; c: number } | null {
+    const grid = tableGridRef.current
+    if (!grid) return null
+    const rect = grid.getBoundingClientRect()
+    const x = touch.clientX - rect.left
+    const y = touch.clientY - rect.top
+    if (x < 0 || y < 0 || x > rect.width || y > rect.height) return null
+    const c = Math.min(8, Math.max(1, Math.ceil(x / (rect.width / 8))))
+    const r = Math.min(8, Math.max(1, Math.ceil(y / (rect.height / 8))))
+    return { r, c }
   }
 
   function applySlashCommand(cmd: typeof SLASH_COMMANDS[0]) {
@@ -1082,7 +1095,24 @@ export function RichTextEditor({
             <p style={{ margin: '0 0 8px', fontSize: 11, fontWeight: 500, color: 'var(--muted-foreground)', textAlign: 'center' }}>
               {tableHover.r > 0 ? `${tableHover.r} × ${tableHover.c} table` : 'Select table size'}
             </p>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(8, 1fr)', gap: 2 }}>
+            <div
+              ref={tableGridRef}
+              style={{ display: 'grid', gridTemplateColumns: 'repeat(8, 1fr)', gap: 2 }}
+              onTouchStart={e => {
+                const cell = getCellFromTouch(e.touches[0])
+                if (cell) setTableHover(cell)
+              }}
+              onTouchMove={e => {
+                const cell = getCellFromTouch(e.touches[0])
+                if (cell) setTableHover(cell)
+              }}
+              onTouchEnd={() => {
+                if (tableHover.r > 0 && tableHover.c > 0) {
+                  editor?.chain().focus().insertTable({ rows: tableHover.r, cols: tableHover.c, withHeaderRow: true }).run()
+                  setTablePicker(null)
+                }
+              }}
+            >
               {Array.from({ length: 64 }, (_, i) => {
                 const r = Math.floor(i / 8) + 1
                 const c = (i % 8) + 1

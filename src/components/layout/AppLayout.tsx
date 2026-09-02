@@ -73,12 +73,17 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     return () => window.removeEventListener('resize', check)
   }, [])
 
-  // Keep --actual-vh in sync with the visual viewport so keyboard-open layouts
-  // use the true visible height instead of the potentially-stale 100dvh value.
+  // Keep --actual-vh and --bottom-nav-h in sync with the visual viewport.
+  // When the software keyboard opens, --bottom-nav-h drops to 0 so the notes
+  // content fills the full visible area instead of leaving a dead zone below.
   useEffect(() => {
+    const maxVh = { current: 0 }
     function updateVh() {
       const h = window.visualViewport?.height ?? window.innerHeight
+      maxVh.current = Math.max(maxVh.current, h)
       document.documentElement.style.setProperty('--actual-vh', `${h}px`)
+      const kbOpen = maxVh.current > 100 && h < maxVh.current * 0.65
+      document.documentElement.style.setProperty('--bottom-nav-h', kbOpen ? '0px' : '56px')
     }
     updateVh()
     window.visualViewport?.addEventListener('resize', updateVh)
@@ -162,7 +167,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         overflowX: 'hidden',
         backgroundColor: 'var(--background)',
         color: 'var(--foreground)',
-        paddingBottom: isMobile ? 'calc(56px + env(safe-area-inset-bottom))' : undefined,
+        paddingBottom: isMobile ? 'calc(var(--bottom-nav-h, 56px) + env(safe-area-inset-bottom))' : undefined,
       }}>
         {children}
       </main>

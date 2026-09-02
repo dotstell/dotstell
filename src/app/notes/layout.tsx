@@ -47,7 +47,7 @@ export default function NotesLayout({ children }: { children: React.ReactNode })
       <div style={{
         display: 'flex',
         height: isMobile
-          ? 'calc(var(--actual-vh, 100dvh) - 56px - env(safe-area-inset-bottom))'
+          ? 'calc(var(--actual-vh, 100dvh) - var(--bottom-nav-h, 56px) - env(safe-area-inset-bottom))'
           : 'var(--actual-vh, 100dvh)',
         overflow: 'hidden',
         backgroundColor: 'var(--background)',
@@ -87,10 +87,16 @@ export default function NotesLayout({ children }: { children: React.ReactNode })
 
         {/* Main area: tab bar + page content */}
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, overflow: 'hidden' }}>
-          {/* CSS class (not JS) hides the tab bar on mobile when inside a note.
-              currentNoteId is pathname-derived so the class is set during SSR —
-              no hydration flash on slow Android devices. */}
-          <div className={currentNoteId ? 'notes-tabar-in-note' : undefined}>
+          {/* Three-layer defence against the tab bar overlapping the note header on mobile:
+              1. CSS (@media max-width 767px) hides immediately — works before JS runs.
+              2. suppressHydrationWarning lets the client reconcile the style diff silently.
+              3. Inline display:none fires after useLayoutEffect — belt-and-suspenders for
+                 slow Android devices where paint can race with CSS load. */}
+          <div
+            suppressHydrationWarning
+            className={currentNoteId ? 'notes-tabar-in-note' : undefined}
+            style={isMobile && !!currentNoteId ? { display: 'none' } : undefined}
+          >
             <NoteTabBar
               currentId={currentNoteId}
               paneOpen={paneOpen}
