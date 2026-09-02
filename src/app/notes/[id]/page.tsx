@@ -452,11 +452,9 @@ ${sanitizeHtmlForPrint(note.content ?? '')}
         flexShrink: 0,
         gap: 8,
       }}>
-        {/* Row 1: breadcrumb + actions.
-            On mobile the bottom nav Notes icon handles navigation back to the list,
-            so the ← Notes breadcrumb is hidden to reclaim vertical space. */}
+        {/* Row 1: breadcrumb + actions */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', rowGap: 4 }}>
-          {!focusMode && !isMobile && (
+          {!focusMode && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'var(--muted-foreground)', flexShrink: 0 }}>
               <Link href="/notes" style={{
                 display: 'flex', alignItems: 'center', gap: 4, textDecoration: 'none',
