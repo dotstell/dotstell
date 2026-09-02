@@ -93,36 +93,65 @@ function build14DayActivity(notes: Note[], bookmarks: BookmarkType[]): number[] 
   )
 }
 
-// ── Normalize digest output from models that skip bullet markers ─
-// Ollama small models often output "**Topic:** text" without a leading "- ".
-// This adds the "- " prefix so marked renders them as <li> not <p>.
-// Also numbers bare lines under "### Key Action Items" that lack "1." markers.
-function normalizeDigestOutput(text: string): string {
-  const lines = text.split('\n')
-  const out: string[] = []
-  let inActions = false
-  let actionIdx = 1
-  for (const line of lines) {
-    const t = line.trim()
-    if (/key action items/i.test(t)) {
-      inActions = true
-      out.push(t.startsWith('#') ? t : '### Key Action Items')
-      continue
-    }
-    if (inActions) {
-      if (!t) { out.push(''); continue }
-      if (/^\d+\./.test(t) || t.startsWith('#')) { out.push(line); continue }
-      out.push(`${actionIdx++}. ${t}`)
-      continue
-    }
-    // Main bullet: "**Topic:**" line without a list marker → add "- "
-    if (t && !t.startsWith('-') && !t.startsWith('#') && !t.startsWith('>') && /^\*\*[^*]+\*\*/.test(t)) {
-      out.push(`- ${t}`)
-      continue
-    }
-    out.push(line)
-  }
-  return out.join('\n')
+// ── DigestContent: renders AI briefing reliably regardless of model format ─
+// Parses the raw text from any model (Ollama or cloud), splits at "Key Action
+// Items", and renders each section with custom JSX — no markdown parsing quirks.
+function DigestContent({ text }: { text: string }) {
+  const splitIdx = text.search(/key action items/i)
+  const rawInsights = splitIdx >= 0 ? text.slice(0, splitIdx) : text
+  const rawActions  = splitIdx >= 0 ? text.slice(splitIdx) : ''
+
+  const insights = rawInsights.split('\n')
+    .map(l => l.replace(/^[-•*·▸]\s+/, '').replace(/^\d+\.\s+/, '').trim())
+    .filter(l => l && !/^#+/.test(l) && !/^key action items/i.test(l))
+
+  const actions = rawActions.split('\n')
+    .map(l => l.replace(/^[-•*·▸]\s+/, '').replace(/^\d+\.\s+/, '').trim())
+    .filter(l => l && !/^#+/.test(l) && !/^key action items/i.test(l))
+
+  return (
+    <div>
+      <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {insights.map((item, i) => (
+          <li key={i} style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+            <span style={{ color: 'var(--primary)', flexShrink: 0, fontWeight: 700, fontSize: 14, lineHeight: 1.6 }}>·</span>
+            <span style={{ flex: 1, lineHeight: 1.65 }}>
+              <MarkdownContent compact>{item}</MarkdownContent>
+            </span>
+          </li>
+        ))}
+      </ul>
+      {actions.length > 0 && (
+        <div style={{
+          marginTop: 16, paddingTop: 14,
+          borderTop: '1px solid color-mix(in srgb, var(--border) 80%, transparent)',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 }}>
+            <Zap size={11} color="var(--primary)" />
+            <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--primary)' }}>
+              Key Action Items
+            </span>
+          </div>
+          <ol style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 7 }}>
+            {actions.map((action, i) => (
+              <li key={i} style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+                <span style={{
+                  flexShrink: 0, width: 18, height: 18, borderRadius: '50%',
+                  backgroundColor: 'color-mix(in srgb, var(--primary) 15%, transparent)',
+                  color: 'var(--primary)', fontSize: 10, fontWeight: 700,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  marginTop: 2,
+                }}>{i + 1}</span>
+                <span style={{ flex: 1, lineHeight: 1.6 }}>
+                  <MarkdownContent compact>{action}</MarkdownContent>
+                </span>
+              </li>
+            ))}
+          </ol>
+        </div>
+      )}
+    </div>
+  )
 }
 
 // ── Knowledge Connections (pure client-side) ─────────────────
@@ -210,7 +239,7 @@ export default function DashboardPage() {
           : ''
         const organizeCtx = untaggedNotes > 0 ? `\n\n${untaggedNotes} notes and ${untaggedBmarks} bookmarks need organizing (no tags yet).` : ''
         const result = await completeOllamaBrowser(aiConfig, [
-          { role: 'system', content: `You are a personal knowledge assistant. Generate a morning briefing as a markdown bullet list.\n\nSTRICT FORMAT — copy exactly:\n- **Topic name:** One insight sentence.\n- **Topic name:** One insight sentence.\n- **Topic name:** One insight sentence.\n\n### Key Action Items\n1. First action to take today.\n2. Second action.\n3. Third action.\n\nRULES:\n- Use EXACTLY the "- **Bold topic:**" bullet format. Never use plain numbered lists for the notes section.\n- Include 4-8 bullets from the notes/tasks/bookmarks provided.\n- After the bullets, always include the "### Key Action Items" section with 2-4 numbered items.\n- No preamble, no closing remarks, no "Here is your briefing" intro.\n- Keep each bullet to one sentence maximum.` },
+          { role: 'system', content: `You are a personal knowledge assistant. Generate a focused morning briefing.\n\nFORMAT (follow exactly):\n**Topic:** One insight sentence.\n**Topic:** One insight sentence.\n[3-6 items MAXIMUM — prioritise the most important]\n\nKey Action Items\n1. First concrete action.\n2. Second action.\n[2-3 items only]\n\nRULES:\n- Max 6 insight lines. Never list every note — synthesise and prioritise.\n- Start each insight line with **Bold topic:** (no leading dash needed).\n- The "Key Action Items" section must always appear, with 2-3 numbered items.\n- No intro sentence, no closing remarks.` },
           { role: 'user',   content: `Here are the notes I worked on in the last ${period === 'day' ? '24 hours' : 'week'}:\n\n${noteList}${taskContext}${inProgressContext}${bookmarkContext}${organizeCtx}` },
         ])
         setDigest(result)
@@ -233,10 +262,20 @@ export default function DashboardPage() {
   }
 
   async function generateTagSuggestions() {
-    if (!aiConfigured || suggestingTags || queueNotes.length === 0) return
+    if (!aiConfigured || suggestingTags || (queueNotes.length === 0 && queueBmarks.length === 0)) return
     setSuggestingTags(true)
+    // Collect existing tag vocabulary for context — helps AI reuse consistent tags
+    const existingTags = [...new Set([
+      ...notes.flatMap(n => (n.tags ?? []).filter(t => !t.startsWith('nb:'))),
+      ...bookmarks.flatMap(b => b.tags ?? []),
+    ])].slice(0, 30)
     try {
       const results: Record<string, string[]> = {}
+      const sysPrompt = existingTags.length > 0
+        ? `You are a tagging assistant. Suggest 3-5 tags. Reuse existing tags where relevant: [${existingTags.join(', ')}]. Return ONLY a JSON array of lowercase kebab-case strings. Example: ["tag-one","tag-two"]`
+        : 'You are a tagging assistant. Suggest 3-5 tags for this content. Return ONLY a JSON array of lowercase kebab-case strings. Example: ["tag-one","tag-two"]'
+
+      // Notes
       await Promise.all(queueNotes.map(async (note) => {
         if (dismissedSugs.has(note.id)) return
         const plainText = (note.content ?? '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()
@@ -244,28 +283,59 @@ export default function DashboardPage() {
         try {
           if (aiConfig.provider === 'ollama' && !isLocalHostname()) {
             const result = await completeOllamaBrowser(aiConfig, [
-              { role: 'system', content: 'You are a tagging assistant. Suggest 3-5 tags for this note. Return ONLY a JSON array of lowercase kebab-case strings. Example: ["tag-one","tag-two","tag-three"]' },
+              { role: 'system', content: sysPrompt },
               { role: 'user', content: `Title: ${note.title || 'Untitled'}\n${plainText.slice(0, 500)}` },
             ])
-            const cleaned = result.replace(/```[a-z]*\n?/g, '').trim()
-            const tags = JSON.parse(cleaned)
-            if (Array.isArray(tags)) results[note.id] = (tags as string[]).slice(0, 5)
+            const match = result.match(/\[[\s\S]*?\]/)
+            if (match) {
+              const tags = JSON.parse(match[0])
+              if (Array.isArray(tags)) results[note.id] = (tags as string[]).slice(0, 5)
+            }
           } else {
             const res = await fetch('/api/ai/tags', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ config: aiConfig, content: note.content, title: note.title }),
+              body: JSON.stringify({ config: aiConfig, content: note.content, title: note.title, existingTags }),
             })
             const data = await res.json()
             if (data.tags) results[note.id] = data.tags as string[]
           }
         } catch { /* skip individual failures silently */ }
       }))
+
+      // Bookmarks
+      await Promise.all(queueBmarks.map(async (bm) => {
+        if (dismissedSugs.has(bm.id)) return
+        const text = [bm.title, bm.description, bm.hostname].filter(Boolean).join(' ')
+        if (!text.trim()) return
+        try {
+          if (aiConfig.provider === 'ollama' && !isLocalHostname()) {
+            const result = await completeOllamaBrowser(aiConfig, [
+              { role: 'system', content: sysPrompt },
+              { role: 'user', content: `Bookmark: ${text.slice(0, 400)}` },
+            ])
+            const match = result.match(/\[[\s\S]*?\]/)
+            if (match) {
+              const tags = JSON.parse(match[0])
+              if (Array.isArray(tags)) results[bm.id] = (tags as string[]).slice(0, 5)
+            }
+          } else {
+            const res = await fetch('/api/ai/tags', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ config: aiConfig, content: text, title: bm.title, existingTags }),
+            })
+            const data = await res.json()
+            if (data.tags) results[bm.id] = data.tags as string[]
+          }
+        } catch { /* skip individual failures silently */ }
+      }))
+
       setTagSuggestions(prev => ({ ...prev, ...results }))
       setSelectedTags(prev => {
         const next = { ...prev }
-        for (const [noteId, tags] of Object.entries(results)) {
-          next[noteId] = new Set(tags)
+        for (const [id, tags] of Object.entries(results)) {
+          next[id] = new Set(tags)
         }
         return next
       })
@@ -274,22 +344,36 @@ export default function DashboardPage() {
     }
   }
 
-  async function applyTagSuggestion(noteId: string, applyAll = false) {
-    const note = notes.find(n => n.id === noteId)
-    if (!note) return
+  async function applyTagSuggestion(itemId: string, applyAll = false) {
     const tagsToApply = applyAll
-      ? (tagSuggestions[noteId] ?? [])
-      : Array.from(selectedTags[noteId] ?? new Set(tagSuggestions[noteId] ?? []))
+      ? (tagSuggestions[itemId] ?? [])
+      : Array.from(selectedTags[itemId] ?? new Set(tagSuggestions[itemId] ?? []))
     if (tagsToApply.length === 0) return
-    const merged = [...new Set([...(note.tags ?? []), ...tagsToApply])]
-    await fetch(`/api/notes/${noteId}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ tags: merged }),
-    })
-    setNotes(prev => prev.map(n => n.id === noteId ? { ...n, tags: merged } : n))
-    setTagSuggestions(prev => { const p = { ...prev }; delete p[noteId]; return p })
-    setSelectedTags(prev => { const p = { ...prev }; delete p[noteId]; return p })
+
+    const isBookmark = bookmarks.some(b => b.id === itemId)
+    if (isBookmark) {
+      const bm = bookmarks.find(b => b.id === itemId)
+      if (!bm) return
+      const merged = [...new Set([...(bm.tags ?? []), ...tagsToApply])]
+      await fetch(`/api/bookmarks/${itemId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tags: merged }),
+      })
+      setBookmarks(prev => prev.map(b => b.id === itemId ? { ...b, tags: merged } : b))
+    } else {
+      const note = notes.find(n => n.id === itemId)
+      if (!note) return
+      const merged = [...new Set([...(note.tags ?? []), ...tagsToApply])]
+      await fetch(`/api/notes/${itemId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tags: merged }),
+      })
+      setNotes(prev => prev.map(n => n.id === itemId ? { ...n, tags: merged } : n))
+    }
+    setTagSuggestions(prev => { const p = { ...prev }; delete p[itemId]; return p })
+    setSelectedTags(prev => { const p = { ...prev }; delete p[itemId]; return p })
   }
 
   function dismissTagSuggestion(noteId: string) {
@@ -618,14 +702,8 @@ export default function DashboardPage() {
             )}
 
             {digest && !digestLoading && (
-              <div style={{ padding: '16px 20px 18px' }}>
-                <div style={{
-                  borderLeft: '3px solid color-mix(in srgb, var(--primary) 35%, transparent)',
-                  paddingLeft: 14,
-                  fontSize: 13, lineHeight: 1.75, color: 'var(--foreground)',
-                }}>
-                  <MarkdownContent>{normalizeDigestOutput(digest)}</MarkdownContent>
-                </div>
+              <div style={{ padding: '16px 20px 20px', fontSize: 13, color: 'var(--foreground)' }}>
+                <DigestContent text={digest} />
               </div>
             )}
 
@@ -929,24 +1007,67 @@ export default function DashboardPage() {
                       })()}
                     </div>
                   ))}
-                  {queueBmarks.map(b => (
-                    <Link key={b.id} href="/bookmarks"
-                      style={{ display: 'flex', alignItems: 'flex-start', gap: 9, padding: '7px 8px', borderRadius: 7, textDecoration: 'none', transition: 'background 0.1s' }}
-                      onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'var(--accent)')}
-                      onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
-                    >
-                      <Bookmark size={13} color="var(--muted-foreground)" style={{ flexShrink: 0, marginTop: 1, opacity: 0.55 }} />
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <p style={{ fontSize: 12, fontWeight: 500, color: 'var(--foreground)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                          {b.title || b.hostname || 'Bookmark'}
-                        </p>
-                        <p style={{ fontSize: 10, color: 'var(--muted-foreground)', margin: '2px 0 0' }}>
-                          {b.hostname} · saved {formatRelative(b.created_at)} · needs tags
-                        </p>
+                  {queueBmarks.map(b => {
+                    const bmSel = selectedTags[b.id] ?? new Set(tagSuggestions[b.id] ?? [])
+                    return (
+                      <div key={b.id}>
+                        <Link href="/bookmarks"
+                          style={{ display: 'flex', alignItems: 'flex-start', gap: 9, padding: '7px 8px', borderRadius: 7, textDecoration: 'none', transition: 'background 0.1s' }}
+                          onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'var(--accent)')}
+                          onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
+                        >
+                          <Bookmark size={13} color="var(--muted-foreground)" style={{ flexShrink: 0, marginTop: 1, opacity: 0.55 }} />
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <p style={{ fontSize: 12, fontWeight: 500, color: 'var(--foreground)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              {b.title || b.hostname || 'Bookmark'}
+                            </p>
+                            <p style={{ fontSize: 10, color: 'var(--muted-foreground)', margin: '2px 0 0' }}>
+                              {b.hostname} · saved {formatRelative(b.created_at)} · needs tags
+                            </p>
+                          </div>
+                          <span style={{ fontSize: 10, color: 'var(--primary)', flexShrink: 0, opacity: 0.7, whiteSpace: 'nowrap', marginTop: 1 }}>Add tags →</span>
+                        </Link>
+                        {tagSuggestions[b.id] && !dismissedSugs.has(b.id) && (
+                          <div style={{ padding: '2px 8px 8px 30px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'wrap', marginBottom: 6 }}>
+                              <Sparkles size={9} color="#f59e0b" style={{ flexShrink: 0, opacity: 0.7 }} />
+                              {tagSuggestions[b.id].map(tag => {
+                                const on = bmSel.has(tag)
+                                return (
+                                  <button key={tag} type="button" onClick={() => toggleTagSelection(b.id, tag)}
+                                    style={{
+                                      fontSize: 10, padding: '2px 9px', borderRadius: 99, cursor: 'pointer',
+                                      backgroundColor: on ? 'var(--primary)' : 'transparent',
+                                      color: on ? 'white' : 'var(--muted-foreground)',
+                                      fontWeight: on ? 600 : 400,
+                                      border: `1px solid ${on ? 'var(--primary)' : 'var(--border)'}`,
+                                      opacity: on ? 1 : 0.45, transition: 'all 0.12s',
+                                    }}>
+                                    {tag}
+                                  </button>
+                                )
+                              })}
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                              <button type="button" onClick={() => applyTagSuggestion(b.id)}
+                                disabled={bmSel.size === 0}
+                                style={{ fontSize: 10, fontWeight: 600, color: 'var(--primary)', cursor: bmSel.size === 0 ? 'default' : 'pointer', padding: '3px 9px', borderRadius: 5, background: 'none', border: '1px solid color-mix(in srgb, var(--primary) 30%, transparent)', opacity: bmSel.size === 0 ? 0.35 : 1 }}>
+                                Apply {bmSel.size > 0 ? `(${bmSel.size})` : ''}
+                              </button>
+                              <button type="button" onClick={() => applyTagSuggestion(b.id, true)}
+                                style={{ fontSize: 10, color: 'var(--muted-foreground)', background: 'none', border: 'none', cursor: 'pointer', padding: '3px 5px', opacity: 0.65 }}>
+                                Accept all
+                              </button>
+                              <button type="button" onClick={() => dismissTagSuggestion(b.id)}
+                                style={{ fontSize: 10, color: 'var(--muted-foreground)', background: 'none', border: 'none', cursor: 'pointer', padding: '3px 5px', opacity: 0.45 }}>
+                                ✕ Dismiss
+                              </button>
+                            </div>
+                          </div>
+                        )}
                       </div>
-                      <span style={{ fontSize: 10, color: 'var(--primary)', flexShrink: 0, opacity: 0.7, whiteSpace: 'nowrap', marginTop: 1 }}>Add tags →</span>
-                    </Link>
-                  ))}
+                    )
+                  })}
                 </div>
                 {(untaggedNotes > queueNotes.length || untaggedBmarks > queueBmarks.length) && (
                   <div style={{ display: 'flex', gap: 12, marginTop: 6, paddingLeft: 8 }}>
