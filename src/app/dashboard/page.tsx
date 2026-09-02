@@ -3,8 +3,8 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import {
   ArrowRight, AlertCircle, TrendingUp, FileText, Bookmark,
-  CheckSquare, Users, Plus, Zap, Clock, Activity,
-  AlignLeft, CheckCircle2, Circle, Timer, Sparkles, Loader2, RefreshCw,
+  CheckSquare, Users, Plus, Zap, Activity,
+  CheckCircle2, Circle, Timer, Sparkles, Loader2, RefreshCw, Tag,
 } from 'lucide-react'
 import { AppLayout } from '@/components/layout/AppLayout'
 import { Task, Note, Bookmark as BookmarkType } from '@/types'
@@ -70,51 +70,6 @@ function Sparkline({ data, color }: { data: number[]; color: string }) {
   )
 }
 
-// ── Activity item builder ────────────────────────────────────
-type ActivityItem = {
-  id: string
-  type: 'note' | 'bookmark' | 'task'
-  label: string
-  action: string
-  href: string
-  time: string
-  color: string
-}
-
-function buildActivity(
-  notes: Note[],
-  bookmarks: BookmarkType[],
-  tasks: Task[],
-): ActivityItem[] {
-  const items: ActivityItem[] = [
-    ...notes.slice(0, 6).map(n => ({
-      id: n.id, type: 'note' as const,
-      label: n.title || 'Untitled note',
-      action: 'edited note',
-      href: `/notes/${n.id}`,
-      time: n.updated_at,
-      color: 'var(--primary)',
-    })),
-    ...bookmarks.slice(0, 4).map(b => ({
-      id: b.id, type: 'bookmark' as const,
-      label: b.title || b.url,
-      action: 'saved bookmark',
-      href: '/bookmarks',
-      time: b.created_at,
-      color: '#f59e0b',
-    })),
-    ...tasks.filter(t => t.status === 'done').slice(0, 4).map(t => ({
-      id: t.id, type: 'task' as const,
-      label: t.title,
-      action: 'completed task',
-      href: '/tasks',
-      time: t.updated_at,
-      color: '#10b981',
-    })),
-  ]
-  return items.sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime()).slice(0, 12)
-}
-
 // ── Stat card sparkline data — items created per day (last 7d) ─
 function buildSparkline(items: { created_at: string }[]): number[] {
   const days = Array.from({ length: 7 }, (_, i) => {
@@ -123,6 +78,18 @@ function buildSparkline(items: { created_at: string }[]): number[] {
     return d.toISOString().slice(0, 10)
   })
   return days.map(day => items.filter(i => i.created_at.slice(0, 10) === day).length)
+}
+
+// Tag frequency across notes and bookmarks — excludes internal notebook tags (nb:*)
+function buildTagFrequency(notes: Note[], bookmarks: BookmarkType[]): [string, number][] {
+  const freq: Record<string, number> = {}
+  const add = (tag: string) => {
+    if (tag.startsWith('nb:')) return
+    freq[tag] = (freq[tag] ?? 0) + 1
+  }
+  notes.forEach(n => n.tags?.forEach(add))
+  bookmarks.forEach(b => b.tags?.forEach(add))
+  return Object.entries(freq).sort((a, b) => b[1] - a[1]).slice(0, 10)
 }
 
 export default function DashboardPage() {
@@ -222,7 +189,13 @@ export default function DashboardPage() {
   const inProgress   = tasks.filter(t => t.status === 'in_progress')
   const progress     = tasks.length > 0 ? Math.round((doneTasks.length / tasks.length) * 100) : 0
 
-  const activity = buildActivity(notes, bookmarks, tasks)
+  const topTags         = buildTagFrequency(notes, bookmarks)
+  const maxTagCount     = topTags[0]?.[1] ?? 1
+  const now             = Date.now()
+  const STALE_MS        = 30 * 24 * 60 * 60 * 1000
+  const untaggedNotes   = notes.filter(n => !n.tags?.filter(t => !t.startsWith('nb:')).length).length
+  const staleNotes      = notes.filter(n => (now - new Date(n.updated_at).getTime()) > STALE_MS).length
+  const untaggedBmarks  = bookmarks.filter(b => !b.tags?.length).length
 
   const STATS = [
     {
@@ -305,32 +278,23 @@ export default function DashboardPage() {
           ))}
         </div>
 
-        {/* ── Task progress bar ── */}
+        {/* ── Task progress (donut) ── */}
         {!loading && tasks.length > 0 && (
           <div style={{
             backgroundColor: 'var(--card)', border: '1px solid var(--border)',
             borderRadius: 12, padding: '14px 20px', marginBottom: 24,
           }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <TrendingUp size={14} color="var(--primary)" />
-                <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--foreground)' }}>Task progress</span>
-              </div>
-              <span style={{ fontSize: 12, color: 'var(--muted-foreground)' }}>{doneTasks.length}/{tasks.length} done · {progress}%</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
+              <TrendingUp size={14} color="var(--primary)" />
+              <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--foreground)' }}>Task progress</span>
+              <span style={{ marginLeft: 'auto', fontSize: 12, color: 'var(--muted-foreground)' }}>{tasks.length} total</span>
             </div>
-            <div style={{ height: 5, backgroundColor: 'var(--secondary)', borderRadius: 99, overflow: 'hidden' }}>
-              <div style={{ height: '100%', width: `${progress}%`, background: 'linear-gradient(90deg, var(--primary), #10b981)', borderRadius: 99, transition: 'width 0.8s ease' }} />
-            </div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: isMobile ? 10 : 20, marginTop: 10 }}>
-              {[
-                { label: `${tasks.filter(t => t.status === 'todo').length} to do`,      color: 'var(--muted-foreground)' },
-                { label: `${inProgress.length} in progress`,                             color: 'var(--primary)' },
-                { label: `${doneTasks.length} done`,                                     color: '#10b981' },
-                { label: `${overdueTasks.length} overdue`,                               color: '#ef4444' },
-              ].map(({ label, color }) => (
-                <span key={label} style={{ fontSize: 12, color }}>{label}</span>
-              ))}
-            </div>
+            <TaskDonut
+              todo={tasks.filter(t => t.status === 'todo').length}
+              inProgress={inProgress.length}
+              done={doneTasks.length}
+              overdue={overdueTasks.length}
+            />
           </div>
         )}
 
@@ -486,45 +450,61 @@ export default function DashboardPage() {
 
         </div>
 
-        {/* ── Activity feed ── */}
-        {!loading && activity.length > 0 && (
+        {/* ── Knowledge health ── */}
+        {!loading && notes.length > 0 && (
           <div style={{ backgroundColor: 'var(--card)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden', marginBottom: 24 }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', borderBottom: '1px solid var(--secondary)' }}>
+            <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--secondary)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <Activity size={14} color="var(--muted-foreground)" />
-                <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--foreground)' }}>Recent activity</span>
+                <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--foreground)' }}>Knowledge health</span>
               </div>
-              <span style={{ fontSize: 11, color: 'var(--muted-foreground)' }}>Last 7 days</span>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3,1fr)', padding: '8px' }}>
-              {activity.map((item, idx) => (
-                <Link key={`${item.id}-${idx}`} href={item.href} style={{
-                  display: 'flex', alignItems: 'center', gap: 10,
-                  padding: '8px 10px', borderRadius: 8, textDecoration: 'none',
-                  transition: 'background 0.12s',
-                }}
-                  onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'var(--accent)')}
-                  onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
-                >
-                  <div style={{
-                    width: 28, height: 28, borderRadius: 8, flexShrink: 0,
-                    backgroundColor: item.color + '15',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  }}>
-                    {item.type === 'note'     && <FileText     size={12} color={item.color} />}
-                    {item.type === 'bookmark' && <Bookmark     size={12} color={item.color} />}
-                    {item.type === 'task'     && <CheckCircle2 size={12} color={item.color} />}
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr' }}>
+
+              {/* Top topics */}
+              <div style={{
+                padding: '14px 16px',
+                borderRight: isMobile ? 'none' : '1px solid var(--border)',
+                borderBottom: isMobile ? '1px solid var(--border)' : 'none',
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 12 }}>
+                  <Tag size={11} color="var(--muted-foreground)" />
+                  <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--muted-foreground)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Top topics</span>
+                </div>
+                {topTags.length === 0 ? (
+                  <p style={{ fontSize: 12, color: 'var(--muted-foreground)', margin: 0 }}>
+                    Tag your notes to build your knowledge map.
+                  </p>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    {topTags.map(([tag, count]) => (
+                      <div key={tag}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                          <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--foreground)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '80%' }}>{tag}</span>
+                          <span style={{ fontSize: 11, color: 'var(--muted-foreground)', flexShrink: 0 }}>{count}</span>
+                        </div>
+                        <div style={{ height: 4, borderRadius: 99, backgroundColor: 'var(--secondary)', overflow: 'hidden' }}>
+                          <div style={{ height: '100%', width: `${(count / maxTagCount) * 100}%`, backgroundColor: 'var(--primary)', borderRadius: 99, opacity: 0.65, transition: 'width 0.6s ease' }} />
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                  <div style={{ minWidth: 0, flex: 1 }}>
-                    <p style={{ fontSize: 12, fontWeight: 500, color: 'var(--foreground)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={item.label}>
-                      {item.label}
-                    </p>
-                    <p style={{ fontSize: 10, color: 'var(--muted-foreground)', margin: '1px 0 0' }}>
-                      {item.action} · {formatRelative(item.time)}
-                    </p>
-                  </div>
-                </Link>
-              ))}
+                )}
+              </div>
+
+              {/* Needs attention */}
+              <div style={{ padding: '14px 16px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 12 }}>
+                  <AlertCircle size={11} color="var(--muted-foreground)" />
+                  <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--muted-foreground)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Needs attention</span>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                  <HealthMetric value={untaggedNotes}  label="untagged notes"              href="/notes"     empty="All notes are tagged" />
+                  <HealthMetric value={staleNotes}     label="notes not updated in 30 days" href="/notes"     empty="Everything is fresh" />
+                  <HealthMetric value={untaggedBmarks} label="unorganised bookmarks"        href="/bookmarks" empty="All bookmarks are tagged" />
+                </div>
+              </div>
+
             </div>
           </div>
         )}
@@ -632,4 +612,111 @@ const rowSubStyle: React.CSSProperties = {
 }
 const rowTimeStyle: React.CSSProperties = {
   fontSize: 10, color: 'var(--muted-foreground)', flexShrink: 0, marginLeft: 4,
+}
+
+// ── Task Donut ───────────────────────────────────────────────
+function TaskDonut({ todo, inProgress, done, overdue }: {
+  todo: number; inProgress: number; done: number; overdue: number
+}) {
+  const total = todo + inProgress + done
+  if (total === 0) return null
+
+  const R = 34, STROKE = 10, SIZE = 88, C = SIZE / 2
+  const circ = 2 * Math.PI * R
+
+  // Segments drawn clockwise from 12 o'clock: done → in-progress → todo
+  const segments = [
+    { label: 'Done',        value: done,       color: '#10b981' },
+    { label: 'In progress', value: inProgress, color: 'var(--primary)' },
+    { label: 'To do',       value: todo,       color: 'var(--border)' },
+  ]
+
+  let cumPct = 0
+  const arcs = segments.map(seg => {
+    const pct      = seg.value / total
+    const dashLen  = circ * pct
+    // strokeDashoffset = circ * 0.25 shifts start from 3 o'clock to 12 o'clock;
+    // subtract cumulative arc so each segment follows the previous one.
+    const dashOff  = circ * (0.25 - cumPct)
+    cumPct += pct
+    return { ...seg, dashLen, dashOff }
+  })
+
+  const pctDone = Math.round((done / total) * 100)
+
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 20, flexWrap: 'wrap' }}>
+      {/* SVG donut */}
+      <div style={{ position: 'relative', width: SIZE, height: SIZE, flexShrink: 0 }}>
+        <svg width={SIZE} height={SIZE}>
+          {/* Track ring */}
+          <circle cx={C} cy={C} r={R} fill="none" stroke="var(--secondary)" strokeWidth={STROKE} />
+          {arcs.map(arc => arc.value > 0 && (
+            <circle
+              key={arc.label}
+              cx={C} cy={C} r={R}
+              fill="none"
+              stroke={arc.color}
+              strokeWidth={STROKE}
+              strokeLinecap="butt"
+              strokeDasharray={`${arc.dashLen} ${circ - arc.dashLen}`}
+              strokeDashoffset={arc.dashOff}
+            />
+          ))}
+        </svg>
+        {/* Center label */}
+        <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
+          <span style={{ fontSize: 17, fontWeight: 800, color: 'var(--foreground)', lineHeight: 1 }}>{pctDone}%</span>
+          <span style={{ fontSize: 9, color: 'var(--muted-foreground)', marginTop: 2, letterSpacing: '0.04em' }}>done</span>
+        </div>
+      </div>
+
+      {/* Legend */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8, flex: 1, minWidth: 120 }}>
+        {segments.map(seg => (
+          <div key={seg.label} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div style={{ width: 9, height: 9, borderRadius: '50%', backgroundColor: seg.color, flexShrink: 0 }} />
+            <span style={{ fontSize: 12, color: 'var(--muted-foreground)', flex: 1 }}>{seg.label}</span>
+            <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--foreground)' }}>{seg.value}</span>
+          </div>
+        ))}
+        {overdue > 0 && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
+            <AlertCircle size={11} color="#ef4444" />
+            <span style={{ fontSize: 11, color: '#ef4444', fontWeight: 500 }}>{overdue} overdue</span>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+// ── Knowledge health metric row ──────────────────────────────
+function HealthMetric({ value, label, href, empty }: {
+  value: number; label: string; href: string; empty: string
+}) {
+  const color = value === 0 ? '#10b981' : label.includes('30 day') ? (value > 5 ? '#ef4444' : '#f59e0b') : '#f59e0b'
+  return (
+    <Link href={href} style={{
+      display: 'flex', alignItems: 'center', gap: 10,
+      padding: '7px 8px', borderRadius: 8, textDecoration: 'none',
+      transition: 'background 0.12s',
+    }}
+      onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'var(--accent)')}
+      onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
+    >
+      {value > 0 ? (
+        <>
+          <span style={{ fontSize: 20, fontWeight: 800, color, lineHeight: 1, minWidth: 30, textAlign: 'right', flexShrink: 0 }}>{value}</span>
+          <span style={{ fontSize: 12, color: 'var(--muted-foreground)', flex: 1 }}>{label}</span>
+          <ArrowRight size={11} color="var(--muted-foreground)" style={{ flexShrink: 0, opacity: 0.4 }} />
+        </>
+      ) : (
+        <>
+          <CheckCircle2 size={14} color="#10b981" style={{ flexShrink: 0 }} />
+          <span style={{ fontSize: 12, color: 'var(--muted-foreground)' }}>{empty}</span>
+        </>
+      )}
+    </Link>
+  )
 }
