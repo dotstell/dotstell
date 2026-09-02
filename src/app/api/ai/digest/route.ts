@@ -87,9 +87,9 @@ export async function POST(req: NextRequest) {
       content: `You are a personal knowledge assistant. Generate a morning briefing from the user's notes, tasks, and bookmarks.
 
 FORMAT — replace the labels with real subjects from the data:
-**SIGMA Dashboard:** Three new risk metrics added this week covering cloud exposure.
-**1-on-1 Prep:** Team strategy doc needs completion before Thursday's meeting.
-**Japan Research:** Residency application research saved as bookmarks, no notes yet.
+**Project Alpha:** Three new risk metrics added this week covering deployment scope.
+**Team Sync:** Strategy doc needs completion before Thursday's meeting.
+**Research:** Background reading saved as bookmarks, no notes written yet.
 [scale with the data: 1 line for a quiet day, as many as needed for a busy one]
 
 Key Action Items
