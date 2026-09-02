@@ -212,6 +212,7 @@ export default function DashboardPage() {
   const activityThisWeek   = activity14.slice(7).reduce((s, v) => s + v, 0)
   const activityLastWeek   = activity14.slice(0, 7).reduce((s, v) => s + v, 0)
   const activityStreak     = (() => { let s = 0; for (let i = activity14.length - 1; i >= 0; i--) { if (activity14[i] > 0) s++; else break } return s })()
+  const pctOrganized       = notes.length > 0 ? Math.round(((notes.length - untaggedNotes) / notes.length) * 100) : 100
   const queueNotes  = untaggedNoteItems.slice(0, 4)
   const queueBmarks = untaggedBmarkItems.slice(0, Math.max(0, 5 - queueNotes.length))
 
@@ -479,116 +480,142 @@ export default function DashboardPage() {
         {/* ── Knowledge health ── */}
         {!loading && (notes.length > 0 || bookmarks.length > 0) && (
           <div style={{ backgroundColor: 'var(--card)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden', marginBottom: 24 }}>
-            <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--secondary)' }}>
+
+            {/* Header */}
+            <div style={{ padding: '12px 18px', borderBottom: '1px solid var(--secondary)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <Activity size={14} color="var(--muted-foreground)" />
                 <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--foreground)' }}>Knowledge health</span>
               </div>
+              <span style={{ fontSize: 11, color: 'var(--muted-foreground)', opacity: 0.6 }}>Last 14 days</span>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr' }}>
 
-              {/* Activity panel — 14-day bar chart */}
-              <div style={{
-                padding: '14px 16px',
-                borderRight: isMobile ? 'none' : '1px solid var(--border)',
-                borderBottom: isMobile ? '1px solid var(--border)' : 'none',
-              }}>
-                <p style={{ fontSize: 11, fontWeight: 600, color: 'var(--muted-foreground)', textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 10px' }}>
-                  14-day activity
-                </p>
-                <ActivityBars data={activity14} />
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 8 }}>
-                  <span style={{ fontSize: 11, color: 'var(--muted-foreground)' }}>
-                    <span style={{ fontWeight: 700, color: 'var(--foreground)' }}>{activityThisWeek}</span> this week
-                    {activityLastWeek > 0 && (
-                      <span style={{ marginLeft: 8, opacity: 0.6 }}>
-                        {activityThisWeek >= activityLastWeek ? '↑' : '↓'} {activityLastWeek} last week
-                      </span>
-                    )}
-                  </span>
-                  <span style={{ fontSize: 11, color: 'var(--muted-foreground)' }}>
-                    <span style={{ fontWeight: 600, color: 'var(--foreground)' }}>{uniqueTopics}</span> topics
-                  </span>
+            {/* Activity area chart — full width */}
+            <div style={{ padding: '16px 18px 0' }}>
+              <ActivityChart data={activity14} />
+            </div>
+
+            {/* Stats strip */}
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(4, 1fr)',
+              borderBottom: '1px solid var(--secondary)',
+              margin: '10px 0 0',
+            }}>
+              {[
+                { value: activityThisWeek, label: 'This week', accent: true },
+                { value: `${activityThisWeek >= activityLastWeek ? '↑' : '↓'} ${activityLastWeek}`, label: 'Last week' },
+                { value: uniqueTopics, label: 'Topics' },
+                { value: `${pctOrganized}%`, label: 'Organized' },
+              ].map(({ value, label, accent }, i) => (
+                <div key={i} style={{
+                  padding: '10px 0',
+                  textAlign: 'center',
+                  borderRight: i < 3 ? '1px solid var(--secondary)' : 'none',
+                }}>
+                  <p style={{ fontSize: 17, fontWeight: 800, color: accent ? 'var(--primary)' : 'var(--foreground)', margin: 0, lineHeight: 1 }}>{value}</p>
+                  <p style={{ fontSize: 10, color: 'var(--muted-foreground)', margin: '3px 0 0', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{label}</p>
                 </div>
-                {activityStreak >= 2 && (
-                  <p style={{ fontSize: 11, color: 'var(--primary)', margin: '6px 0 0', fontWeight: 500 }}>
-                    🔥 {activityStreak}-day capture streak
-                  </p>
-                )}
-              </div>
+              ))}
+            </div>
 
-              {/* Process queue — actual items to act on */}
-              <div style={{ padding: '14px 16px' }}>
-                <p style={{ fontSize: 11, fontWeight: 600, color: 'var(--muted-foreground)', textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 10px' }}>
-                  Process queue
-                </p>
-                {queueNotes.length === 0 && queueBmarks.length === 0 ? (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 0' }}>
-                    <CheckCircle2 size={14} color="#10b981" />
-                    <span style={{ fontSize: 12, color: 'var(--muted-foreground)' }}>All items organized — nothing to process</span>
-                  </div>
-                ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                    {queueNotes.map(n => (
-                      <Link key={n.id} href={`/notes/${n.id}`}
-                        style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '5px 6px', borderRadius: 6, textDecoration: 'none', transition: 'background 0.1s' }}
-                        onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'var(--accent)')}
-                        onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
-                      >
-                        <FileText size={11} color="var(--muted-foreground)" style={{ flexShrink: 0, opacity: 0.55 }} />
-                        <span style={{ fontSize: 12, color: 'var(--foreground)', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                          {n.title || 'Untitled'}
-                        </span>
-                        <span style={{ fontSize: 10, color: 'var(--primary)', flexShrink: 0, opacity: 0.7, letterSpacing: '0.02em' }}>+ tag</span>
-                      </Link>
-                    ))}
-                    {queueBmarks.map(b => (
-                      <a key={b.id} href={b.url} target="_blank" rel="noopener noreferrer"
-                        style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '5px 6px', borderRadius: 6, textDecoration: 'none', transition: 'background 0.1s' }}
-                        onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'var(--accent)')}
-                        onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
-                      >
-                        <Bookmark size={11} color="var(--muted-foreground)" style={{ flexShrink: 0, opacity: 0.55 }} />
-                        <span style={{ fontSize: 12, color: 'var(--foreground)', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                          {b.title || b.hostname || b.url}
-                        </span>
-                        <span style={{ fontSize: 10, color: 'var(--muted-foreground)', flexShrink: 0, opacity: 0.45 }}>↗</span>
-                      </a>
-                    ))}
-                    {(untaggedNotes > queueNotes.length || untaggedBmarks > queueBmarks.length) && (
-                      <div style={{ display: 'flex', gap: 10, marginTop: 4, paddingLeft: 6 }}>
-                        {untaggedNotes > queueNotes.length && (
-                          <Link href="/notes" style={{ fontSize: 11, color: 'var(--primary)', textDecoration: 'none', opacity: 0.75 }}>
-                            +{untaggedNotes - queueNotes.length} more notes →
-                          </Link>
-                        )}
-                        {untaggedBmarks > queueBmarks.length && (
-                          <Link href="/bookmarks" style={{ fontSize: 11, color: 'var(--muted-foreground)', textDecoration: 'none', opacity: 0.75 }}>
-                            +{untaggedBmarks - queueBmarks.length} bookmarks →
-                          </Link>
-                        )}
+            {/* Capture streak badge */}
+            {activityStreak >= 2 && (
+              <div style={{ padding: '8px 18px', borderBottom: '1px solid var(--secondary)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span style={{ fontSize: 12, color: 'var(--primary)', fontWeight: 600 }}>🔥 {activityStreak}-day capture streak</span>
+                <span style={{ fontSize: 11, color: 'var(--muted-foreground)' }}>— keep it going!</span>
+              </div>
+            )}
+
+            {/* Unorganized items — shown only when there's something to do */}
+            {(queueNotes.length > 0 || queueBmarks.length > 0 || staleNotes > 0) ? (
+              <div style={{ padding: '12px 18px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                  <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--muted-foreground)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+                    Needs a tag
+                  </span>
+                  {(untaggedNotes + untaggedBmarks) > 0 && (
+                    <span style={{ fontSize: 11, color: 'var(--muted-foreground)' }}>
+                      {untaggedNotes + untaggedBmarks} items · open each to add tags
+                    </span>
+                  )}
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  {queueNotes.map(n => (
+                    <Link key={n.id} href={`/notes/${n.id}`}
+                      style={{ display: 'flex', alignItems: 'flex-start', gap: 9, padding: '7px 8px', borderRadius: 7, textDecoration: 'none', transition: 'background 0.1s' }}
+                      onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'var(--accent)')}
+                      onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
+                    >
+                      <FileText size={13} color="var(--muted-foreground)" style={{ flexShrink: 0, marginTop: 1, opacity: 0.55 }} />
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <p style={{ fontSize: 12, fontWeight: 500, color: n.title ? 'var(--foreground)' : 'var(--muted-foreground)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontStyle: n.title ? 'normal' : 'italic' }}>
+                          {n.title || 'Untitled note'}
+                        </p>
+                        <p style={{ fontSize: 10, color: 'var(--muted-foreground)', margin: '2px 0 0' }}>
+                          {NOTE_TYPE_LABEL[n.type] ?? n.type} · captured {formatRelative(n.created_at)} · no tags yet
+                        </p>
                       </div>
+                      <span style={{ fontSize: 10, color: 'var(--primary)', flexShrink: 0, opacity: 0.7, whiteSpace: 'nowrap', marginTop: 1 }}>Add tags →</span>
+                    </Link>
+                  ))}
+                  {queueBmarks.map(b => (
+                    <a key={b.id} href={b.url} target="_blank" rel="noopener noreferrer"
+                      style={{ display: 'flex', alignItems: 'flex-start', gap: 9, padding: '7px 8px', borderRadius: 7, textDecoration: 'none', transition: 'background 0.1s' }}
+                      onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'var(--accent)')}
+                      onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
+                    >
+                      <Bookmark size={13} color="var(--muted-foreground)" style={{ flexShrink: 0, marginTop: 1, opacity: 0.55 }} />
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <p style={{ fontSize: 12, fontWeight: 500, color: 'var(--foreground)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {b.title || b.hostname || 'Bookmark'}
+                        </p>
+                        <p style={{ fontSize: 10, color: 'var(--muted-foreground)', margin: '2px 0 0' }}>
+                          {b.hostname} · saved {formatRelative(b.created_at)} · unsorted
+                        </p>
+                      </div>
+                      <span style={{ fontSize: 10, color: 'var(--muted-foreground)', flexShrink: 0, opacity: 0.5, whiteSpace: 'nowrap', marginTop: 1 }}>Open ↗</span>
+                    </a>
+                  ))}
+                </div>
+                {(untaggedNotes > queueNotes.length || untaggedBmarks > queueBmarks.length) && (
+                  <div style={{ display: 'flex', gap: 12, marginTop: 6, paddingLeft: 8 }}>
+                    {untaggedNotes > queueNotes.length && (
+                      <Link href="/notes" style={{ fontSize: 11, color: 'var(--primary)', textDecoration: 'none', opacity: 0.75 }}>
+                        +{untaggedNotes - queueNotes.length} more notes →
+                      </Link>
+                    )}
+                    {untaggedBmarks > queueBmarks.length && (
+                      <Link href="/bookmarks" style={{ fontSize: 11, color: 'var(--muted-foreground)', textDecoration: 'none', opacity: 0.7 }}>
+                        +{untaggedBmarks - queueBmarks.length} bookmarks →
+                      </Link>
                     )}
                   </div>
                 )}
                 {staleNotes > 0 && (
-                  <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid var(--border)' }}>
-                    <Link href="/notes"
-                      style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '5px 6px', borderRadius: 6, textDecoration: 'none', transition: 'background 0.1s' }}
-                      onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'var(--accent)')}
-                      onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
-                    >
-                      <AlertCircle size={11} color="#f59e0b" style={{ flexShrink: 0 }} />
-                      <span style={{ fontSize: 12, color: 'var(--muted-foreground)', flex: 1 }}>
-                        <span style={{ color: 'var(--foreground)', fontWeight: 600 }}>{staleNotes}</span> notes not updated in 30+ days
-                      </span>
-                      <ArrowRight size={10} color="var(--muted-foreground)" style={{ flexShrink: 0, opacity: 0.4 }} />
-                    </Link>
-                  </div>
+                  <Link href="/notes"
+                    style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 10, paddingTop: 10, borderTop: '1px solid var(--border)', padding: '10px 8px 4px', borderRadius: 7, textDecoration: 'none', transition: 'background 0.1s' }}
+                    onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'var(--accent)')}
+                    onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
+                  >
+                    <AlertCircle size={12} color="#f59e0b" style={{ flexShrink: 0 }} />
+                    <span style={{ fontSize: 12, color: 'var(--muted-foreground)', flex: 1 }}>
+                      <span style={{ color: 'var(--foreground)', fontWeight: 600 }}>{staleNotes}</span> notes untouched for 30+ days — worth a review
+                    </span>
+                    <ArrowRight size={10} color="var(--muted-foreground)" style={{ flexShrink: 0, opacity: 0.4 }} />
+                  </Link>
                 )}
               </div>
+            ) : (
+              <div style={{ padding: '16px 18px', display: 'flex', alignItems: 'center', gap: 10 }}>
+                <CheckCircle2 size={15} color="#10b981" />
+                <div>
+                  <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--foreground)', margin: 0 }}>Knowledge base fully organized</p>
+                  <p style={{ fontSize: 11, color: 'var(--muted-foreground)', margin: '2px 0 0' }}>Every note and bookmark is tagged — great discipline!</p>
+                </div>
+              </div>
+            )}
 
-            </div>
           </div>
         )}
 
@@ -697,31 +724,48 @@ const rowTimeStyle: React.CSSProperties = {
   fontSize: 10, color: 'var(--muted-foreground)', flexShrink: 0, marginLeft: 4,
 }
 
-// ── Activity bar chart (div-based, fully theme-aware via CSS vars) ──
-function ActivityBars({ data }: { data: number[] }) {
+// ── Smooth responsive area chart — theme-aware via CSS vars ──
+function ActivityChart({ data }: { data: number[] }) {
+  if (data.length < 2) return null
   const max = Math.max(...data, 1)
-  const MAX_H = 40
+  const W = 280, H = 54
+
+  const coords = data.map((v, i) => ({
+    x: (i / (data.length - 1)) * W,
+    y: H - (v / max) * (H - 10) - 5,
+  }))
+
+  let linePath = `M ${coords[0].x},${coords[0].y}`
+  for (let i = 1; i < coords.length; i++) {
+    const prev = coords[i - 1], curr = coords[i]
+    const cpX = (prev.x + curr.x) / 2
+    linePath += ` C ${cpX},${prev.y} ${cpX},${curr.y} ${curr.x},${curr.y}`
+  }
+  const first = coords[0], last = coords[coords.length - 1]
+  const areaPath = `${linePath} L ${last.x},${H} L ${first.x},${H} Z`
+
   return (
-    <div style={{ display: 'flex', alignItems: 'flex-end', gap: 3, height: MAX_H + 2, width: '100%' }}>
-      {data.map((v, i) => {
-        const h = v === 0 ? 3 : Math.max(6, Math.round((v / max) * MAX_H))
-        const isToday = i === data.length - 1
-        return (
-          <div
-            key={i}
-            title={v === 0 ? 'No activity' : `${v} item${v > 1 ? 's' : ''}`}
-            style={{
-              flex: 1,
-              height: h,
-              minWidth: 4,
-              borderRadius: '3px 3px 2px 2px',
-              backgroundColor: v > 0 ? 'var(--primary)' : 'var(--secondary)',
-              opacity: isToday ? 1 : v > 0 ? 0.55 : 0.35,
-              transition: 'height 0.4s ease',
-            }}
-          />
-        )
-      })}
+    <div style={{ position: 'relative' }}>
+      <svg
+        viewBox={`0 0 ${W} ${H}`}
+        preserveAspectRatio="none"
+        style={{ display: 'block', width: '100%', height: H }}
+      >
+        <defs>
+          <linearGradient id="act-grad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" style={{ stopColor: 'var(--primary)', stopOpacity: 0.28 } as React.CSSProperties} />
+            <stop offset="100%" style={{ stopColor: 'var(--primary)', stopOpacity: 0.02 } as React.CSSProperties} />
+          </linearGradient>
+        </defs>
+        <path d={areaPath} fill="url(#act-grad)" />
+        <path d={linePath} fill="none" stroke="var(--primary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" opacity="0.85" />
+        <circle cx={last.x} cy={last.y} r="3.5" fill="var(--primary)" />
+        <circle cx={last.x} cy={last.y} r="6.5" fill="var(--primary)" opacity="0.15" />
+      </svg>
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4 }}>
+        <span style={{ fontSize: 9, color: 'var(--muted-foreground)', opacity: 0.5 }}>14 days ago</span>
+        <span style={{ fontSize: 9, color: 'var(--primary)', opacity: 0.75, fontWeight: 600 }}>Today</span>
+      </div>
     </div>
   )
 }
@@ -757,7 +801,7 @@ function TaskDonut({ todo, inProgress, done, overdue }: {
   const pctDone = Math.round((done / total) * 100)
 
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 20, flexWrap: 'wrap' }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 28, flexWrap: 'wrap', justifyContent: 'center' }}>
       {/* SVG donut */}
       <div style={{ position: 'relative', width: SIZE, height: SIZE, flexShrink: 0 }}>
         <svg width={SIZE} height={SIZE}>
@@ -783,13 +827,13 @@ function TaskDonut({ todo, inProgress, done, overdue }: {
         </div>
       </div>
 
-      {/* Legend — maxWidth keeps numbers tight to labels on wide screens */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 8, minWidth: 120, maxWidth: 210 }}>
+      {/* Legend */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
         {segments.map(seg => (
-          <div key={seg.label} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div key={seg.label} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <div style={{ width: 9, height: 9, borderRadius: '50%', backgroundColor: seg.color, flexShrink: 0 }} />
-            <span style={{ fontSize: 12, color: 'var(--muted-foreground)', flex: 1 }}>{seg.label}</span>
-            <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--foreground)' }}>{seg.value}</span>
+            <span style={{ fontSize: 12, color: 'var(--muted-foreground)', minWidth: 82 }}>{seg.label}</span>
+            <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--foreground)', minWidth: 20, textAlign: 'right' }}>{seg.value}</span>
           </div>
         ))}
         {overdue > 0 && (
