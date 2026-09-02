@@ -29,7 +29,7 @@ const FEATURES: Array<{
     bullets: [
       'Wikilinks — type [[ to connect to any note or person instantly',
       'AI Inline Assist — select any text to rewrite, expand or fix grammar',
-      'AI summary, smart title & 5 auto-tags in one click',
+      'AI summary, smart title & up to 8 auto-tags in one click',
     ],
     mock: <NotesMock />,
   },
@@ -120,7 +120,7 @@ const FEATURES: Array<{
     bullets: [
       'AI Digest — smart recap of notes, tasks, and bookmarks on demand',
       'Related Notes sidebar — semantically similar notes surface as you read',
-      'Smart title + 5 auto-tags · Person Intelligence on any contact',
+      'Smart title + up to 8 auto-tags · Person Intelligence on any contact',
     ],
     mock: <AIIntelMock />,
   },

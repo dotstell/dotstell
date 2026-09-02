@@ -9,7 +9,7 @@ import { AIConfig, AIMessage } from '@/lib/ai/types'
  * Body: { config, content, title?, existingTags? }
  * Returns: { tags: string[] }
  *
- * Suggests 3–6 tags for a note based on its content.
+ * Suggests 3–8 tags for a note based on its content.
  * Already-applied tags are excluded from suggestions so the model
  * never returns tags the user has already chosen.
  */
@@ -51,7 +51,7 @@ export async function POST(req: NextRequest) {
   const messages: AIMessage[] = [
     {
       role:    'system',
-      content: `You are a tagging assistant. Given note content, suggest 3–6 relevant tags.
+      content: `You are a tagging assistant. Given note content, suggest 3–8 relevant tags.
 Rules:
 - Tags are lowercase, kebab-case (e.g. "machine-learning", "product-design", "meeting-notes")
 - Be specific: "react-hooks" beats "programming"; "q3-planning" beats "work"
