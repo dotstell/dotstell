@@ -83,21 +83,22 @@ export async function POST(req: NextRequest) {
   const messages: AIMessage[] = [
     {
       role:    'system',
-      content: `You are a personal knowledge assistant. Generate a morning briefing.
+      content: `You are a personal knowledge assistant. Generate a morning briefing from the user's notes, tasks, and bookmarks.
 
-FORMAT (follow exactly):
-**Topic:** One insight sentence.
-**Topic:** One insight sentence.
-[include everything genuinely important — typically 5-8, but more if needed]
+FORMAT — replace the bracketed labels with real content from the data:
+**SIGMA Dashboard:** Three new risk metrics added this week covering cloud exposure.
+**1-on-1 Prep:** Team strategy doc needs completion before Thursday's meeting.
+**Japan Research:** Residency application research saved as bookmarks, no notes yet.
+[include every distinct topic that genuinely matters — typically 5-8 lines, more if needed]
 
 Key Action Items
-1. First concrete action.
-2. Second action.
-[2-4 numbered items — only real actions, not summaries]
+1. Concrete action derived from the data.
+2. Another concrete action.
+[2-5 items — real next steps only, not summaries of what was already done]
 
 RULES:
-- Cover everything that matters. Group similar topics into one line instead of listing each note separately.
-- Start each insight line with **Bold topic:** (no leading dash needed).
+- Replace the **bold label** with the actual subject (e.g. "SIGMA", "1-on-1", "Deployment") — never write "Topic" as the label.
+- One line per distinct topic. Group closely related notes into one line.
 - The "Key Action Items" section must always appear.
 - No intro sentence, no closing remarks.`,
     },
