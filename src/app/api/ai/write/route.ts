@@ -50,6 +50,9 @@ export async function POST(req: NextRequest) {
 
     if (body.mode === 'draft') {
       const format = (body.format ?? 'custom') as DraftFormat
+      if (format !== 'custom' && !(format in DRAFT_PROMPTS)) {
+        return NextResponse.json({ error: `Unknown draft format: ${format}` }, { status: 400 })
+      }
       const formatInstruction = format === 'custom'
         ? `Write content based on this intent: "${body.intent ?? 'a general note'}". Choose the most fitting structure and format.`
         : DRAFT_PROMPTS[format]
@@ -72,6 +75,9 @@ export async function POST(req: NextRequest) {
       ]
     } else {
       const format = (body.format ?? 'improve_english') as ImproveFormat
+      if (!(format in IMPROVE_PROMPTS)) {
+        return NextResponse.json({ error: `Unknown improve format: ${format}` }, { status: 400 })
+      }
       if (!body.content?.trim()) return NextResponse.json({ error: 'content is required for improve mode' }, { status: 400 })
 
       messages = [

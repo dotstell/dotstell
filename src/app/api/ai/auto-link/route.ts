@@ -38,7 +38,6 @@ export async function POST(req: NextRequest) {
     .neq('id', noteId)
     .not('title', 'is', null)
     .neq('title', '')
-    .limit(500)
 
   if (!allNotes?.length) return NextResponse.json([])
 
