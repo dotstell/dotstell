@@ -139,6 +139,8 @@ export default function DashboardPage() {
   const [tagSuggestions, setTagSuggestions] = useState<Record<string, string[]>>({})
   const [dismissedSugs, setDismissedSugs] = useState<Set<string>>(new Set())
   const [suggestingTags, setSuggestingTags] = useState(false)
+  const [selectedTags, setSelectedTags] = useState<Record<string, Set<string>>>({})
+  const [unindexedCount, setUnindexedCount] = useState<number | null>(null)
 
   async function generateDigest(period: 'day' | 'week') {
     setDigest(''); setDigestError(null); setDigestLoading(true)
@@ -176,7 +178,7 @@ export default function DashboardPage() {
           : ''
         const organizeCtx = untaggedNotes > 0 ? `\n\n${untaggedNotes} notes and ${untaggedBmarks} bookmarks need organizing (no tags yet).` : ''
         const result = await completeOllamaBrowser(aiConfig, [
-          { role: 'system', content: `You are a personal knowledge assistant. Generate a morning briefing that covers the user's notes, tasks, and bookmarks as a structured daily digest.\n\nFORMAT — follow exactly:\n- Start directly with the content. No preamble like "Here is your digest".\n- Use 3–6 bullet points. Each bullet: "**Topic name:** one sentence insight."\n- After the bullets, add a "### Key Action Items" section with 2–4 numbered items.\n- No closing remarks, sign-offs, or meta commentary.\n- Use markdown bold (**text**) only for topic names at the start of each bullet.` },
+          { role: 'system', content: `You are a personal knowledge assistant. Generate a morning briefing as a markdown bullet list.\n\nSTRICT FORMAT — copy exactly:\n- **Topic name:** One insight sentence.\n- **Topic name:** One insight sentence.\n- **Topic name:** One insight sentence.\n\n### Key Action Items\n1. First action to take today.\n2. Second action.\n3. Third action.\n\nRULES:\n- Use EXACTLY the "- **Bold topic:**" bullet format. Never use plain numbered lists for the notes section.\n- Include 4-8 bullets from the notes/tasks/bookmarks provided.\n- After the bullets, always include the "### Key Action Items" section with 2-4 numbered items.\n- No preamble, no closing remarks, no "Here is your briefing" intro.\n- Keep each bullet to one sentence maximum.` },
           { role: 'user',   content: `Here are the notes I worked on in the last ${period === 'day' ? '24 hours' : 'week'}:\n\n${noteList}${taskContext}${inProgressContext}${bookmarkContext}${organizeCtx}` },
         ])
         setDigest(result)
@@ -228,15 +230,26 @@ export default function DashboardPage() {
         } catch { /* skip individual failures silently */ }
       }))
       setTagSuggestions(prev => ({ ...prev, ...results }))
+      setSelectedTags(prev => {
+        const next = { ...prev }
+        for (const [noteId, tags] of Object.entries(results)) {
+          next[noteId] = new Set(tags)
+        }
+        return next
+      })
     } finally {
       setSuggestingTags(false)
     }
   }
 
-  async function applyTagSuggestion(noteId: string, tags: string[]) {
+  async function applyTagSuggestion(noteId: string, applyAll = false) {
     const note = notes.find(n => n.id === noteId)
     if (!note) return
-    const merged = [...new Set([...(note.tags ?? []), ...tags])]
+    const tagsToApply = applyAll
+      ? (tagSuggestions[noteId] ?? [])
+      : Array.from(selectedTags[noteId] ?? new Set(tagSuggestions[noteId] ?? []))
+    if (tagsToApply.length === 0) return
+    const merged = [...new Set([...(note.tags ?? []), ...tagsToApply])]
     await fetch(`/api/notes/${noteId}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
@@ -244,11 +257,21 @@ export default function DashboardPage() {
     })
     setNotes(prev => prev.map(n => n.id === noteId ? { ...n, tags: merged } : n))
     setTagSuggestions(prev => { const p = { ...prev }; delete p[noteId]; return p })
+    setSelectedTags(prev => { const p = { ...prev }; delete p[noteId]; return p })
   }
 
   function dismissTagSuggestion(noteId: string) {
     setDismissedSugs(prev => new Set([...prev, noteId]))
     setTagSuggestions(prev => { const p = { ...prev }; delete p[noteId]; return p })
+    setSelectedTags(prev => { const p = { ...prev }; delete p[noteId]; return p })
+  }
+
+  function toggleTagSelection(noteId: string, tag: string) {
+    setSelectedTags(prev => {
+      const current = new Set(prev[noteId] ?? tagSuggestions[noteId] ?? [])
+      if (current.has(tag)) current.delete(tag); else current.add(tag)
+      return { ...prev, [noteId]: current }
+    })
   }
 
   useEffect(() => {
@@ -276,6 +299,16 @@ export default function DashboardPage() {
       setBookmarks(Array.isArray(b) ? b : [])
       setTasks(Array.isArray(t) ? t : [])
       setLoading(false)
+      // Count items missing embeddings (not yet searchable via AI)
+      const supabase = createSupabaseBrowserClient()
+      const [{ count: notesNullEmbed }, { count: bmarksNullEmbed }] = await Promise.all([
+        supabase.from('notes').select('id', { count: 'exact', head: true })
+          .is('deleted_at', null).is('embedding', null),
+        supabase.from('bookmarks').select('id', { count: 'exact', head: true })
+          .is('embedding', null),
+      ])
+      const total = (notesNullEmbed ?? 0) + (bmarksNullEmbed ?? 0)
+      if (total > 0) setUnindexedCount(total)
     }
     load()
   }, [])
@@ -727,6 +760,19 @@ export default function DashboardPage() {
               ))}
             </div>
 
+            {/* Unindexed items notice — shown only when some items lack embeddings */}
+            {unindexedCount !== null && unindexedCount > 0 && (
+              <div style={{ padding: '6px 18px', borderBottom: '1px solid var(--secondary)', display: 'flex', alignItems: 'center', gap: 8 }}>
+                <Activity size={11} color="#f59e0b" style={{ flexShrink: 0, opacity: 0.8 }} />
+                <span style={{ fontSize: 11, color: 'var(--muted-foreground)' }}>
+                  <span style={{ color: '#f59e0b', fontWeight: 600 }}>{unindexedCount} items</span> not yet searchable via AI
+                </span>
+                <span style={{ fontSize: 10, color: 'var(--muted-foreground)', marginLeft: 'auto', opacity: 0.55 }}>
+                  Open AI Settings → Build search index
+                </span>
+              </div>
+            )}
+
             {/* Capture streak badge — emoji and message vary with streak length */}
             {activityStreak >= 2 && (() => {
               const emoji   = activityStreak >= 21 ? '🚀' : activityStreak >= 14 ? '🏆' : activityStreak >= 7 ? '🔥' : activityStreak >= 4 ? '⚡' : '✨'
@@ -790,26 +836,53 @@ export default function DashboardPage() {
                         </div>
                         <span style={{ fontSize: 10, color: 'var(--primary)', flexShrink: 0, opacity: 0.7, whiteSpace: 'nowrap', marginTop: 1 }}>Add tags →</span>
                       </Link>
-                      {tagSuggestions[n.id] && !dismissedSugs.has(n.id) && (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 8px 6px 30px', flexWrap: 'wrap' }}>
-                          <Sparkles size={9} color="var(--primary)" style={{ flexShrink: 0, opacity: 0.7 }} />
-                          {tagSuggestions[n.id].map(tag => (
-                            <span key={tag} style={{
-                              fontSize: 10, padding: '2px 7px', borderRadius: 99,
-                              backgroundColor: 'color-mix(in srgb, var(--primary) 12%, transparent)',
-                              color: 'var(--primary)', fontWeight: 500,
-                            }}>{tag}</span>
-                          ))}
-                          <button type="button" onClick={() => applyTagSuggestion(n.id, tagSuggestions[n.id])}
-                            style={{ fontSize: 10, fontWeight: 600, color: 'var(--primary)', background: 'none', border: 'none', cursor: 'pointer', padding: '2px 4px', borderRadius: 4, marginLeft: 2 }}>
-                            Apply
-                          </button>
-                          <button type="button" onClick={() => dismissTagSuggestion(n.id)}
-                            style={{ fontSize: 10, color: 'var(--muted-foreground)', background: 'none', border: 'none', cursor: 'pointer', padding: '2px 4px', opacity: 0.6 }}>
-                            ✕
-                          </button>
-                        </div>
-                      )}
+                      {tagSuggestions[n.id] && !dismissedSugs.has(n.id) && (() => {
+                        const sel = selectedTags[n.id] ?? new Set(tagSuggestions[n.id])
+                        return (
+                          <div style={{ padding: '2px 8px 8px 30px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'wrap', marginBottom: 6 }}>
+                              <Sparkles size={9} color="var(--primary)" style={{ flexShrink: 0, opacity: 0.7 }} />
+                              {tagSuggestions[n.id].map(tag => {
+                                const on = sel.has(tag)
+                                return (
+                                  <button key={tag} type="button" onClick={() => toggleTagSelection(n.id, tag)}
+                                    style={{
+                                      fontSize: 10, padding: '2px 8px', borderRadius: 99, cursor: 'pointer',
+                                      backgroundColor: on ? 'color-mix(in srgb, var(--primary) 18%, transparent)' : 'transparent',
+                                      color: on ? 'var(--primary)' : 'var(--muted-foreground)',
+                                      fontWeight: on ? 600 : 400,
+                                      border: `1px solid ${on ? 'color-mix(in srgb, var(--primary) 35%, transparent)' : 'var(--border)'}`,
+                                      opacity: on ? 1 : 0.5,
+                                      transition: 'all 0.12s',
+                                    }}>
+                                    {tag}
+                                  </button>
+                                )
+                              })}
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                              <button type="button" onClick={() => applyTagSuggestion(n.id)}
+                                disabled={sel.size === 0}
+                                style={{
+                                  fontSize: 10, fontWeight: 600, color: 'var(--primary)', cursor: sel.size === 0 ? 'default' : 'pointer',
+                                  padding: '3px 9px', borderRadius: 5, background: 'none',
+                                  border: '1px solid color-mix(in srgb, var(--primary) 30%, transparent)',
+                                  opacity: sel.size === 0 ? 0.35 : 1,
+                                }}>
+                                Apply {sel.size > 0 ? `(${sel.size})` : ''}
+                              </button>
+                              <button type="button" onClick={() => applyTagSuggestion(n.id, true)}
+                                style={{ fontSize: 10, color: 'var(--muted-foreground)', background: 'none', border: 'none', cursor: 'pointer', padding: '3px 5px', opacity: 0.65 }}>
+                                Accept all
+                              </button>
+                              <button type="button" onClick={() => dismissTagSuggestion(n.id)}
+                                style={{ fontSize: 10, color: 'var(--muted-foreground)', background: 'none', border: 'none', cursor: 'pointer', padding: '3px 5px', opacity: 0.45 }}>
+                                ✕ Dismiss
+                              </button>
+                            </div>
+                          </div>
+                        )
+                      })()}
                     </div>
                   ))}
                   {queueBmarks.map(b => (
