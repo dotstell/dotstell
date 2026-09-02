@@ -96,18 +96,22 @@ function build14DayActivity(notes: Note[], bookmarks: BookmarkType[]): number[] 
 // ── DigestContent: renders AI briefing reliably regardless of model format ─
 // Parses the raw text from any model (Ollama or cloud), splits at "Key Action
 // Items", and renders each section with custom JSX — no markdown parsing quirks.
+// Matches any "action items" heading the model might output:
+// "Key Action Items", "Action Items", "Key Actions", "Actions:", etc.
+const ACTION_SECTION_RE = /(?:key\s+)?action\s+items?|key\s+actions?/i
+
 function DigestContent({ text }: { text: string }) {
-  const splitIdx = text.search(/key action items/i)
+  const splitIdx = text.search(ACTION_SECTION_RE)
   const rawInsights = splitIdx >= 0 ? text.slice(0, splitIdx) : text
   const rawActions  = splitIdx >= 0 ? text.slice(splitIdx) : ''
 
   const insights = rawInsights.split('\n')
     .map(l => l.replace(/^[-•*·▸]\s+/, '').replace(/^\d+\.\s+/, '').trim())
-    .filter(l => l && !/^#+/.test(l) && !/^key action items/i.test(l))
+    .filter(l => l && !/^#+/.test(l) && !ACTION_SECTION_RE.test(l))
 
   const actions = rawActions.split('\n')
     .map(l => l.replace(/^[-•*·▸]\s+/, '').replace(/^\d+\.\s+/, '').trim())
-    .filter(l => l && !/^#+/.test(l) && !/^key action items/i.test(l))
+    .filter(l => l && !/^#+/.test(l) && !ACTION_SECTION_RE.test(l))
 
   return (
     <div>
