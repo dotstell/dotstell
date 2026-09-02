@@ -215,6 +215,17 @@ export default function DashboardPage() {
   const pctOrganized       = notes.length > 0 ? Math.round(((notes.length - untaggedNotes) / notes.length) * 100) : 100
   const queueNotes  = untaggedNoteItems.slice(0, 4)
   const queueBmarks = untaggedBmarkItems.slice(0, Math.max(0, 5 - queueNotes.length))
+  const focusTasks  = [...openTasks].sort((a, b) => {
+    const aOv = a.due_date && new Date(a.due_date) < new Date()
+    const bOv = b.due_date && new Date(b.due_date) < new Date()
+    if (aOv && !bOv) return -1
+    if (!aOv && bOv) return 1
+    if (a.due_date && b.due_date) return new Date(a.due_date).getTime() - new Date(b.due_date).getTime()
+    if (a.due_date && !b.due_date) return -1
+    if (!a.due_date && b.due_date) return 1
+    const p: Record<string, number> = { high: 0, medium: 1, low: 2 }
+    return (p[a.priority] ?? 1) - (p[b.priority] ?? 1)
+  }).slice(0, 4)
 
   const STATS = [
     {
@@ -305,23 +316,84 @@ export default function DashboardPage() {
           ))}
         </div>
 
-        {/* ── Task progress (donut) ── */}
+        {/* ── Task progress — donut left, "Focus next" right ── */}
         {!loading && tasks.length > 0 && (
-          <div style={{
-            backgroundColor: 'var(--card)', border: '1px solid var(--border)',
-            borderRadius: 12, padding: '14px 20px', marginBottom: 24,
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
+          <div style={{ backgroundColor: 'var(--card)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden', marginBottom: 24 }}>
+            {/* Header */}
+            <div style={{ padding: '12px 18px', borderBottom: '1px solid var(--secondary)', display: 'flex', alignItems: 'center' }}>
               <TrendingUp size={14} color="var(--primary)" />
-              <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--foreground)' }}>Task progress</span>
-              <span style={{ marginLeft: 'auto', fontSize: 12, color: 'var(--muted-foreground)' }}>{tasks.length} total</span>
+              <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--foreground)', marginLeft: 8 }}>Task progress</span>
+              <Link href="/tasks" style={{ marginLeft: 'auto', fontSize: 11, color: 'var(--muted-foreground)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 3 }}
+                onMouseEnter={e => (e.currentTarget.style.color = 'var(--primary)')}
+                onMouseLeave={e => (e.currentTarget.style.color = 'var(--muted-foreground)')}
+              >
+                {tasks.length} total <ArrowRight size={10} />
+              </Link>
             </div>
-            <TaskDonut
-              todo={tasks.filter(t => t.status === 'todo').length}
-              inProgress={inProgress.length}
-              done={doneTasks.length}
-              overdue={overdueTasks.length}
-            />
+
+            {/* Body: 2-column on desktop */}
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'auto 1fr' }}>
+
+              {/* Left — donut + legend */}
+              <div style={{
+                padding: '20px 28px',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                borderRight: isMobile ? 'none' : '1px solid var(--border)',
+                borderBottom: isMobile ? '1px solid var(--border)' : 'none',
+              }}>
+                <TaskDonut
+                  todo={tasks.filter(t => t.status === 'todo').length}
+                  inProgress={inProgress.length}
+                  done={doneTasks.length}
+                  overdue={overdueTasks.length}
+                />
+              </div>
+
+              {/* Right — focus next: tasks sorted by urgency */}
+              <div style={{ padding: '14px 18px' }}>
+                <p style={{ fontSize: 11, fontWeight: 600, color: 'var(--muted-foreground)', textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 10px' }}>
+                  Focus next
+                </p>
+                {focusTasks.length === 0 ? (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 0' }}>
+                    <CheckCircle2 size={14} color="#10b981" />
+                    <span style={{ fontSize: 12, color: 'var(--muted-foreground)' }}>No open tasks — all caught up!</span>
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                    {focusTasks.map(task => {
+                      const overdue = task.due_date && new Date(task.due_date) < new Date()
+                      return (
+                        <Link key={task.id} href="/tasks"
+                          style={{ display: 'flex', alignItems: 'flex-start', gap: 9, padding: '7px 8px', borderRadius: 7, textDecoration: 'none', transition: 'background 0.1s' }}
+                          onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'var(--accent)')}
+                          onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
+                        >
+                          <span style={{ flexShrink: 0, marginTop: 1 }}>{STATUS_ICON[task.status]}</span>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <p style={{ fontSize: 12, fontWeight: 500, color: 'var(--foreground)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              {task.title}
+                            </p>
+                            <p style={{ fontSize: 10, color: overdue ? '#ef4444' : 'var(--muted-foreground)', margin: '2px 0 0' }}>
+                              {overdue ? `⚠ Overdue · due ${formatDate(task.due_date!)}` : task.due_date ? `Due ${formatDate(task.due_date)}` : 'No deadline set'}
+                            </p>
+                          </div>
+                          <span style={{ fontSize: 10, fontWeight: 700, color: PRIORITY_COLOR[task.priority] ?? 'var(--muted-foreground)', flexShrink: 0, textTransform: 'uppercase', letterSpacing: '0.04em', marginTop: 1 }}>
+                            {task.priority}
+                          </span>
+                        </Link>
+                      )
+                    })}
+                    {openTasks.length > 4 && (
+                      <Link href="/tasks" style={{ fontSize: 11, color: 'var(--primary)', textDecoration: 'none', opacity: 0.75, padding: '4px 8px' }}>
+                        +{openTasks.length - 4} more tasks →
+                      </Link>
+                    )}
+                  </div>
+                )}
+              </div>
+
+            </div>
           </div>
         )}
 
@@ -495,26 +567,61 @@ export default function DashboardPage() {
               <ActivityChart data={activity14} />
             </div>
 
-            {/* Stats strip */}
+            {/* Stats strip — each cell explains both what the number is and what it counts */}
             <div style={{
               display: 'grid',
               gridTemplateColumns: 'repeat(4, 1fr)',
               borderBottom: '1px solid var(--secondary)',
               margin: '10px 0 0',
             }}>
-              {[
-                { value: activityThisWeek, label: 'This week', accent: true },
-                { value: `${activityThisWeek >= activityLastWeek ? '↑' : '↓'} ${activityLastWeek}`, label: 'Last week' },
-                { value: uniqueTopics, label: 'Topics' },
-                { value: `${pctOrganized}%`, label: 'Organized' },
-              ].map(({ value, label, accent }, i) => (
-                <div key={i} style={{
-                  padding: '10px 0',
+              {([
+                {
+                  icon: <TrendingUp size={11} color="var(--primary)" />,
+                  value: activityThisWeek,
+                  label: 'captured this week',
+                  sub: 'notes + bookmarks',
+                  valueColor: 'var(--primary)',
+                  tip: 'Notes updated and bookmarks saved in the last 7 days',
+                },
+                {
+                  icon: null,
+                  value: `${activityThisWeek >= activityLastWeek ? '↑' : '↓'} ${activityLastWeek}`,
+                  label: 'last week',
+                  sub: activityThisWeek >= activityLastWeek ? 'trending up ✓' : 'quieter week',
+                  valueColor: 'var(--foreground)',
+                  tip: 'Items captured the previous 7 days — for comparison',
+                },
+                {
+                  icon: <Tag size={11} color="var(--muted-foreground)" />,
+                  value: uniqueTopics,
+                  label: 'unique topics',
+                  sub: 'distinct tags used',
+                  valueColor: 'var(--foreground)',
+                  tip: 'How many unique tags exist across all your notes',
+                },
+                {
+                  icon: <CheckCircle2 size={11} color={pctOrganized >= 70 ? '#10b981' : '#f59e0b'} />,
+                  value: `${pctOrganized}%`,
+                  label: 'notes organized',
+                  sub: `${notes.length - untaggedNotes} of ${notes.length} tagged`,
+                  valueColor: pctOrganized >= 70 ? '#10b981' : pctOrganized >= 40 ? 'var(--foreground)' : '#f59e0b',
+                  tip: `${notes.length - untaggedNotes} notes have at least one tag — ${100 - pctOrganized}% still need tagging`,
+                },
+              ] as { icon: React.ReactNode; value: string | number; label: string; sub: string; valueColor: string; tip: string }[]).map(({ icon, value, label, sub, valueColor, tip }, i) => (
+                <div key={i} title={tip} style={{
+                  padding: '10px 4px',
                   textAlign: 'center',
                   borderRight: i < 3 ? '1px solid var(--secondary)' : 'none',
+                  cursor: 'default',
                 }}>
-                  <p style={{ fontSize: 17, fontWeight: 800, color: accent ? 'var(--primary)' : 'var(--foreground)', margin: 0, lineHeight: 1 }}>{value}</p>
-                  <p style={{ fontSize: 10, color: 'var(--muted-foreground)', margin: '3px 0 0', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{label}</p>
+                  {icon && (
+                    <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 4, opacity: 0.7 }}>
+                      {icon}
+                    </div>
+                  )}
+                  <p style={{ fontSize: 17, fontWeight: 800, color: valueColor, margin: 0, lineHeight: 1 }}>{value}</p>
+                  <p style={{ fontSize: 10, color: 'var(--muted-foreground)', margin: '3px 0 0', letterSpacing: '0.04em' }}>{label}</p>
+                  <p style={{ fontSize: 9, color: 'var(--muted-foreground)', margin: '2px 0 0', opacity: 0.55 }}>{sub}</p>
                 </div>
               ))}
             </div>
@@ -530,15 +637,20 @@ export default function DashboardPage() {
             {/* Unorganized items — shown only when there's something to do */}
             {(queueNotes.length > 0 || queueBmarks.length > 0 || staleNotes > 0) ? (
               <div style={{ padding: '12px 18px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-                  <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--muted-foreground)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-                    Needs a tag
-                  </span>
-                  {(untaggedNotes + untaggedBmarks) > 0 && (
-                    <span style={{ fontSize: 11, color: 'var(--muted-foreground)' }}>
-                      {untaggedNotes + untaggedBmarks} items · open each to add tags
+                <div style={{ marginBottom: 8 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--muted-foreground)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+                      Needs a tag
                     </span>
-                  )}
+                    {(untaggedNotes + untaggedBmarks) > 0 && (
+                      <span style={{ fontSize: 11, color: 'var(--muted-foreground)' }}>
+                        {untaggedNotes + untaggedBmarks} items waiting
+                      </span>
+                    )}
+                  </div>
+                  <p style={{ fontSize: 10, color: 'var(--muted-foreground)', opacity: 0.55, margin: '3px 0 0' }}>
+                    Notes → opens editor to add tags · Bookmarks → opens bookmarks manager
+                  </p>
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                   {queueNotes.map(n => (
@@ -560,7 +672,7 @@ export default function DashboardPage() {
                     </Link>
                   ))}
                   {queueBmarks.map(b => (
-                    <a key={b.id} href={b.url} target="_blank" rel="noopener noreferrer"
+                    <Link key={b.id} href="/bookmarks"
                       style={{ display: 'flex', alignItems: 'flex-start', gap: 9, padding: '7px 8px', borderRadius: 7, textDecoration: 'none', transition: 'background 0.1s' }}
                       onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'var(--accent)')}
                       onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
@@ -571,11 +683,11 @@ export default function DashboardPage() {
                           {b.title || b.hostname || 'Bookmark'}
                         </p>
                         <p style={{ fontSize: 10, color: 'var(--muted-foreground)', margin: '2px 0 0' }}>
-                          {b.hostname} · saved {formatRelative(b.created_at)} · unsorted
+                          {b.hostname} · saved {formatRelative(b.created_at)} · needs tags
                         </p>
                       </div>
-                      <span style={{ fontSize: 10, color: 'var(--muted-foreground)', flexShrink: 0, opacity: 0.5, whiteSpace: 'nowrap', marginTop: 1 }}>Open ↗</span>
-                    </a>
+                      <span style={{ fontSize: 10, color: 'var(--primary)', flexShrink: 0, opacity: 0.7, whiteSpace: 'nowrap', marginTop: 1 }}>Add tags →</span>
+                    </Link>
                   ))}
                 </div>
                 {(untaggedNotes > queueNotes.length || untaggedBmarks > queueBmarks.length) && (
