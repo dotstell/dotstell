@@ -923,8 +923,11 @@ export default function DashboardPage() {
                       <div style={{
                         position: 'absolute',
                         bottom: 'calc(100% + 6px)',
-                        left: '50%',
-                        transform: 'translateX(-50%)',
+                        // Left-anchor first two cells, right-anchor last two,
+                        // so tooltips never overflow the screen edge on mobile.
+                        ...(i < 2
+                          ? { left: 0 }
+                          : { right: 0, left: 'auto' }),
                         background: 'var(--popover)',
                         border: '1px solid var(--border)',
                         borderRadius: 6,
