@@ -138,7 +138,7 @@ export default function HelpPage() {
                 body="The Knowledge Health card surfaces three clutter signals: stale notes (not touched in 30+ days), stale bookmarks (saved 90+ days ago), and empty notes (blank or nearly blank notes that were never filled). Each shows a count so you know where to focus."
               />
               <Tip icon="🏷️" title="AI Tag Suggestions"
-                body="When AI is configured, an AI suggest tags button appears in the Knowledge Health card for untagged notes and bookmarks. Click it to batch-generate tag suggestions for all untagged items at once. Select or deselect individual tags on each item, then apply them in one click. Dotstell passes your existing tag vocabulary as context so suggestions stay consistent with your current tags."
+                body="When AI is configured, an AI suggest tags button appears in the Knowledge Health card for untagged notes and bookmarks. Click it to batch-generate tag suggestions for all untagged items at once. Your existing tag vocabulary is used as context so new suggestions align with how you already tag content. Select or deselect individual tags per item, then apply them all in one click."
               />
               <Tip icon="🔮" title="Unindexed items"
                 body="If some notes or bookmarks were created before AI was configured and have no embeddings yet, an amber indicator strip appears at the bottom of the Knowledge Health card. Go to AI Settings and click Build search index to index them."
@@ -156,10 +156,7 @@ export default function HelpPage() {
                 body="When you have notes with titles and shared keywords, a Knowledge Connections panel surfaces related note pairs automatically. It uses client-side keyword matching on titles and tags — no AI required. Useful for spotting connections you didn't explicitly create."
               />
               <Tip icon="⚡" title="Quick actions"
-                body={<>A row of quick action buttons lets you create a new note, add a person, add a task, or save a bookmark without navigating away. The same actions are available via <Keys keys={['Ctrl', 'K']} />.</>}
-              />
-              <Tip icon="🕐" title="Activity feed"
-                body="The bottom of the dashboard shows your last 12 activities across 7 days — notes edited, bookmarks saved, tasks completed."
+                body={<>Five shortcut buttons at the bottom of the dashboard: <strong>New note</strong>, <strong>Add person</strong>, <strong>New task</strong>, <strong>Save bookmark</strong>, and <strong>View graph</strong> — create or navigate without leaving the page. The same actions are available via <Keys keys={['Ctrl', 'K']} />.</>}
               />
             </Section>
 
@@ -310,6 +307,9 @@ export default function HelpPage() {
               <Tip icon="✨" title="AI: Bookmark summary"
                 body="When AI is configured, a sparkle (✨) button appears on each bookmark card. Click it to expand an inline AI bullet summary. Click again to collapse. A regenerate button re-runs the summary."
               />
+              <Tip icon="🏷️" title="AI: Tag suggestions for bookmarks"
+                body="Untagged bookmarks are included in the dashboard AI Tag Suggestions batch. When you click AI suggest tags in the Knowledge Health card, suggestions are generated for both untagged notes and untagged bookmarks together. Select and apply in one step from the dashboard."
+              />
             </Section>
 
             {/* TASKS */}
@@ -368,7 +368,7 @@ export default function HelpPage() {
                 body={<>When using <strong>Ollama</strong> from <strong>dotstell.app</strong> (the hosted version), browsers block direct connections to localhost for security reasons (Private Network Access spec). Run the <strong>Dotstell Local AI Agent</strong> to bridge the gap — it's a tiny Node.js proxy that adds the required headers and forwards requests to your local Ollama. First make sure Ollama is running (on Windows it usually auto-starts — check the system tray). Then start the agent with: <code style={{ fontSize: 11, backgroundColor: 'rgba(0,0,0,0.15)', padding: '1px 5px', borderRadius: 3 }}>npx @dotstell/agent</code> (no install needed — runs directly via npx). The AI Settings modal shows a green <strong>"Local Agent is running"</strong> badge when detected. You do not need the agent when running dotstell locally at localhost:3000.</>}
               />
               <Tip icon="💬" title="AI Chat"
-                body="Open AI Chat from the note editor toolbar. In This note mode the chat is scoped to the current note. In All knowledge mode it searches your notes, tasks, and bookmarks for each question. RAG can be toggled off for direct model answers. New items are indexed automatically — you only need to run Build search index once for existing content."
+                body={<>Open AI Chat from the note editor toolbar. In <strong>This note</strong> mode the chat is scoped to the current note. In <strong>All knowledge</strong> mode it searches your notes, tasks, and bookmarks for each question. RAG can be toggled off for direct model answers. New items are indexed automatically when you save them — you only need to run <strong>Build search index</strong> once for existing content. <em>Ollama users:</em> auto-indexing requires the Local AI Agent to be running at save time; items saved while the agent is offline won't be indexed until you rebuild manually.</>}
               />
               <Tip icon="👤" title="Person intelligence"
                 body="Switch to the People tab in the AI Chat panel and type a name. The AI searches across all your notes and bookmarks for mentions, then generates a structured brief — role, key topics, last mentioned. Useful before meetings or when picking up an old context."
@@ -447,7 +447,8 @@ export default function HelpPage() {
               {[
                 { category: 'Global', rows: [
                   { keys: ['Ctrl', 'K'],   desc: 'Open command palette / universal search' },
-                  { keys: ['Ctrl', 'N'],   desc: 'Create a new note (from within notes area)' },
+                  { keys: ['Ctrl', 'N'],   desc: 'Create a new note from the note editor (browsers may intercept this — use Alt+N as the reliable alternative)' },
+                  { keys: ['Alt', 'N'],    desc: 'Create a new note — browser-safe alternative to Ctrl+N' },
                   { keys: ['G', 'D'],      desc: 'Go to Dashboard' },
                   { keys: ['G', 'N'],      desc: 'Go to Notes' },
                   { keys: ['G', 'P'],      desc: 'Go to People' },
@@ -520,11 +521,11 @@ export default function HelpPage() {
                 <Tip icon="🔗" title="Knowledge Connections panel"
                   body="A new panel on the dashboard surfaces related note pairs using client-side keyword matching on titles and tags — no AI or embeddings needed. Shows up automatically when there are 2+ keyword connections across your notes."
                 />
-                <Tip icon="🛡️" title="Stability: middleware crash fix"
-                  body="Fixed an intermittent 'This page couldn't load' error on first navigation (most noticeable on /notes/new). The Supabase session refresh could throw on cold starts or transient outages — the unhandled exception crashed the middleware entirely. Now wrapped in try-catch: failed refreshes degrade gracefully to pass-through instead of surfacing a fatal error."
+                <Tip icon="🛡️" title="Stability fix: first-load page error"
+                  body="Fixed an intermittent 'This page couldn't load' error that could appear when navigating to the app for the first time or after a long idle. Reloading always fixed it, but the root cause is now resolved — the app handles the case where the session check fails on a cold start gracefully instead of crashing."
                 />
                 <Tip icon="🔧" title="AI reliability improvements"
-                  body="Five fixes across AI routes: related notes now returns a proper error when the similarity search fails instead of silently returning empty; write route validates the format parameter before building the system prompt; notebook summarise removes the 20-note cap (content is already capped at 14k chars); auto-link removes the 500-note title-scan cap; chat panel no longer leaves a blank assistant bubble when a stream fails."
+                  body="Several reliability fixes across AI features: Related notes now shows an error when search fails instead of silently showing nothing. Notebook summaries now cover all notes in a notebook — there was a hidden cap that silently omitted notes in large notebooks. Auto-link suggestions now scan your full set of note titles — a hidden cap was causing some matches to be missed. The AI Chat panel no longer leaves a blank empty message after a connection failure."
                 />
               </div>
 
