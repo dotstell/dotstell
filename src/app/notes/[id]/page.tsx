@@ -56,7 +56,11 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
   const [noteId, setNoteId]           = useState<string | null>(isNew ? null : id)
   const [subNotes, setSubNotes]       = useState<Note[]>([])
   const [wikiSyncCount, setWikiSyncCount] = useState(0)
-  const [isMobile, setIsMobile]       = useState(false)
+  const [isMobile, setIsMobile]       = useState(() =>
+    typeof document !== 'undefined'
+      ? document.documentElement.hasAttribute('data-mobile')
+      : false
+  )
   // Live plain-text from the editor — updated on every keystroke via onTextChange
   const [editorText, setEditorText]   = useState('')
   // ToC visibility — persisted so the user's preference survives navigation
@@ -442,23 +446,23 @@ ${sanitizeHtmlForPrint(note.content ?? '')}
       {/* ── Header ── */}
       <div style={{
         display: 'flex', flexDirection: 'column',
-        padding: '12px 20px 0',
+        padding: isMobile ? '8px 16px 0' : '12px 20px 0',
         borderBottom: '1px solid var(--border)',
         backgroundColor: 'var(--background)',
         flexShrink: 0,
         gap: 8,
       }}>
-        {/* Row 1: breadcrumb + actions */}
+        {/* Row 1: breadcrumb + actions.
+            On mobile the bottom nav Notes icon handles navigation back to the list,
+            so the ← Notes breadcrumb is hidden to reclaim vertical space. */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', rowGap: 4 }}>
-          {!focusMode && (
+          {!focusMode && !isMobile && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'var(--muted-foreground)', flexShrink: 0 }}>
               <Link href="/notes" style={{
                 display: 'flex', alignItems: 'center', gap: 4, textDecoration: 'none',
-                ...(isMobile
-                  ? { color: 'var(--foreground)', fontWeight: 600, fontSize: 14, backgroundColor: 'var(--secondary)', padding: '5px 10px 5px 8px', borderRadius: 8 }
-                  : { color: 'var(--muted-foreground)', fontSize: 13 }),
+                color: 'var(--muted-foreground)', fontSize: 13,
               }}>
-                <ArrowLeft size={isMobile ? 15 : 13} /> Notes
+                <ArrowLeft size={13} /> Notes
               </Link>
               {note.parent_id && (
                 <>
