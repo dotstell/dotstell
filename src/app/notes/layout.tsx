@@ -11,7 +11,14 @@ const PANE_OPEN_KEY = 'dotstell-notes-pane-open'
 export default function NotesLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const [paneOpen, setPaneOpen] = useState(true)
-  const [isMobile, setIsMobile] = useState(false)
+  // Initialise from the data-mobile attribute that the syncScript in app/layout.tsx
+  // sets before first paint, so the first client render already has the right value.
+  // useLayoutEffect keeps it correct on window resize (desktop users).
+  const [isMobile, setIsMobile] = useState(() =>
+    typeof document !== 'undefined'
+      ? document.documentElement.hasAttribute('data-mobile')
+      : false
+  )
 
   useLayoutEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 768)
@@ -87,21 +94,18 @@ export default function NotesLayout({ children }: { children: React.ReactNode })
 
         {/* Main area: tab bar + page content */}
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, overflow: 'hidden' }}>
-          {/* Three-layer defence against the tab bar overlapping the note header on mobile:
-              1. CSS (@media max-width 767px) hides immediately — works before JS runs.
-              2. suppressHydrationWarning lets the client reconcile the style diff silently.
-              3. Inline display:none fires after useLayoutEffect — belt-and-suspenders for
-                 slow Android devices where paint can race with CSS load. */}
-          <div
-            suppressHydrationWarning
-            className={currentNoteId ? 'notes-tabar-in-note' : undefined}
-            style={isMobile && !!currentNoteId ? { display: 'none' } : undefined}
-          >
-            <NoteTabBar
-              currentId={currentNoteId}
-              paneOpen={paneOpen}
-              onTogglePane={togglePane}
-            />
+          {/* On mobile inside a note the tab bar is redundant: the note header has
+              ← Notes and the bottom nav has the Notes icon.  Don't render it so it
+              cannot overlap the note header regardless of paint/hydration timing.
+              The CSS class + suppressHydrationWarning covers the brief SSR window. */}
+          <div suppressHydrationWarning className={currentNoteId ? 'notes-tabar-in-note' : undefined}>
+            {(!isMobile || !currentNoteId) && (
+              <NoteTabBar
+                currentId={currentNoteId}
+                paneOpen={paneOpen}
+                onTogglePane={togglePane}
+              />
+            )}
           </div>
           <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
             {children}
