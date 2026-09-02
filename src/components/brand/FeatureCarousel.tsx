@@ -11,12 +11,12 @@ const FEATURES: Array<{
     key: 'dashboard',
     tab: '🏠 Dashboard',
     accent: '#f59e0b',
-    headline: 'Your entire day in one glance',
-    desc: 'The Dashboard is your daily home base — overdue task alerts, AI Digest summary of recent activity, task progress and the latest notes all in one view.',
+    headline: 'Know your knowledge health at a glance',
+    desc: 'The redesigned Dashboard shows your capture streak, organisation score, untagged notes inbox, and a 14-day activity chart — plus Daily Briefing and Focus Next so you always know what to do next.',
     bullets: [
-      'Overdue alert banner — never miss a deadline again',
-      'AI Digest — one-paragraph recap of everything you captured lately',
-      'Task progress + recent notes and bookmarks activity in one view',
+      'Knowledge Health — activity chart, streak, % organised, and connections score',
+      'Daily Briefing — AI recap of your notes, tasks, and bookmarks any time of day',
+      'Focus Next — highest-priority open task surfaced automatically',
     ],
     mock: <DashboardMock />,
   },
@@ -113,12 +113,12 @@ const FEATURES: Array<{
   },
   {
     key: 'ai-digest',
-    tab: '🧠 AI Digest & Insights',
+    tab: '🗞️ Daily Briefing',
     accent: '#f97316',
     headline: 'AI that keeps up so you can catch up',
-    desc: 'Daily AI Digest recaps your recent notes activity. Smart titles and auto-tags as you write. Related Notes shows semantic matches as you read. Person Intelligence briefs on demand.',
+    desc: 'Daily Briefing recaps your notes, open tasks, and bookmarks any time of day — not just mornings. Smart titles and auto-tags as you write. Related Notes shows semantic matches as you read.',
     bullets: [
-      'AI Digest — daily recap of what you captured and what changed',
+      'Daily Briefing — AI recap of notes, tasks, and bookmarks on demand',
       'Related Notes sidebar — semantically similar notes surface as you read',
       'Smart title + 5 auto-tags · Person Intelligence on any contact',
     ],
@@ -129,47 +129,50 @@ const FEATURES: Array<{
 // ── Inline mocks ──────────────────────────────────────────────────────────────
 
 function DashboardMock() {
+  const bars = [3,5,2,7,4,8,6,5,9,4,6,8,7,10]
+  const max  = Math.max(...bars)
   return (
-    <MockShell title="Dashboard · Wednesday, Aug 27" accent="#7c6aff" noPad>
-      <div style={{ padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 10, height: '100%', overflow: 'hidden' }}>
-        {/* Overdue alert */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '7px 12px', borderRadius: 8, background: 'color-mix(in srgb, #ef4444 10%, transparent)', border: '1px solid color-mix(in srgb, #ef4444 25%, transparent)' }}>
-          <span style={{ fontSize: 12 }}>⚠️</span>
-          <span style={{ fontSize: 11, color: '#ef4444', fontWeight: 500 }}>2 tasks overdue</span>
-          <span style={{ fontSize: 10, color: 'var(--muted-foreground)', marginLeft: 'auto' }}>Review wireframes · Define scope</span>
+    <MockShell title="Dashboard · Good morning" accent="#f59e0b" noPad>
+      <div style={{ padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: 9, height: '100%', overflow: 'hidden' }}>
+        {/* Knowledge Health strip */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 6 }}>
+          {[
+            { val: '47',  label: 'Notes',        color: '#7c6aff' },
+            { val: '🔥9', label: 'Day streak',   color: '#f59e0b' },
+            { val: '82%', label: 'Organised',    color: '#22c55e' },
+            { val: '124', label: 'Connections',  color: '#3b82f6' },
+          ].map(s => (
+            <div key={s.label} style={{ padding: '7px 6px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--secondary)', textAlign: 'center' }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: s.color }}>{s.val}</div>
+              <div style={{ fontSize: 9, color: 'var(--muted-foreground)', marginTop: 2 }}>{s.label}</div>
+            </div>
+          ))}
         </div>
-        {/* AI Digest */}
-        <div style={{ padding: '10px 12px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--secondary)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
-            <span style={{ fontSize: 11 }}>✨</span>
-            <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--primary)' }}>AI Digest</span>
+        {/* Activity chart */}
+        <div style={{ padding: '8px 10px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--secondary)' }}>
+          <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'var(--muted-foreground)', marginBottom: 6 }}>14-day activity</div>
+          <div style={{ display: 'flex', alignItems: 'flex-end', gap: 3, height: 32 }}>
+            {bars.map((v, i) => (
+              <div key={i} style={{ flex: 1, borderRadius: 2, background: `color-mix(in srgb, #7c6aff ${40 + (v/max)*55}%, transparent)`, height: `${(v/max)*100}%` }} />
+            ))}
           </div>
-          <p style={{ fontSize: 11, color: 'var(--muted-foreground)', lineHeight: 1.6, margin: 0 }}>
-            You added 3 notes on auth strategy and Q3 planning. Mei appears in 4 notes this week. 1 bookmark saved from Linear.
+        </div>
+        {/* Daily Briefing */}
+        <div style={{ padding: '9px 11px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--secondary)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 5 }}>
+            <span style={{ fontSize: 10 }}>🗞️</span>
+            <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#f97316' }}>Daily Briefing</span>
+          </div>
+          <p style={{ fontSize: 10, color: 'var(--muted-foreground)', lineHeight: 1.55, margin: 0 }}>
+            <strong style={{ color: 'var(--foreground)' }}>Auth strategy:</strong> JWT decision finalised. <strong style={{ color: 'var(--foreground)' }}>Launch plan:</strong> wireframes under review.
           </p>
         </div>
-        {/* Task progress */}
-        <div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
-            <span style={{ fontSize: 10, color: 'var(--muted-foreground)' }}>Task progress</span>
-            <span style={{ fontSize: 10, color: 'var(--primary)', fontWeight: 600 }}>5 / 8 done</span>
-          </div>
-          <div style={{ height: 5, borderRadius: 999, background: 'var(--border)', overflow: 'hidden' }}>
-            <div style={{ height: '100%', width: '62%', borderRadius: 999, background: 'var(--primary)' }} />
-          </div>
-        </div>
-        {/* Recent activity */}
-        <div>
-          <Label>Recent activity</Label>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-            {[
-              { icon: '📄', text: 'Auth decision — Aug 2026' },
-              { icon: '🔖', text: 'figma.com/wireframes' },
-              { icon: '📄', text: 'Product Launch Plan' },
-              { icon: '🔖', text: 'linear.app — Issue tracker' },
-            ].map(({ icon, text }) => (
-              <div key={text} style={{ fontSize: 11, padding: '4px 8px', borderRadius: 5, background: 'var(--secondary)', border: '1px solid var(--border)', color: 'var(--foreground)' }}>{icon} {text}</div>
-            ))}
+        {/* Focus next */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '7px 10px', borderRadius: 8, border: '1px solid color-mix(in srgb, #f59e0b 40%, transparent)', background: 'color-mix(in srgb, #f59e0b 8%, transparent)' }}>
+          <span style={{ fontSize: 10 }}>⚡</span>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--foreground)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Review wireframes with Yuki</div>
+            <div style={{ fontSize: 9, color: '#ef4444', marginTop: 1 }}>Overdue · High priority</div>
           </div>
         </div>
       </div>
@@ -350,7 +353,7 @@ function AIWriteMock() {
 
 function AIIntelMock() {
   return (
-    <MockShell title="AI Digest · Today" accent="#f59e0b" noPad>
+    <MockShell title="Daily Briefing · Today" accent="#f97316" noPad>
       <div style={{ padding: '14px', display: 'flex', flexDirection: 'column', gap: 12 }}>
         <div>
           <Label>Today's activity summary</Label>
