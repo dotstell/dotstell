@@ -684,7 +684,7 @@ export default function DashboardPage() {
                 </div>
                 <div>
                   <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--foreground)' }}>AI Digest</span>
-                  <span style={{ fontSize: 10, color: 'var(--muted-foreground)', marginLeft: 7, opacity: 0.6 }}>AI-powered summary</span>
+                  <span style={{ fontSize: 10, color: 'var(--muted-foreground)', marginLeft: 7, opacity: 0.6 }}>AI-powered briefing</span>
                 </div>
               </div>
               <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'flex-start' : 'center', gap: 6 }}>
