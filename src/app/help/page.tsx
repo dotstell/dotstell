@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import Link from 'next/link'
 import { AppLayout } from '@/components/layout/AppLayout'
 import { RELEASES_URL } from '@/lib/version'
@@ -99,12 +99,20 @@ const SECTIONS = [
 
 export default function HelpPage() {
   const [isMobile, setIsMobile] = useState(false)
+  const contentScrollRef = useRef<HTMLDivElement>(null)
   useEffect(() => {
     function check() { setIsMobile(window.innerWidth < 768) }
     check()
     window.addEventListener('resize', check)
     return () => window.removeEventListener('resize', check)
   }, [])
+
+  function scrollToSection(id: string) {
+    const el = document.getElementById(id)
+    const container = contentScrollRef.current
+    if (!el || !container) return
+    container.scrollTop += el.getBoundingClientRect().top - container.getBoundingClientRect().top
+  }
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const sectionContent = useMemo(() => (
@@ -737,14 +745,14 @@ export default function HelpPage() {
       padding: '10px 16px', borderBottom: '1px solid var(--border)',
     }}>
       {SECTIONS.map(s => (
-        <a key={s.id} href={`#${s.id}`} style={{
+        <button key={s.id} type="button" onClick={() => scrollToSection(s.id)} style={{
           display: 'inline-flex', alignItems: 'center', whiteSpace: 'nowrap',
           padding: '5px 12px', borderRadius: 20,
           backgroundColor: 'var(--secondary)', color: 'var(--muted-foreground)',
-          fontSize: 12, textDecoration: 'none', flexShrink: 0, touchAction: 'manipulation',
+          fontSize: 12, border: 'none', cursor: 'pointer', flexShrink: 0, touchAction: 'manipulation',
         }}>
           {s.label}
-        </a>
+        </button>
       ))}
     </div>
   )
@@ -758,7 +766,7 @@ export default function HelpPage() {
           {pillNav}
         </div>
         {/* Content — scrolls independently */}
-        <div style={{ flex: 1, overflowY: 'auto', padding: '20px 16px 0', paddingBottom: 'calc(56px + env(safe-area-inset-bottom))' }}>
+        <div ref={contentScrollRef} style={{ flex: 1, overflowY: 'auto', padding: '20px 16px 0', paddingBottom: 'calc(56px + env(safe-area-inset-bottom))' }}>
           {sectionContent}
         </div>
       </div>
