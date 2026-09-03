@@ -4,7 +4,7 @@ import Link from 'next/link'
 import {
   ArrowRight, AlertCircle, TrendingUp, FileText, Bookmark,
   CheckSquare, Users, Plus, Zap, Activity,
-  CheckCircle2, Circle, Timer, Sparkles, Loader2, RefreshCw, Tag,
+  CheckCircle2, Circle, Timer, Sparkles, Loader2, RefreshCw, Tag, Info,
 } from 'lucide-react'
 import { AppLayout } from '@/components/layout/AppLayout'
 import { Task, Note, Bookmark as BookmarkType } from '@/types'
@@ -739,8 +739,13 @@ export default function DashboardPage() {
             )}
 
             {!digest && !digestEmpty && !digestLoading && !digestError && (
-              <div style={{ padding: '16px', fontSize: 12, color: 'var(--muted-foreground)', textAlign: 'center' }}>
-                Click "Generate" for your AI Digest — notes, tasks, and bookmarks in one summary.
+              <div style={{ padding: '20px 16px', textAlign: 'center' }}>
+                <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--foreground)', margin: '0 0 6px' }}>
+                  Connect the dots. Discover what you missed.
+                </p>
+                <p style={{ fontSize: 12, color: 'var(--muted-foreground)', margin: '0 auto', lineHeight: 1.65, maxWidth: 420 }}>
+                  Dotstell AI connects the context across your knowledge to surface insights, relationships, and priorities you might otherwise overlook.
+                </p>
               </div>
             )}
           </div>
@@ -1245,6 +1250,37 @@ export default function DashboardPage() {
             <div style={{ padding: '12px 18px', borderBottom: '1px solid var(--secondary)', display: 'flex', alignItems: 'center', gap: 8 }}>
               <Zap size={14} color="var(--primary)" />
               <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--foreground)' }}>Connections to explore</span>
+              {/* Info tooltip — hover on desktop, tap to toggle on mobile */}
+              <div
+                style={{ position: 'relative', display: 'flex', alignItems: 'center', cursor: 'pointer' }}
+                onClick={() => setActiveTip(activeTip === 'connections' ? null : 'connections')}
+                onMouseEnter={() => !isMobile && setActiveTip('connections')}
+                onMouseLeave={() => !isMobile && setActiveTip(null)}
+              >
+                <Info size={13} color="var(--muted-foreground)" style={{ opacity: 0.5 }} />
+                {activeTip === 'connections' && (
+                  <div style={{
+                    position: 'absolute',
+                    top: 'calc(100% + 6px)',
+                    left: 0,
+                    background: 'var(--popover)',
+                    border: '1px solid var(--border)',
+                    borderRadius: 6,
+                    padding: '8px 12px',
+                    fontSize: 11,
+                    color: 'var(--popover-foreground)',
+                    whiteSpace: 'normal',
+                    maxWidth: 'min(260px, calc(100vw - 48px))',
+                    width: 'max-content',
+                    zIndex: 50,
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                    pointerEvents: 'none',
+                    lineHeight: 1.55,
+                  }}>
+                    Finds notes, tasks, and bookmarks that share topics with your most recently edited note — using AI semantic similarity, not just keyword matching. Helps you rediscover related thinking you might have forgotten.
+                  </div>
+                )}
+              </div>
               <span style={{ fontSize: 11, color: 'var(--muted-foreground)', marginLeft: 'auto', opacity: 0.6 }}>based on your recent notes</span>
             </div>
             <div style={{ padding: '12px 18px' }}>
