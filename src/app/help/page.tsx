@@ -129,7 +129,7 @@ export default function HelpPage() {
             {/* DASHBOARD */}
             <Section id="dashboard" title="🏠 Dashboard">
               <Tip icon="📊" title="Knowledge Health"
-                body="The top card shows your knowledge base health at a glance. Four stat boxes — captured this week, last week (with trend direction), unique topics, and notes organised % — update in real time. A 14-day activity chart sits above them. Tap any stat box (or hover on desktop) to see a plain-language explanation of what it measures."
+                body="The Knowledge Health section shows four stat boxes: notes + bookmarks captured this week, last week's count with a trend indicator (↑ busier / ↓ quieter), unique topics (number of distinct tags used), and notes organised % (share of notes with at least one tag, e.g. 4 of 28 tagged). A 14-day SVG area chart sits above the stats. Your capture streak appears as a separate badge below the stats — the icon escalates as the streak grows. Tap any stat on mobile or hover on desktop for a plain-language explanation."
               />
               <Tip icon="🔥" title="Capture streak"
                 body="Below the stats, a streak badge appears after 2+ consecutive days of activity. The icon changes with your streak length: ✨ 2–3 days → ⚡ 4–6 → 🔥 7–13 → 🏆 14–20 → 👑 21+."
@@ -151,6 +151,9 @@ export default function HelpPage() {
               />
               <Tip icon="✅" title="Open Tasks panel"
                 body="Separate from Focus Next, the Open Tasks panel lists all open tasks sorted by creation date — useful for a full picture of what's in flight rather than just the next priority."
+              />
+              <Tip icon="⚡" title="Connections to explore"
+                body="A panel below the dashboard cards surfaces notes, tasks, and bookmarks that share topics with your most recently edited note — using AI semantic similarity to find connections beyond simple keyword overlap. Tap the ⓘ icon in the panel header for a full description. Helps you rediscover related thinking you might have forgotten."
               />
               <Tip icon="🔗" title="Knowledge Connections"
                 body="When you have notes with titles and shared keywords, a Knowledge Connections panel surfaces related note pairs automatically. It uses client-side keyword matching on titles and tags — no AI required. Useful for spotting connections you didn't explicitly create."
@@ -520,6 +523,9 @@ export default function HelpPage() {
                 />
                 <Tip icon="🔗" title="Knowledge Connections panel"
                   body="A new panel on the dashboard surfaces related note pairs using client-side keyword matching on titles and tags — no AI or embeddings needed. Shows up automatically when there are 2+ keyword connections across your notes."
+                />
+                <Tip icon="⚡" title="Connections to explore"
+                  body="A new panel on the dashboard surfaces notes, tasks, and bookmarks semantically related to your most recently edited note — using AI similarity to find topical connections beyond simple keyword matching. Tap the ⓘ icon in the panel header for a full description."
                 />
                 <Tip icon="🛡️" title="Stability fix: first-load page error"
                   body="Fixed an intermittent 'This page couldn't load' error that could appear when navigating to the app for the first time or after a long idle. Reloading always fixed it, but the root cause is now resolved — the app handles the case where the session check fails on a cold start gracefully instead of crashing."
