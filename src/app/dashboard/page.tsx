@@ -1247,40 +1247,40 @@ export default function DashboardPage() {
         {/* ── Knowledge connections ── */}
         {!loading && connections && (
           <div style={{ backgroundColor: 'var(--card)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden', marginBottom: 24 }}>
-            <div style={{ padding: '12px 18px', borderBottom: '1px solid var(--secondary)', display: 'flex', alignItems: 'center', gap: 8 }}>
+            {/* position:relative on the header so the tooltip is inset relative to the full card width */}
+            <div style={{ padding: '12px 18px', borderBottom: '1px solid var(--secondary)', display: 'flex', alignItems: 'center', gap: 8, position: 'relative' }}>
               <Zap size={14} color="var(--primary)" />
               <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--foreground)' }}>Connections to explore</span>
-              {/* Info tooltip — hover on desktop, tap to toggle on mobile */}
+              {/* Info icon — hover on desktop, tap to toggle on mobile */}
               <div
-                style={{ position: 'relative', display: 'flex', alignItems: 'center', cursor: 'pointer' }}
+                style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}
                 onClick={() => setActiveTip(activeTip === 'connections' ? null : 'connections')}
                 onMouseEnter={() => !isMobile && setActiveTip('connections')}
                 onMouseLeave={() => !isMobile && setActiveTip(null)}
               >
                 <Info size={13} color="var(--muted-foreground)" style={{ opacity: 0.5 }} />
-                {activeTip === 'connections' && (
-                  <div style={{
-                    position: 'absolute',
-                    top: 'calc(100% + 6px)',
-                    left: 0,
-                    background: 'var(--popover)',
-                    border: '1px solid var(--border)',
-                    borderRadius: 6,
-                    padding: '8px 12px',
-                    fontSize: 11,
-                    color: 'var(--popover-foreground)',
-                    whiteSpace: 'normal',
-                    maxWidth: 'min(260px, calc(100vw - 48px))',
-                    width: 'max-content',
-                    zIndex: 50,
-                    boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-                    pointerEvents: 'none',
-                    lineHeight: 1.55,
-                  }}>
-                    Finds notes, tasks, and bookmarks that share topics with your most recently edited note — using AI semantic similarity, not just keyword matching. Helps you rediscover related thinking you might have forgotten.
-                  </div>
-                )}
               </div>
+              {activeTip === 'connections' && (
+                <div style={{
+                  position: 'absolute',
+                  top: 'calc(100% + 4px)',
+                  left: 16,
+                  right: 16,
+                  background: 'var(--popover)',
+                  border: '1px solid var(--border)',
+                  borderRadius: 6,
+                  padding: '8px 12px',
+                  fontSize: 11,
+                  color: 'var(--popover-foreground)',
+                  whiteSpace: 'normal',
+                  zIndex: 50,
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                  pointerEvents: 'none',
+                  lineHeight: 1.55,
+                }}>
+                  Finds notes, tasks, and bookmarks that share topics with your most recently edited note — using AI semantic similarity, not just keyword matching. Helps you rediscover related thinking you might have forgotten.
+                </div>
+              )}
               <span style={{ fontSize: 11, color: 'var(--muted-foreground)', marginLeft: 'auto', opacity: 0.6 }}>based on your recent notes</span>
             </div>
             <div style={{ padding: '12px 18px' }}>
