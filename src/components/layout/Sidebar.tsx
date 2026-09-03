@@ -115,7 +115,9 @@ export function Sidebar({ onOpenPalette, mobileOpen: mobileOpenProp, onMobileOpe
 
         {/* Drawer */}
         <aside style={{
-          position: 'fixed', left: 0, top: 0, height: '100vh', zIndex: 49,
+          position: 'fixed', left: 0, top: 0,
+          height: 'calc(var(--actual-vh, 100dvh) - var(--bottom-nav-h, 56px) - env(safe-area-inset-bottom))',
+          zIndex: 49,
           width: 260,
           backgroundColor: 'var(--sidebar-bg)',
           borderRight: '1px solid var(--sidebar-border)',
