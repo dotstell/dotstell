@@ -510,7 +510,7 @@ export default function HelpPage() {
                   <span style={{ fontSize: 12, color: 'var(--muted-foreground)' }}>Sep 2026</span>
                 </div>
                 <Tip icon="🌅" title="AI Digest"
-                  body="An AI summary that pulls from your notes, open tasks, and saved bookmarks together. Each insight line is labelled by its real topic. The digest scales with how much is happening — a quiet day stays concise, a busy week covers everything that matters. Choose Today or This Week and regenerate any time."
+                  body="Connect the dots. Discover what you missed. AI Digest pulls from your notes, open tasks, and saved bookmarks to surface insights, relationships, and priorities you might otherwise overlook. Choose Today or This Week and generate any time."
                 />
                 <Tip icon="📊" title="Dashboard Knowledge Health redesign"
                   body="The Knowledge Health section on the dashboard now shows four stat boxes: capture volume, week-over-week trend, unique topic count, and notes organised %. Each box reveals a plain-language explanation on tap (mobile) or hover (desktop) — works correctly on phones, iPads, and Android tablets. A dynamic streak badge appears after 2+ consecutive days, with an icon that escalates as your streak grows."
