@@ -141,13 +141,16 @@ create index if not exists idx_notebooks_user_id on notebooks (user_id, sort_ord
 -- Single shared function; each table gets its own trigger below.
 -- Must be defined after all tables it references.
 -- ============================================================
-create or replace function update_updated_at()
-returns trigger as $$
+create or replace function public.update_updated_at()
+returns trigger
+language plpgsql
+set search_path = public
+as $$
 begin
   new.updated_at = now();
   return new;
 end;
-$$ language plpgsql;
+$$;
 
 create trigger notes_updated_at     before update on notes     for each row execute function update_updated_at();
 create trigger people_updated_at    before update on people    for each row execute function update_updated_at();
