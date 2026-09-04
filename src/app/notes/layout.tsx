@@ -11,13 +11,14 @@ const PANE_OPEN_KEY = 'dotstell-notes-pane-open'
 export default function NotesLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const [paneOpen, setPaneOpen] = useState(true)
-  // Read the html[data-mobile] attribute set by syncScript before first paint so the
-  // very first client render already has the correct value — no useLayoutEffect delay.
-  const [isMobile, setIsMobile] = useState(() =>
-    typeof document !== 'undefined'
-      ? document.documentElement.hasAttribute('data-mobile')
-      : false
-  )
+  // Starts false, matching what the server always computes (no `document` there). Reading
+  // html[data-mobile] here instead mismatched the server's render for real mobile clients —
+  // a hydration mismatch that can tear down and rebuild this entire subtree, including the
+  // heavy, DOM-bound Tiptap editor inside /notes/[id] (confirmed to crash it elsewhere in
+  // this app). The useLayoutEffect below already corrects this before the browser paints,
+  // so there's no visible flash either way — it just avoids guessing during the render
+  // React uses for the hydration comparison itself.
+  const [isMobile, setIsMobile] = useState(false)
 
   // Keep in sync on window resize (desktop users resizing the viewport)
   useLayoutEffect(() => {

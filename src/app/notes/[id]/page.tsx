@@ -63,17 +63,24 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
   const [noteId, setNoteId]           = useState<string | null>(isNew ? null : id)
   const [subNotes, setSubNotes]       = useState<Note[]>([])
   const [wikiSyncCount, setWikiSyncCount] = useState(0)
-  const [isMobile, setIsMobile]       = useState(() =>
-    typeof document !== 'undefined'
-      ? document.documentElement.hasAttribute('data-mobile')
-      : false
-  )
+  // Starts false, matching what the server always computes (no `document` there), even
+  // though a real mobile client could read `data-mobile` as true on its first render —
+  // that mismatch is exactly the class of bug that just tore down this page's Tiptap
+  // editor (see the showTemplates/immediatelyRender fixes above). The existing mount
+  // effect below already calls check() synchronously on mount, correcting this within
+  // the same tick — so this only delays the correct value by one render, never the UI.
+  const [isMobile, setIsMobile]       = useState(false)
   // Live plain-text from the editor — updated on every keystroke via onTextChange
   const [editorText, setEditorText]   = useState('')
-  // ToC visibility — persisted so the user's preference survives navigation
-  const [tocOpen, setTocOpen]         = useState(() =>
-    typeof window !== 'undefined' ? localStorage.getItem('dotstell_toc_open') !== 'false' : true
-  )
+  // ToC visibility — persisted so the user's preference survives navigation. Starts true
+  // (the server-safe default, since `localStorage` doesn't exist there) and is corrected
+  // in a post-mount effect — reading localStorage directly in the initializer mismatched
+  // the server's render for any user who had ever closed the ToC, hydration-crashing the
+  // editor exactly like the showTemplates/isMobile cases above.
+  const [tocOpen, setTocOpen]         = useState(true)
+  useEffect(() => {
+    if (localStorage.getItem('dotstell_toc_open') === 'false') setTocOpen(false)
+  }, [])
   // AI features
   const { config: aiConfig, isConfigured: aiConfigured } = useAISettings()
   const [chatOpen,        setChatOpen]        = useState(false)

@@ -466,15 +466,19 @@ export default function DashboardPage() {
   const inProgress   = tasks.filter(t => t.status === 'in_progress')
   const progress     = tasks.length > 0 ? Math.round((doneTasks.length / tasks.length) * 100) : 0
 
-  // Live clock — updates every minute
-  const [clockDate, setClockDate] = useState(() => new Date())
+  // Live clock — updates every minute. Starts null (not `new Date()`) so the server and
+  // the client's first hydration render agree — evaluating `new Date()` in each produces
+  // two different timestamps whenever they land in different minutes, which is a genuine
+  // hydration mismatch (React error #418), not just a cosmetic one-tick-off clock.
+  const [clockDate, setClockDate] = useState<Date | null>(null)
   useEffect(() => {
+    setClockDate(new Date())
     const tick = () => setClockDate(new Date())
     const id = setInterval(tick, 60_000)
     return () => clearInterval(id)
   }, [])
-  const clockTime = clockDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-  const clockDay  = clockDate.toLocaleDateString([], { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })
+  const clockTime = clockDate?.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) ?? ''
+  const clockDay  = clockDate?.toLocaleDateString([], { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' }) ?? ''
 
   const now             = Date.now()
   const STALE_MS           = 30 * 24 * 60 * 60 * 1000
