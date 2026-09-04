@@ -3,6 +3,7 @@ import { cookies } from 'next/headers'
 import './globals.css'
 import { Toaster } from 'sonner'
 import { Analytics } from '@vercel/analytics/next'
+import { ChunkErrorReload } from '@/components/ChunkErrorReload'
 
 export const metadata: Metadata = {
   title: 'Dotstell — Connect your knowledge',
@@ -60,6 +61,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       </head>
       <body>
         {children}
+        <ChunkErrorReload />
         <Toaster position="bottom-right" richColors />
         {process.env.NODE_ENV === 'production' && <Analytics />}
       </body>
