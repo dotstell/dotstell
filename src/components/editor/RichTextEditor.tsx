@@ -285,7 +285,16 @@ export function RichTextEditor({
   const headingRef = useRef<HTMLDivElement>(null)
 
   const editor = useEditor({
-    immediatelyRender: true,
+    // Tiptap renders the editor's initial state as part of this component's SSR output
+    // when `immediatelyRender: true`. For a brand-new note, nothing gates this component
+    // behind a client-only loading state, so it's part of the very first hydration pass —
+    // and the server's static markup for the editor never matches what the fully
+    // initialized ProseMirror EditorView produces client-side. That mismatch (React error
+    // #418) makes React discard and rebuild the tree mid-mount, tearing down the editor
+    // while ProseMirror is still wiring itself up and leaving its schema broken — the next
+    // getHTML() call then throws on a null schema cache, crashing the page. `false` defers
+    // all editor rendering to after mount, so server and client agree on the first pass.
+    immediatelyRender: false,
     extensions: [
       StarterKit.configure({ codeBlock: false, link: false, underline: false }),
       Placeholder.configure({ placeholder }),
