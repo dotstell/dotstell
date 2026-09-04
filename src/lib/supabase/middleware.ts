@@ -37,11 +37,15 @@ export async function updateSession(request: NextRequest) {
   // *we* give up first and return a normal response, so the platform timeout never fires.
   let user = null
   try {
-    const { data } = await Promise.race([
-      supabase.auth.getUser(),
-      new Promise<never>((_, reject) => setTimeout(() => reject(new Error('getUser timeout')), 5000)),
+    // .catch(() => null) on the getUser() call itself (not just the outer try/catch) means
+    // that if it loses the race and rejects later, after we've already moved on, there's
+    // still a handler attached — otherwise that late rejection has none and logs as an
+    // unhandled rejection warning server-side. Harmless to users, but avoidable noise.
+    const result = await Promise.race([
+      supabase.auth.getUser().catch(() => null),
+      new Promise<null>((_, reject) => setTimeout(() => reject(new Error('getUser timeout')), 5000)),
     ])
-    user = data.user
+    user = result?.data.user ?? null
   } catch {
     // Session refresh failed or timed out — treat as anonymous and fall through to the
     // redirect logic below so protected routes still require authentication.
