@@ -52,7 +52,14 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
   const [moreMenuOpen, setMoreMenuOpen] = useState(false)
   const [moreMenuRect, setMoreMenuRect] = useState<DOMRect | null>(null)
   const moreMenuRef = useRef<HTMLDivElement>(null)
-  const [showTemplates, setShowTemplates] = useState(isNew)
+  // Starts false (not `isNew`) so server and client agree on the first render.
+  // NoteTemplateModal itself renders null until mounted (portals need `document`),
+  // so opening this synchronously on `isNew` made the client's first hydration pass
+  // paint the modal while the server-rendered HTML had none — a hydration mismatch
+  // that crashed the (heavy, DOM-bound) Tiptap editor when React discarded and
+  // rebuilt the tree mid-mount. Flipping it open a tick later, post-mount, avoids
+  // the mismatch entirely.
+  const [showTemplates, setShowTemplates] = useState(false)
   const [noteId, setNoteId]           = useState<string | null>(isNew ? null : id)
   const [subNotes, setSubNotes]       = useState<Note[]>([])
   const [wikiSyncCount, setWikiSyncCount] = useState(0)
@@ -117,6 +124,12 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
   const readMins  = Math.max(1, Math.round(wordCount / 200))
 
   const { openTab, updateTitle } = useNoteTabs(noteId ?? undefined)
+
+  // Open the template picker post-mount for a brand-new note — see the showTemplates
+  // useState comment for why this can't just be the initial state.
+  useEffect(() => {
+    if (isNew) setShowTemplates(true)
+  }, [isNew])
 
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 768)
