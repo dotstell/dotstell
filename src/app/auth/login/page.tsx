@@ -1,6 +1,5 @@
 'use client'
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Eye, EyeOff } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
@@ -9,7 +8,6 @@ import { Input } from '@/components/ui/input'
 import { DotstellLogo } from '@/components/brand/DotstellLogo'
 
 export default function LoginPage() {
-  const router = useRouter()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
@@ -40,8 +38,11 @@ export default function LoginPage() {
           keysToWipe.forEach(k => localStorage.removeItem(k))
         }
         if (incomingId) localStorage.setItem('dotstell-user-id', incomingId)
-        router.push('/dashboard')
-        router.refresh()
+        // Hard redirect (not router.push + router.refresh) — those two overlap into a
+        // router-cache race that left the very next client-side navigation (e.g. the
+        // first "+ New note" click after sign-in) hitting an inconsistent transition
+        // state and crashing. A full page load guarantees a clean start.
+        window.location.href = '/dashboard'
       }
     } catch (err) {
       console.error('Login exception:', err)
