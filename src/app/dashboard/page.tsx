@@ -1,6 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import {
   ArrowRight, AlertCircle, TrendingUp, FileText, Bookmark,
   CheckSquare, Users, Plus, Zap, Activity,
@@ -193,6 +194,7 @@ function findKnowledgeConnections(notes: Note[], bookmarks: BookmarkType[]): {
 }
 
 export default function DashboardPage() {
+  const router = useRouter()
   const [notes,     setNotes]     = useState<Note[]>([])
   const [tasks,     setTasks]     = useState<Task[]>([])
   const [bookmarks, setBookmarks] = useState<BookmarkType[]>([])
@@ -422,6 +424,13 @@ export default function DashboardPage() {
   }, [])
 
   useTaskReminders()
+
+  // Warm the /notes/new route+chunk as soon as the dashboard mounts. Without this, the
+  // "New note" Link/Quick action is the FIRST fetch of that route in a fresh session
+  // (right after sign-in) and can lose a race with cookie/session setup — failing once
+  // with a fatal browser error, then working forever after. The sidebar and tab-bar "+"
+  // buttons never hit this because they're already standing on this exact route/chunk.
+  useEffect(() => { router.prefetch('/notes/new') }, [router])
 
   useEffect(() => {
     async function load() {

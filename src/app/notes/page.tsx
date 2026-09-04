@@ -119,6 +119,14 @@ export default function NotesPage() {
   // Gate DnD and client-only rendering to prevent SSR hydration mismatch
   useEffect(() => setMounted(true), [])
 
+  // Warm the /notes/new route+chunk as soon as this page mounts. Without this, the
+  // "New note" button's router.push('/notes/new') is the FIRST fetch of that route in a
+  // fresh session (right after sign-in) and can lose a race with cookie/session setup —
+  // failing once with a fatal browser error, then working forever after. The sidebar and
+  // tab-bar "+" buttons never hit this because they're already standing on this exact
+  // route/chunk. Prefetching here gives it a head start before any human can click.
+  useEffect(() => { router.prefetch('/notes/new') }, [router])
+
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 768)
     check()
