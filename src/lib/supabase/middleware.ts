@@ -28,14 +28,22 @@ export async function updateSession(request: NextRequest) {
   )
 
   // getUser() contacts Supabase to verify/refresh the session token.
-  // On cold starts or transient network hiccups it can throw instead of returning null.
-  // Catch here so a Supabase failure degrades to pass-through instead of a 500 crash.
+  // On cold starts or transient network hiccups it can throw instead of returning null —
+  // or, worse, it can simply hang. A hang isn't a JS exception our try/catch can stop:
+  // the Edge Function keeps running until Vercel's own platform timeout kills it, which
+  // returns a raw, non-HTML failure that shows up as Chrome's native "This page couldn't
+  // load" page — no amount of try/catch around the awaited call prevents that once the
+  // platform decides to kill the invocation. Racing against our own short timeout means
+  // *we* give up first and return a normal response, so the platform timeout never fires.
   let user = null
   try {
-    const { data } = await supabase.auth.getUser()
+    const { data } = await Promise.race([
+      supabase.auth.getUser(),
+      new Promise<never>((_, reject) => setTimeout(() => reject(new Error('getUser timeout')), 5000)),
+    ])
     user = data.user
   } catch {
-    // Session refresh failed — treat as anonymous and fall through to the
+    // Session refresh failed or timed out — treat as anonymous and fall through to the
     // redirect logic below so protected routes still require authentication.
   }
 
