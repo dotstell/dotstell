@@ -1,6 +1,7 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import Link from 'next/link'
+import { useSearchParams } from 'next/navigation'
 import { Eye, EyeOff } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { validateEmail } from '@/lib/auth-validation'
@@ -9,11 +10,29 @@ import { Input } from '@/components/ui/input'
 import { DotstellLogo } from '@/components/brand/DotstellLogo'
 
 export default function LoginPage() {
+  return (
+    <Suspense fallback={null}>
+      <LoginForm />
+    </Suspense>
+  )
+}
+
+function LoginForm() {
+  const searchParams = useSearchParams()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+
+  // /auth/callback falls through here when a signup-confirmation or password-reset link
+  // fails verification (expired, already used, tampered). Without this, the user just
+  // sees a blank sign-in form with zero explanation for why they ended up here.
+  useEffect(() => {
+    if (searchParams.get('error') === 'confirmation_failed') {
+      setError('That link has expired or already been used. If you were resetting your password, request a new link below. Otherwise, sign in with your existing password.')
+    }
+  }, [searchParams])
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault()
