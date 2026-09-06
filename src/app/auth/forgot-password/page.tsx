@@ -2,6 +2,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
+import { validateEmail } from '@/lib/auth-validation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { DotstellLogo } from '@/components/brand/DotstellLogo'
@@ -14,8 +15,12 @@ export default function ForgotPasswordPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    setLoading(true)
     setError('')
+    // noValidate on the form hands validation to us so the error shows in our own
+    // styled box instead of the browser's inconsistent native tooltip.
+    const emailError = validateEmail(email)
+    if (emailError) { setError(emailError); return }
+    setLoading(true)
     const supabase = createClient()
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: `${window.location.origin}/auth/callback?next=/auth/reset-password`,
@@ -52,7 +57,7 @@ export default function ForgotPasswordPage() {
               <p className="text-sm text-[var(--muted-foreground)] mb-4">
                 Enter your email and we&apos;ll send you a link to reset your password.
               </p>
-              <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+              <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-3">
                 <Input
                   id="email"
                   name="email"

@@ -3,6 +3,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { Eye, EyeOff } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import { validateEmail } from '@/lib/auth-validation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { DotstellLogo } from '@/components/brand/DotstellLogo'
@@ -16,8 +17,13 @@ export default function LoginPage() {
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault()
-    setLoading(true)
     setError('')
+    // noValidate on the form hands validation to us so the error shows in our own
+    // styled box instead of the browser's inconsistent native tooltip.
+    const emailError = validateEmail(email)
+    if (emailError) { setError(emailError); return }
+    if (!password) { setError('Please enter your password.'); return }
+    setLoading(true)
     try {
       const supabase = createClient()
       const { data, error } = await supabase.auth.signInWithPassword({ email, password })
@@ -60,7 +66,7 @@ export default function LoginPage() {
 
         <div className="bg-[var(--card)] border border-[var(--border)] rounded-xl p-6">
           <h1 className="text-lg font-semibold mb-4">Sign in</h1>
-          <form onSubmit={handleLogin} className="flex flex-col gap-3">
+          <form onSubmit={handleLogin} noValidate className="flex flex-col gap-3">
             <Input
               id="email"
               name="email"

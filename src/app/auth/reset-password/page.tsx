@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { Eye, EyeOff } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import { validatePassword } from '@/lib/auth-validation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { DotstellLogo } from '@/components/brand/DotstellLogo'
@@ -25,8 +26,12 @@ export default function ResetPasswordPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    setLoading(true)
     setError('')
+    // noValidate on the form hands validation to us so the error shows in our own
+    // styled box instead of the browser's inconsistent native tooltip.
+    const passwordError = validatePassword(password)
+    if (passwordError) { setError(passwordError); return }
+    setLoading(true)
     const supabase = createClient()
     const { error } = await supabase.auth.updateUser({ password })
     if (error) {
@@ -70,7 +75,7 @@ export default function ResetPasswordPage() {
           ) : (
             <>
               <h1 className="text-lg font-semibold mb-4">Set a new password</h1>
-              <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+              <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-3">
                 <div className="relative">
                   <Input
                     id="password"

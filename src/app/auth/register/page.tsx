@@ -3,6 +3,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { Eye, EyeOff } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import { validateEmail, validatePassword } from '@/lib/auth-validation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { DotstellLogo } from '@/components/brand/DotstellLogo'
@@ -17,8 +18,14 @@ export default function RegisterPage() {
 
   async function handleRegister(e: React.FormEvent) {
     e.preventDefault()
-    setLoading(true)
     setError('')
+    // noValidate on the form hands validation to us so the error shows in our own
+    // styled box instead of the browser's inconsistent native tooltip.
+    const emailError = validateEmail(email)
+    if (emailError) { setError(emailError); return }
+    const passwordError = validatePassword(password)
+    if (passwordError) { setError(passwordError); return }
+    setLoading(true)
     const supabase = createClient()
     const { error } = await supabase.auth.signUp({
       email,
@@ -55,7 +62,7 @@ export default function RegisterPage() {
           ) : (
             <>
               <h1 className="text-lg font-semibold mb-4">Create account</h1>
-              <form onSubmit={handleRegister} className="flex flex-col gap-3">
+              <form onSubmit={handleRegister} noValidate className="flex flex-col gap-3">
                 <Input
                   id="email"
                   name="email"
