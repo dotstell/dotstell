@@ -93,6 +93,9 @@ export default function LoginPage() {
                 {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
               </button>
             </div>
+            <Link href="/auth/forgot-password" className="text-sm text-[var(--primary)] hover:underline -mt-1">
+              Forgot password?
+            </Link>
             {error && (
               <p className="text-[var(--destructive)] text-sm bg-red-500/10 border border-red-500/20 rounded-md px-3 py-2">
                 {error}

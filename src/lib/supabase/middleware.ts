@@ -63,7 +63,11 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
-  if (user && isAuthRoute) {
+  // reset-password is the one /auth route an authenticated user is meant to be on —
+  // the recovery-link callback signs them in via a limited session specifically so they
+  // can land here and set a new password. Redirecting them to /dashboard on arrival
+  // (like any other already-authenticated visit to /auth/*) would skip that step entirely.
+  if (user && isAuthRoute && request.nextUrl.pathname !== '/auth/reset-password') {
     const url = request.nextUrl.clone()
     url.pathname = '/dashboard'
     return NextResponse.redirect(url)

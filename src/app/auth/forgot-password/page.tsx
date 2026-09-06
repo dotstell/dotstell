@@ -1,36 +1,30 @@
 'use client'
 import { useState } from 'react'
 import Link from 'next/link'
-import { Eye, EyeOff } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { DotstellLogo } from '@/components/brand/DotstellLogo'
 
-export default function RegisterPage() {
+export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
   const [loading, setLoading] = useState(false)
 
-  async function handleRegister(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setLoading(true)
     setError('')
     const supabase = createClient()
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/auth/callback?next=/auth/reset-password`,
     })
-    if (error) {
-      setError(error.message)
-      setLoading(false)
-    } else {
-      setSuccess(true)
-    }
+    // Always show the same success state regardless of outcome — never reveal
+    // whether an email address has an account (avoids account enumeration).
+    if (error) console.error('resetPasswordForEmail:', error)
+    setSuccess(true)
+    setLoading(false)
   }
 
   return (
@@ -46,7 +40,7 @@ export default function RegisterPage() {
               <div className="text-4xl mb-3">✉️</div>
               <h2 className="text-lg font-semibold mb-2">Check your email</h2>
               <p className="text-sm text-[var(--muted-foreground)]">
-                We sent a confirmation link to <strong>{email}</strong>
+                If an account exists for <strong>{email}</strong>, we sent a password reset link.
               </p>
               <Link href="/auth/login" className="block mt-4 text-[var(--primary)] hover:underline text-sm">
                 Back to sign in
@@ -54,8 +48,11 @@ export default function RegisterPage() {
             </div>
           ) : (
             <>
-              <h1 className="text-lg font-semibold mb-4">Create account</h1>
-              <form onSubmit={handleRegister} className="flex flex-col gap-3">
+              <h1 className="text-lg font-semibold mb-1">Reset your password</h1>
+              <p className="text-sm text-[var(--muted-foreground)] mb-4">
+                Enter your email and we&apos;ll send you a link to reset your password.
+              </p>
+              <form onSubmit={handleSubmit} className="flex flex-col gap-3">
                 <Input
                   id="email"
                   name="email"
@@ -66,41 +63,14 @@ export default function RegisterPage() {
                   required
                   autoComplete="email"
                 />
-                <div className="relative">
-                  <Input
-                    id="password"
-                    name="password"
-                    type={showPassword ? 'text' : 'password'}
-                    placeholder="Password (min 8 chars)"
-                    value={password}
-                    onChange={e => setPassword(e.target.value)}
-                    required
-                    minLength={8}
-                    autoComplete="new-password"
-                    className="pr-10"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(v => !v)}
-                    tabIndex={-1}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors"
-                    aria-label={showPassword ? 'Hide password' : 'Show password'}
-                  >
-                    {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
-                  </button>
-                </div>
-                <p className="text-xs text-[var(--muted-foreground)] -mt-1">
-                  Must include uppercase, lowercase, a number, and a symbol.
-                </p>
                 {error && <p className="text-[var(--destructive)] text-sm bg-red-500/10 border border-red-500/20 rounded-md px-3 py-2">{error}</p>}
                 <Button type="submit" disabled={loading} className="w-full mt-1">
-                  {loading ? 'Creating...' : 'Create account'}
+                  {loading ? 'Sending...' : 'Send reset link'}
                 </Button>
               </form>
               <p className="text-center text-sm text-[var(--muted-foreground)] mt-4">
-                Already have one?{' '}
                 <Link href="/auth/login" className="text-[var(--primary)] hover:underline">
-                  Sign in
+                  Back to sign in
                 </Link>
               </p>
             </>

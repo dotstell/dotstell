@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { Eye, EyeOff } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
@@ -7,24 +7,28 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { DotstellLogo } from '@/components/brand/DotstellLogo'
 
-export default function RegisterPage() {
-  const [email, setEmail] = useState('')
+export default function ResetPasswordPage() {
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
   const [loading, setLoading] = useState(false)
+  // The callback route only gets here after exchanging a valid recovery token for a
+  // session, but the client-side session hasn't hydrated from that cookie yet on first
+  // paint — check it explicitly so a stale/expired link shows a real error instead of a
+  // silently-failing form.
+  const [sessionReady, setSessionReady] = useState<boolean | null>(null)
 
-  async function handleRegister(e: React.FormEvent) {
+  useEffect(() => {
+    createClient().auth.getUser().then(({ data }) => setSessionReady(!!data.user))
+  }, [])
+
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setLoading(true)
     setError('')
     const supabase = createClient()
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
-    })
+    const { error } = await supabase.auth.updateUser({ password })
     if (error) {
       setError(error.message)
       setLoading(false)
@@ -43,41 +47,43 @@ export default function RegisterPage() {
         <div className="bg-[var(--card)] border border-[var(--border)] rounded-xl p-6">
           {success ? (
             <div className="text-center py-4">
-              <div className="text-4xl mb-3">✉️</div>
-              <h2 className="text-lg font-semibold mb-2">Check your email</h2>
-              <p className="text-sm text-[var(--muted-foreground)]">
-                We sent a confirmation link to <strong>{email}</strong>
+              <div className="text-4xl mb-3">✅</div>
+              <h2 className="text-lg font-semibold mb-2">Password updated</h2>
+              <p className="text-sm text-[var(--muted-foreground)] mb-4">
+                Your password has been changed successfully.
               </p>
-              <Link href="/auth/login" className="block mt-4 text-[var(--primary)] hover:underline text-sm">
-                Back to sign in
+              <Link href="/dashboard" className="text-[var(--primary)] hover:underline text-sm">
+                Continue to dashboard
+              </Link>
+            </div>
+          ) : sessionReady === false ? (
+            <div className="text-center py-4">
+              <div className="text-4xl mb-3">⚠️</div>
+              <h2 className="text-lg font-semibold mb-2">Link expired or invalid</h2>
+              <p className="text-sm text-[var(--muted-foreground)] mb-4">
+                This password reset link is no longer valid. Request a new one below.
+              </p>
+              <Link href="/auth/forgot-password" className="text-[var(--primary)] hover:underline text-sm">
+                Request a new link
               </Link>
             </div>
           ) : (
             <>
-              <h1 className="text-lg font-semibold mb-4">Create account</h1>
-              <form onSubmit={handleRegister} className="flex flex-col gap-3">
-                <Input
-                  id="email"
-                  name="email"
-                  type="email"
-                  placeholder="Email"
-                  value={email}
-                  onChange={e => setEmail(e.target.value)}
-                  required
-                  autoComplete="email"
-                />
+              <h1 className="text-lg font-semibold mb-4">Set a new password</h1>
+              <form onSubmit={handleSubmit} className="flex flex-col gap-3">
                 <div className="relative">
                   <Input
                     id="password"
                     name="password"
                     type={showPassword ? 'text' : 'password'}
-                    placeholder="Password (min 8 chars)"
+                    placeholder="New password (min 8 chars)"
                     value={password}
                     onChange={e => setPassword(e.target.value)}
                     required
                     minLength={8}
                     autoComplete="new-password"
                     className="pr-10"
+                    disabled={sessionReady === null}
                   />
                   <button
                     type="button"
@@ -89,20 +95,14 @@ export default function RegisterPage() {
                     {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
                   </button>
                 </div>
-                <p className="text-xs text-[var(--muted-foreground)] -mt-1">
+                <p className="text-xs text-[var(--muted-foreground)]">
                   Must include uppercase, lowercase, a number, and a symbol.
                 </p>
                 {error && <p className="text-[var(--destructive)] text-sm bg-red-500/10 border border-red-500/20 rounded-md px-3 py-2">{error}</p>}
-                <Button type="submit" disabled={loading} className="w-full mt-1">
-                  {loading ? 'Creating...' : 'Create account'}
+                <Button type="submit" disabled={loading || sessionReady === null} className="w-full mt-1">
+                  {loading ? 'Updating...' : 'Update password'}
                 </Button>
               </form>
-              <p className="text-center text-sm text-[var(--muted-foreground)] mt-4">
-                Already have one?{' '}
-                <Link href="/auth/login" className="text-[var(--primary)] hover:underline">
-                  Sign in
-                </Link>
-              </p>
             </>
           )}
         </div>
