@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
   // Email confirmation (any device) — Supabase sends token_hash + type
   const token_hash = searchParams.get('token_hash')
   const type = searchParams.get('type')
-  const VALID_OTP_TYPES = ['email', 'sms', 'magiclink', 'invite', 'recovery', 'email_change'] as const
+  const VALID_OTP_TYPES = ['signup', 'email', 'sms', 'magiclink', 'invite', 'recovery', 'email_change'] as const
   type OtpType = typeof VALID_OTP_TYPES[number]
   if (token_hash && type && (VALID_OTP_TYPES as readonly string[]).includes(type)) {
     const supabase = await createClient()
