@@ -27,10 +27,18 @@ function LoginForm() {
 
   // /auth/callback falls through here when a signup-confirmation or password-reset link
   // fails verification (expired, already used, tampered). Without this, the user just
-  // sees a blank sign-in form with zero explanation for why they ended up here.
+  // sees a blank sign-in form with zero explanation for why they ended up here. The
+  // message has to match which link actually failed — "your reset link expired" is
+  // nonsense to someone whose signup confirmation link expired, and vice versa.
   useEffect(() => {
-    if (searchParams.get('error') === 'confirmation_failed') {
-      setError('That link has expired or already been used. If you were resetting your password, use "Forgot password?" above to request a new one. Otherwise, sign in with your existing password.')
+    if (searchParams.get('error') !== 'confirmation_failed') return
+    const type = searchParams.get('type')
+    if (type === 'recovery') {
+      setError('That password reset link has expired or already been used. Use "Forgot password?" above to request a new one.')
+    } else if (type === 'signup') {
+      setError('That confirmation link has expired or already been used. Try signing up again, or sign in below if you’ve already confirmed your account.')
+    } else {
+      setError('That link has expired or already been used.')
     }
   }, [searchParams])
 

@@ -33,5 +33,9 @@ export async function GET(request: NextRequest) {
     if (!error) return NextResponse.redirect(`${origin}${next}`)
   }
 
-  return NextResponse.redirect(`${origin}/auth/login?error=confirmation_failed`)
+  // Pass the link type through so the login page can show a message that actually matches
+  // what failed — "your reset link expired" reads as nonsense to someone whose signup
+  // confirmation link expired, and vice versa.
+  const typeParam = type ? `&type=${encodeURIComponent(type)}` : ''
+  return NextResponse.redirect(`${origin}/auth/login?error=confirmation_failed${typeParam}`)
 }
