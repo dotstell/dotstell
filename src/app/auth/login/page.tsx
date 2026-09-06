@@ -30,7 +30,7 @@ function LoginForm() {
   // sees a blank sign-in form with zero explanation for why they ended up here.
   useEffect(() => {
     if (searchParams.get('error') === 'confirmation_failed') {
-      setError('That link has expired or already been used. If you were resetting your password, request a new link below. Otherwise, sign in with your existing password.')
+      setError('That link has expired or already been used. If you were resetting your password, use "Forgot password?" above to request a new one. Otherwise, sign in with your existing password.')
     }
   }, [searchParams])
 
