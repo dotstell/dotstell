@@ -70,6 +70,8 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
   // effect below already calls check() synchronously on mount, correcting this within
   // the same tick — so this only delays the correct value by one render, never the UI.
   const [isMobile, setIsMobile]       = useState(false)
+  // See the isMobile/isCompact resize effect below for what this is and why it's separate.
+  const [isCompact, setIsCompact]     = useState(false)
   // Live plain-text from the editor — updated on every keystroke via onTextChange
   const [editorText, setEditorText]   = useState('')
   // ToC visibility — persisted so the user's preference survives navigation. Starts true
@@ -139,7 +141,16 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
   }, [isNew])
 
   useEffect(() => {
-    const check = () => setIsMobile(window.innerWidth < 768)
+    const check = () => {
+      setIsMobile(window.innerWidth < 768)
+      // The right panel (outline/links/sub-notes) is a permanent 240px column, next to
+      // NotesLayout's own 220px NotesSidePane -- together that's 460px of fixed-width
+      // chrome, which crowds out the actual writing area on a tablet in portrait (e.g.
+      // ~834px on an 11" iPad, leaving under 400px to write in). isCompact reuses the same
+      // space-efficient bottom-sheet pattern already built for isMobile, just at a width
+      // where there's still plainly not enough room for both fixed side panels at once.
+      setIsCompact(window.innerWidth < 1024)
+    }
     check()
     window.addEventListener('resize', check)
     return () => window.removeEventListener('resize', check)
@@ -635,8 +646,8 @@ ${sanitizeHtmlForPrint(note.content ?? '')}
             {focusMode ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
           </button>
 
-          {/* Panel button — mobile only: opens outline/links/sub-notes as a bottom sheet */}
-          {isMobile && noteId && (
+          {/* Panel button — compact widths only: opens outline/links/sub-notes as a bottom sheet */}
+          {isCompact && noteId && (
             <button
               type="button"
               title="Outline & links"
@@ -1068,8 +1079,8 @@ ${sanitizeHtmlForPrint(note.content ?? '')}
           )}
         </div>
 
-        {/* Right panel — hidden on mobile to preserve editor space */}
-        {noteId && !isMobile && (
+        {/* Right panel — hidden below 1024px to preserve editor space (see isCompact) */}
+        {noteId && !isCompact && (
           <div style={{
             width: 240, flexShrink: 0, borderLeft: '1px solid var(--border)',
             padding: 16, overflowY: 'auto', backgroundColor: 'var(--card)',
@@ -1284,8 +1295,8 @@ ${sanitizeHtmlForPrint(note.content ?? '')}
         )}
       </div>
 
-      {/* ── Mobile panel bottom sheet — outline, links, sub-notes ── */}
-      {isMobile && mobilePanel && noteId && (
+      {/* ── Compact-width panel bottom sheet — outline, links, sub-notes ── */}
+      {isCompact && mobilePanel && noteId && (
         <>
           <div
             onClick={() => setMobilePanel(false)}
@@ -1298,7 +1309,10 @@ ${sanitizeHtmlForPrint(note.content ?? '')}
             borderTop: '1px solid var(--border)',
             maxHeight: '65vh', overflowY: 'auto',
             padding: '12px 16px',
-            paddingBottom: 'calc(56px + env(safe-area-inset-bottom))',
+            // Only true mobile width has AppLayout's BottomNav to clear -- reserving that
+            // 56px at tablet widths (where there's no BottomNav at all) would recreate the
+            // exact kind of dead-space gap this whole branch of work has been fixing.
+            paddingBottom: isMobile ? 'calc(56px + env(safe-area-inset-bottom))' : 'env(safe-area-inset-bottom)',
             display: 'flex', flexDirection: 'column', gap: 20,
           }}>
             {/* Drag handle */}
