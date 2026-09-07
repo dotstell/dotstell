@@ -80,9 +80,12 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   // On iOS both values shrink together (delta ≈ 0), so BottomNav space is
   // preserved (iOS fixed elements float above the keyboard anyway).
   useEffect(() => {
+    let lastH = -1
     function updateVh() {
       const layoutH = window.innerHeight
       const visualH = window.visualViewport?.height ?? window.innerHeight
+      if (visualH === lastH) return
+      lastH = visualH
       document.documentElement.style.setProperty('--actual-vh', `${visualH}px`)
       const kbOpen = (layoutH - visualH) > 150
       document.documentElement.style.setProperty('--bottom-nav-h', kbOpen ? '0px' : '56px')
@@ -99,10 +102,20 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     window.visualViewport?.addEventListener('resize', updateVh)
     window.visualViewport?.addEventListener('scroll', updateVh)
     window.addEventListener('resize', updateVh)
+    // Belt-and-suspenders: some WKWebView-embedding browsers (Chrome/Firefox/Edge on iOS)
+    // have been observed to simply never fire visualViewport's resize/scroll events for
+    // certain triggers (their own toolbar hiding, an on-screen keyboard opening) at all --
+    // not a timing or repaint problem the offsetHeight trick above can catch, an
+    // event-never-fires problem. Polling is the only thing that can't miss a change no
+    // matter what triggered it or whether anything fired, and matches the pattern this
+    // file already uses for --sidebar-collapsed below. The DOM write is skipped above
+    // whenever nothing actually changed, so most ticks cost one cheap height read.
+    const interval = setInterval(updateVh, 250)
     return () => {
       window.visualViewport?.removeEventListener('resize', updateVh)
       window.visualViewport?.removeEventListener('scroll', updateVh)
       window.removeEventListener('resize', updateVh)
+      clearInterval(interval)
     }
   }, [])
 
