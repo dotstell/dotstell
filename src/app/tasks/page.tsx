@@ -171,7 +171,11 @@ export default function TasksPage() {
             <div className="w-8 h-8 rounded-full border-2 border-[var(--primary)] border-t-transparent animate-spin" />
           </div>
         ) : viewMode === 'board' ? (
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          // auto-fit/minmax instead of a 1-col -> 3-col jump at the sm: breakpoint --
+          // that jump squeezed 3 equal columns onto modest tablet widths (e.g. an 8" tablet
+          // at ~744px), each too narrow for a task card. This scales continuously: 1 column
+          // on a phone, 2 on a modest tablet, 3 once there's enough width for all three.
+          <div className="grid gap-4" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))' }}>
             {STATUS_COLUMNS.map(status => {
               const colTasks = tasks.filter(t => t.status === status)
               return (
