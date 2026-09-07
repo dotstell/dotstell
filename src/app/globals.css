@@ -498,16 +498,22 @@
 html {
   background-color: var(--background);
   color: var(--foreground);
-  overflow-x: hidden;
+  height: 100%;
+  overflow: hidden;
 }
 
+/* The document itself must never scroll. On iOS Safari, scrolling the outermost
+   viewport is what triggers the toolbar to auto-hide/show, which changes the visual
+   viewport height out from under any position:fixed element (like the sidebar) after
+   the fact -- reproducing the gap even when the fixed element's own sizing is correct.
+   Scrolling instead happens inside AppLayout's <main>, which never reaches the document. */
 body {
   background-color: var(--background);
   color: var(--foreground);
-  min-height: 100vh;
+  height: 100%;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   -webkit-font-smoothing: antialiased;
-  overflow-x: hidden;
+  overflow: hidden;
 }
 
 /* ── Scrollbars ── */

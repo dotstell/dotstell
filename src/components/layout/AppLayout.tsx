@@ -178,6 +178,8 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         transition: isMobile ? 'none' : 'margin-left 0.22s cubic-bezier(0.4,0,0.2,1)',
         minWidth: 0,
         overflowX: 'hidden',
+        overflowY: 'auto',
+        WebkitOverflowScrolling: 'touch',
         backgroundColor: 'var(--background)',
         color: 'var(--foreground)',
         paddingBottom: isMobile ? 'calc(var(--bottom-nav-h, 56px) + env(safe-area-inset-bottom))' : undefined,
