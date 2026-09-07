@@ -502,14 +502,21 @@ html {
   overflow: hidden;
 }
 
-/* The document itself must never scroll. On iOS Safari, scrolling the outermost
-   viewport is what triggers the toolbar to auto-hide/show, which changes the visual
-   viewport height out from under any position:fixed element (like the sidebar) after
-   the fact -- reproducing the gap even when the fixed element's own sizing is correct.
-   Scrolling instead happens inside AppLayout's <main>, which never reaches the document. */
+/* The document itself must never scroll -- not even via touch rubber-banding. On iOS
+   Safari, scrolling the outermost viewport (including an overscroll bounce once a nested
+   scroller like <main> hits ITS OWN limit and the gesture "chains" up to the document) is
+   what triggers the toolbar to auto-hide/show, changing the visual viewport height out from
+   under any position:fixed element (like the sidebar) after the fact -- reproducing the gap
+   even with the fixed element's own sizing correct. `overflow: hidden` alone stops
+   programmatic/wheel scrolling but iOS has long been known to still rubber-band the body on
+   touch; `position: fixed` on body is the actual iOS-reliable lock. Scrolling instead
+   happens inside AppLayout's <main>, which never reaches the document, and its own
+   `overscroll-behavior: contain` (see AppLayout.tsx) stops the chaining at the source. */
 body {
   background-color: var(--background);
   color: var(--foreground);
+  position: fixed;
+  inset: 0;
   height: 100%;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   -webkit-font-smoothing: antialiased;

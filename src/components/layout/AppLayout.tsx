@@ -180,6 +180,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         overflowX: 'hidden',
         overflowY: 'auto',
         WebkitOverflowScrolling: 'touch',
+        overscrollBehavior: 'contain',
         backgroundColor: 'var(--background)',
         color: 'var(--foreground)',
         paddingBottom: isMobile ? 'calc(var(--bottom-nav-h, 56px) + env(safe-area-inset-bottom))' : undefined,
