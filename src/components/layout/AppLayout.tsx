@@ -10,6 +10,7 @@ import { AISettingsModal } from '@/components/ai/AISettingsModal'
 import { AIStatusBadge } from '@/components/ai/AIStatusBadge'
 import { createClient } from '@/lib/supabase/client'
 import { APP_VERSION, RELEASES_URL } from '@/lib/version'
+import { useIsMobile } from '@/hooks/useIsMobile'
 
 const G_ROUTES: Record<string, string> = {
   d: '/dashboard',
@@ -47,7 +48,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const [collapsed, setCollapsed]           = useState(false)
   const [paletteOpen, setPaletteOpen]       = useState(false)
   const [aiSettingsOpen, setAISettingsOpen] = useState(false)
-  const [isMobile, setIsMobile]             = useState(false)
+  const isMobile                            = useIsMobile()
   const [sidebarOpen, setSidebarOpen]       = useState(false)
   const [gHint, setGHint]               = useState(false)
   const gTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -65,13 +66,6 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       }
       localStorage.setItem('dotstell-user-id', uid)
     })
-  }, [])
-
-  useEffect(() => {
-    function check() { setIsMobile(window.innerWidth < 768) }
-    check()
-    window.addEventListener('resize', check)
-    return () => window.removeEventListener('resize', check)
   }, [])
 
   // Close mobile sidebar drawer on route change

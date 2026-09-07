@@ -1,9 +1,10 @@
 'use client'
-import { useState, useEffect, useLayoutEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { usePathname } from 'next/navigation'
 import { AppLayout } from '@/components/layout/AppLayout'
 import { NotesSidePane } from '@/components/notes/NotesSidePane'
 import { NoteTabBar } from '@/components/notes/NoteTabBar'
+import { useIsMobile } from '@/hooks/useIsMobile'
 
 const PANE_WIDTH    = 220
 const PANE_OPEN_KEY = 'dotstell-notes-pane-open'
@@ -11,22 +12,7 @@ const PANE_OPEN_KEY = 'dotstell-notes-pane-open'
 export default function NotesLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const [paneOpen, setPaneOpen] = useState(true)
-  // Starts false, matching what the server always computes (no `document` there). Reading
-  // html[data-mobile] here instead mismatched the server's render for real mobile clients —
-  // a hydration mismatch that can tear down and rebuild this entire subtree, including the
-  // heavy, DOM-bound Tiptap editor inside /notes/[id] (confirmed to crash it elsewhere in
-  // this app). The useLayoutEffect below already corrects this before the browser paints,
-  // so there's no visible flash either way — it just avoids guessing during the render
-  // React uses for the hydration comparison itself.
-  const [isMobile, setIsMobile] = useState(false)
-
-  // Keep in sync on window resize (desktop users resizing the viewport)
-  useLayoutEffect(() => {
-    const check = () => setIsMobile(window.innerWidth < 768)
-    check()
-    window.addEventListener('resize', check)
-    return () => window.removeEventListener('resize', check)
-  }, [])
+  const isMobile = useIsMobile()
 
   useEffect(() => {
     const stored = localStorage.getItem(PANE_OPEN_KEY)

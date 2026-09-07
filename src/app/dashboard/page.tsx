@@ -17,6 +17,7 @@ import { useAISettings } from '@/hooks/useAISettings'
 import { isLocalHostname, completeOllamaBrowser } from '@/lib/ai/ollama-browser'
 import { createClient as createSupabaseBrowserClient } from '@/lib/supabase/client'
 import { MarkdownContent } from '@/components/ui/MarkdownContent'
+import { useIsMobile } from '@/hooks/useIsMobile'
 
 const PRIORITY_COLOR: Record<string, string> = { low: '#10b981', medium: '#f59e0b', high: '#ef4444' }
 const STATUS_COLOR:   Record<string, string> = { todo: 'var(--muted-foreground)', in_progress: 'var(--primary)', done: '#10b981' }
@@ -200,7 +201,7 @@ export default function DashboardPage() {
   const [bookmarks, setBookmarks] = useState<BookmarkType[]>([])
   const [people,    setPeople]    = useState<{ id: string; created_at: string }[]>([])
   const [loading,   setLoading]   = useState(true)
-  const [isMobile,  setIsMobile]  = useState(false)
+  const isMobile = useIsMobile()
   const [isNarrow,  setIsNarrow]  = useState(false)
   const [greeting,  setGreeting]  = useState('Hello')
   const { config: aiConfig, isConfigured: aiConfigured } = useAISettings()
@@ -416,16 +417,13 @@ export default function DashboardPage() {
   }
 
   useEffect(() => {
-    // isMobile (pointer-coarse-inclusive) drives INTERACTION decisions — tap-vs-hover
-    // tooltips, where any touchscreen genuinely needs tap behavior regardless of width.
     // isNarrow (width-only) drives LAYOUT DENSITY decisions — a wide touchscreen (iPad
     // landscape, a touch laptop) has room for a multi-column layout same as a mouse-driven
     // desktop at that width; keying density off pointer type instead of width is what
-    // produced the cramped, stacked-everything look reported on iPad.
-    function check() {
-      setIsMobile(window.innerWidth < 768 || window.matchMedia('(pointer: coarse)').matches)
-      setIsNarrow(window.innerWidth < 600)
-    }
+    // produced the cramped, stacked-everything look reported on iPad. isMobile (from
+    // useIsMobile, touch-inclusive) still drives INTERACTION decisions below -- tap-vs-hover
+    // tooltips, where any touchscreen genuinely needs tap behavior regardless of width.
+    function check() { setIsNarrow(window.innerWidth < 600) }
     check()
     window.addEventListener('resize', check)
     const h = new Date().getHours()

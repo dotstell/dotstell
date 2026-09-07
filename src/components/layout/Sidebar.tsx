@@ -10,6 +10,7 @@ import { createClient } from '@/lib/supabase/client'
 import { DotstellLogo, ConstellationIcon } from '@/components/brand/DotstellLogo'
 import { ThemePicker } from '@/components/ui/ThemePicker'
 import { useTheme, type ThemeId } from '@/hooks/useTheme'
+import { useIsMobile } from '@/hooks/useIsMobile'
 
 const NAV_ITEMS = [
   { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
@@ -39,14 +40,13 @@ export function Sidebar({ onOpenPalette, mobileOpen: mobileOpenProp, onMobileOpe
   const { theme, setTheme } = useTheme()
   const [isDesktop, setIsDesktop] = useState(false)
   const [appVersion, setAppVersion] = useState<string | null>(null)
-  const [isMobile, setIsMobile] = useState(false)
+  const isMobile = useIsMobile()
   const [mobileOpen, setMobileOpen] = useState(false)
   const [isMac, setIsMac] = useState(false)
 
   useEffect(() => {
     // All client-only state set here to avoid SSR hydration mismatches
     setCollapsed(localStorage.getItem('sidebar-collapsed') === 'true')
-    setIsMobile(window.innerWidth < 768)
     setIsMac(/Mac|iPhone|iPad/.test(navigator.platform))
 
     const desktop = '__TAURI__' in window
@@ -56,10 +56,6 @@ export function Sidebar({ onOpenPalette, mobileOpen: mobileOpenProp, onMobileOpe
         invoke<string>('app_version').then(setAppVersion).catch(() => null)
       )
     }
-
-    function onResize() { setIsMobile(window.innerWidth < 768) }
-    window.addEventListener('resize', onResize)
-    return () => window.removeEventListener('resize', onResize)
   }, [])
 
   // Close mobile drawer on route change

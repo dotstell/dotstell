@@ -28,6 +28,7 @@ import { useAISettings } from '@/hooks/useAISettings'
 import { triggerEmbedBackground } from '@/lib/ai/autoEmbed'
 import { useAITitleSuggest, useAITagSuggest, useAISummarize } from '@/hooks/useAI'
 import { MarkdownContent } from '@/components/ui/MarkdownContent'
+import { useIsMobile } from '@/hooks/useIsMobile'
 import '@/components/editor/editor.css'
 
 type SaveStatus = 'saved' | 'saving' | 'unsaved' | null
@@ -63,14 +64,9 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
   const [noteId, setNoteId]           = useState<string | null>(isNew ? null : id)
   const [subNotes, setSubNotes]       = useState<Note[]>([])
   const [wikiSyncCount, setWikiSyncCount] = useState(0)
-  // Starts false, matching what the server always computes (no `document` there), even
-  // though a real mobile client could read `data-mobile` as true on its first render —
-  // that mismatch is exactly the class of bug that just tore down this page's Tiptap
-  // editor (see the showTemplates/immediatelyRender fixes above). The existing mount
-  // effect below already calls check() synchronously on mount, correcting this within
-  // the same tick — so this only delays the correct value by one render, never the UI.
-  const [isMobile, setIsMobile]       = useState(false)
-  // See the isMobile/isCompact resize effect below for what this is and why it's separate.
+  const isMobile = useIsMobile()
+  // See the isCompact resize effect below for what this is and why it's separate from
+  // isMobile (shell-navigation decision vs. this page's own content-density decision).
   const [isCompact, setIsCompact]     = useState(false)
   // Live plain-text from the editor — updated on every keystroke via onTextChange
   const [editorText, setEditorText]   = useState('')
@@ -141,16 +137,14 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
   }, [isNew])
 
   useEffect(() => {
-    const check = () => {
-      setIsMobile(window.innerWidth < 768)
-      // The right panel (outline/links/sub-notes) is a permanent 240px column, next to
-      // NotesLayout's own 220px NotesSidePane -- together that's 460px of fixed-width
-      // chrome, which crowds out the actual writing area on a tablet in portrait (e.g.
-      // ~834px on an 11" iPad, leaving under 400px to write in). isCompact reuses the same
-      // space-efficient bottom-sheet pattern already built for isMobile, just at a width
-      // where there's still plainly not enough room for both fixed side panels at once.
-      setIsCompact(window.innerWidth < 1024)
-    }
+    // The right panel (outline/links/sub-notes) is a permanent 240px column, next to
+    // NotesLayout's own 220px NotesSidePane -- together that's 460px of fixed-width
+    // chrome, which crowds out the actual writing area on a tablet in portrait (e.g.
+    // ~834px on an 11" iPad, leaving under 400px to write in). isCompact is a width-only,
+    // content-density decision (unlike isMobile's touch-based shell-navigation one): it
+    // reuses the same space-efficient bottom-sheet pattern already built for phones, just
+    // at a width where there's still plainly not enough room for both fixed side panels.
+    const check = () => setIsCompact(window.innerWidth < 1024)
     check()
     window.addEventListener('resize', check)
     return () => window.removeEventListener('resize', check)
