@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { usePathname, useRouter } from 'next/navigation'
+import { usePathname } from 'next/navigation'
 import {
   FileText, Bookmark, Users, CheckSquare, Network,
   LayoutDashboard, LogOut, Search, ChevronLeft, ChevronRight, Tag, Menu, X, HelpCircle
@@ -34,7 +34,6 @@ export function Sidebar({ onOpenPalette, mobileOpen: mobileOpenProp, onMobileOpe
   onMobileClose?: () => void
 }) {
   const pathname  = usePathname()
-  const router    = useRouter()
   const [collapsed, setCollapsed] = useState(false)
   const [tooltip, setTooltip]     = useState<TooltipState | null>(null)
   const { theme, setTheme } = useTheme()
@@ -77,7 +76,11 @@ export function Sidebar({ onOpenPalette, mobileOpen: mobileOpenProp, onMobileOpe
 
   async function signOut() {
     await createClient().auth.signOut()
-    router.push('/auth/login')
+    // Hard redirect (not router.push) — same reason as the login flow: a soft client-side
+    // navigation can leave Next's router cache showing stale, still-authenticated content
+    // until a manual reload forces a fresh server round-trip. Clicking sign out appeared
+    // to do nothing until the user refreshed. A full page load guarantees a clean start.
+    window.location.href = '/auth/login'
   }
 
   function showTip(e: React.MouseEvent<HTMLElement>, label: string) {
