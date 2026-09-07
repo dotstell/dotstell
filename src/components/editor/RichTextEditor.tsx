@@ -231,6 +231,14 @@ export function RichTextEditor({
     return () => window.removeEventListener('resize', check)
   }, [])
 
+  // Matches AppLayout's own --actual-vh sync (see the useEditor() onFocus/onBlur below
+  // for why this editor needs its own copy instead of relying solely on that effect).
+  function refreshActualVh() {
+    const h = window.visualViewport?.height ?? window.innerHeight
+    document.documentElement.style.setProperty('--actual-vh', `${h}px`)
+    void document.body.offsetHeight
+  }
+
   // Floating AI Assist bubble — appears above selected text when onAIAssist is wired up
   const [assistBubble, setAssistBubble] = useState<{ x: number; y: number } | null>(null)
 
@@ -396,6 +404,15 @@ export function RichTextEditor({
         }
       },
     },
+    // iOS Safari has been observed not reliably firing visualViewport's 'resize' event when
+    // a contentEditable region (like this editor) is what triggers the on-screen keyboard --
+    // unlike a plain <input>. Without that event, AppLayout's --actual-vh sync never runs,
+    // leaving the page's height stuck at its pre-keyboard value: a blank gap appears between
+    // the status bar and the keyboard's actual top edge. Recomputing directly on editor
+    // focus/blur, after a delay long enough for the keyboard's open/close animation to
+    // finish, is a targeted fallback for exactly this trigger.
+    onFocus: () => setTimeout(refreshActualVh, 350),
+    onBlur: () => setTimeout(refreshActualVh, 350),
     onUpdate: ({ editor }) => {
       const html = editor.getHTML()
       onChange(html)
