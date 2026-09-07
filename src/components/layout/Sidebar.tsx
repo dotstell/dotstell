@@ -388,6 +388,13 @@ export function Sidebar({ onOpenPalette, mobileOpen: mobileOpenProp, onMobileOpe
           padding: collapsed ? '6px 12px' : '4px 8px',
           borderTop: '1px solid var(--sidebar-border)',
           flexShrink: 0,
+          // marginTop:auto absorbs any leftover vertical space in the flex column above
+          // this point, pushing this block + Sign out to the true bottom of the sidebar.
+          // On some tablet viewports the nav list's own flex:1 growth wasn't fully
+          // consuming leftover space, leaving a visible blank gap below Sign out instead
+          // of before it. This guarantees the bottom-anchored position directly, rather
+          // than depending on nav's sizing behavior to happen to work out correctly.
+          marginTop: 'auto',
         }}
           onMouseEnter={collapsed ? e => showTip(e as React.MouseEvent<HTMLElement>, 'Change theme') : undefined}
           onMouseLeave={collapsed ? hideTip : undefined}
