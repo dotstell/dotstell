@@ -232,7 +232,14 @@ export function Sidebar({ onOpenPalette, mobileOpen: mobileOpenProp, onMobileOpe
         backgroundColor: 'var(--sidebar-bg)',
         borderRight: '1px solid var(--sidebar-border)',
         transition: 'width 0.22s cubic-bezier(0.4,0,0.2,1)',
-        overflow: 'hidden',
+        // overflowX hidden preserves the label-clipping needed during the width collapse
+        // animation. overflowY auto (not hidden) is the fix: on a short-but-wide viewport
+        // (any iPad, portrait or landscape — this app only has a <768px "mobile" breakpoint,
+        // so tablets always get this fixed-height desktop sidebar) the fixed-height column
+        // below can exceed the viewport, and hidden silently clipped the theme picker and
+        // sign out with no way to ever reach them. auto only activates a scrollbar when
+        // content genuinely doesn't fit — no visual change on any screen where it already did.
+        overflowX: 'hidden', overflowY: 'auto',
         display: 'flex', flexDirection: 'column',
       }}>
 
