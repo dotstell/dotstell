@@ -201,6 +201,7 @@ export default function DashboardPage() {
   const [people,    setPeople]    = useState<{ id: string; created_at: string }[]>([])
   const [loading,   setLoading]   = useState(true)
   const [isMobile,  setIsMobile]  = useState(false)
+  const [isNarrow,  setIsNarrow]  = useState(false)
   const [greeting,  setGreeting]  = useState('Hello')
   const { config: aiConfig, isConfigured: aiConfigured } = useAISettings()
   const [digest,        setDigest]        = useState('')
@@ -415,7 +416,16 @@ export default function DashboardPage() {
   }
 
   useEffect(() => {
-    function check() { setIsMobile(window.innerWidth < 768 || window.matchMedia('(pointer: coarse)').matches) }
+    // isMobile (pointer-coarse-inclusive) drives INTERACTION decisions — tap-vs-hover
+    // tooltips, where any touchscreen genuinely needs tap behavior regardless of width.
+    // isNarrow (width-only) drives LAYOUT DENSITY decisions — a wide touchscreen (iPad
+    // landscape, a touch laptop) has room for a multi-column layout same as a mouse-driven
+    // desktop at that width; keying density off pointer type instead of width is what
+    // produced the cramped, stacked-everything look reported on iPad.
+    function check() {
+      setIsMobile(window.innerWidth < 768 || window.matchMedia('(pointer: coarse)').matches)
+      setIsNarrow(window.innerWidth < 600)
+    }
     check()
     window.addEventListener('resize', check)
     const h = new Date().getHours()
@@ -572,7 +582,10 @@ export default function DashboardPage() {
         )}
 
         {/* ── Stat cards with sparklines ── */}
-        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2,1fr)' : 'repeat(4,1fr)', gap: 12, marginBottom: 24 }}>
+        {/* auto-fit/minmax scales column count continuously with actual available width
+            (2 on a phone, 3-4 on a tablet, 4 on desktop) instead of a binary isMobile switch
+            that would treat a spacious iPad the same as a narrow phone. */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 12, marginBottom: 24 }}>
           {STATS.map(({ label, count, icon: Icon, href, color, spark }) => (
             <Link key={label} href={href} style={{ textDecoration: 'none' }}>
               <div style={{
@@ -616,15 +629,15 @@ export default function DashboardPage() {
               </Link>
             </div>
 
-            {/* Body: 2-column on desktop */}
-            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'auto 1fr' }}>
+            {/* Body: 2-column once there's room, regardless of pointer type */}
+            <div style={{ display: 'grid', gridTemplateColumns: isNarrow ? '1fr' : 'auto 1fr' }}>
 
               {/* Left — donut + legend */}
               <div style={{
                 padding: '20px 28px',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                borderRight: isMobile ? 'none' : '1px solid var(--border)',
-                borderBottom: isMobile ? '1px solid var(--border)' : 'none',
+                borderRight: isNarrow ? 'none' : '1px solid var(--border)',
+                borderBottom: isNarrow ? '1px solid var(--border)' : 'none',
               }}>
                 <TaskDonut
                   todo={tasks.filter(t => t.status === 'todo').length}
@@ -765,7 +778,9 @@ export default function DashboardPage() {
         )}
 
         {/* ── 3-column: Recent Notes / Open Tasks / Recent Bookmarks ── */}
-        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr 1fr', gap: 14, marginBottom: 24 }}>
+        {/* Same reasoning as the stat grid: scale column count with real width (1 on phone,
+            2 on most tablets, 3 on wide tablets/desktop) rather than isMobile's binary jump. */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 14, marginBottom: 24 }}>
 
           {/* Recent Notes */}
           <Panel
