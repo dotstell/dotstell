@@ -119,7 +119,7 @@ export function Sidebar({ onOpenPalette, mobileOpen: mobileOpenProp, onMobileOpe
         {/* Drawer */}
         <aside style={{
           position: 'fixed', left: 0, top: 0,
-          height: 'calc(var(--actual-vh, 100dvh) - var(--bottom-nav-h, 56px) - env(safe-area-inset-bottom))',
+          bottom: 'calc(var(--bottom-nav-h, 56px) + env(safe-area-inset-bottom))',
           zIndex: 49,
           width: 260,
           backgroundColor: 'var(--sidebar-bg)',
@@ -227,16 +227,13 @@ export function Sidebar({ onOpenPalette, mobileOpen: mobileOpenProp, onMobileOpe
   return (
     <>
       <aside style={{
-        position: 'fixed', left: 0, top: 0, zIndex: 40,
-        // 100vh on iOS/iPadOS WebKit (every browser there, not just Safari, is required to
-        // use WebKit under the hood) can be taller than the actually-visible viewport —
-        // historically calculated with browser toolbars collapsed. AppLayout already fixed
-        // this exact problem for its own outer container with a JS-maintained --actual-vh
-        // custom property synced to visualViewport.height; this sidebar just hadn't been
-        // updated to use it. Without this, the box itself can render past the visible fold
-        // on a tablet, which overflow/scroll alone can't reach — it's not overflowing
-        // content in a correctly-sized box, it's the box being the wrong size.
-        height: 'var(--actual-vh, 100dvh)',
+        position: 'fixed', left: 0, top: 0, bottom: 0, zIndex: 40,
+        // Pinning top AND bottom (instead of setting an explicit height, even a JS-computed
+        // one) lets WebKit resolve the box's height continuously against whatever the visual
+        // viewport is *right now*. A height value — vh, dvh, or --actual-vh synced from a
+        // resize listener — is one snapshot in time; on iOS/iPadOS the toolbar show/hide
+        // animation can outrun that snapshot, leaving a gap or clipped edge for a frame or
+        // more. top:0/bottom:0 has no snapshot to go stale.
         width: sidebarWidth,
         backgroundColor: 'var(--sidebar-bg)',
         borderRight: '1px solid var(--sidebar-border)',
