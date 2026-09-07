@@ -92,12 +92,22 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       document.documentElement.style.setProperty('--actual-vh', `${visualH}px`)
       const kbOpen = (layoutH - visualH) > 150
       document.documentElement.style.setProperty('--bottom-nav-h', kbOpen ? '0px' : '56px')
+      // Some WKWebView-embedding browsers (their own chrome layered over WebKit's
+      // rendering, e.g. Chrome/Firefox/Edge on iOS) have been observed not repainting
+      // position:fixed elements against the new visual viewport after their toolbar
+      // finishes animating, even though the viewport change itself is reported
+      // correctly here. Reading offsetHeight forces a synchronous layout flush, which
+      // is enough to make the browser recompute every fixed element's box against the
+      // now-current viewport instead of leaving it at its pre-animation size.
+      void document.body.offsetHeight
     }
     updateVh()
     window.visualViewport?.addEventListener('resize', updateVh)
+    window.visualViewport?.addEventListener('scroll', updateVh)
     window.addEventListener('resize', updateVh)
     return () => {
       window.visualViewport?.removeEventListener('resize', updateVh)
+      window.visualViewport?.removeEventListener('scroll', updateVh)
       window.removeEventListener('resize', updateVh)
     }
   }, [])
