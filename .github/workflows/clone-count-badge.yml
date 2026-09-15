@@ -20,8 +20,13 @@ jobs:
           node-version: 20
 
       - name: Fetch clone traffic and update badge
+        # The default GITHUB_TOKEN isn't accepted by the Traffic API (403 "Resource not
+        # accessible by integration") -- reading clone/traffic stats requires a token tied
+        # to an account with real push access to the repo, which the ephemeral Actions
+        # token doesn't have even with contents:write. TRAFFIC_READ_TOKEN is a classic PAT
+        # (repo scope) stored as a repository secret for exactly this call.
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.TRAFFIC_READ_TOKEN }}
         run: node .github/scripts/update-clone-badge.mjs
 
       - name: Commit if changed
