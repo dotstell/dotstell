@@ -151,40 +151,71 @@ export default function BookmarksPage() {
 
   useEffect(() => { fetchBookmarks() }, [fetchBookmarks])
 
-  // ── Quick capture ────────────────────────────────────────
-  async function handleQuickCapture(e: React.FormEvent | React.KeyboardEvent) {
-    e.preventDefault()
-    const url = captureUrl.trim()
-    if (!url) return
-    try { new URL(url) } catch { toast.error('Invalid URL'); return }
+  // ── Saving a captured URL ────────────────────────────────
+  // Quick capture and drag-and-drop each carried their own near-identical copy of this,
+  // which is how their error handling drifted apart. One path means both behave the same.
+  async function saveCapturedUrl(rawUrl: string, source: 'capture' | 'drop'): Promise<boolean> {
+    const url = rawUrl.trim()
+    try { new URL(url) } catch { toast.error('Not a valid URL'); return false }
 
     setCaptureFetching(true)
     try {
       const meta = await fetchMeta(url)
+      // Dropping a link while a tag filter is active is a clear statement of intent: the
+      // user is looking at that collection, so the new bookmark joins it rather than
+      // landing untagged and needing a second trip through the edit dialog.
+      const initialTags = tagFilter ? [tagFilter] : []
       const res = await fetch('/api/bookmarks', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           url,
-          title: meta?.title ?? new URL(url).hostname,
-          description: meta?.description ?? '',
-          favicon_url: meta?.favicon_url ?? null,
+          title:        meta?.title ?? new URL(url).hostname,
+          description:  meta?.description ?? '',
+          favicon_url:  meta?.favicon_url ?? null,
           reading_time: meta?.reading_time ?? null,
-          hostname: meta?.hostname ?? new URL(url).hostname,
-          tags: [],
+          hostname:     meta?.hostname ?? new URL(url).hostname,
+          tags:         initialTags,
         }),
       })
+
       if (res.ok) {
         const saved = await res.json()
         if (saved?.id) triggerEmbedBackground('bookmark', saved.id)
-        toast.success('Bookmark saved')
-        setCaptureUrl('')
+        // Tagging is offered at the moment of saving, instead of leaving the user to find
+        // the bookmark again afterwards and open its dialog.
+        toast.success(
+          tagFilter ? `Saved to "${tagFilter}"` : (source === 'drop' ? 'Link saved' : 'Bookmark saved'),
+          saved?.id ? { action: { label: 'Add tags', onClick: () => { void openEdit(saved as Bookmark) } } } : undefined,
+        )
         fetchBookmarks()
-      } else {
-        toast.error('Failed to save')
+        return true
       }
-    } catch { toast.error('Failed to save') }
-    finally { setCaptureFetching(false) }
+
+      // Say what actually went wrong. The API distinguishes an already-saved URL (409)
+      // from a real failure, and collapsing both into "Failed to save" is what made
+      // dropping a duplicate look like a broken feature.
+      const body = await res.json().catch(() => null)
+      if (res.status === 409) {
+        const existing = bookmarks.find(b => b.url === url)
+        toast.error('Already saved — this link is already in your bookmarks',
+          existing ? { action: { label: 'Open it', onClick: () => { void openEdit(existing) } } } : undefined)
+      } else {
+        toast.error(body?.error ?? `Could not save (${res.status})`)
+      }
+      return false
+    } catch {
+      // Only a genuine network or parse failure reaches here.
+      toast.error('Could not reach the server — check your connection and try again')
+      return false
+    } finally { setCaptureFetching(false) }
+  }
+
+  // ── Quick capture ────────────────────────────────────────
+  async function handleQuickCapture(e: React.FormEvent | React.KeyboardEvent) {
+    e.preventDefault()
+    if (!captureUrl.trim()) return
+    if (await saveCapturedUrl(captureUrl, 'capture')) setCaptureUrl('')
   }
 
   // ── Drag and drop ────────────────────────────────────────
@@ -199,35 +230,9 @@ export default function BookmarksPage() {
     e.preventDefault()
     setDragging(false)
 
-    // Try URL from drag
     const url = e.dataTransfer.getData('text/uri-list') || e.dataTransfer.getData('text/plain')
-    if (!url) { toast.error('No URL detected'); return }
-    try { new URL(url) } catch { toast.error('Not a valid URL'); return }
-
-    setCaptureFetching(true)
-    try {
-      const meta = await fetchMeta(url)
-      const res = await fetch('/api/bookmarks', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          url,
-          title: meta?.title ?? new URL(url).hostname,
-          description: meta?.description ?? '',
-          favicon_url: meta?.favicon_url ?? null,
-          reading_time: meta?.reading_time ?? null,
-          hostname: meta?.hostname ?? new URL(url).hostname,
-          tags: [],
-        }),
-      })
-      if (res.ok) {
-        const saved = await res.json()
-        if (saved?.id) triggerEmbedBackground('bookmark', saved.id)
-        toast.success('Link saved!')
-        fetchBookmarks()
-      } else toast.error('Failed to save')
-    } catch { toast.error('Failed to save') }
-    finally { setCaptureFetching(false) }
+    if (!url) { toast.error('No URL found in what you dropped'); return }
+    await saveCapturedUrl(url, 'drop')
   }
 
   // ── Bulk import ──────────────────────────────────────────
