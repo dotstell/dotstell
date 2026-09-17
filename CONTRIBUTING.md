@@ -43,6 +43,25 @@ git push origin feat/your-feature-name
 # open PR → develop
 ```
 
+## Database changes
+
+Schema lives in two places, on purpose:
+
+- `supabase/migrations/` — what an **existing** database applies, in order.
+- `supabase/schema.sql` — what a **fresh** install runs (see the README setup steps).
+
+**A schema change needs to land in both.** Add the migration, then fold the same objects
+into `schema.sql` so a new install ends up with the database production actually has.
+
+Skipping the second half is not cosmetic. `schema.sql` had drifted by 19 objects, including
+`notes.deleted_at` (which nearly every query filters on), `bookmarks.reading_time` and
+`hostname` (which the save route writes), and the three `match_*` functions behind AI
+search — so a fresh self-hosted install was broken on basic use, with nothing in the setup
+steps to explain why.
+
+`node scripts/check-schema-sync.mjs` compares the two and lists anything missing. CI runs
+it on any PR touching `supabase/`.
+
 ## Commit messages
 
 Use conventional commit prefixes:
