@@ -1,6 +1,22 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
+/**
+ * Copy any auth cookies Supabase wrote during this request onto a different response.
+ *
+ * getUser() silently refreshes an expired access token, and that refresh **rotates the
+ * refresh token at Supabase**, immediately invalidating the old one. The new pair only
+ * reaches the browser via the Set-Cookie headers that setAll() put on `supabaseResponse`.
+ * Returning a response built any other way (a redirect, say) drops those headers, so the
+ * browser keeps a refresh token the server has already revoked — the session is dead from
+ * that point on and the user is forced to sign in again. Every early return therefore has
+ * to carry these cookies forward.
+ */
+function withAuthCookies(response: NextResponse, source: NextResponse): NextResponse {
+  source.cookies.getAll().forEach(cookie => response.cookies.set(cookie))
+  return response
+}
+
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request })
 
@@ -35,32 +51,43 @@ export async function updateSession(request: NextRequest) {
   // load" page — no amount of try/catch around the awaited call prevents that once the
   // platform decides to kill the invocation. Racing against our own short timeout means
   // *we* give up first and return a normal response, so the platform timeout never fires.
-  let user = null
-  try {
-    // .catch(() => null) on the getUser() call itself (not just the outer try/catch) means
-    // that if it loses the race and rejects later, after we've already moved on, there's
-    // still a handler attached — otherwise that late rejection has none and logs as an
-    // unhandled rejection warning server-side. Harmless to users, but avoidable noise.
-    const result = await Promise.race([
-      supabase.auth.getUser().catch(() => null),
-      new Promise<null>((_, reject) => setTimeout(() => reject(new Error('getUser timeout')), 5000)),
-    ])
-    user = result?.data.user ?? null
-  } catch {
-    // Session refresh failed or timed out — treat as anonymous and fall through to the
-    // redirect logic below so protected routes still require authentication.
-  }
+  // Three outcomes matter, not two: a signed-in user, an authoritative "not signed in",
+  // and "we could not find out". Treating the third case as "not signed in" is what made a
+  // slow cold start look like a logout — it redirected to /auth/login purely because the
+  // check was slow, while the session itself was perfectly valid.
+  let user: Awaited<ReturnType<typeof supabase.auth.getUser>>['data']['user'] = null
+  let sessionKnown = false
+
+  // Resolving (not rejecting) on timeout keeps a handler attached to the getUser promise
+  // even after the race is decided, so a late failure never surfaces as an unhandled
+  // rejection. The timeout exists because a hung call would otherwise run until Vercel's
+  // own platform timeout kills the invocation, which returns a raw non-HTML error page.
+  const settled = await Promise.race([
+    supabase.auth.getUser().then(
+      r  => ({ known: true  as const, user: r.data.user ?? null }),
+      () => ({ known: false as const, user: null }),
+    ),
+    new Promise<{ known: false; user: null }>(resolve =>
+      setTimeout(() => resolve({ known: false, user: null }), 5000),
+    ),
+  ])
+  user         = settled.user
+  sessionKnown = settled.known
 
   const isAuthRoute = request.nextUrl.pathname.startsWith('/auth')
   const isPublicRoute = request.nextUrl.pathname === '/'
 
-  if (!user && !isAuthRoute && !isPublicRoute) {
+  // Only bounce to the login page when Supabase actually confirmed there is no session.
+  // When the check timed out or errored, fall through and serve the request: the page's
+  // own API calls authenticate independently (and RLS guards the data), so nothing is
+  // exposed, whereas redirecting would end a valid session for no reason.
+  if (!user && sessionKnown && !isAuthRoute && !isPublicRoute) {
     // API routes handle auth themselves and return JSON 401 — never redirect them
     // to the HTML login page, as that breaks all fetch() callers expecting JSON.
     if (request.nextUrl.pathname.startsWith('/api/')) return supabaseResponse
     const url = request.nextUrl.clone()
     url.pathname = '/auth/login'
-    return NextResponse.redirect(url)
+    return withAuthCookies(NextResponse.redirect(url), supabaseResponse)
   }
 
   // reset-password and confirmed are /auth routes an authenticated user is meant to land
@@ -72,7 +99,7 @@ export async function updateSession(request: NextRequest) {
   if (user && isAuthRoute && !AUTHED_AUTH_ROUTES.includes(request.nextUrl.pathname)) {
     const url = request.nextUrl.clone()
     url.pathname = '/dashboard'
-    return NextResponse.redirect(url)
+    return withAuthCookies(NextResponse.redirect(url), supabaseResponse)
   }
 
   return supabaseResponse
