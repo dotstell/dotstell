@@ -10,7 +10,7 @@ import { AISettingsModal } from '@/components/ai/AISettingsModal'
 import { AIStatusBadge } from '@/components/ai/AIStatusBadge'
 import { createClient } from '@/lib/supabase/client'
 import { APP_VERSION, RELEASES_URL } from '@/lib/version'
-import { useIsMobile } from '@/hooks/useIsMobile'
+import { useBreakpoint } from '@/hooks/useBreakpoint'
 
 const G_ROUTES: Record<string, string> = {
   d: '/dashboard',
@@ -48,7 +48,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const [collapsed, setCollapsed]           = useState(false)
   const [paletteOpen, setPaletteOpen]       = useState(false)
   const [aiSettingsOpen, setAISettingsOpen] = useState(false)
-  const isMobile                            = useIsMobile()
+  const { showBottomNav, showRail, isTouch } = useBreakpoint()
   const [sidebarOpen, setSidebarOpen]       = useState(false)
   const [gHint, setGHint]               = useState(false)
   const gTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -74,20 +74,38 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   }, [pathname])
 
   // Keep --actual-vh and --bottom-nav-h in sync with the visual viewport.
-  // On Android Chrome, window.innerHeight is the stable layout viewport; only
-  // visualViewport.height shrinks when the keyboard opens. A delta > 150px
-  // reliably means the keyboard is up — no fragile percentage thresholds needed.
-  // On iOS both values shrink together (delta ≈ 0), so BottomNav space is
-  // preserved (iOS fixed elements float above the keyboard anyway).
+  //
+  // --bottom-nav-h is the space reserved for the bottom tab bar. It must drop to 0 while
+  // the on-screen keyboard is up, because the bar is position:fixed at bottom:0 and ends
+  // up *behind* the keyboard — reserving space for something invisible leaves a dead gap
+  // directly above the keyboard, which is exactly the gap that showed up under the note
+  // editor's word count.
+  //
+  // Detecting "keyboard is open" from viewport heights alone only works on Android Chrome,
+  // where innerHeight stays put and visualViewport.height shrinks. On iOS both shrink
+  // together, so the delta is ~0 and a height-only test never fires — the reservation was
+  // never released there. A focused text field is the signal that actually holds on both
+  // platforms, so it is the primary test and the height delta is kept as a fallback.
   useEffect(() => {
     let lastH = -1
+    let lastKb: boolean | null = null
+
+    function keyboardIsOpen(layoutH: number, visualH: number): boolean {
+      if ((layoutH - visualH) > 150) return true
+      // A physical keyboard focuses fields without opening anything, so require a coarse
+      // pointer before treating focus as evidence of an on-screen keyboard.
+      if (!window.matchMedia('(pointer: coarse)').matches) return false
+      return isEditable(document.activeElement)
+    }
+
     function updateVh() {
       const layoutH = window.innerHeight
       const visualH = window.visualViewport?.height ?? window.innerHeight
-      if (visualH === lastH) return
-      lastH = visualH
+      const kbOpen  = keyboardIsOpen(layoutH, visualH)
+      if (visualH === lastH && kbOpen === lastKb) return
+      lastH  = visualH
+      lastKb = kbOpen
       document.documentElement.style.setProperty('--actual-vh', `${visualH}px`)
-      const kbOpen = (layoutH - visualH) > 150
       document.documentElement.style.setProperty('--bottom-nav-h', kbOpen ? '0px' : '56px')
       // Some WKWebView-embedding browsers (their own chrome layered over WebKit's
       // rendering, e.g. Chrome/Firefox/Edge on iOS) have been observed not repainting
@@ -111,10 +129,17 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     // file already uses for --sidebar-collapsed below. The DOM write is skipped above
     // whenever nothing actually changed, so most ticks cost one cheap height read.
     const interval = setInterval(updateVh, 250)
+    // Focus changes are what reveal the keyboard on iOS, and they are not viewport events,
+    // so they need their own listeners. Capture phase so focus inside the editor's
+    // contenteditable still reaches us.
+    document.addEventListener('focusin', updateVh, true)
+    document.addEventListener('focusout', updateVh, true)
     return () => {
       window.visualViewport?.removeEventListener('resize', updateVh)
       window.visualViewport?.removeEventListener('scroll', updateVh)
       window.removeEventListener('resize', updateVh)
+      document.removeEventListener('focusin', updateVh, true)
+      document.removeEventListener('focusout', updateVh, true)
       clearInterval(interval)
     }
   }, [])
@@ -179,7 +204,10 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     }
   }, [router])
 
-  const marginLeft = isMobile ? 0 : collapsed ? 64 : 240
+  // The rail and the full sidebar are both in the document flow's left edge, so main is
+  // offset by whichever one is showing. showBottomNav is the only case with no sidebar
+  // occupying horizontal space at all.
+  const marginLeft = showBottomNav ? 0 : showRail ? 64 : collapsed ? 64 : 240
 
   return (
     <div style={{ display: 'flex', height: 'var(--actual-vh, 100dvh)', backgroundColor: 'var(--background)' }}>
@@ -192,7 +220,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       <main className="app-main" style={{
         flex: 1,
         marginLeft,
-        transition: isMobile ? 'none' : 'margin-left 0.22s cubic-bezier(0.4,0,0.2,1)',
+        transition: showBottomNav ? 'none' : 'margin-left 0.22s cubic-bezier(0.4,0,0.2,1)',
         minWidth: 0,
         overflowX: 'hidden',
         overflowY: 'auto',
@@ -200,11 +228,13 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         overscrollBehavior: 'contain',
         backgroundColor: 'var(--background)',
         color: 'var(--foreground)',
-        paddingBottom: isMobile ? 'calc(var(--bottom-nav-h, 56px) + env(safe-area-inset-bottom))' : undefined,
+        // Only reserve room for the bottom bar when there actually is one. Reserving it on
+        // a tablet was half of the phantom gap above the on-screen keyboard.
+        paddingBottom: showBottomNav ? 'calc(var(--bottom-nav-h, 56px) + env(safe-area-inset-bottom))' : undefined,
       }}>
         {children}
       </main>
-      {isMobile && <BottomNav onMenuOpen={() => setSidebarOpen(true)} />}
+      {showBottomNav && <BottomNav onMenuOpen={() => setSidebarOpen(true)} />}
       <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
       {aiSettingsOpen && <AISettingsModal onClose={() => setAISettingsOpen(false)} />}
       {gHint && (
@@ -237,9 +267,9 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           position: 'fixed',
           // On mobile the BottomNav is 56px tall at bottom:0 with zIndex:60.
           // Raise this badge above it so it remains tappable.
-          bottom: isMobile ? 'calc(var(--bottom-nav-h, 56px) + env(safe-area-inset-bottom) + 10px)' : 12,
+          bottom: showBottomNav ? 'calc(var(--bottom-nav-h, 56px) + env(safe-area-inset-bottom) + 10px)' : 12,
           right: 16,
-          zIndex: isMobile ? 70 : 10,
+          zIndex: showBottomNav ? 70 : 10,
           display: 'flex', alignItems: 'center', gap: 8,
         }}>
           <AIStatusBadge onClick={() => setAISettingsOpen(true)} />

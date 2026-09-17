@@ -35,6 +35,7 @@ import { HexColorPicker } from 'react-colorful'
 import TurndownService from 'turndown'
 import { marked } from 'marked'
 import { WikiLinkExtension } from '@/lib/tiptap/WikiLinkExtension'
+import { useBreakpoint } from '@/hooks/useBreakpoint'
 
 const lowlight = createLowlight(common)
 
@@ -223,13 +224,8 @@ export function RichTextEditor({
   content, onChange, onTextChange, placeholder = 'Start writing… (type / for commands)',
   onFocusMode, focusMode, onWikiLinksChange, onEditorReady, onAIAssist,
 }: RichTextEditorProps) {
-  const [isMobile, setIsMobile] = useState(false)
-  useEffect(() => {
-    const check = () => setIsMobile(window.innerWidth < 768)
-    check()
-    window.addEventListener('resize', check)
-    return () => window.removeEventListener('resize', check)
-  }, [])
+  const { tier } = useBreakpoint()
+  const isCompact = tier === 'compact'
 
   // Matches AppLayout's own --actual-vh sync (see the useEditor() onFocus/onBlur below
   // for why this editor needs its own copy instead of relying solely on that effect).
@@ -663,11 +659,11 @@ export function RichTextEditor({
       {/* Dimmed tool area */}
       <div style={{
         display: 'flex', alignItems: 'center', gap: 2,
-        flexWrap: isMobile ? 'nowrap' : 'wrap',
-        overflowX: isMobile ? 'auto' : 'visible',
+        flexWrap: isCompact ? 'nowrap' : 'wrap',
+        overflowX: isCompact ? 'auto' : 'visible',
         scrollbarWidth: 'none',
         padding: '5px 6px 5px 10px',
-        rowGap: isMobile ? 0 : 4, flex: 1, minWidth: 0,
+        rowGap: isCompact ? 0 : 4, flex: 1, minWidth: 0,
         opacity: sourceMode ? 0.35 : 1,
         pointerEvents: sourceMode ? 'none' : 'auto',
         transition: 'opacity 0.2s',
@@ -682,9 +678,9 @@ export function RichTextEditor({
         <Divider />
 
         {/* Heading + font */}
-        <HeadingDropdown editor={editor} ref={headingRef} open={headingMenuOpen} isMobile={isMobile}
+        <HeadingDropdown editor={editor} ref={headingRef} open={headingMenuOpen} isMobile={isCompact}
           setOpen={v => { if (v) { setFontMenuOpen(false); setColorPickerOpen(false); setHlPickerOpen(false) } setHeadingMenuOpen(v) }} />
-        <FontDropdown editor={editor} open={fontMenuOpen} ref={fontRef} isMobile={isMobile}
+        <FontDropdown editor={editor} open={fontMenuOpen} ref={fontRef} isMobile={isCompact}
           setOpen={v => { if (v) { setHeadingMenuOpen(false); setColorPickerOpen(false); setHlPickerOpen(false) } setFontMenuOpen(v) }} />
 
         <Divider />
@@ -720,11 +716,11 @@ export function RichTextEditor({
           </button>
           {colorPickerOpen && (
             <>
-              {isMobile && <div style={{ position: 'fixed', inset: 0, zIndex: 499, backgroundColor: 'rgba(0,0,0,0.35)' }} onClick={() => setColorPickerOpen(false)} />}
+              {isCompact && <div style={{ position: 'fixed', inset: 0, zIndex: 499, backgroundColor: 'rgba(0,0,0,0.35)' }} onClick={() => setColorPickerOpen(false)} />}
               <ColorPicker
                 colors={TEXT_COLORS}
                 activeValue={activeColor}
-                isMobile={isMobile}
+                isMobile={isCompact}
                 onSelect={v => {
                   if (v) editor.chain().focus().setColor(v).run()
                   else editor.chain().focus().unsetColor().run()
@@ -754,11 +750,11 @@ export function RichTextEditor({
           </button>
           {hlPickerOpen && (
             <>
-              {isMobile && <div style={{ position: 'fixed', inset: 0, zIndex: 499, backgroundColor: 'rgba(0,0,0,0.35)' }} onClick={() => setHlPickerOpen(false)} />}
+              {isCompact && <div style={{ position: 'fixed', inset: 0, zIndex: 499, backgroundColor: 'rgba(0,0,0,0.35)' }} onClick={() => setHlPickerOpen(false)} />}
               <HighlightPicker
                 colors={HIGHLIGHT_COLORS}
                 editor={editor}
-                isMobile={isMobile}
+                isMobile={isCompact}
                 onSelect={v => {
                   if (v) editor.chain().focus().setHighlight({ color: v }).run()
                   else editor.chain().focus().unsetHighlight().run()
@@ -822,7 +818,7 @@ export function RichTextEditor({
         <div style={{
           display: 'flex', alignItems: 'center', gap: 4,
           padding: '5px 8px 5px 4px', flexShrink: 0,
-          ...(isMobile ? { order: 1, width: '100%', borderTop: '1px solid var(--border)', paddingLeft: 10 } : {}),
+          ...(isCompact ? { order: 1, width: '100%', borderTop: '1px solid var(--border)', paddingLeft: 10 } : {}),
         }}>
           {/* Paste mode toggle */}
           <button

@@ -28,7 +28,7 @@ import { useAISettings } from '@/hooks/useAISettings'
 import { triggerEmbedBackground } from '@/lib/ai/autoEmbed'
 import { useAITitleSuggest, useAITagSuggest, useAISummarize } from '@/hooks/useAI'
 import { MarkdownContent } from '@/components/ui/MarkdownContent'
-import { useIsMobile } from '@/hooks/useIsMobile'
+import { useBreakpoint } from '@/hooks/useBreakpoint'
 import '@/components/editor/editor.css'
 
 type SaveStatus = 'saved' | 'saving' | 'unsaved' | null
@@ -64,10 +64,9 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
   const [noteId, setNoteId]           = useState<string | null>(isNew ? null : id)
   const [subNotes, setSubNotes]       = useState<Note[]>([])
   const [wikiSyncCount, setWikiSyncCount] = useState(0)
-  const isMobile = useIsMobile()
-  // See the isCompact resize effect below for what this is and why it's separate from
-  // isMobile (shell-navigation decision vs. this page's own content-density decision).
-  const [isCompact, setIsCompact]     = useState(false)
+  const { tier, showEditorSidePanel } = useBreakpoint()
+  // Header chrome collapses into a single menu only when width is genuinely tight.
+  const isMobile = tier === 'compact'
   // Live plain-text from the editor — updated on every keystroke via onTextChange
   const [editorText, setEditorText]   = useState('')
   // ToC visibility — persisted so the user's preference survives navigation. Starts true
@@ -135,20 +134,6 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
   useEffect(() => {
     if (isNew) setShowTemplates(true)
   }, [isNew])
-
-  useEffect(() => {
-    // The right panel (outline/links/sub-notes) is a permanent 240px column, next to
-    // NotesLayout's own 220px NotesSidePane -- together that's 460px of fixed-width
-    // chrome, which crowds out the actual writing area on a tablet in portrait (e.g.
-    // ~834px on an 11" iPad, leaving under 400px to write in). isCompact is a width-only,
-    // content-density decision (unlike isMobile's touch-based shell-navigation one): it
-    // reuses the same space-efficient bottom-sheet pattern already built for phones, just
-    // at a width where there's still plainly not enough room for both fixed side panels.
-    const check = () => setIsCompact(window.innerWidth < 1024)
-    check()
-    window.addEventListener('resize', check)
-    return () => window.removeEventListener('resize', check)
-  }, [])
 
   // Cancel any pending auto-save when the component unmounts to prevent setState
   // calls on an unmounted component (e.g. user navigates away within 1.5 s of typing).
@@ -641,7 +626,7 @@ ${sanitizeHtmlForPrint(note.content ?? '')}
           </button>
 
           {/* Panel button — compact widths only: opens outline/links/sub-notes as a bottom sheet */}
-          {isCompact && noteId && (
+          {!showEditorSidePanel && noteId && (
             <button
               type="button"
               title="Outline & links"
@@ -1073,8 +1058,10 @@ ${sanitizeHtmlForPrint(note.content ?? '')}
           )}
         </div>
 
-        {/* Right panel — hidden below 1024px to preserve editor space (see isCompact) */}
-        {noteId && !isCompact && (
+        {/* Right panel — a permanent column only when there is room for it beside the
+            sidebar and a comfortable writing column; otherwise it opens as a bottom
+            sheet from the header button. See useBreakpoint's EDITOR_SIDE_PANEL_MIN. */}
+        {noteId && showEditorSidePanel && (
           <div style={{
             width: 240, flexShrink: 0, borderLeft: '1px solid var(--border)',
             padding: 16, overflowY: 'auto', backgroundColor: 'var(--card)',
@@ -1290,7 +1277,7 @@ ${sanitizeHtmlForPrint(note.content ?? '')}
       </div>
 
       {/* ── Compact-width panel bottom sheet — outline, links, sub-notes ── */}
-      {isCompact && mobilePanel && noteId && (
+      {!showEditorSidePanel && mobilePanel && noteId && (
         <>
           <div
             onClick={() => setMobilePanel(false)}

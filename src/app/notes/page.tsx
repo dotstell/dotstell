@@ -22,6 +22,7 @@ import { NoteCard } from '@/components/notes/NoteCard'
 import { NoteRow } from '@/components/notes/NoteRow'
 import { EmptyState } from '@/components/ui/empty-state'
 import { useNotebooks, notebookTag, NOTEBOOK_TAG_PREFIX } from '@/hooks/useNotebooks'
+import { useBreakpoint } from '@/hooks/useBreakpoint'
 
 type ViewMode = 'grid' | 'list'
 type GroupMode = 'none' | 'tag'
@@ -100,7 +101,7 @@ export default function NotesPage() {
   const [sortOpen,   setSortOpen]   = useState(false)
   const [ctxMenu,    setCtxMenu]    = useState<CtxMenu | null>(null)
   const [activeId,   setActiveId]   = useState<string | null>(null)
-  const [isMobile,   setIsMobile]   = useState(false)
+  const { tier } = useBreakpoint()
   const [showTrash,  setShowTrash]  = useState(false)
   const [trashNotes, setTrashNotes] = useState<Note[]>([])
   const [trashLoading, setTrashLoading] = useState(false)
@@ -127,12 +128,6 @@ export default function NotesPage() {
   // route/chunk. Prefetching here gives it a head start before any human can click.
   useEffect(() => { router.prefetch('/notes/new') }, [router])
 
-  useEffect(() => {
-    const check = () => setIsMobile(window.innerWidth < 768)
-    check()
-    window.addEventListener('resize', check)
-    return () => window.removeEventListener('resize', check)
-  }, [])
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
@@ -472,7 +467,7 @@ export default function NotesPage() {
   // ── Render ───────────────────────────────────────────────────────────────
   return (
     <div style={{ height: '100%', overflowY: 'auto' }}>
-      <div style={{ padding: '20px 28px 40px', maxWidth: 1200, paddingLeft: isMobile ? 16 : 48 }}>
+      <div style={{ padding: '20px 28px 40px', maxWidth: 1200, paddingLeft: tier === 'compact' ? 16 : 48 }}>
 
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>

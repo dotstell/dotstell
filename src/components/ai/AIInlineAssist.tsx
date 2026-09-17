@@ -4,6 +4,7 @@ import { marked } from 'marked'
 import { Loader2, RotateCcw, Check, X, Sparkles } from 'lucide-react'
 import { AIConfig, AssistOperation } from '@/lib/ai/types'
 import { useAIAssist } from '@/hooks/useAI'
+import { useBreakpoint } from '@/hooks/useBreakpoint'
 
 interface Props {
   config: AIConfig
@@ -45,7 +46,8 @@ export function AIInlineAssist({
   const startedRef = useRef(false)
   const { result, streaming, error, assist, cancel } = useAIAssist(config)
 
-  const isMobile = typeof window !== 'undefined' && window.innerWidth < 768
+  const { tier } = useBreakpoint()
+  const isMobile = tier === 'compact'
 
   const top = anchorRect.top > PANEL_H + 20
     ? anchorRect.top - PANEL_H - 10

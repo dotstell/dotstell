@@ -4,7 +4,7 @@ import { usePathname } from 'next/navigation'
 import { AppLayout } from '@/components/layout/AppLayout'
 import { NotesSidePane } from '@/components/notes/NotesSidePane'
 import { NoteTabBar } from '@/components/notes/NoteTabBar'
-import { useIsMobile } from '@/hooks/useIsMobile'
+import { useBreakpoint } from '@/hooks/useBreakpoint'
 
 const PANE_WIDTH    = 220
 const PANE_OPEN_KEY = 'dotstell-notes-pane-open'
@@ -12,7 +12,9 @@ const PANE_OPEN_KEY = 'dotstell-notes-pane-open'
 export default function NotesLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const [paneOpen, setPaneOpen] = useState(true)
-  const isMobile = useIsMobile()
+  const { tier, showBottomNav } = useBreakpoint()
+  // The notes side pane overlays instead of pushing only when width is genuinely tight.
+  const paneOverlays = tier === 'compact'
 
   useEffect(() => {
     const stored = localStorage.getItem(PANE_OPEN_KEY)
@@ -21,13 +23,13 @@ export default function NotesLayout({ children }: { children: React.ReactNode })
 
   // Auto-close pane on mobile (also closes on every navigation while mobile)
   useEffect(() => {
-    if (isMobile) setPaneOpen(false)
-  }, [pathname, isMobile])
+    if (paneOverlays) setPaneOpen(false)
+  }, [pathname, paneOverlays])
 
   function togglePane() {
     setPaneOpen(p => {
       const next = !p
-      if (!isMobile) localStorage.setItem(PANE_OPEN_KEY, String(next))
+      if (!paneOverlays) localStorage.setItem(PANE_OPEN_KEY, String(next))
       return next
     })
   }
@@ -40,7 +42,7 @@ export default function NotesLayout({ children }: { children: React.ReactNode })
     <AppLayout>
       <div style={{
         display: 'flex',
-        height: isMobile
+        height: showBottomNav
           ? 'calc(var(--actual-vh, 100dvh) - var(--bottom-nav-h, 56px) - env(safe-area-inset-bottom))'
           : 'var(--actual-vh, 100dvh)',
         overflow: 'hidden',
@@ -48,7 +50,7 @@ export default function NotesLayout({ children }: { children: React.ReactNode })
         position: 'relative',
       }}>
         {/* Side pane — overlay on mobile, push content on desktop */}
-        {isMobile ? (
+        {paneOverlays ? (
           paneOpen && (
             <>
               <div
