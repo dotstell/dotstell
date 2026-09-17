@@ -57,6 +57,8 @@ export default function BookmarksPage() {
   const [dialogOpen,  setDialogOpen]  = useState(false)
   const [editing,     setEditing]     = useState<Partial<Bookmark>>({ title: '', url: '', description: '', tags: [] })
   const [tagInput,    setTagInput]    = useState('')
+  const [bulkTagInput, setBulkTagInput] = useState('')
+  const [bulkTagging,  setBulkTagging]  = useState(false)
   const [saving,      setSaving]      = useState(false)
 
   // Quick capture
@@ -287,11 +289,53 @@ export default function BookmarksPage() {
     setDialogOpen(true)
   }
 
-  function addTag() {
-    const tag = tagInput.trim().toLowerCase()
+  // Grouping is exact-match on the tag string, so "AI Tools", "ai  tools" and "ai tools"
+  // would otherwise become three separate collections. Collapsing case and runs of
+  // whitespace means the obvious near-misses land on the same tag. Dashes are left alone
+  // on purpose: "ai-tools" is plausibly a deliberate, different tag, and the suggestion
+  // list below is the right way to reuse an existing one rather than guessing here.
+  function normaliseTag(raw: string): string {
+    return raw.trim().toLowerCase().replace(/\s+/g, ' ')
+  }
+
+  function addTag(raw?: string) {
+    const tag = normaliseTag(raw ?? tagInput)
     if (!tag || editing.tags?.includes(tag)) return
     setEditing(p => ({ ...p, tags: [...(p.tags ?? []), tag] }))
     setTagInput('')
+  }
+
+  // ── Bulk tagging ─────────────────────────────────────────────────────────
+  // Multi-select already existed but could only delete, so putting one tag on ten URLs
+  // meant opening ten dialogs. Reuses the per-bookmark PATCH route rather than adding a
+  // new bulk endpoint, so the existing field allowlist and RLS checks still apply, and
+  // merges into each bookmark's current tags instead of replacing them.
+  async function bulkAddTag() {
+    const tag = normaliseTag(bulkTagInput)
+    if (!tag || selected.size === 0) return
+    setBulkTagging(true)
+    try {
+      const targets = bookmarks.filter(b => selected.has(b.id) && !b.tags.includes(tag))
+      if (targets.length === 0) {
+        toast.info(`All ${selected.size} already tagged "${tag}"`)
+        setBulkTagInput('')
+        return
+      }
+      const results = await Promise.all(targets.map(b =>
+        fetch(`/api/bookmarks/${b.id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ tags: [...b.tags, tag] }),
+        }).then(r => r.ok).catch(() => false)
+      ))
+      const failed = results.filter(ok => !ok).length
+      const already = selected.size - targets.length
+      if (failed) toast.error(`Tagged ${results.length - failed}, ${failed} failed`)
+      else toast.success(`Tagged ${targets.length} bookmark${targets.length !== 1 ? 's' : ''} with "${tag}"`
+        + (already ? ` (${already} already had it)` : ''))
+      setBulkTagInput('')
+      fetchBookmarks()
+    } finally { setBulkTagging(false) }
   }
 
   async function saveEdit() {
@@ -564,6 +608,45 @@ export default function BookmarksPage() {
             )}
 
             <div style={{ flex: 1 }} />
+
+            {/* Apply one tag to everything selected — the whole point of grouping URLs.
+                Without this, tagging ten links meant opening ten dialogs. */}
+            {selected.size > 0 && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <input
+                  list="bulk-tag-options"
+                  placeholder="Tag selected..."
+                  value={bulkTagInput}
+                  onChange={e => setBulkTagInput(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter') bulkAddTag() }}
+                  style={{
+                    width: 150, padding: '6px 10px', borderRadius: 8, fontSize: 13,
+                    border: '1px solid var(--border)', backgroundColor: 'var(--card)',
+                    color: 'var(--foreground)', outline: 'none',
+                  }}
+                />
+                {/* Native datalist so existing tags autocomplete as you type, which keeps
+                    bulk-applied tags matching the collections that already exist. */}
+                <datalist id="bulk-tag-options">
+                  {allTags.map(t => <option key={t} value={t} />)}
+                </datalist>
+                <button type="button"
+                  onClick={bulkAddTag}
+                  disabled={bulkTagging || !bulkTagInput.trim()}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 6,
+                    padding: '6px 14px', borderRadius: 8,
+                    backgroundColor: 'color-mix(in srgb, var(--primary) 12%, transparent)',
+                    border: '1px solid color-mix(in srgb, var(--primary) 35%, transparent)',
+                    color: 'var(--primary)', fontSize: 13, fontWeight: 600,
+                    cursor: bulkTagging || !bulkTagInput.trim() ? 'default' : 'pointer',
+                    opacity: bulkTagging || !bulkTagInput.trim() ? 0.5 : 1,
+                  }}
+                >
+                  <Tag size={13} /> {bulkTagging ? 'Tagging…' : `Tag ${selected.size}`}
+                </button>
+              </div>
+            )}
 
             {/* Single smart delete button */}
             {selected.size > 0 ? (
@@ -1306,8 +1389,40 @@ export default function BookmarksPage() {
               </div>
               <div className="flex gap-2">
                 <Input placeholder="Add tag..." value={tagInput} onChange={e => setTagInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && addTag()} className="text-xs" />
-                <Button variant="outline" size="sm" onClick={addTag}>Add</Button>
+                <Button variant="outline" size="sm" onClick={() => addTag()}>Add</Button>
               </div>
+              {/* Tags a bookmark already uses elsewhere. Grouping is exact-match, so
+                  retyping a tag from memory is how collections quietly end up split in
+                  two; tapping an existing one guarantees the strings match. */}
+              {(() => {
+                const typed = normaliseTag(tagInput)
+                const available = allTags
+                  .filter(t => !(editing.tags ?? []).includes(t))
+                  .filter(t => !typed || t.includes(typed))
+                if (available.length === 0) return null
+                return (
+                  <div style={{ marginTop: 8 }}>
+                    <p style={{ fontSize: 10, color: 'var(--muted-foreground)', margin: '0 0 5px', letterSpacing: '0.04em', textTransform: 'uppercase' }}>
+                      {typed ? 'Matching tags' : 'Your tags'}
+                    </p>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                      {available.slice(0, 14).map(t => (
+                        <button key={t} type="button" onClick={() => addTag(t)}
+                          style={{
+                            fontSize: 11, padding: '3px 9px', borderRadius: 99, cursor: 'pointer',
+                            border: '1px solid var(--border)', background: 'transparent',
+                            color: 'var(--secondary-foreground)',
+                          }}
+                          onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--primary)'; e.currentTarget.style.color = 'var(--primary)' }}
+                          onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--secondary-foreground)' }}
+                        >
+                          + {t}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )
+              })()}
             </div>
           </div>
           <div className="flex justify-end gap-2 mt-4">
