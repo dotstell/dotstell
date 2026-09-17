@@ -1206,6 +1206,7 @@ const ToolBtn = React.forwardRef<HTMLButtonElement, {
     <button
       ref={ref}
       type="button" title={title} onClick={onClick} disabled={disabled}
+      className="touch-target-dense"
       style={{
         width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center',
         borderRadius: 6, border: 'none', cursor: disabled ? 'not-allowed' : 'pointer',

@@ -22,10 +22,12 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
             'underline text-[var(--primary)] bg-transparent p-0 h-auto': variant === 'link',
           },
           {
-            'text-xs px-2.5 py-1.5': size === 'sm',
-            'text-sm px-4 py-2': size === 'md',
+            'text-xs px-2.5 py-1.5 touch-target-y': size === 'sm',
+            'text-sm px-4 py-2 touch-target-y': size === 'md',
             'text-base px-6 py-2.5': size === 'lg',
-            'h-8 w-8 p-0': size === 'icon',
+            // touch-target lifts this to 44px under a coarse pointer only, so mouse
+            // layouts keep the tighter 32px icon button they are designed around.
+            'h-8 w-8 p-0 touch-target': size === 'icon',
           },
           className
         )}

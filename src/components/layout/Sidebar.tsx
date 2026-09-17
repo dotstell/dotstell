@@ -536,7 +536,7 @@ function SidebarIconBtn({ as, href, active, danger, children, onMouseEnter, onMo
       : 'var(--sidebar-muted)'
 
   const baseStyle: React.CSSProperties = {
-    width: '100%', height: stacked ? 46 : 40, borderRadius: 8,
+    width: '100%', height: stacked ? 48 : 40, minHeight: 40, borderRadius: 8,
     display: 'flex', flexDirection: stacked ? 'column' : 'row',
     alignItems: 'center', justifyContent: 'center',
     cursor: 'pointer', transition: 'background 0.15s, color 0.15s',
@@ -545,6 +545,10 @@ function SidebarIconBtn({ as, href, active, danger, children, onMouseEnter, onMo
     color: fgColor,
     textDecoration: 'none',
   }
+
+  // touch-target-y raises these to 44px under a coarse pointer and does nothing for a
+  // mouse, so the desktop sidebar keeps its current rhythm.
+  const className = 'touch-target-y'
 
   function handleEnter(e: React.MouseEvent<HTMLElement>) {
     setHovered(true)
@@ -558,14 +562,14 @@ function SidebarIconBtn({ as, href, active, danger, children, onMouseEnter, onMo
 
   if (as === 'link' && href) {
     return (
-      <Link href={href} style={baseStyle} onMouseEnter={handleEnter} onMouseLeave={handleLeave}>
+      <Link href={href} className={className} style={baseStyle} onMouseEnter={handleEnter} onMouseLeave={handleLeave}>
         {children}
       </Link>
     )
   }
 
   return (
-    <button type="button" style={baseStyle} onMouseEnter={handleEnter} onMouseLeave={handleLeave} onClick={onClick}>
+    <button type="button" className={className} style={baseStyle} onMouseEnter={handleEnter} onMouseLeave={handleLeave} onClick={onClick}>
       {children}
     </button>
   )

@@ -559,8 +559,9 @@ ${sanitizeHtmlForPrint(note.content ?? '')}
                 type="button"
                 title="More actions"
                 onClick={e => { setMoreMenuRect((e.currentTarget as HTMLElement).getBoundingClientRect()); setMoreMenuOpen(v => !v) }}
+                className="touch-target"
                 style={{
-                  display: 'flex', alignItems: 'center',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
                   padding: 6, borderRadius: 7,
                   border: '1px solid var(--border)',
                   background: moreMenuOpen ? 'var(--accent)' : 'none',
@@ -631,8 +632,9 @@ ${sanitizeHtmlForPrint(note.content ?? '')}
               type="button"
               title="Outline & links"
               onClick={() => setMobilePanel(p => !p)}
+              className="touch-target"
               style={{
-                display: 'flex', alignItems: 'center',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
                 padding: 6, borderRadius: 7,
                 border: '1px solid var(--border)', background: mobilePanel ? 'var(--accent)' : 'none',
                 color: mobilePanel ? 'var(--foreground)' : 'var(--muted-foreground)', cursor: 'pointer',
@@ -647,10 +649,11 @@ ${sanitizeHtmlForPrint(note.content ?? '')}
           {aiConfigured && (
             <button
               type="button"
+              className="touch-target"
               title="AI Chat — ask questions about your notes (RAG)"
               onClick={() => setChatOpen(c => !c)}
               style={{
-                display: 'flex', alignItems: 'center', gap: 5,
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
                 padding: isMobile ? 6 : '5px 10px', borderRadius: 7,
                 border: `1px solid ${chatOpen ? 'color-mix(in srgb, var(--primary) 40%, transparent)' : 'var(--border)'}`,
                 background: chatOpen ? 'color-mix(in srgb, var(--primary) 12%, transparent)' : 'none',
@@ -668,10 +671,11 @@ ${sanitizeHtmlForPrint(note.content ?? '')}
           {aiConfigured && (
             <button
               type="button"
+              className="touch-target"
               title="AI Writing — draft from scratch or improve existing content"
               onClick={() => { setWritingFormat(undefined); setWritingOpen(w => !w) }}
               style={{
-                display: 'flex', alignItems: 'center', gap: 5,
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
                 padding: isMobile ? 6 : '5px 10px', borderRadius: 7,
                 border: `1px solid ${writingOpen ? 'color-mix(in srgb, var(--primary) 40%, transparent)' : 'var(--border)'}`,
                 background: writingOpen ? 'color-mix(in srgb, var(--primary) 12%, transparent)' : 'none',

@@ -647,8 +647,13 @@ body {
 }
 .md-content--compact blockquote { padding: 0.3em 0.6em 0.3em 0.7em; }
 
-/* ── Mobile layout ───────────────────────────────── */
-@media (max-width: 767px) {
+/* ── Compact layout ──────────────────────────────────────────────────────────
+   Must stay in step with the compact tier in hooks/useBreakpoint.ts (< 600px).
+   These rules assume the bottom-nav shell: no sidebar occupying the left edge,
+   and a fixed header/hamburger to clear. At 600px and up a 64px rail *is*
+   present, so forcing .app-main's margin to 0 there would slide the content
+   underneath it — which is exactly what happened while this said 767px. */
+@media (max-width: 599px) {
   .page-container {
     padding: 64px 16px 24px !important;
   }
@@ -657,5 +662,65 @@ body {
   }
   .app-main {
     margin-left: 0 !important;
+  }
+}
+
+/* ── Touch ergonomics ───────────────────────────────────────────────────────
+   Everything here is gated on a coarse pointer, so mouse-driven layouts keep
+   their exact current density. Layout structure is decided by width elsewhere
+   (see hooks/useBreakpoint.ts); this block only adjusts how things feel under
+   a finger. */
+@media (pointer: coarse) {
+
+  /* iOS Safari zooms the whole page whenever focus lands in a field whose text
+     is smaller than 16px, so every tap into a search box or note title yanked
+     the layout about. Raising the floor to 16px is the only fix that does not
+     involve disabling pinch-zoom, which would be worse for accessibility.
+     !important is unavoidable: nearly every field here sets its size either
+     inline or through a Tailwind class, and both outrank a bare element
+     selector. */
+  input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='color']),
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
+
+  /* Removes the ~300ms delay iOS holds every tap for while it waits to see if
+     a double-tap-to-zoom is coming, which makes the whole UI feel laggy. */
+  button, a, [role='button'], summary, label {
+    touch-action: manipulation;
+  }
+
+  /* The default grey flash is crude and fires on the wrong element in nested
+     controls; an explicit active state reads as deliberate feedback instead. */
+  button, a, [role='button'] {
+    -webkit-tap-highlight-color: transparent;
+  }
+  button:active, a:active, [role='button']:active {
+    opacity: 0.65;
+  }
+
+  /* Apple's HIG puts the minimum comfortable target at 44px and Material at
+     48px; the icon buttons in this app sit closer to 26-32px, which is a lot
+     of missed taps. Applied through utility classes rather than a blanket
+     `button` rule so that tightly packed rows (toolbars, chips) are not forced
+     apart, and so each use is a deliberate, reviewable choice. */
+  .touch-target {
+    min-width: 44px;
+    min-height: 44px;
+  }
+  /* For controls that only need vertical room — full-width rows, list items —
+     where widening would fight the layout. */
+  .touch-target-y {
+    min-height: 44px;
+  }
+
+  /* Dense clusters — the editor toolbar packs ~20 controls into one strip. Making each
+     a full 44px square would push it onto several rows on a tablet in portrait and eat
+     the writing space we just recovered, so height gets the full target (the axis that
+     causes most mis-taps in a horizontal strip) while width grows more modestly. */
+  .touch-target-dense {
+    min-width: 38px;
+    min-height: 44px;
   }
 }
