@@ -51,13 +51,17 @@ export class ProviderError extends Error {
 }
 
 /**
- * Prepaid providers (OpenAI especially) return 429 for two very different things: genuine
- * transient rate limiting, and an account with no credits left (`insufficient_quota`).
- * They need opposite advice — "wait and retry" never resolves an empty balance — so the
- * raw body has to be inspected to tell them apart.
+ * Prepaid providers signal "this account has no money left" in ways that are otherwise
+ * indistinguishable from ordinary, transient failures — and the advice is opposite, since
+ * retrying never refills a balance. They do not even agree on a status code:
+ *   OpenAI    → 429, `insufficient_quota`      (looks like rate limiting)
+ *   Anthropic → 400, "credit balance is too low" (looks like a malformed request)
+ * So this is matched on body text regardless of status. The patterns are deliberately
+ * specific: Gemini's free-tier 429 ("Quota exceeded for quota metric …") must NOT match,
+ * because it genuinely does clear on its own and has its own message below.
  */
-function isQuotaExhausted(rawMsg: string): boolean {
-  return /insufficient_quota|exceeded your current quota|check your plan and billing/i.test(rawMsg)
+function isOutOfCredits(rawMsg: string): boolean {
+  return /insufficient_quota|exceeded your current quota|check your plan and billing|credit balance is too low|billing_not_active/i.test(rawMsg)
 }
 
 // Provider-specific overrides for specific status codes
@@ -83,12 +87,17 @@ function cleanRawMessage(raw: string): string {
  * UI can render the help link as a clickable anchor without parsing raw URLs.
  */
 export function providerError(label: string, status: number, rawMsg: string): ProviderError {
-  const quotaGone = status === 429 && isQuotaExhausted(rawMsg)
-  const help      = HELP[label as ProviderName]?.[status]
-  const fixedMsg  = PROVIDER_STATUS_MESSAGES[label as ProviderName]?.[status] ?? STATUS_MESSAGES[status]
+  const creditsGone = isOutOfCredits(rawMsg)
+  const fixedMsg    = PROVIDER_STATUS_MESSAGES[label as ProviderName]?.[status] ?? STATUS_MESSAGES[status]
+  // Out of credits is a billing problem whatever status the provider chose to report it
+  // with, so point at the billing link (the 429 entry) rather than this status's link,
+  // which for Anthropic's 400 would otherwise be no link at all.
+  const help        = creditsGone
+    ? HELP[label as ProviderName]?.[429] ?? HELP[label as ProviderName]?.[status]
+    : HELP[label as ProviderName]?.[status]
 
   let msg: string
-  if (quotaGone) {
+  if (creditsGone) {
     // Distinct from ordinary rate limiting: this only clears by topping up the account.
     msg = 'Out of API credits — this key has no remaining balance, so retrying will not help'
   } else if (status === 404 || status === 400) {

@@ -43,9 +43,12 @@ const PROVIDER_LABELS: Record<string, string> = {
 
 // Models matching a chat prefix that cannot actually serve /chat/completions. Without this
 // they show up in the model picker, and picking one makes every request fail permanently.
+// 'guard' covers Groq's llama-guard-* safety classifiers, which slip through on the
+// 'llama' prefix but only return content-policy labels, not chat completions.
 const NON_CHAT_PATTERNS = [
   'realtime', 'audio', 'transcribe', 'tts', 'whisper',
   'image', 'dall-e', 'moderation', 'embedding', 'search-preview', 'computer-use',
+  'guard', 'prompt-guard',
 ]
 
 export async function POST(req: NextRequest) {
