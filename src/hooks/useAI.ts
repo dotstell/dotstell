@@ -6,6 +6,14 @@ import { buildAssistMessages, buildSummarizeMessages, buildTitleMessages, buildT
 import { createClient as createSupabaseBrowserClient } from '@/lib/supabase/client'
 
 function friendlyAIError(msg: string): string {
+  // Errors from lib/ai/error.ts are already provider-labelled, specific, and may carry a
+  // "|||url|||label" help link the UI renders as an anchor. They arrive here looking like
+  // "OpenAI — Out of API credits …". The keyword guesses below would overwrite that with a
+  // vaguer canned string and drop the link -- notably turning OpenAI's insufficient_quota
+  // ("add credits") into "wait a moment and try again", advice that never resolves it.
+  // Anything already in that shape is left exactly as-is.
+  if (/^(OpenAI|Anthropic|Gemini|Groq|Ollama) — /.test(msg)) return msg
+
   const m = msg.toLowerCase()
   if (m.includes('401') || m.includes('unauthorized') || m.includes('api_key') || m.includes('incorrect api key') || m.includes('invalid api key'))
     return 'Invalid API key — check your key in AI Settings.'

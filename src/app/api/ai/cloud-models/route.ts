@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { rateLimit }    from '@/lib/ratelimit'
-import { providerError, extractMessage } from '@/lib/ai/error'
+import { providerError, extractMessage, errorStatus } from '@/lib/ai/error'
 
 // POST /api/ai/cloud-models
 // Body: { provider: "openai"|"anthropic"|"groq", apiKey: string }
@@ -32,6 +32,22 @@ const EMBED_PREFIXES: Record<string, string[]> = {
   openai: ['text-embedding-'],
 }
 
+// Capitalising the provider id gives "Openai", which does not match the "OpenAI" key the
+// help-link table in lib/ai/error.ts is keyed on -- so OpenAI alone silently lost its
+// "check your API key / add billing credits" links. Anthropic and Groq matched by luck.
+const PROVIDER_LABELS: Record<string, string> = {
+  openai:    'OpenAI',
+  groq:      'Groq',
+  anthropic: 'Anthropic',
+}
+
+// Models matching a chat prefix that cannot actually serve /chat/completions. Without this
+// they show up in the model picker, and picking one makes every request fail permanently.
+const NON_CHAT_PATTERNS = [
+  'realtime', 'audio', 'transcribe', 'tts', 'whisper',
+  'image', 'dall-e', 'moderation', 'embedding', 'search-preview', 'computer-use',
+]
+
 export async function POST(req: NextRequest) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -59,7 +75,7 @@ export async function POST(req: NextRequest) {
     })
     if (!res.ok) {
       const raw   = await res.text().catch(() => res.statusText)
-      const label = provider.charAt(0).toUpperCase() + provider.slice(1)
+      const label = PROVIDER_LABELS[provider] ?? provider
       const err   = providerError(label, res.status, extractMessage(raw))
       return NextResponse.json({ error: err.message }, { status: res.status })
     }
@@ -70,12 +86,16 @@ export async function POST(req: NextRequest) {
     const chatPrefixes  = CHAT_PREFIXES[provider]  ?? []
     const embedPrefixes = EMBED_PREFIXES[provider] ?? []
 
-    const models      = allIds.filter(id => chatPrefixes.some(p  => id.toLowerCase().startsWith(p)))
+    const models = allIds.filter(id => {
+      const lower = id.toLowerCase()
+      return chatPrefixes.some(p => lower.startsWith(p))
+        && !NON_CHAT_PATTERNS.some(p => lower.includes(p))
+    })
     const embedModels = allIds.filter(id => embedPrefixes.some(p => id.toLowerCase().startsWith(p)))
 
     return NextResponse.json({ models, embedModels })
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Failed to fetch models'
-    return NextResponse.json({ error: msg }, { status: 502 })
+    return NextResponse.json({ error: msg }, { status: errorStatus(err) })
   }
 }

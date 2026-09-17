@@ -3,6 +3,14 @@ import { createClient } from '@/lib/supabase/server'
 import { rateLimit }    from '@/lib/ratelimit'
 import { embed, validateConfig } from '@/lib/ai/client'
 import { AIConfig } from '@/lib/ai/types'
+import { errorStatus } from '@/lib/ai/error'
+
+// Provider calls allow up to 30s (see lib/ai/providers/*), but Vercel's default function
+// limit is well under that -- the platform kills the invocation first and returns a raw
+// non-JSON 502/504 that no error handling in this file can catch or explain. Raising the
+// ceiling above the provider timeout means a slow model surfaces as our own readable
+// "timed out" error instead of a bare gateway error.
+export const maxDuration = 60
 
 // POST /api/ai/semantic-search
 // Body: { config, query, types?, limit? }
@@ -129,6 +137,6 @@ export async function POST(req: NextRequest) {
         { status: 503 },
       )
     }
-    return NextResponse.json({ error: msg }, { status: 502 })
+    return NextResponse.json({ error: msg }, { status: errorStatus(err) })
   }
 }

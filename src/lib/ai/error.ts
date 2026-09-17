@@ -26,6 +26,7 @@ const HELP: Partial<Record<ProviderName, Partial<Record<number, HelpAction>>>> =
 }
 
 const STATUS_MESSAGES: Record<number, string> = {
+  400: 'Provider rejected the request',
   401: 'Invalid API key — double-check what you pasted',
   403: 'Invalid API key or insufficient permissions',
   429: 'Rate limit or quota exceeded',
@@ -33,6 +34,30 @@ const STATUS_MESSAGES: Record<number, string> = {
   500: 'Provider server error — try again later',
   502: 'Provider unreachable — try again later',
   503: 'Provider unavailable — try again later',
+}
+
+/**
+ * Carries the upstream provider's HTTP status alongside the message so API routes can
+ * return the real status instead of flattening everything to a generic 502 — a 502 tells
+ * the user "provider unreachable" when the actual cause was a bad key or empty balance.
+ */
+export class ProviderError extends Error {
+  readonly status: number
+  constructor(message: string, status: number) {
+    super(message)
+    this.name   = 'ProviderError'
+    this.status = status
+  }
+}
+
+/**
+ * Prepaid providers (OpenAI especially) return 429 for two very different things: genuine
+ * transient rate limiting, and an account with no credits left (`insufficient_quota`).
+ * They need opposite advice — "wait and retry" never resolves an empty balance — so the
+ * raw body has to be inspected to tell them apart.
+ */
+function isQuotaExhausted(rawMsg: string): boolean {
+  return /insufficient_quota|exceeded your current quota|check your plan and billing/i.test(rawMsg)
 }
 
 // Provider-specific overrides for specific status codes
@@ -57,17 +82,37 @@ function cleanRawMessage(raw: string): string {
  * The message is encoded as `"label — human message|||url|||link label"` so the
  * UI can render the help link as a clickable anchor without parsing raw URLs.
  */
-export function providerError(label: string, status: number, rawMsg: string): Error {
-  const help     = HELP[label as ProviderName]?.[status]
-  const fixedMsg = PROVIDER_STATUS_MESSAGES[label as ProviderName]?.[status] ?? STATUS_MESSAGES[status]
-  // For 404 include the raw provider message — it names the missing model/path for easier diagnosis
-  const msg      = status === 404
-    ? `${STATUS_MESSAGES[404]} (${cleanRawMessage(rawMsg)})`
-    : fixedMsg ?? `HTTP ${status}: ${cleanRawMessage(rawMsg)}`
-  const full     = help
+export function providerError(label: string, status: number, rawMsg: string): ProviderError {
+  const quotaGone = status === 429 && isQuotaExhausted(rawMsg)
+  const help      = HELP[label as ProviderName]?.[status]
+  const fixedMsg  = PROVIDER_STATUS_MESSAGES[label as ProviderName]?.[status] ?? STATUS_MESSAGES[status]
+
+  let msg: string
+  if (quotaGone) {
+    // Distinct from ordinary rate limiting: this only clears by topping up the account.
+    msg = 'Out of API credits — this key has no remaining balance, so retrying will not help'
+  } else if (status === 404 || status === 400) {
+    // Include the raw provider text — it names the offending model/param, which is the
+    // whole diagnostic value for these two (e.g. a model that rejects system messages).
+    msg = `${STATUS_MESSAGES[status]} (${cleanRawMessage(rawMsg)})`
+  } else {
+    msg = fixedMsg ?? `HTTP ${status}: ${cleanRawMessage(rawMsg)}`
+  }
+
+  const full = help
     ? `${label} — ${msg}|||${help.url}|||${help.label}`
     : `${label} — ${msg}`
-  return new Error(full)
+  return new ProviderError(full, status)
+}
+
+/**
+ * Status to return for a caught AI error: the provider's own status when we know it,
+ * otherwise 502 (a genuine "couldn't reach the provider" — network failure, DNS, timeout).
+ * Routes previously hardcoded 502 for everything, which made a bad key, an empty balance
+ * and a wrong model name all indistinguishable from the provider being down.
+ */
+export function errorStatus(err: unknown): number {
+  return err instanceof ProviderError ? err.status : 502
 }
 
 /** Extract the human-readable message from a raw JSON or plain-text error response body. */
