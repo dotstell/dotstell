@@ -668,10 +668,16 @@ export function RichTextEditor({
 
         <Divider />
 
-        {/* Heading + font */}
-        <HeadingDropdown editor={editor} ref={headingRef} open={headingMenuOpen} isMobile={isCompact}
+        {/* Heading + font. isMobile picks position:'fixed' (anchored via getBoundingClientRect,
+            escapes any clipping ancestor) over position:'absolute' (anchored to the button,
+            clipped by it). That anchor now MUST include isTouch, not just isCompact: since
+            toolbarScrolls made this row overflow-x:auto on any touch device, CSS forces its
+            overflow-y to auto too, so an absolute-positioned panel taller than the ~40px
+            toolbar strip — the font list is up to 420px — would get clipped to a sliver on an
+            iPad, which is still isCompact:false. */}
+        <HeadingDropdown editor={editor} ref={headingRef} open={headingMenuOpen} isMobile={isCompact || isTouch}
           setOpen={v => { if (v) { setFontMenuOpen(false); setColorPickerOpen(false); setHlPickerOpen(false) } setHeadingMenuOpen(v) }} />
-        <FontDropdown editor={editor} open={fontMenuOpen} ref={fontRef} isMobile={isCompact}
+        <FontDropdown editor={editor} open={fontMenuOpen} ref={fontRef} isMobile={isCompact || isTouch}
           setOpen={v => { if (v) { setHeadingMenuOpen(false); setColorPickerOpen(false); setHlPickerOpen(false) } setFontMenuOpen(v) }} />
 
         <Divider />
@@ -707,11 +713,11 @@ export function RichTextEditor({
           </button>
           {colorPickerOpen && (
             <>
-              {isCompact && <div style={{ position: 'fixed', inset: 0, zIndex: 499, backgroundColor: 'rgba(0,0,0,0.35)' }} onClick={() => setColorPickerOpen(false)} />}
+              {(isCompact || isTouch) && <div style={{ position: 'fixed', inset: 0, zIndex: 499, backgroundColor: 'rgba(0,0,0,0.35)' }} onClick={() => setColorPickerOpen(false)} />}
               <ColorPicker
                 colors={TEXT_COLORS}
                 activeValue={activeColor}
-                isMobile={isCompact}
+                isMobile={isCompact || isTouch}
                 onSelect={v => {
                   if (v) editor.chain().focus().setColor(v).run()
                   else editor.chain().focus().unsetColor().run()
@@ -741,11 +747,11 @@ export function RichTextEditor({
           </button>
           {hlPickerOpen && (
             <>
-              {isCompact && <div style={{ position: 'fixed', inset: 0, zIndex: 499, backgroundColor: 'rgba(0,0,0,0.35)' }} onClick={() => setHlPickerOpen(false)} />}
+              {(isCompact || isTouch) && <div style={{ position: 'fixed', inset: 0, zIndex: 499, backgroundColor: 'rgba(0,0,0,0.35)' }} onClick={() => setHlPickerOpen(false)} />}
               <HighlightPicker
                 colors={HIGHLIGHT_COLORS}
                 editor={editor}
-                isMobile={isCompact}
+                isMobile={isCompact || isTouch}
                 onSelect={v => {
                   if (v) editor.chain().focus().setHighlight({ color: v }).run()
                   else editor.chain().focus().unsetHighlight().run()
