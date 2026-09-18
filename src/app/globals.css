@@ -649,16 +649,16 @@ body {
 
 /* ── Compact layout ──────────────────────────────────────────────────────────
    Must stay in step with the compact tier in hooks/useBreakpoint.ts (< 600px).
-   These rules assume the bottom-nav shell: no sidebar occupying the left edge,
-   and a fixed header/hamburger to clear. At 600px and up a 64px rail *is*
-   present, so forcing .app-main's margin to 0 there would slide the content
-   underneath it — which is exactly what happened while this said 767px. */
+   The bottom-nav shell has no top chrome at all — its hamburger lives inside
+   BottomNav, at the bottom — so nothing here needs top clearance. The 64px
+   top padding this used to carry was leftover from an earlier top-app-bar
+   design that predates BottomNav; it produced exactly the large dead strip
+   above the greeting that showed up as "so much empty space" on mobile
+   dashboards. (.note-header-bar was the other half of that old design and is
+   unused by any component now, so it is removed rather than corrected.) */
 @media (max-width: 599px) {
   .page-container {
-    padding: 64px 16px 24px !important;
-  }
-  .note-header-bar {
-    padding-left: 56px !important;
+    padding: 16px 16px 24px !important;
   }
   .app-main {
     margin-left: 0 !important;
@@ -722,5 +722,21 @@ body {
   .touch-target-dense {
     min-width: 38px;
     min-height: 44px;
+  }
+}
+
+/* ── Landing page nav ────────────────────────────────────────────────────────
+   On an actual phone (<480px) there isn't room for About + GitHub + Sign in +
+   Get started without wrapping or clipping — confirmed by screenshot: "Get
+   started free" rendered partly off-screen. About/GitHub are secondary to a
+   visitor deciding whether to sign up, so they are what gives way. */
+@media (max-width: 479px) {
+  .landing-nav-secondary {
+    /* The GitHub link sets display:'flex' inline (to align its icon+text); an inline
+       style always wins over a stylesheet rule regardless of selector specificity, so
+       plain `display: none` here was silently overridden and only the About link (no
+       inline display) actually hid. !important is the only way a stylesheet class can
+       still win against an inline style. */
+    display: none !important;
   }
 }

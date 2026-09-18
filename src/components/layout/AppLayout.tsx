@@ -120,6 +120,13 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     window.visualViewport?.addEventListener('resize', updateVh)
     window.visualViewport?.addEventListener('scroll', updateVh)
     window.addEventListener('resize', updateVh)
+    // orientationchange fires before resize settles on some browsers (see
+    // useBreakpoint's own comment on this), and rotating while a keyboard is open is a
+    // known trigger for the OS to briefly dismiss and re-show the keyboard as it relays
+    // out for the new orientation. The 250ms poll below would eventually converge on the
+    // right value regardless, but reacting to the event directly closes the gap sooner
+    // instead of leaving it to chance.
+    window.addEventListener('orientationchange', updateVh)
     // Belt-and-suspenders: some WKWebView-embedding browsers (Chrome/Firefox/Edge on iOS)
     // have been observed to simply never fire visualViewport's resize/scroll events for
     // certain triggers (their own toolbar hiding, an on-screen keyboard opening) at all --
@@ -138,6 +145,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       window.visualViewport?.removeEventListener('resize', updateVh)
       window.visualViewport?.removeEventListener('scroll', updateVh)
       window.removeEventListener('resize', updateVh)
+      window.removeEventListener('orientationchange', updateVh)
       document.removeEventListener('focusin', updateVh, true)
       document.removeEventListener('focusout', updateVh, true)
       clearInterval(interval)

@@ -224,16 +224,16 @@ export function RichTextEditor({
   content, onChange, onTextChange, placeholder = 'Start writing… (type / for commands)',
   onFocusMode, focusMode, onWikiLinksChange, onEditorReady, onAIAssist,
 }: RichTextEditorProps) {
-  const { tier } = useBreakpoint()
+  const { tier, isTouch } = useBreakpoint()
   const isCompact = tier === 'compact'
-
-  // Matches AppLayout's own --actual-vh sync (see the useEditor() onFocus/onBlur below
-  // for why this editor needs its own copy instead of relying solely on that effect).
-  function refreshActualVh() {
-    const h = window.visualViewport?.height ?? window.innerHeight
-    document.documentElement.style.setProperty('--actual-vh', `${h}px`)
-    void document.body.offsetHeight
-  }
+  // The toolbar has ~9 groups and 30+ individual controls, so wrapping onto extra rows on
+  // a tablet in portrait — even at medium tier's full content width, further narrowed by
+  // touch-target-dense's wider buttons — eats real writing space, worse the moment the
+  // keyboard is also up. A mouse user can comfortably reach a second row and may prefer
+  // it over horizontal scrolling; a finger strongly prefers one scrollable row (a swipe is
+  // natural) over hunting across rows while the keyboard covers half the screen. So this
+  // keys off touch, not width alone, unlike isCompact above.
+  const toolbarScrolls = isCompact || isTouch
 
   // Floating AI Assist bubble — appears above selected text when onAIAssist is wired up
   const [assistBubble, setAssistBubble] = useState<{ x: number; y: number } | null>(null)
@@ -400,15 +400,6 @@ export function RichTextEditor({
         }
       },
     },
-    // iOS Safari has been observed not reliably firing visualViewport's 'resize' event when
-    // a contentEditable region (like this editor) is what triggers the on-screen keyboard --
-    // unlike a plain <input>. Without that event, AppLayout's --actual-vh sync never runs,
-    // leaving the page's height stuck at its pre-keyboard value: a blank gap appears between
-    // the status bar and the keyboard's actual top edge. Recomputing directly on editor
-    // focus/blur, after a delay long enough for the keyboard's open/close animation to
-    // finish, is a targeted fallback for exactly this trigger.
-    onFocus: () => setTimeout(refreshActualVh, 350),
-    onBlur: () => setTimeout(refreshActualVh, 350),
     onUpdate: ({ editor }) => {
       const html = editor.getHTML()
       onChange(html)
@@ -659,11 +650,11 @@ export function RichTextEditor({
       {/* Dimmed tool area */}
       <div style={{
         display: 'flex', alignItems: 'center', gap: 2,
-        flexWrap: isCompact ? 'nowrap' : 'wrap',
-        overflowX: isCompact ? 'auto' : 'visible',
+        flexWrap: toolbarScrolls ? 'nowrap' : 'wrap',
+        overflowX: toolbarScrolls ? 'auto' : 'visible',
         scrollbarWidth: 'none',
         padding: '5px 6px 5px 10px',
-        rowGap: isCompact ? 0 : 4, flex: 1, minWidth: 0,
+        rowGap: toolbarScrolls ? 0 : 4, flex: 1, minWidth: 0,
         opacity: sourceMode ? 0.35 : 1,
         pointerEvents: sourceMode ? 'none' : 'auto',
         transition: 'opacity 0.2s',
