@@ -1,6 +1,7 @@
 'use client'
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { use } from 'react'
+import { createPortal } from 'react-dom'
 import { useRouter } from 'next/navigation'
 import {
   X, Maximize2, Minimize2, Plus, FileText,
@@ -64,11 +65,12 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
   const [noteId, setNoteId]           = useState<string | null>(isNew ? null : id)
   const [subNotes, setSubNotes]       = useState<Note[]>([])
   const [wikiSyncCount, setWikiSyncCount] = useState(0)
-  const { tier, showEditorSidePanel, showRail, isTouch, isShortViewport } = useBreakpoint()
+  const { tier, showEditorSidePanel, isTouch, isShortViewport } = useBreakpoint()
   // Header chrome collapses into a single menu only when width is genuinely tight.
   const isMobile = tier === 'compact'
   // Header actions collapse into one ⋯ menu wherever the row would otherwise wrap: phones, a phone
   // in landscape (very short), and touch tablets in portrait where the editor column is narrow.
+  const dockedPanel = tier === 'expanded'
   const compactHeader = isMobile || isShortViewport || (isTouch && tier === 'medium')
   // Tags become one swipeable line instead of wrapping onto rows that push the text down the page.
   const denseTags = isMobile || isShortViewport || tier === 'medium'
@@ -1298,14 +1300,17 @@ ${sanitizeHtmlForPrint(note.content ?? '')}
         <>
           <div
             onClick={() => setMobilePanel(false)}
-            style={{ position: 'fixed', top: 0, bottom: 0, right: 0, left: showRail ? 64 : 0, zIndex: 149, backgroundColor: 'rgba(0,0,0,0.4)' }}
+            style={{ position: 'fixed', top: 0, bottom: 0, right: 0, left: focusMode ? 0 : 'var(--sidebar-w, 0px)', zIndex: 149, backgroundColor: dockedPanel ? 'transparent' : 'rgba(0,0,0,0.4)' }}
           />
           <div style={{
-            position: 'fixed', bottom: 0, left: showRail ? 64 : 0, right: 0, zIndex: 150,
+            position: 'fixed', zIndex: 150,
             backgroundColor: 'var(--card)',
-            borderRadius: '14px 14px 0 0',
-            borderTop: '1px solid var(--border)',
-            maxHeight: '65vh', overflowY: 'auto',
+            // Landscape tablets dock the panel to the right so the note stays visible while
+            // jumping around its outline; portrait and phones use a bottom sheet.
+            ...(dockedPanel
+              ? { top: 0, bottom: 0, right: 0, width: 360, maxWidth: '45vw', borderLeft: '1px solid var(--border)', boxShadow: '-8px 0 24px rgba(0,0,0,0.25)' }
+              : { bottom: 0, left: focusMode ? 0 : 'var(--sidebar-w, 0px)', right: 0, borderRadius: '14px 14px 0 0', borderTop: '1px solid var(--border)', maxHeight: '58vh' }),
+            overflowY: 'auto',
             padding: '12px 16px',
             // Only true mobile width has AppLayout's BottomNav to clear -- reserving that
             // 56px at tablet widths (where there's no BottomNav at all) would recreate the
@@ -1314,8 +1319,8 @@ ${sanitizeHtmlForPrint(note.content ?? '')}
             display: 'flex', flexDirection: 'column', gap: 20,
           }}>
             {/* Drag handle + explicit close, so the sheet is dismissable without hunting for the backdrop */}
-            <div style={{ position: 'relative', flexShrink: 0 }}>
-              <div style={{ width: 40, height: 4, borderRadius: 2, backgroundColor: 'var(--border)', margin: '0 auto 4px' }} />
+            <div style={{ position: 'relative', flexShrink: 0, minHeight: dockedPanel ? 28 : undefined }}>
+              {!dockedPanel && <div style={{ width: 40, height: 4, borderRadius: 2, backgroundColor: 'var(--border)', margin: '0 auto 4px' }} />}
               <button type="button" aria-label="Close panel" title="Close" onClick={() => setMobilePanel(false)}
                 className="touch-target-sm"
                 style={{ position: 'absolute', right: -6, top: -8, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted-foreground)', borderRadius: 8 }}>
@@ -1330,7 +1335,7 @@ ${sanitizeHtmlForPrint(note.content ?? '')}
                 </p>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                   {headings.map((h, i) => (
-                    <button key={i} type="button" onClick={() => { scrollToHeading(h.text); setMobilePanel(false) }}
+                    <button key={i} type="button" onClick={() => scrollToHeading(h.text)}
                       style={{ textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer', fontSize: 12, color: 'var(--foreground)', padding: '3px 0', paddingLeft: (h.level - 1) * 12, opacity: 0.85 }}>
                       {h.text}
                     </button>
@@ -1508,9 +1513,13 @@ ${sanitizeHtmlForPrint(note.content ?? '')}
   if (focusMode) {
     return (
       <>
-        <div style={{ position: 'fixed', left: 0, right: 0, top: 'var(--actual-vt, 0px)', height: 'var(--actual-vh, 100dvh)', backgroundColor: 'var(--background)', zIndex: 100, display: 'flex', flexDirection: 'column', paddingBottom: 'env(safe-area-inset-bottom)' }}>
-          {editorContent}
-        </div>
+        {/* On body, not in place: the app's scroll container is its own layer in WebKit and keeps the sidebar painted over anything fixed inside it. */}
+        {createPortal(
+          <div style={{ position: 'fixed', left: 0, right: 0, top: 'var(--actual-vt, 0px)', height: 'var(--actual-vh, 100dvh)', backgroundColor: 'var(--background)', zIndex: 100, display: 'flex', flexDirection: 'column', paddingBottom: 'env(safe-area-inset-bottom)' }}>
+            {editorContent}
+          </div>,
+          document.body,
+        )}
         {aiChatOverlay}
       </>
     )

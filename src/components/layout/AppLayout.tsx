@@ -262,6 +262,13 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   // occupying horizontal space at all.
   const marginLeft = showBottomNav ? 0 : showRail ? 64 : collapsed ? 64 : 240
 
+  // Published for fixed-position overlays (note sheets, the notes list) so they start beside the
+  // sidebar instead of under it; they live in different stacking contexts, so only a shared value works.
+  useEffect(() => {
+    document.documentElement.style.setProperty('--sidebar-w', `${marginLeft}px`)
+    return () => { document.documentElement.style.removeProperty('--sidebar-w') }
+  }, [marginLeft])
+
   return (
     // position:relative + top (not transform) so fixed-position descendants keep resolving
     // against the viewport instead of this element.

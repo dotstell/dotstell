@@ -353,7 +353,7 @@ export function Sidebar({ onOpenPalette, mobileOpen: mobileOpenProp, onMobileOpe
         )}
 
         {/* ── Nav items ── */}
-        <nav style={{ flex: shortRail ? '0 0 auto' : 1, padding: railed ? '4px 12px' : '4px 8px', display: 'flex', flexDirection: 'column', gap: 2, overflowY: shortRail ? 'visible' : 'auto' }}>
+        <nav style={{ flex: shortRail ? '0 0 auto' : 1, padding: railed ? (isTouch ? '4px 6px' : '4px 12px') : '4px 8px', display: 'flex', flexDirection: 'column', gap: 2, overflowY: shortRail ? 'visible' : 'auto' }}>
           {NAV_ITEMS.map(({ href, icon: Icon, label }) => {
             const active = pathname === href || (href !== '/dashboard' && pathname.startsWith(href))
             if (railed) {
@@ -374,7 +374,7 @@ export function Sidebar({ onOpenPalette, mobileOpen: mobileOpenProp, onMobileOpe
                   {isTouch && (
                     <span style={{
                       fontSize: 9, lineHeight: 1.1, marginTop: 3,
-                      maxWidth: 52, textAlign: 'center',
+                      maxWidth: 50, textAlign: 'center',
                       overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                     }}>{label}</span>
                   )}

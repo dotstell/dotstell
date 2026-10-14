@@ -710,6 +710,7 @@ export function RichTextEditor({
           <button
             type="button"
             title="Text color"
+            onMouseDown={keepEditorFocus}
             onClick={() => { setColorPickerOpen(o => !o); setHlPickerOpen(false); setFontMenuOpen(false); setHeadingMenuOpen(false) }}
             style={{
               width: 28, height: 28, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
@@ -743,6 +744,7 @@ export function RichTextEditor({
           <button
             type="button"
             title="Highlight color"
+            onMouseDown={keepEditorFocus}
             onClick={() => { setHlPickerOpen(o => !o); setColorPickerOpen(false); setFontMenuOpen(false); setHeadingMenuOpen(false) }}
             style={{
               width: 28, height: 28, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
@@ -1552,9 +1554,13 @@ function saveRecentColor(color: string, prev: string[]): string[] {
  * clips position:fixed descendants of such a scroller to the strip, so the dimmed backdrop
  * covered only the toolbar and the picker itself was never visible.
  */
+function keepEditorFocus(e: React.MouseEvent) {
+  if ((e.target as HTMLElement).closest('button')) e.preventDefault()
+}
+
 function PopoverHost({ portal, children }: { portal: boolean; children: React.ReactNode }) {
   if (!portal) return <>{children}</>
-  return createPortal(<div data-popover-root>{children}</div>, document.body)
+  return createPortal(<div data-popover-root onMouseDown={keepEditorFocus}>{children}</div>, document.body)
 }
 
 function ColorPicker({ colors, activeValue, onSelect, isMobile }: {

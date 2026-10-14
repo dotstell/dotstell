@@ -12,12 +12,12 @@ const PANE_OPEN_KEY = 'dotstell-notes-pane-open'
 export default function NotesLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const [paneOpen, setPaneOpen] = useState(true)
-  const { tier, showBottomNav, showRail } = useBreakpoint()
+  const { tier, showBottomNav } = useBreakpoint()
   // The notes side pane overlays instead of pushing only when width is genuinely tight.
   const paneOverlays = tier !== 'expanded'
   // The overlay starts beside the tablet rail instead of underneath it, which kept the rail
   // from being tapped while the list was open.
-  const overlayLeft = showRail ? 64 : 0
+  const overlayLeft = 'var(--sidebar-w, 0px)'
 
   useEffect(() => {
     const stored = localStorage.getItem(PANE_OPEN_KEY)
