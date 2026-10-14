@@ -17,6 +17,7 @@ Notes · People · Tasks · Bookmarks · Wikilinks · Knowledge Graph · AI Inte
 
 [![GitHub Stars](https://img.shields.io/github/stars/dotstell/dotstell?style=flat-square&color=7c6aff&logo=github)](https://github.com/dotstell/dotstell/stargazers)
 [![GitHub Forks](https://img.shields.io/github/forks/dotstell/dotstell?style=flat-square&color=gray&logo=github)](https://github.com/dotstell/dotstell/network/members)
+[![Clones](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/dotstell/dotstell/main/badges/clones.json&style=flat-square)](https://github.com/dotstell/dotstell)
 [![License: AGPL-3.0](https://img.shields.io/badge/License-AGPL--3.0-7c6aff?style=flat-square)](LICENSE)
 [![Next.js](https://img.shields.io/badge/Next.js-16-black?style=flat-square&logo=next.js)](https://nextjs.org)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?style=flat-square&logo=typescript)](https://typescriptlang.org)
