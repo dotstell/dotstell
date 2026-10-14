@@ -122,7 +122,7 @@ export function NoteTabBar({ currentId, paneOpen, onTogglePane }: Props) {
   }
 
   return (
-    <div style={{
+    <div className="kb-collapsible" style={{
       display: 'flex', alignItems: 'stretch',
       height: TAB_H, flexShrink: 0,
       backgroundColor: 'var(--card)',

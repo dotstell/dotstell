@@ -725,6 +725,15 @@ body {
   }
 }
 
+/* ── Cramped typing ──────────────────────────────────────────────────────────
+   AppLayout sets data-kb-cramped while the on-screen keyboard leaves the editor too little
+   room to be usable (a phone in landscape leaves ~120px). The tab bar, title, tags, toolbar
+   and status bar are fixed-height blocks around the editor, so at that size they take all of
+   it and no text is visible. They come back as soon as the keyboard closes. */
+html[data-kb-cramped] .kb-collapsible {
+  display: none !important;
+}
+
 /* ── Landing page nav ────────────────────────────────────────────────────────
    On an actual phone (<480px) there isn't room for About + GitHub + Sign in +
    Get started without wrapping or clipping — confirmed by screenshot: "Get

@@ -35,6 +35,9 @@ function isEditable(el: Element | null): boolean {
   return false
 }
 
+// Below this visible height the note editor's surrounding chrome would leave no room for text.
+const CRAMPED_VISUAL_H = 320
+
 const USER_SCOPED_KEYS = [
   'dotstell-note-tabs',
   'dotstell-note-active-tab',
@@ -89,13 +92,31 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     let lastH = -1
     let lastTop = -1
+    let lastCramped = false
     let lastKb: boolean | null = null
+
+    // Tallest layout height seen at the current width. With interactive-widget=resizes-content
+    // the keyboard shrinks the layout viewport itself, so the layout-vs-visual delta below is
+    // ~0 on Android; the drop from this baseline is what still reveals it, including after the
+    // keyboard is dismissed while the field stays focused.
+    let baseW = -1
+    let baseH = 0
+    let layoutShrinksForKeyboard = false
 
     function keyboardIsOpen(layoutH: number, visualH: number): boolean {
       if ((layoutH - visualH) > 150) return true
       // A physical keyboard focuses fields without opening anything, so require a coarse
       // pointer before treating focus as evidence of an on-screen keyboard.
       if (!window.matchMedia('(pointer: coarse)').matches) return false
+      const w = window.innerWidth
+      if (w !== baseW) { baseW = w; baseH = layoutH }
+      baseH = Math.max(baseH, layoutH)
+      if ((baseH - layoutH) > 150) { layoutShrinksForKeyboard = true; return true }
+      // Once this browser has been seen shrinking the layout for the keyboard, the height is
+      // a reliable signal in both directions — so a field that is still focused after the
+      // keyboard was dismissed (Android back gesture) must not count as "keyboard open".
+      // Focus is only the fallback for browsers that never report any height change.
+      if (layoutShrinksForKeyboard) return false
       return isEditable(document.activeElement)
     }
 
@@ -109,10 +130,18 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       // keyboard. Shifting the shell down by offsetTop makes it cover the visible area exactly.
       const visualTop = Math.round(window.visualViewport?.offsetTop ?? 0)
       const kbOpen  = keyboardIsOpen(layoutH, visualH)
-      if (visualH === lastH && kbOpen === lastKb && visualTop === lastTop) return
+      // Typing in the editor body with almost no room left above the keyboard (phone in
+      // landscape): let the surrounding chrome get out of the way. Only for the editor
+      // itself — hiding the title or tag field while it has focus would blur it and close
+      // the keyboard on the user.
+      const cramped = kbOpen && visualH < CRAMPED_VISUAL_H
+        && (document.activeElement as HTMLElement | null)?.isContentEditable === true
+      if (visualH === lastH && kbOpen === lastKb && visualTop === lastTop && cramped === lastCramped) return
       lastH  = visualH
       lastKb = kbOpen
       lastTop = visualTop
+      lastCramped = cramped
+      document.documentElement.toggleAttribute('data-kb-cramped', cramped)
       document.documentElement.style.setProperty('--actual-vt', `${visualTop}px`)
       document.documentElement.style.setProperty('--actual-vh', `${visualH}px`)
       document.documentElement.style.setProperty('--bottom-nav-h', kbOpen ? '0px' : '56px')
@@ -155,6 +184,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       window.visualViewport?.removeEventListener('scroll', updateVh)
       window.removeEventListener('resize', updateVh)
       window.removeEventListener('orientationchange', updateVh)
+      document.documentElement.removeAttribute('data-kb-cramped')
       document.removeEventListener('focusin', updateVh, true)
       document.removeEventListener('focusout', updateVh, true)
       clearInterval(interval)

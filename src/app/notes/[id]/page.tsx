@@ -454,7 +454,7 @@ ${sanitizeHtmlForPrint(note.content ?? '')}
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, overflow: 'hidden' }}>
 
       {/* ── Header ── */}
-      <div style={{
+      <div className="kb-collapsible" style={{
         display: 'flex', flexDirection: 'column',
         padding: isMobile ? '8px 16px 0' : '12px 20px 0',
         borderBottom: '1px solid var(--border)',
@@ -752,7 +752,7 @@ ${sanitizeHtmlForPrint(note.content ?? '')}
       </div>
 
       {/* ── Tags bar ── */}
-      <div style={{
+      <div className="kb-collapsible" style={{
         display: 'flex', flexDirection: 'column',
         padding: '8px 20px',
         borderBottom: '1px solid var(--border)',
@@ -1369,7 +1369,7 @@ ${sanitizeHtmlForPrint(note.content ?? '')}
 
       {/* ── Status bar ── */}
       {noteId && !focusMode && !loading && (
-        <div style={{
+        <div className="kb-collapsible" style={{
           display: 'flex', alignItems: 'center', gap: 0,
           padding: '0 16px',
           height: 28,

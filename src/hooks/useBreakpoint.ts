@@ -56,18 +56,55 @@ export interface Breakpoint {
   showEditorSidePanel: boolean
 }
 
+function isEditableFocused(): boolean {
+  let node: Element | null = document.activeElement
+  while (node && node !== document.body) {
+    if (['INPUT', 'TEXTAREA', 'SELECT'].includes(node.tagName)) return true
+    if ((node as HTMLElement).isContentEditable) return true
+    node = node.parentElement
+  }
+  return false
+}
+
+// The viewport's height says nothing about the device's orientation while an on-screen
+// keyboard is up: the layout viewport shrinks with it (see interactiveWidget in the root
+// layout), so a portrait phone briefly looks like a 450px-tall landscape one. The screen's
+// own orientation is unaffected by the keyboard.
+function deviceIsLandscape(): boolean {
+  const type = window.screen.orientation?.type
+  return type ? type.startsWith('landscape') : window.innerWidth > window.innerHeight
+}
+
+// Last short-viewport verdict reached while no keyboard was involved, and the device
+// orientation it was reached in.
+let settled: { landscape: boolean; short: boolean } | null = null
+
 function measure(): Breakpoint {
   // innerWidth (the layout viewport) rather than visualViewport, so an open keyboard
   // pinching the visual viewport can never be mistaken for a smaller device.
   const w = window.innerWidth
   const h = window.innerHeight
 
+  const isTouch = window.matchMedia('(pointer: coarse)').matches
   const tier: LayoutTier = w < MEDIUM_MIN ? 'compact' : w < EXPANDED_MIN ? 'medium' : 'expanded'
-  const isShortViewport = h < SHORT_VIEWPORT_MAX
+  // A focused text field on a touch device means the keyboard is probably what made the
+  // viewport short. In that case the height says nothing about the device, so hold whatever
+  // was decided before the keyboard appeared (same orientation) instead of letting the nav
+  // flip between layouts — and shove the editor sideways — every time someone starts typing.
+  const landscape = deviceIsLandscape()
+  const heightLooksShort = h < SHORT_VIEWPORT_MAX
+  const keyboardLikely = isTouch && isEditableFocused()
+  let isShortViewport: boolean
+  if (heightLooksShort && keyboardLikely) {
+    isShortViewport = settled && settled.landscape === landscape ? settled.short : landscape
+  } else {
+    isShortViewport = heightLooksShort
+    settled = { landscape, short: heightLooksShort }
+  }
 
   return {
     tier,
-    isTouch: window.matchMedia('(pointer: coarse)').matches,
+    isTouch,
     isShortViewport,
     showBottomNav:   tier === 'compact' && !isShortViewport,
     showRail:        isShortViewport || tier === 'medium',
@@ -109,9 +146,15 @@ export function useBreakpoint(): Breakpoint {
     // orientationchange fires on tablets/phones before resize settles on some browsers;
     // listening to both means a rotation is never missed.
     window.addEventListener('orientationchange', sync)
+    // The keyboard heuristic above depends on which element is focused, and the keyboard's
+    // resize event can land before or after focus moves, so re-measure on focus changes too.
+    document.addEventListener('focusin', sync, true)
+    document.addEventListener('focusout', sync, true)
     return () => {
       window.removeEventListener('resize', sync)
       window.removeEventListener('orientationchange', sync)
+      document.removeEventListener('focusin', sync, true)
+      document.removeEventListener('focusout', sync, true)
     }
   }, [])
 

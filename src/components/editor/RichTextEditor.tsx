@@ -640,7 +640,7 @@ export function RichTextEditor({
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, position: 'relative', overflow: 'hidden' }}>
 
       {/* ── Toolbar wrapper — toggle always clickable, rest dims in source mode ── */}
-      <div style={{
+      <div className="kb-collapsible" style={{
         display: 'flex', alignItems: 'flex-start',
         borderBottom: '1px solid var(--border)',
         backgroundColor: 'var(--card)', position: 'sticky', top: 0, zIndex: 20,
