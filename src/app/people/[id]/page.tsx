@@ -165,7 +165,7 @@ export default function PersonPage({ params }: { params: Promise<{ id: string }>
             {person.role && <p className="text-[var(--muted-foreground)] text-sm">{person.role}</p>}
             <div className="flex flex-wrap items-center gap-3 mt-2 text-xs text-[var(--muted-foreground)]">
               {person.company && <span className="flex items-center gap-1"><Building2 size={11} />{person.company}</span>}
-              {person.email && <span className="flex items-center gap-1"><Mail size={11} />{person.email}</span>}
+              {person.email && <span className="flex items-center gap-1 min-w-0 break-all"><Mail size={11} className="flex-shrink-0" />{person.email}</span>}
               {person.phone && <span className="flex items-center gap-1"><Phone size={11} />{person.phone}</span>}
             </div>
             {person.tags.length > 0 && (

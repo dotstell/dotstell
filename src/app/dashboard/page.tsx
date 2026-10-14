@@ -17,6 +17,7 @@ import { useAISettings } from '@/hooks/useAISettings'
 import { isLocalHostname, completeOllamaBrowser } from '@/lib/ai/ollama-browser'
 import { createClient as createSupabaseBrowserClient } from '@/lib/supabase/client'
 import { MarkdownContent } from '@/components/ui/MarkdownContent'
+import { useBreakpoint } from '@/hooks/useBreakpoint'
 
 const PRIORITY_COLOR: Record<string, string> = { low: '#10b981', medium: '#f59e0b', high: '#ef4444' }
 const STATUS_COLOR:   Record<string, string> = { todo: 'var(--muted-foreground)', in_progress: 'var(--primary)', done: '#10b981' }
@@ -200,7 +201,10 @@ export default function DashboardPage() {
   const [bookmarks, setBookmarks] = useState<BookmarkType[]>([])
   const [people,    setPeople]    = useState<{ id: string; created_at: string }[]>([])
   const [loading,   setLoading]   = useState(true)
-  const [isMobile,  setIsMobile]  = useState(false)
+  const { tier, isTouch } = useBreakpoint()
+  // Grid density follows width, not pointer type: a wide touchscreen has just as much
+  // room for columns as a mouse-driven display of the same size.
+  const isCompactWidth = tier === 'compact'
   const [greeting,  setGreeting]  = useState('Hello')
   const { config: aiConfig, isConfigured: aiConfigured } = useAISettings()
   const [digest,        setDigest]        = useState('')
@@ -415,12 +419,8 @@ export default function DashboardPage() {
   }
 
   useEffect(() => {
-    function check() { setIsMobile(window.innerWidth < 768 || window.matchMedia('(pointer: coarse)').matches) }
-    check()
-    window.addEventListener('resize', check)
     const h = new Date().getHours()
     setGreeting(h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening')
-    return () => window.removeEventListener('resize', check)
   }, [])
 
   useTaskReminders()
@@ -537,7 +537,7 @@ export default function DashboardPage() {
       <PageContainer>
 
         {/* ── Greeting + live clock ── */}
-        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, marginBottom: 24, paddingTop: isMobile ? 8 : 0 }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, marginBottom: 24, paddingTop: tier === 'compact' ? 8 : 0 }}>
           <div style={{ minWidth: 0 }}>
             <h1 style={{ fontSize: 22, fontWeight: 700, color: 'var(--foreground)', margin: 0 }}>{greeting} 👋</h1>
             <p style={{ fontSize: 13, color: 'var(--muted-foreground)', marginTop: 4 }}>
@@ -546,7 +546,7 @@ export default function DashboardPage() {
             </p>
           </div>
           <div style={{ textAlign: 'right', flexShrink: 0 }}>
-            <p style={{ fontSize: isMobile ? 20 : 24, fontWeight: 700, color: 'var(--foreground)', margin: 0, lineHeight: 1, letterSpacing: '-0.02em', fontVariantNumeric: 'tabular-nums' }}>
+            <p style={{ fontSize: tier === 'compact' ? 20 : 24, fontWeight: 700, color: 'var(--foreground)', margin: 0, lineHeight: 1, letterSpacing: '-0.02em', fontVariantNumeric: 'tabular-nums' }}>
               {clockTime}
             </p>
             <p style={{ fontSize: 11, color: 'var(--muted-foreground)', marginTop: 3 }}>{clockDay}</p>
@@ -565,14 +565,17 @@ export default function DashboardPage() {
               {overdueTasks.length} overdue task{overdueTasks.length > 1 ? 's' : ''}
               {overdueTasks[0] && <span style={{ color: '#f87171', marginLeft: 8, fontStyle: 'italic', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 160, display: 'inline-block', verticalAlign: 'bottom' }}>— "{overdueTasks[0].title}"</span>}
             </span>
-            <Link href="/tasks" style={{ fontSize: 12, color: '#ef4444', textDecoration: 'underline', flexShrink: 0 }}>
+            <Link href="/tasks" className="hit-slop" style={{ fontSize: 12, color: '#ef4444', textDecoration: 'underline', flexShrink: 0 }}>
               View &amp; resolve →
             </Link>
           </div>
         )}
 
         {/* ── Stat cards with sparklines ── */}
-        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2,1fr)' : 'repeat(4,1fr)', gap: 12, marginBottom: 24 }}>
+        {/* auto-fit/minmax scales column count continuously with actual available width
+            (2 on a phone, 3-4 on a tablet, 4 on desktop) instead of a binary isMobile switch
+            that would treat a spacious iPad the same as a narrow phone. */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 12, marginBottom: 24 }}>
           {STATS.map(({ label, count, icon: Icon, href, color, spark }) => (
             <Link key={label} href={href} style={{ textDecoration: 'none' }}>
               <div style={{
@@ -608,7 +611,7 @@ export default function DashboardPage() {
             <div style={{ padding: '12px 18px', borderBottom: '1px solid var(--secondary)', display: 'flex', alignItems: 'center' }}>
               <TrendingUp size={14} color="var(--primary)" />
               <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--foreground)', marginLeft: 8 }}>Task progress</span>
-              <Link href="/tasks" style={{ marginLeft: 'auto', fontSize: 11, color: 'var(--muted-foreground)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 3 }}
+              <Link href="/tasks" className="touch-target-sm" style={{ marginLeft: 'auto', fontSize: 11, color: 'var(--muted-foreground)', textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 3 }}
                 onMouseEnter={e => (e.currentTarget.style.color = 'var(--primary)')}
                 onMouseLeave={e => (e.currentTarget.style.color = 'var(--muted-foreground)')}
               >
@@ -616,15 +619,15 @@ export default function DashboardPage() {
               </Link>
             </div>
 
-            {/* Body: 2-column on desktop */}
-            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'auto 1fr' }}>
+            {/* Body: 2-column once there's room, regardless of pointer type */}
+            <div style={{ display: 'grid', gridTemplateColumns: isCompactWidth ? '1fr' : 'auto 1fr' }}>
 
               {/* Left — donut + legend */}
               <div style={{
                 padding: '20px 28px',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                borderRight: isMobile ? 'none' : '1px solid var(--border)',
-                borderBottom: isMobile ? '1px solid var(--border)' : 'none',
+                borderRight: isCompactWidth ? 'none' : '1px solid var(--border)',
+                borderBottom: isCompactWidth ? '1px solid var(--border)' : 'none',
               }}>
                 <TaskDonut
                   todo={tasks.filter(t => t.status === 'todo').length}
@@ -700,7 +703,7 @@ export default function DashboardPage() {
                   <span style={{ fontSize: 10, color: 'var(--muted-foreground)', marginLeft: 7, opacity: 0.6 }}>AI-powered briefing</span>
                 </div>
               </div>
-              <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'flex-start' : 'center', gap: 6 }}>
+              <div style={{ display: 'flex', flexDirection: tier === 'compact' ? 'column' : 'row', alignItems: tier === 'compact' ? 'flex-start' : 'center', gap: 6 }}>
                 {/* Period toggle */}
                 <div style={{ display: 'flex', borderRadius: 7, overflow: 'hidden', border: '1px solid var(--border)' }}>
                   {(['day', 'week'] as const).map(p => (
@@ -765,7 +768,9 @@ export default function DashboardPage() {
         )}
 
         {/* ── 3-column: Recent Notes / Open Tasks / Recent Bookmarks ── */}
-        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr 1fr', gap: 14, marginBottom: 24 }}>
+        {/* Same reasoning as the stat grid: scale column count with real width (1 on phone,
+            2 on most tablets, 3 on wide tablets/desktop) rather than isMobile's binary jump. */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 14, marginBottom: 24 }}>
 
           {/* Recent Notes */}
           <Panel
@@ -919,8 +924,8 @@ export default function DashboardPage() {
                   <div
                     key={i}
                     onClick={() => setActiveTip(open ? null : tipKey)}
-                    onMouseEnter={() => !isMobile && setActiveTip(tipKey)}
-                    onMouseLeave={() => !isMobile && setActiveTip(null)}
+                    onMouseEnter={() => !isTouch && setActiveTip(tipKey)}
+                    onMouseLeave={() => !isTouch && setActiveTip(null)}
                     style={{
                       padding: '10px 4px',
                       textAlign: 'center',
@@ -987,8 +992,8 @@ export default function DashboardPage() {
               return (
                 <div
                   onClick={() => setActiveTip(activeTip === 'streak' ? null : 'streak')}
-                  onMouseEnter={() => !isMobile && setActiveTip('streak')}
-                  onMouseLeave={() => !isMobile && setActiveTip(null)}
+                  onMouseEnter={() => !isTouch && setActiveTip('streak')}
+                  onMouseLeave={() => !isTouch && setActiveTip(null)}
                   style={{ padding: '8px 18px', borderBottom: '1px solid var(--secondary)', display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', position: 'relative' }}
                 >
                   <span style={{ fontSize: 12, color: 'var(--primary)', fontWeight: 600 }}>{emoji} {activityStreak}-day capture streak</span>
@@ -1268,8 +1273,8 @@ export default function DashboardPage() {
               <div
                 style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}
                 onClick={() => setActiveTip(activeTip === 'connections' ? null : 'connections')}
-                onMouseEnter={() => !isMobile && setActiveTip('connections')}
-                onMouseLeave={() => !isMobile && setActiveTip(null)}
+                onMouseEnter={() => !isTouch && setActiveTip('connections')}
+                onMouseLeave={() => !isTouch && setActiveTip(null)}
               >
                 <Info size={13} color="var(--muted-foreground)" style={{ opacity: 0.5 }} />
               </div>
@@ -1378,13 +1383,13 @@ function Panel({ title, subtitle, icon, href, action, actionHref, children }: {
           </div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <Link href={actionHref} style={{ fontSize: 11, color: 'var(--muted-foreground)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 3 }}
+          <Link href={actionHref} className="touch-target-sm" style={{ fontSize: 11, color: 'var(--muted-foreground)', textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 3 }}
             onMouseEnter={e => (e.currentTarget.style.color = 'var(--primary)')}
             onMouseLeave={e => (e.currentTarget.style.color = 'var(--muted-foreground)')}
           >
             <Plus size={11} />
           </Link>
-          <Link href={href} style={{ fontSize: 11, color: 'var(--muted-foreground)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 3 }}
+          <Link href={href} className="touch-target-sm" style={{ fontSize: 11, color: 'var(--muted-foreground)', textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 3 }}
             onMouseEnter={e => (e.currentTarget.style.color = 'var(--primary)')}
             onMouseLeave={e => (e.currentTarget.style.color = 'var(--muted-foreground)')}
           >

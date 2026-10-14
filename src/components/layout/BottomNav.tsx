@@ -15,7 +15,7 @@ export function BottomNav({ onMenuOpen }: { onMenuOpen?: () => void }) {
   const pathname = usePathname()
 
   return (
-    <nav style={{
+    <nav className="bottom-nav" style={{
       position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 60,
       minHeight: 56, paddingBottom: 'env(safe-area-inset-bottom)',
       backgroundColor: 'var(--card)',

@@ -20,7 +20,8 @@ import { Superscript } from '@tiptap/extension-superscript'
 import { Subscript } from '@tiptap/extension-subscript'
 import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight'
 import { createLowlight, common } from 'lowlight'
-import React, { useEffect, useState, useRef, useCallback } from 'react'
+import React, { useEffect, useLayoutEffect, useState, useRef, useCallback } from 'react'
+import { createPortal } from 'react-dom'
 import {
   Bold, Italic, Strikethrough, Code, Underline as UnderlineIcon,
   List, ListOrdered, CheckSquare, Quote, Minus, Table as TableIcon,
@@ -35,6 +36,7 @@ import { HexColorPicker } from 'react-colorful'
 import TurndownService from 'turndown'
 import { marked } from 'marked'
 import { WikiLinkExtension } from '@/lib/tiptap/WikiLinkExtension'
+import { useBreakpoint } from '@/hooks/useBreakpoint'
 
 const lowlight = createLowlight(common)
 
@@ -223,13 +225,19 @@ export function RichTextEditor({
   content, onChange, onTextChange, placeholder = 'Start writing… (type / for commands)',
   onFocusMode, focusMode, onWikiLinksChange, onEditorReady, onAIAssist,
 }: RichTextEditorProps) {
-  const [isMobile, setIsMobile] = useState(false)
-  useEffect(() => {
-    const check = () => setIsMobile(window.innerWidth < 768)
-    check()
-    window.addEventListener('resize', check)
-    return () => window.removeEventListener('resize', check)
-  }, [])
+  const { tier, isTouch } = useBreakpoint()
+  const isCompact = tier === 'compact'
+  // The toolbar has ~9 groups and 30+ individual controls, so wrapping onto extra rows on
+  // a tablet in portrait — even at medium tier's full content width, further narrowed by
+  // touch-target-dense's wider buttons — eats real writing space, worse the moment the
+  // keyboard is also up. A mouse user can comfortably reach a second row and may prefer
+  // it over horizontal scrolling; a finger strongly prefers one scrollable row (a swipe is
+  // natural) over hunting across rows while the keyboard covers half the screen. So this
+  // keys off touch, not width alone, unlike isCompact above.
+  const toolbarScrolls = isCompact || isTouch
+  // Labels on the paste/markdown toggles only where there is room; elsewhere the icon alone
+  // keeps them on the same row as the tools instead of costing a second row of height.
+  const iconOnlyToggles = isCompact || isTouch
 
   // Floating AI Assist bubble — appears above selected text when onAIAssist is wired up
   const [assistBubble, setAssistBubble] = useState<{ x: number; y: number } | null>(null)
@@ -237,6 +245,8 @@ export function RichTextEditor({
   const [slashOpen,       setSlashOpen]       = useState(false)
   const [slashFilter,     setSlashFilter]     = useState('')
   const [slashIdx,        setSlashIdx]        = useState(0)
+  const [slashAnchor,     setSlashAnchor]     = useState<Anchor | null>(null)
+  const [wikiAnchor,      setWikiAnchor]      = useState<Anchor | null>(null)
   const [linkDialogOpen,  setLinkDialogOpen]  = useState(false)
   const [linkUrl,         setLinkUrl]         = useState('')
   const [colorPickerOpen,  setColorPickerOpen]  = useState(false)
@@ -415,6 +425,7 @@ export function RichTextEditor({
         setWikiQuery(q)
         setWikiOpen(true)
         setWikiIdx(0)
+        setWikiAnchor(caretAnchor(editor))
         if (wikiSearchTimer.current) clearTimeout(wikiSearchTimer.current)
         wikiSearchTimer.current = setTimeout(() => {
           fetch(`/api/notes?q=${encodeURIComponent(q)}&root_only=true`)
@@ -432,6 +443,7 @@ export function RichTextEditor({
         setSlashFilter(lineText.split('/').pop() ?? '')
         setSlashOpen(true)
         setSlashIdx(0)
+        setSlashAnchor(caretAnchor(editor))
       } else {
         setSlashOpen(false)
       }
@@ -470,6 +482,8 @@ export function RichTextEditor({
   // Close floating menus on outside click
   useEffect(() => {
     function handleClick(e: MouseEvent) {
+      // Touch pickers are portalled out of the toolbar (below); a press inside one is not an outside click.
+      if ((e.target as HTMLElement | null)?.closest?.('[data-popover-root]')) return
       if (colorPickerOpen  && colorRef.current   && !colorRef.current.contains(e.target as Node))   setColorPickerOpen(false)
       if (hlPickerOpen     && hlRef.current      && !hlRef.current.contains(e.target as Node))      setHlPickerOpen(false)
       if (fontMenuOpen     && fontRef.current    && !fontRef.current.contains(e.target as Node))    setFontMenuOpen(false)
@@ -636,7 +650,7 @@ export function RichTextEditor({
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, position: 'relative', overflow: 'hidden' }}>
 
       {/* ── Toolbar wrapper — toggle always clickable, rest dims in source mode ── */}
-      <div style={{
+      <div className="kb-collapsible" style={{
         display: 'flex', alignItems: 'flex-start',
         borderBottom: '1px solid var(--border)',
         backgroundColor: 'var(--card)', position: 'sticky', top: 0, zIndex: 20,
@@ -646,11 +660,11 @@ export function RichTextEditor({
       {/* Dimmed tool area */}
       <div style={{
         display: 'flex', alignItems: 'center', gap: 2,
-        flexWrap: isMobile ? 'nowrap' : 'wrap',
-        overflowX: isMobile ? 'auto' : 'visible',
+        flexWrap: toolbarScrolls ? 'nowrap' : 'wrap',
+        overflowX: toolbarScrolls ? 'auto' : 'visible',
         scrollbarWidth: 'none',
         padding: '5px 6px 5px 10px',
-        rowGap: isMobile ? 0 : 4, flex: 1, minWidth: 0,
+        rowGap: toolbarScrolls ? 0 : 4, flex: 1, minWidth: 0,
         opacity: sourceMode ? 0.35 : 1,
         pointerEvents: sourceMode ? 'none' : 'auto',
         transition: 'opacity 0.2s',
@@ -664,10 +678,16 @@ export function RichTextEditor({
 
         <Divider />
 
-        {/* Heading + font */}
-        <HeadingDropdown editor={editor} ref={headingRef} open={headingMenuOpen} isMobile={isMobile}
+        {/* Heading + font. isMobile picks position:'fixed' (anchored via getBoundingClientRect,
+            escapes any clipping ancestor) over position:'absolute' (anchored to the button,
+            clipped by it). That anchor now MUST include isTouch, not just isCompact: since
+            toolbarScrolls made this row overflow-x:auto on any touch device, CSS forces its
+            overflow-y to auto too, so an absolute-positioned panel taller than the ~40px
+            toolbar strip — the font list is up to 420px — would get clipped to a sliver on an
+            iPad, which is still isCompact:false. */}
+        <HeadingDropdown editor={editor} ref={headingRef} open={headingMenuOpen} isMobile={isCompact || isTouch}
           setOpen={v => { if (v) { setFontMenuOpen(false); setColorPickerOpen(false); setHlPickerOpen(false) } setHeadingMenuOpen(v) }} />
-        <FontDropdown editor={editor} open={fontMenuOpen} ref={fontRef} isMobile={isMobile}
+        <FontDropdown editor={editor} open={fontMenuOpen} ref={fontRef} isMobile={isCompact || isTouch}
           setOpen={v => { if (v) { setHeadingMenuOpen(false); setColorPickerOpen(false); setHlPickerOpen(false) } setFontMenuOpen(v) }} />
 
         <Divider />
@@ -690,6 +710,7 @@ export function RichTextEditor({
           <button
             type="button"
             title="Text color"
+            onMouseDown={keepEditorFocus}
             onClick={() => { setColorPickerOpen(o => !o); setHlPickerOpen(false); setFontMenuOpen(false); setHeadingMenuOpen(false) }}
             style={{
               width: 28, height: 28, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
@@ -702,19 +723,19 @@ export function RichTextEditor({
             <div style={{ width: 14, height: 3, borderRadius: 2, backgroundColor: activeColor || 'var(--secondary-foreground)' }} />
           </button>
           {colorPickerOpen && (
-            <>
-              {isMobile && <div style={{ position: 'fixed', inset: 0, zIndex: 499, backgroundColor: 'rgba(0,0,0,0.35)' }} onClick={() => setColorPickerOpen(false)} />}
+            <PopoverHost portal={isCompact || isTouch}>
+              {(isCompact || isTouch) && <div style={{ position: 'fixed', inset: 0, zIndex: 499, backgroundColor: 'rgba(0,0,0,0.35)' }} onClick={() => setColorPickerOpen(false)} />}
               <ColorPicker
                 colors={TEXT_COLORS}
                 activeValue={activeColor}
-                isMobile={isMobile}
+                isMobile={isCompact || isTouch}
                 onSelect={v => {
                   if (v) editor.chain().focus().setColor(v).run()
                   else editor.chain().focus().unsetColor().run()
                   setColorPickerOpen(false)
                 }}
               />
-            </>
+            </PopoverHost>
           )}
         </div>
 
@@ -723,6 +744,7 @@ export function RichTextEditor({
           <button
             type="button"
             title="Highlight color"
+            onMouseDown={keepEditorFocus}
             onClick={() => { setHlPickerOpen(o => !o); setColorPickerOpen(false); setFontMenuOpen(false); setHeadingMenuOpen(false) }}
             style={{
               width: 28, height: 28, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
@@ -736,19 +758,19 @@ export function RichTextEditor({
             <div style={{ width: 14, height: 3, borderRadius: 2, backgroundColor: editor.getAttributes('highlight').color || (editor.isActive('highlight') ? '#fbbf24' : 'var(--secondary-foreground)') }} />
           </button>
           {hlPickerOpen && (
-            <>
-              {isMobile && <div style={{ position: 'fixed', inset: 0, zIndex: 499, backgroundColor: 'rgba(0,0,0,0.35)' }} onClick={() => setHlPickerOpen(false)} />}
+            <PopoverHost portal={isCompact || isTouch}>
+              {(isCompact || isTouch) && <div style={{ position: 'fixed', inset: 0, zIndex: 499, backgroundColor: 'rgba(0,0,0,0.35)' }} onClick={() => setHlPickerOpen(false)} />}
               <HighlightPicker
                 colors={HIGHLIGHT_COLORS}
                 editor={editor}
-                isMobile={isMobile}
+                isMobile={isCompact || isTouch}
                 onSelect={v => {
                   if (v) editor.chain().focus().setHighlight({ color: v }).run()
                   else editor.chain().focus().unsetHighlight().run()
                   setHlPickerOpen(false)
                 }}
               />
-            </>
+            </PopoverHost>
           )}
         </div>
 
@@ -805,11 +827,12 @@ export function RichTextEditor({
         <div style={{
           display: 'flex', alignItems: 'center', gap: 4,
           padding: '5px 8px 5px 4px', flexShrink: 0,
-          ...(isMobile ? { order: 1, width: '100%', borderTop: '1px solid var(--border)', paddingLeft: 10 } : {}),
         }}>
           {/* Paste mode toggle */}
           <button
             type="button"
+            aria-label="Paste mode"
+            className={iconOnlyToggles ? 'touch-target-sm' : undefined}
             title={pasteMode === 'rich' ? 'Paste: Rich text (keeps headings, bold, lists) — click for plain' : 'Paste: Plain text (strips all formatting) — click for rich'}
             onClick={() => {
               const next = pasteMode === 'rich' ? 'plain' : 'rich'
@@ -818,7 +841,7 @@ export function RichTextEditor({
             }}
             style={{
               display: 'flex', alignItems: 'center', gap: 5,
-              padding: '4px 10px', borderRadius: 6, border: '1px solid',
+              padding: iconOnlyToggles ? '4px 8px' : '4px 10px', borderRadius: 6, border: '1px solid',
               borderColor: pasteMode === 'plain' ? 'var(--primary)' : 'var(--border)',
               backgroundColor: pasteMode === 'plain' ? 'color-mix(in srgb, var(--primary) 20%, transparent)' : 'transparent',
               color: pasteMode === 'plain' ? 'var(--primary)' : 'var(--muted-foreground)',
@@ -827,15 +850,17 @@ export function RichTextEditor({
             }}
           >
             <Clipboard size={12} />
-            {pasteMode === 'rich' ? 'Rich paste' : 'Plain paste'}
+            {!iconOnlyToggles && (pasteMode === 'rich' ? 'Rich paste' : 'Plain paste')}
           </button>
           <button
             type="button"
+            aria-label="Markdown source"
+            className={iconOnlyToggles ? 'touch-target-sm' : undefined}
             title={sourceMode ? 'Switch to rich text' : 'Switch to Markdown source'}
             onClick={toggleSourceMode}
             style={{
               display: 'flex', alignItems: 'center', gap: 5,
-              padding: '4px 10px', borderRadius: 6, border: '1px solid',
+              padding: iconOnlyToggles ? '4px 8px' : '4px 10px', borderRadius: 6, border: '1px solid',
               borderColor: sourceMode ? 'var(--primary)' : 'var(--border)',
               backgroundColor: sourceMode ? 'color-mix(in srgb, var(--primary) 20%, transparent)' : 'transparent',
               color: sourceMode ? 'var(--primary)' : 'var(--muted-foreground)',
@@ -844,7 +869,7 @@ export function RichTextEditor({
             }}
           >
             {sourceMode ? <Eye size={12} /> : <FileCode2 size={12} />}
-            {sourceMode ? 'Rich text' : 'Markdown'}
+            {!iconOnlyToggles && (sourceMode ? 'Rich text' : 'Markdown')}
           </button>
         </div>
       </div>{/* end toolbar wrapper */}
@@ -934,11 +959,13 @@ export function RichTextEditor({
           <div
             ref={wikiListRef}
             style={{
-              position: 'absolute', left: 20, top: 60, zIndex: 100,
+              ...(wikiAnchor
+                ? popupStyle(wikiAnchor, 280, 300)
+                : { position: 'absolute', left: 20, top: 60, zIndex: 100, width: 280, maxWidth: 'calc(100vw - 40px)', maxHeight: 300 }),
               backgroundColor: 'var(--card)', border: '1px solid var(--border)',
-              borderRadius: 12, padding: 6, width: 280, maxWidth: 'calc(100vw - 40px)',
+              borderRadius: 12, padding: 6,
               boxShadow: '0 12px 40px rgba(0,0,0,0.6)',
-              maxHeight: 300, overflowY: 'auto',
+              overflowY: 'auto',
             }}
           >
             <p style={{ fontSize: 10, color: 'var(--muted-foreground)', padding: '4px 8px 6px', margin: 0, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
@@ -984,11 +1011,13 @@ export function RichTextEditor({
           <div
             ref={slashMenuRef}
             style={{
-              position: 'absolute', left: 20, top: 60, zIndex: 100,
+              ...(slashAnchor
+                ? popupStyle(slashAnchor, 260, 360)
+                : { position: 'absolute', left: 20, top: 60, zIndex: 100, width: 260, maxWidth: 'calc(100vw - 40px)', maxHeight: 360 }),
               backgroundColor: 'var(--card)', border: '1px solid var(--border)',
-              borderRadius: 12, padding: 6, width: 260, maxWidth: 'calc(100vw - 40px)',
+              borderRadius: 12, padding: 6,
               boxShadow: '0 12px 40px rgba(0,0,0,0.6)',
-              maxHeight: 360, overflowY: 'auto',
+              overflowY: 'auto',
             }}>
             <p style={{ fontSize: 10, color: 'var(--border)', padding: '4px 8px 6px', margin: 0, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Blocks</p>
             {flatFiltered.map((cmd, i) => (
@@ -1193,6 +1222,7 @@ const ToolBtn = React.forwardRef<HTMLButtonElement, {
     <button
       ref={ref}
       type="button" title={title} onClick={onClick} disabled={disabled}
+      className="touch-target-dense"
       style={{
         width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center',
         borderRadius: 6, border: 'none', cursor: disabled ? 'not-allowed' : 'pointer',
@@ -1249,12 +1279,45 @@ function FloatingDialog({ title, icon, children, onClose }: {
   )
 }
 
+interface Anchor { left: number; top: number; bottom: number }
+
+function caretAnchor(editor: Editor): Anchor | null {
+  try {
+    const c = editor.view.coordsAtPos(editor.state.selection.from)
+    return { left: c.left, top: c.top, bottom: c.bottom }
+  } catch {
+    return null
+  }
+}
+
+/**
+ * Where a floating list goes relative to a point on screen: below it if there is room,
+ * otherwise above, never outside the part of the screen the user can actually see (which an
+ * on-screen keyboard shrinks), and never wider than the screen. Fixed positioning, so no
+ * overflow:hidden ancestor — the editor's own scroll area — can clip it.
+ */
+function popupStyle(a: Anchor, width: number, maxH: number): React.CSSProperties {
+  const vv = window.visualViewport
+  const visTop = vv?.offsetTop ?? 0
+  const visBottom = visTop + (vv?.height ?? window.innerHeight)
+  const vw = window.innerWidth
+  const w = Math.min(width, vw - 16)
+  const left = Math.max(8, Math.min(a.left, vw - w - 8))
+  const below = visBottom - a.bottom - 12
+  const above = a.top - visTop - 12
+  const placeBelow = below >= Math.min(maxH, 200) || below >= above
+  const maxHeight = Math.min(maxH, Math.max(96, placeBelow ? below : above))
+  return placeBelow
+    ? { position: 'fixed', left, top: a.bottom + 6, width: w, maxHeight, zIndex: 300 }
+    : { position: 'fixed', left, bottom: window.innerHeight - a.top + 6, width: w, maxHeight, zIndex: 300 }
+}
+
 function HeadingDropdown({ editor, open, setOpen, isMobile, ref }: {
   editor: ReturnType<typeof useEditor>; open: boolean; setOpen: (v: boolean) => void; isMobile: boolean; ref: React.RefObject<HTMLDivElement | null>
 }) {
   const btnRef = useRef<HTMLButtonElement>(null)
   const [rect, setRect] = useState<DOMRect | null>(null)
-  useEffect(() => { if (open && btnRef.current) setRect(btnRef.current.getBoundingClientRect()) }, [open])
+  useLayoutEffect(() => { if (open && btnRef.current) setRect(btnRef.current.getBoundingClientRect()) }, [open])
 
   if (!editor) return null
   const current = editor.isActive('heading', { level: 1 }) ? 'Heading 1'
@@ -1307,16 +1370,26 @@ function FontDropdown({ editor, open, setOpen, ref, isMobile }: {
 }) {
   const btnRef = useRef<HTMLButtonElement>(null)
   const [rect, setRect] = useState<DOMRect | null>(null)
-  useEffect(() => { if (open && btnRef.current) setRect(btnRef.current.getBoundingClientRect()) }, [open])
+  useLayoutEffect(() => { if (open && btnRef.current) setRect(btnRef.current.getBoundingClientRect()) }, [open])
 
   if (!editor) return null
   const currentFont  = editor.getAttributes('textStyle').fontFamily ?? ''
   const currentEntry = FONT_FAMILIES_FLAT.find(f => f.value === currentFont)
   const currentLabel = currentEntry?.label ?? 'Font'
   const GROUP_ICONS: Record<string, string> = { System: '🔡', Serif: '📖', Monospace: '💻', Handwritten: '✍️' }
-  const panelStyle: React.CSSProperties = isMobile && rect
-    ? { position: 'fixed', top: rect.bottom + 4, left: rect.left, zIndex: 200 }
-    : { position: 'absolute', top: '100%', left: 0, zIndex: 200, marginTop: 4 }
+  // Always fixed (not only on touch): the list is up to 420px tall, so an absolute panel inside
+  // the editor's overflow:hidden root gets cut off on a short window, and anchoring to the
+  // button's left edge pushes the 220px panel off the right edge of a phone.
+  const PANEL_W = 220
+  let panelStyle: React.CSSProperties = { position: 'absolute', top: '100%', left: 0, zIndex: 200, marginTop: 4 }
+  let panelMaxH = 420
+  if (rect) {
+    const vv = window.visualViewport
+    const visBottom = (vv?.offsetTop ?? 0) + (vv?.height ?? window.innerHeight)
+    const top = rect.bottom + 4
+    panelMaxH = Math.min(420, Math.max(120, visBottom - top - 8))
+    panelStyle = { position: 'fixed', top, left: Math.max(8, Math.min(rect.left, window.innerWidth - PANEL_W - 8)), zIndex: 200 }
+  }
 
   return (
     <div ref={ref} style={{ position: 'relative' }}>
@@ -1341,9 +1414,9 @@ function FontDropdown({ editor, open, setOpen, ref, isMobile }: {
         <div style={{
           ...panelStyle,
           backgroundColor: 'var(--card)', border: '1px solid var(--border)',
-          borderRadius: 12, padding: 6, width: 220,
+          borderRadius: 12, padding: 6, width: PANEL_W,
           boxShadow: '0 12px 36px rgba(0,0,0,0.7)',
-          maxHeight: 420, overflowY: 'auto',
+          maxHeight: panelMaxH, overflowY: 'auto',
         }}>
           {FONT_GROUPS.map(group => (
             <div key={group.group}>
@@ -1473,6 +1546,21 @@ function saveRecentColor(color: string, prev: string[]): string[] {
   const next = [color, ...prev.filter(c => c !== color)].slice(0, MAX_RECENT)
   try { localStorage.setItem(RECENT_COLORS_KEY, JSON.stringify(next)) } catch {}
   return next
+}
+
+/**
+ * Renders touch-sized colour pickers on document.body. Inside the toolbar they sit in a
+ * horizontally scrolling, sticky, stacking-context-creating strip; WebKit (every iPad browser)
+ * clips position:fixed descendants of such a scroller to the strip, so the dimmed backdrop
+ * covered only the toolbar and the picker itself was never visible.
+ */
+function keepEditorFocus(e: React.MouseEvent) {
+  if ((e.target as HTMLElement).closest('button')) e.preventDefault()
+}
+
+function PopoverHost({ portal, children }: { portal: boolean; children: React.ReactNode }) {
+  if (!portal) return <>{children}</>
+  return createPortal(<div data-popover-root onMouseDown={keepEditorFocus}>{children}</div>, document.body)
 }
 
 function ColorPicker({ colors, activeValue, onSelect, isMobile }: {

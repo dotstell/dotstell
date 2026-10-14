@@ -22,6 +22,7 @@ import { NoteCard } from '@/components/notes/NoteCard'
 import { NoteRow } from '@/components/notes/NoteRow'
 import { EmptyState } from '@/components/ui/empty-state'
 import { useNotebooks, notebookTag, NOTEBOOK_TAG_PREFIX } from '@/hooks/useNotebooks'
+import { useBreakpoint } from '@/hooks/useBreakpoint'
 
 type ViewMode = 'grid' | 'list'
 type GroupMode = 'none' | 'tag'
@@ -100,7 +101,7 @@ export default function NotesPage() {
   const [sortOpen,   setSortOpen]   = useState(false)
   const [ctxMenu,    setCtxMenu]    = useState<CtxMenu | null>(null)
   const [activeId,   setActiveId]   = useState<string | null>(null)
-  const [isMobile,   setIsMobile]   = useState(false)
+  const { tier } = useBreakpoint()
   const [showTrash,  setShowTrash]  = useState(false)
   const [trashNotes, setTrashNotes] = useState<Note[]>([])
   const [trashLoading, setTrashLoading] = useState(false)
@@ -127,12 +128,6 @@ export default function NotesPage() {
   // route/chunk. Prefetching here gives it a head start before any human can click.
   useEffect(() => { router.prefetch('/notes/new') }, [router])
 
-  useEffect(() => {
-    const check = () => setIsMobile(window.innerWidth < 768)
-    check()
-    window.addEventListener('resize', check)
-    return () => window.removeEventListener('resize', check)
-  }, [])
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
@@ -472,7 +467,7 @@ export default function NotesPage() {
   // ── Render ───────────────────────────────────────────────────────────────
   return (
     <div style={{ height: '100%', overflowY: 'auto' }}>
-      <div style={{ padding: '20px 28px 40px', maxWidth: 1200, paddingLeft: isMobile ? 16 : 48 }}>
+      <div style={{ padding: '20px 28px 40px', maxWidth: 1200, paddingLeft: tier === 'compact' ? 16 : 48 }}>
 
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
@@ -589,7 +584,7 @@ export default function NotesPage() {
 
           <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
             {TYPE_FILTERS.map(({ value, label }) => (
-              <button key={value} type="button" onClick={() => setTypeFilter(value)} style={{
+              <button key={value} type="button" className="touch-target-sm" onClick={() => setTypeFilter(value)} style={{
                 padding: '5px 12px', borderRadius: 20, border: 'none', fontSize: 12, cursor: 'pointer', transition: 'all 0.15s',
                 backgroundColor: typeFilter === value ? 'var(--primary)' : 'var(--secondary)',
                 color: typeFilter === value ? 'white' : 'var(--muted-foreground)',
@@ -600,7 +595,7 @@ export default function NotesPage() {
             ))}
           </div>
 
-          <button type="button" onClick={() => setGroupMode(m => m === 'tag' ? 'none' : 'tag')} style={{ marginLeft: 'auto',
+          <button type="button" className="touch-target-sm" onClick={() => setGroupMode(m => m === 'tag' ? 'none' : 'tag')} style={{ marginLeft: 'auto',
             display: 'flex', alignItems: 'center', gap: 6,
             padding: '5px 12px', borderRadius: 8, border: '1px solid',
             borderColor: groupMode === 'tag' ? 'var(--primary)' : 'var(--border)',
@@ -613,7 +608,7 @@ export default function NotesPage() {
           </button>
 
           <div ref={sortRef} style={{ position: 'relative' }}>
-            <button type="button" onClick={() => setSortOpen(o => !o)} style={{
+            <button type="button" className="touch-target-sm" onClick={() => setSortOpen(o => !o)} style={{
               display: 'flex', alignItems: 'center', gap: 6,
               padding: '5px 12px', borderRadius: 8, border: '1px solid',
               borderColor: sortMode === 'manual' ? 'var(--primary)' : 'var(--border)',

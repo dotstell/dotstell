@@ -21,6 +21,7 @@ export function AIStatusBadge({ onClick }: AIStatusBadgeProps) {
   return (
     <button
       type="button"
+      className="touch-target-sm"
       onClick={onClick}
       title={isConfigured ? `AI: ${label} / ${config.model}` : 'Click to configure AI'}
       style={{

@@ -1,0 +1,18 @@
+name: Schema Sync
+
+on:
+  pull_request:
+    paths:
+      - 'supabase/**'
+  workflow_dispatch: {}
+
+jobs:
+  check:
+    name: schema.sql matches migrations
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: node scripts/check-schema-sync.mjs
