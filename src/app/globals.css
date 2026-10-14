@@ -776,6 +776,14 @@ body {
    The bottom nav is hidden whenever the keyboard is open: it is a navigation bar, not
    something to type next to, and with the layout shrinking to the keyboard it would sit
    directly above it and cover the word count. */
+/* Backstop that does not depend on measuring the keyboard: on a touch device, a focused text
+   field means the bar is out of the way. Its reserved space (--bottom-nav-h) is released with
+   it, otherwise the word count floats above an empty strip once the keyboard is dismissed
+   while the field keeps focus. */
+@media (pointer: coarse) {
+  html:has(.ProseMirror:focus, input:focus, textarea:focus) .bottom-nav { display: none !important; }
+  html:has(.ProseMirror:focus, input:focus, textarea:focus) { --bottom-nav-h: 0px !important; }
+}
 html[data-kb-open] .bottom-nav {
   display: none !important;
 }
