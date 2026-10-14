@@ -42,6 +42,8 @@ export function Sidebar({ onOpenPalette, mobileOpen: mobileOpenProp, onMobileOpe
   const [appVersion, setAppVersion] = useState<string | null>(null)
   const { showBottomNav, showRail, isTouch, isShortViewport } = useBreakpoint()
   const [mobileOpen, setMobileOpen] = useState(false)
+  // Tablet portrait keeps the 64px rail; expanding it opens the full sidebar over the page.
+  const [railOpen, setRailOpen] = useState(false)
   const [isMac, setIsMac] = useState(false)
 
   useEffect(() => {
@@ -61,9 +63,18 @@ export function Sidebar({ onOpenPalette, mobileOpen: mobileOpenProp, onMobileOpe
   // Close mobile drawer on route change
   useEffect(() => {
     setMobileOpen(false)
+    setRailOpen(false)
   }, [pathname])
 
+  useEffect(() => {
+    if (!showRail) setRailOpen(false)
+  }, [showRail])
+
   function toggle() {
+    setTooltip(null)
+    // The stored collapsed preference only applies to the desktop layout; on a railed tablet
+    // it changes nothing, which left the expand button dead.
+    if (showRail) { setRailOpen(o => !o); return }
     const next = !collapsed
     setCollapsed(next)
     localStorage.setItem('sidebar-collapsed', String(next))
@@ -95,7 +106,7 @@ export function Sidebar({ onOpenPalette, mobileOpen: mobileOpenProp, onMobileOpe
   // leave an iPad still railed after rotating into landscape where there is room for the
   // full sidebar. AppLayout derives its left offset from the same flag, so the two cannot
   // disagree and overlap.
-  const railed = showRail || collapsed
+  const railed = showRail ? !railOpen : collapsed
   const sidebarWidth = railed ? 64 : 240
   // A phone in landscape is ~320-400px tall, but the rail stacks ~250px of fixed chrome (logo,
   // search, expand, theme, sign out) around the nav list, leaving it only a couple of items of
@@ -235,8 +246,12 @@ export function Sidebar({ onOpenPalette, mobileOpen: mobileOpenProp, onMobileOpe
   // Desktop: original sidebar
   return (
     <>
+      {showRail && railOpen && (
+        <div onClick={() => setRailOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 54, backgroundColor: 'rgba(0,0,0,0.45)' }} />
+      )}
       <aside style={{
-        position: 'fixed', left: 0, top: 0, bottom: 0, zIndex: 40,
+        position: 'fixed', left: 0, top: 0, bottom: 0, zIndex: showRail && railOpen ? 55 : 40,
+        boxShadow: showRail && railOpen ? '4px 0 24px rgba(0,0,0,0.35)' : undefined,
         // Pinning top AND bottom (instead of setting an explicit height, even a JS-computed
         // one) lets WebKit resolve the box's height continuously against whatever the visual
         // viewport is *right now*. A height value — vh, dvh, or --actual-vh synced from a

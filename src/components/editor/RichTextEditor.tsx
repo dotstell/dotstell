@@ -21,6 +21,7 @@ import { Subscript } from '@tiptap/extension-subscript'
 import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight'
 import { createLowlight, common } from 'lowlight'
 import React, { useEffect, useLayoutEffect, useState, useRef, useCallback } from 'react'
+import { createPortal } from 'react-dom'
 import {
   Bold, Italic, Strikethrough, Code, Underline as UnderlineIcon,
   List, ListOrdered, CheckSquare, Quote, Minus, Table as TableIcon,
@@ -481,6 +482,8 @@ export function RichTextEditor({
   // Close floating menus on outside click
   useEffect(() => {
     function handleClick(e: MouseEvent) {
+      // Touch pickers are portalled out of the toolbar (below); a press inside one is not an outside click.
+      if ((e.target as HTMLElement | null)?.closest?.('[data-popover-root]')) return
       if (colorPickerOpen  && colorRef.current   && !colorRef.current.contains(e.target as Node))   setColorPickerOpen(false)
       if (hlPickerOpen     && hlRef.current      && !hlRef.current.contains(e.target as Node))      setHlPickerOpen(false)
       if (fontMenuOpen     && fontRef.current    && !fontRef.current.contains(e.target as Node))    setFontMenuOpen(false)
@@ -719,7 +722,7 @@ export function RichTextEditor({
             <div style={{ width: 14, height: 3, borderRadius: 2, backgroundColor: activeColor || 'var(--secondary-foreground)' }} />
           </button>
           {colorPickerOpen && (
-            <>
+            <PopoverHost portal={isCompact || isTouch}>
               {(isCompact || isTouch) && <div style={{ position: 'fixed', inset: 0, zIndex: 499, backgroundColor: 'rgba(0,0,0,0.35)' }} onClick={() => setColorPickerOpen(false)} />}
               <ColorPicker
                 colors={TEXT_COLORS}
@@ -731,7 +734,7 @@ export function RichTextEditor({
                   setColorPickerOpen(false)
                 }}
               />
-            </>
+            </PopoverHost>
           )}
         </div>
 
@@ -753,7 +756,7 @@ export function RichTextEditor({
             <div style={{ width: 14, height: 3, borderRadius: 2, backgroundColor: editor.getAttributes('highlight').color || (editor.isActive('highlight') ? '#fbbf24' : 'var(--secondary-foreground)') }} />
           </button>
           {hlPickerOpen && (
-            <>
+            <PopoverHost portal={isCompact || isTouch}>
               {(isCompact || isTouch) && <div style={{ position: 'fixed', inset: 0, zIndex: 499, backgroundColor: 'rgba(0,0,0,0.35)' }} onClick={() => setHlPickerOpen(false)} />}
               <HighlightPicker
                 colors={HIGHLIGHT_COLORS}
@@ -765,7 +768,7 @@ export function RichTextEditor({
                   setHlPickerOpen(false)
                 }}
               />
-            </>
+            </PopoverHost>
           )}
         </div>
 
@@ -1541,6 +1544,17 @@ function saveRecentColor(color: string, prev: string[]): string[] {
   const next = [color, ...prev.filter(c => c !== color)].slice(0, MAX_RECENT)
   try { localStorage.setItem(RECENT_COLORS_KEY, JSON.stringify(next)) } catch {}
   return next
+}
+
+/**
+ * Renders touch-sized colour pickers on document.body. Inside the toolbar they sit in a
+ * horizontally scrolling, sticky, stacking-context-creating strip; WebKit (every iPad browser)
+ * clips position:fixed descendants of such a scroller to the strip, so the dimmed backdrop
+ * covered only the toolbar and the picker itself was never visible.
+ */
+function PopoverHost({ portal, children }: { portal: boolean; children: React.ReactNode }) {
+  if (!portal) return <>{children}</>
+  return createPortal(<div data-popover-root>{children}</div>, document.body)
 }
 
 function ColorPicker({ colors, activeValue, onSelect, isMobile }: {

@@ -64,7 +64,7 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
   const [noteId, setNoteId]           = useState<string | null>(isNew ? null : id)
   const [subNotes, setSubNotes]       = useState<Note[]>([])
   const [wikiSyncCount, setWikiSyncCount] = useState(0)
-  const { tier, showEditorSidePanel, isTouch, isShortViewport } = useBreakpoint()
+  const { tier, showEditorSidePanel, showRail, isTouch, isShortViewport } = useBreakpoint()
   // Header chrome collapses into a single menu only when width is genuinely tight.
   const isMobile = tier === 'compact'
   // Header actions collapse into one ⋯ menu wherever the row would otherwise wrap: phones, a phone
@@ -1298,10 +1298,10 @@ ${sanitizeHtmlForPrint(note.content ?? '')}
         <>
           <div
             onClick={() => setMobilePanel(false)}
-            style={{ position: 'fixed', inset: 0, zIndex: 149, backgroundColor: 'rgba(0,0,0,0.4)' }}
+            style={{ position: 'fixed', top: 0, bottom: 0, right: 0, left: showRail ? 64 : 0, zIndex: 149, backgroundColor: 'rgba(0,0,0,0.4)' }}
           />
           <div style={{
-            position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 150,
+            position: 'fixed', bottom: 0, left: showRail ? 64 : 0, right: 0, zIndex: 150,
             backgroundColor: 'var(--card)',
             borderRadius: '14px 14px 0 0',
             borderTop: '1px solid var(--border)',
@@ -1313,8 +1313,15 @@ ${sanitizeHtmlForPrint(note.content ?? '')}
             paddingBottom: isMobile ? 'calc(56px + env(safe-area-inset-bottom))' : 'env(safe-area-inset-bottom)',
             display: 'flex', flexDirection: 'column', gap: 20,
           }}>
-            {/* Drag handle */}
-            <div style={{ width: 40, height: 4, borderRadius: 2, backgroundColor: 'var(--border)', margin: '0 auto 4px' }} />
+            {/* Drag handle + explicit close, so the sheet is dismissable without hunting for the backdrop */}
+            <div style={{ position: 'relative', flexShrink: 0 }}>
+              <div style={{ width: 40, height: 4, borderRadius: 2, backgroundColor: 'var(--border)', margin: '0 auto 4px' }} />
+              <button type="button" aria-label="Close panel" title="Close" onClick={() => setMobilePanel(false)}
+                className="touch-target-sm"
+                style={{ position: 'absolute', right: -6, top: -8, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted-foreground)', borderRadius: 8 }}>
+                <X size={16} />
+              </button>
+            </div>
             {/* Outline */}
             {note.type === 'checklist' ? null : headings.length > 0 && (
               <div>
