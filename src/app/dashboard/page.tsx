@@ -565,7 +565,7 @@ export default function DashboardPage() {
               {overdueTasks.length} overdue task{overdueTasks.length > 1 ? 's' : ''}
               {overdueTasks[0] && <span style={{ color: '#f87171', marginLeft: 8, fontStyle: 'italic', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 160, display: 'inline-block', verticalAlign: 'bottom' }}>— "{overdueTasks[0].title}"</span>}
             </span>
-            <Link href="/tasks" style={{ fontSize: 12, color: '#ef4444', textDecoration: 'underline', flexShrink: 0 }}>
+            <Link href="/tasks" className="hit-slop" style={{ fontSize: 12, color: '#ef4444', textDecoration: 'underline', flexShrink: 0 }}>
               View &amp; resolve →
             </Link>
           </div>

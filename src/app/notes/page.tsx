@@ -584,7 +584,7 @@ export default function NotesPage() {
 
           <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
             {TYPE_FILTERS.map(({ value, label }) => (
-              <button key={value} type="button" onClick={() => setTypeFilter(value)} style={{
+              <button key={value} type="button" className="touch-target-sm" onClick={() => setTypeFilter(value)} style={{
                 padding: '5px 12px', borderRadius: 20, border: 'none', fontSize: 12, cursor: 'pointer', transition: 'all 0.15s',
                 backgroundColor: typeFilter === value ? 'var(--primary)' : 'var(--secondary)',
                 color: typeFilter === value ? 'white' : 'var(--muted-foreground)',
@@ -595,7 +595,7 @@ export default function NotesPage() {
             ))}
           </div>
 
-          <button type="button" onClick={() => setGroupMode(m => m === 'tag' ? 'none' : 'tag')} style={{ marginLeft: 'auto',
+          <button type="button" className="touch-target-sm" onClick={() => setGroupMode(m => m === 'tag' ? 'none' : 'tag')} style={{ marginLeft: 'auto',
             display: 'flex', alignItems: 'center', gap: 6,
             padding: '5px 12px', borderRadius: 8, border: '1px solid',
             borderColor: groupMode === 'tag' ? 'var(--primary)' : 'var(--border)',
@@ -608,7 +608,7 @@ export default function NotesPage() {
           </button>
 
           <div ref={sortRef} style={{ position: 'relative' }}>
-            <button type="button" onClick={() => setSortOpen(o => !o)} style={{
+            <button type="button" className="touch-target-sm" onClick={() => setSortOpen(o => !o)} style={{
               display: 'flex', alignItems: 'center', gap: 6,
               padding: '5px 12px', borderRadius: 8, border: '1px solid',
               borderColor: sortMode === 'manual' ? 'var(--primary)' : 'var(--border)',

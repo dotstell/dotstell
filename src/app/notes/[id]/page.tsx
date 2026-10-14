@@ -514,7 +514,7 @@ ${sanitizeHtmlForPrint(note.content ?? '')}
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: isShortViewport ? 'nowrap' : 'wrap', rowGap: 4 }}>
           {!focusMode && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'var(--muted-foreground)', flexShrink: 0 }}>
-              <Link href="/notes" style={{
+              <Link href="/notes" className="hit-slop" style={{
                 display: 'flex', alignItems: 'center', gap: 4, textDecoration: 'none',
                 color: 'var(--muted-foreground)', fontSize: 13,
               }}>
