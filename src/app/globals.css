@@ -740,12 +740,49 @@ body {
   }
 }
 
-/* ── Cramped typing ──────────────────────────────────────────────────────────
-   AppLayout sets data-kb-cramped while the on-screen keyboard leaves the editor too little
-   room to be usable (a phone in landscape leaves ~120px). The tab bar, title, tags, toolbar
-   and status bar are fixed-height blocks around the editor, so at that size they take all of
-   it and no text is visible. They come back as soon as the keyboard closes. */
-html[data-kb-cramped] .kb-collapsible {
+/* ── Short screens ───────────────────────────────────────────────────────────
+   A phone in landscape is ~320-400px tall. Anything that is only a convenience gets out of
+   the way so the note itself has room (the note tab bar, here). */
+@media (max-height: 499px) and (pointer: coarse) {
+  .short-hide { display: none !important; }
+}
+
+/* Invisible extra hit area for small controls inside dense rows (tag chips, inline links),
+   so a fingertip can hit them without changing how they look or where they sit. */
+@media (pointer: coarse) {
+  .hit-slop { position: relative; }
+  .hit-slop::after { content: ''; position: absolute; inset: -9px -6px; }
+}
+
+/* ── Row actions ─────────────────────────────────────────────────────────────
+   Edit/delete/pin buttons that live on a card or row. With a mouse they stay out of the
+   way until the row is hovered (or focused, for keyboard users); with a finger there is no
+   hover, so hiding them means they can never be reached — which is what happened on every
+   phone and tablet when this was written as opacity-0 + group-hover. */
+@media (hover: hover) and (pointer: fine) {
+  .hover-reveal { opacity: 0; transition: opacity 0.12s; }
+  .group:hover .hover-reveal,
+  .group:focus-within .hover-reveal,
+  .hover-reveal:focus-visible { opacity: 1; }
+}
+
+/* ── Typing with the on-screen keyboard ──────────────────────────────────────
+   AppLayout sets data-kb-open while the keyboard is up, and data-kb-mode while it is up
+   with the note editor focused and not much room left above it:
+     typing   (< 560px visible)  hide the page chrome (tab bar, title, tags, paste row) and
+                                 keep the formatting toolbar and the word count
+     cramped  (< 320px visible)  a phone in landscape — hide everything but the text
+   Everything comes back as soon as the keyboard closes.
+   The bottom nav is hidden whenever the keyboard is open: it is a navigation bar, not
+   something to type next to, and with the layout shrinking to the keyboard it would sit
+   directly above it and cover the word count. */
+html[data-kb-open] .bottom-nav {
+  display: none !important;
+}
+html[data-kb-mode] .kb-chrome {
+  display: none !important;
+}
+html[data-kb-mode="cramped"] .kb-collapsible {
   display: none !important;
 }
 

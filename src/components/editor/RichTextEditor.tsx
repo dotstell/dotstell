@@ -234,6 +234,9 @@ export function RichTextEditor({
   // natural) over hunting across rows while the keyboard covers half the screen. So this
   // keys off touch, not width alone, unlike isCompact above.
   const toolbarScrolls = isCompact || isTouch
+  // Labels on the paste/markdown toggles only where there is room; elsewhere the icon alone
+  // keeps them on the same row as the tools instead of costing a second row of height.
+  const iconOnlyToggles = isCompact || isTouch
 
   // Floating AI Assist bubble — appears above selected text when onAIAssist is wired up
   const [assistBubble, setAssistBubble] = useState<{ x: number; y: number } | null>(null)
@@ -819,11 +822,12 @@ export function RichTextEditor({
         <div style={{
           display: 'flex', alignItems: 'center', gap: 4,
           padding: '5px 8px 5px 4px', flexShrink: 0,
-          ...(isCompact ? { order: 1, width: '100%', borderTop: '1px solid var(--border)', paddingLeft: 10 } : {}),
         }}>
           {/* Paste mode toggle */}
           <button
             type="button"
+            aria-label="Paste mode"
+            className={iconOnlyToggles ? 'touch-target-sm' : undefined}
             title={pasteMode === 'rich' ? 'Paste: Rich text (keeps headings, bold, lists) — click for plain' : 'Paste: Plain text (strips all formatting) — click for rich'}
             onClick={() => {
               const next = pasteMode === 'rich' ? 'plain' : 'rich'
@@ -832,7 +836,7 @@ export function RichTextEditor({
             }}
             style={{
               display: 'flex', alignItems: 'center', gap: 5,
-              padding: '4px 10px', borderRadius: 6, border: '1px solid',
+              padding: iconOnlyToggles ? '4px 8px' : '4px 10px', borderRadius: 6, border: '1px solid',
               borderColor: pasteMode === 'plain' ? 'var(--primary)' : 'var(--border)',
               backgroundColor: pasteMode === 'plain' ? 'color-mix(in srgb, var(--primary) 20%, transparent)' : 'transparent',
               color: pasteMode === 'plain' ? 'var(--primary)' : 'var(--muted-foreground)',
@@ -841,15 +845,17 @@ export function RichTextEditor({
             }}
           >
             <Clipboard size={12} />
-            {pasteMode === 'rich' ? 'Rich paste' : 'Plain paste'}
+            {!iconOnlyToggles && (pasteMode === 'rich' ? 'Rich paste' : 'Plain paste')}
           </button>
           <button
             type="button"
+            aria-label="Markdown source"
+            className={iconOnlyToggles ? 'touch-target-sm' : undefined}
             title={sourceMode ? 'Switch to rich text' : 'Switch to Markdown source'}
             onClick={toggleSourceMode}
             style={{
               display: 'flex', alignItems: 'center', gap: 5,
-              padding: '4px 10px', borderRadius: 6, border: '1px solid',
+              padding: iconOnlyToggles ? '4px 8px' : '4px 10px', borderRadius: 6, border: '1px solid',
               borderColor: sourceMode ? 'var(--primary)' : 'var(--border)',
               backgroundColor: sourceMode ? 'color-mix(in srgb, var(--primary) 20%, transparent)' : 'transparent',
               color: sourceMode ? 'var(--primary)' : 'var(--muted-foreground)',
@@ -858,7 +864,7 @@ export function RichTextEditor({
             }}
           >
             {sourceMode ? <Eye size={12} /> : <FileCode2 size={12} />}
-            {sourceMode ? 'Rich text' : 'Markdown'}
+            {!iconOnlyToggles && (sourceMode ? 'Rich text' : 'Markdown')}
           </button>
         </div>
       </div>{/* end toolbar wrapper */}

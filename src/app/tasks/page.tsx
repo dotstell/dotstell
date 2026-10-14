@@ -236,9 +236,9 @@ export default function TasksPage() {
                     <Calendar size={10} />{formatDate(task.due_date)}
                   </span>
                 )}
-                <div className="flex gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100">
-                  <Button variant="ghost" size="icon" className="hidden sm:flex h-6 w-6 text-[var(--muted-foreground)]" onClick={() => { setEditing(task); setDialogOpen(true) }}>✏️</Button>
-                  <Button variant="ghost" size="icon" className="h-6 w-6 text-[var(--muted-foreground)] hover:text-[var(--destructive)]" onClick={() => openConfirm({ title: 'Delete task', body: `"${task.title}" will be permanently deleted.`, confirmLabel: 'Delete forever', onConfirm: () => deleteTask(task.id) })}><Trash2 size={12} /></Button>
+                <div className="flex gap-1 hover-reveal">
+                  <Button variant="ghost" size="icon" className="hidden sm:flex touch-target-sm h-6 w-6 text-[var(--muted-foreground)]" onClick={() => { setEditing(task); setDialogOpen(true) }}>✏️</Button>
+                  <Button variant="ghost" size="icon" className="touch-target-sm h-6 w-6 text-[var(--muted-foreground)] hover:text-[var(--destructive)]" onClick={() => openConfirm({ title: 'Delete task', body: `"${task.title}" will be permanently deleted.`, confirmLabel: 'Delete forever', onConfirm: () => deleteTask(task.id) })}><Trash2 size={12} /></Button>
                 </div>
               </div>
             ))}
@@ -401,9 +401,9 @@ function TaskCard({ task, isOverdue, onEdit, onDelete, onStatusChange }: {
         <p className={cn('font-medium text-xs', task.status === 'done' && 'line-through text-[var(--muted-foreground)]')}>
           {task.title}
         </p>
-        <div className="flex gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100">
-          <button onClick={onEdit} className="text-[var(--muted-foreground)] hover:text-[var(--foreground)] text-xs">✏️</button>
-          <button onClick={onDelete} className="text-[var(--muted-foreground)] hover:text-[var(--destructive)] text-xs"><Trash2 size={10} /></button>
+        <div className="flex gap-1 hover-reveal">
+          <button onClick={onEdit} className="touch-target-sm inline-flex items-center justify-center text-[var(--muted-foreground)] hover:text-[var(--foreground)] text-xs">✏️</button>
+          <button onClick={onDelete} className="touch-target-sm inline-flex items-center justify-center text-[var(--muted-foreground)] hover:text-[var(--destructive)] text-xs"><Trash2 size={10} /></button>
         </div>
       </div>
       <div className="flex items-center justify-between">

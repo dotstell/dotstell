@@ -10,7 +10,7 @@ interface PageHeaderProps {
 export function PageHeader({ title, description, action, className }: PageHeaderProps) {
   return (
     <div className={cn('flex items-start justify-between flex-wrap gap-3 mb-6', className)}>
-      <div>
+      <div style={{ flex: '1 1 200px', minWidth: 0 }}>
         <h1 className="text-xl font-semibold text-[var(--foreground)]">{title}</h1>
         {description && (
           <p className="text-sm text-[var(--muted-foreground)] mt-0.5">{description}</p>

@@ -35,8 +35,10 @@ function isEditable(el: Element | null): boolean {
   return false
 }
 
-// Below this visible height the note editor's surrounding chrome would leave no room for text.
+// Visible heights (above the keyboard) below which the note editor sheds its surrounding chrome;
+// see the data-kb-mode rules in globals.css.
 const CRAMPED_VISUAL_H = 320
+const TYPING_VISUAL_H  = 560
 
 const USER_SCOPED_KEYS = [
   'dotstell-note-tabs',
@@ -92,7 +94,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     let lastH = -1
     let lastTop = -1
-    let lastCramped = false
+    let lastMode = ''
     let lastKb: boolean | null = null
 
     // Tallest layout height seen at the current width. With interactive-widget=resizes-content
@@ -130,18 +132,21 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       // keyboard. Shifting the shell down by offsetTop makes it cover the visible area exactly.
       const visualTop = Math.round(window.visualViewport?.offsetTop ?? 0)
       const kbOpen  = keyboardIsOpen(layoutH, visualH)
-      // Typing in the editor body with almost no room left above the keyboard (phone in
-      // landscape): let the surrounding chrome get out of the way. Only for the editor
-      // itself — hiding the title or tag field while it has focus would blur it and close
-      // the keyboard on the user.
-      const cramped = kbOpen && visualH < CRAMPED_VISUAL_H
-        && (document.activeElement as HTMLElement | null)?.isContentEditable === true
-      if (visualH === lastH && kbOpen === lastKb && visualTop === lastTop && cramped === lastCramped) return
+      // Typing in the editor body with little room left above the keyboard: let the
+      // surrounding chrome get out of the way. Only for the editor itself — hiding the title
+      // or tag field while it has focus would blur it and close the keyboard on the user.
+      const editorFocused = (document.activeElement as HTMLElement | null)?.isContentEditable === true
+      const mode = kbOpen && editorFocused
+        ? (visualH < CRAMPED_VISUAL_H ? 'cramped' : visualH < TYPING_VISUAL_H ? 'typing' : '')
+        : ''
+      if (visualH === lastH && kbOpen === lastKb && visualTop === lastTop && mode === lastMode) return
       lastH  = visualH
       lastKb = kbOpen
       lastTop = visualTop
-      lastCramped = cramped
-      document.documentElement.toggleAttribute('data-kb-cramped', cramped)
+      lastMode = mode
+      document.documentElement.toggleAttribute('data-kb-open', kbOpen)
+      if (mode) document.documentElement.setAttribute('data-kb-mode', mode)
+      else document.documentElement.removeAttribute('data-kb-mode')
       document.documentElement.style.setProperty('--actual-vt', `${visualTop}px`)
       document.documentElement.style.setProperty('--actual-vh', `${visualH}px`)
       document.documentElement.style.setProperty('--bottom-nav-h', kbOpen ? '0px' : '56px')
@@ -184,7 +189,8 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       window.visualViewport?.removeEventListener('scroll', updateVh)
       window.removeEventListener('resize', updateVh)
       window.removeEventListener('orientationchange', updateVh)
-      document.documentElement.removeAttribute('data-kb-cramped')
+      document.documentElement.removeAttribute('data-kb-open')
+      document.documentElement.removeAttribute('data-kb-mode')
       document.removeEventListener('focusin', updateVh, true)
       document.removeEventListener('focusout', updateVh, true)
       clearInterval(interval)

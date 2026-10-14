@@ -14,7 +14,7 @@ export default function NotesLayout({ children }: { children: React.ReactNode })
   const [paneOpen, setPaneOpen] = useState(true)
   const { tier, showBottomNav } = useBreakpoint()
   // The notes side pane overlays instead of pushing only when width is genuinely tight.
-  const paneOverlays = tier === 'compact'
+  const paneOverlays = tier !== 'expanded'
 
   useEffect(() => {
     const stored = localStorage.getItem(PANE_OPEN_KEY)

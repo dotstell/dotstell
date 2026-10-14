@@ -64,9 +64,14 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
   const [noteId, setNoteId]           = useState<string | null>(isNew ? null : id)
   const [subNotes, setSubNotes]       = useState<Note[]>([])
   const [wikiSyncCount, setWikiSyncCount] = useState(0)
-  const { tier, showEditorSidePanel } = useBreakpoint()
+  const { tier, showEditorSidePanel, isTouch, isShortViewport } = useBreakpoint()
   // Header chrome collapses into a single menu only when width is genuinely tight.
   const isMobile = tier === 'compact'
+  // Header actions collapse into one ⋯ menu wherever the row would otherwise wrap: phones, a phone
+  // in landscape (very short), and touch tablets in portrait where the editor column is narrow.
+  const compactHeader = isMobile || isShortViewport || (isTouch && tier === 'medium')
+  // Tags become one swipeable line instead of wrapping onto rows that push the text down the page.
+  const denseTags = isMobile || isShortViewport || tier === 'medium'
   // Live plain-text from the editor — updated on every keystroke via onTextChange
   const [editorText, setEditorText]   = useState('')
   // ToC visibility — persisted so the user's preference survives navigation. Starts true
@@ -450,20 +455,61 @@ ${sanitizeHtmlForPrint(note.content ?? '')}
     return <div style={{ padding: 40, color: 'var(--muted-foreground)', fontSize: 14 }}>Loading…</div>
   }
 
+  const titleRow = (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8, ...(isShortViewport ? { flex: 1, minWidth: 0 } : {}) }}>
+      <input
+        ref={titleRef}
+        id="note-title"
+        name="note-title"
+        value={note.title ?? ''}
+        onChange={e => handleTitleChange(e.target.value)}
+        placeholder="Note title…"
+        style={{
+          flex: 1, minWidth: 0, background: 'none', border: 'none', outline: 'none',
+          fontSize: isShortViewport ? 16 : 22, fontWeight: 700, color: 'var(--foreground)',
+          fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+          padding: isShortViewport ? 0 : '0 0 10px',
+        }}
+      />
+      {/* Show when AI is on and there's content worth titling */}
+      {aiConfigured && editorText.length > 30 && (
+        <button
+          type="button"
+          title="Suggest a title from your note content"
+          onClick={handleSuggestTitle}
+          disabled={titleLoading}
+          style={{
+            display: 'flex', alignItems: 'center', gap: 4,
+            padding: '3px 9px', borderRadius: 6, flexShrink: 0, marginBottom: isShortViewport ? 0 : 8,
+            border: '1px solid color-mix(in srgb, var(--primary) 30%, transparent)',
+            backgroundColor: 'color-mix(in srgb, var(--primary) 8%, transparent)',
+            color: 'var(--primary)', fontSize: 11, cursor: titleLoading ? 'wait' : 'pointer',
+            fontWeight: 500, opacity: titleLoading ? 0.6 : 1, transition: 'all 0.15s',
+          }}
+          onMouseEnter={e => { if (!titleLoading) e.currentTarget.style.backgroundColor = 'color-mix(in srgb, var(--primary) 15%, transparent)' }}
+          onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'color-mix(in srgb, var(--primary) 8%, transparent)' }}
+        >
+          <Sparkles size={11} />
+          {titleLoading ? 'Suggesting…' : 'Suggest title'}
+        </button>
+      )}
+    </div>
+  )
+
   const editorContent = (
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, overflow: 'hidden' }}>
 
       {/* ── Header ── */}
-      <div className="kb-collapsible" style={{
+      <div className="kb-chrome" style={{
         display: 'flex', flexDirection: 'column',
-        padding: isMobile ? '8px 16px 0' : '12px 20px 0',
+        padding: isShortViewport ? '4px 12px' : isMobile ? '8px 16px 0' : '12px 20px 0',
         borderBottom: '1px solid var(--border)',
         backgroundColor: 'var(--background)',
         flexShrink: 0,
         gap: 8,
       }}>
         {/* Row 1: breadcrumb + actions */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', rowGap: 4 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: isShortViewport ? 'nowrap' : 'wrap', rowGap: 4 }}>
           {!focusMode && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'var(--muted-foreground)', flexShrink: 0 }}>
               <Link href="/notes" style={{
@@ -491,7 +537,7 @@ ${sanitizeHtmlForPrint(note.content ?? '')}
             </div>
           )}
 
-          <div style={{ flex: 1 }} />
+          {isShortViewport ? titleRow : <div style={{ flex: 1 }} />}
 
           {/* Save indicator — dot only in header */}
           {saveStatus && (
@@ -507,7 +553,7 @@ ${sanitizeHtmlForPrint(note.content ?? '')}
           )}
 
           {/* Desktop: export buttons + templates inline */}
-          {!isMobile && noteId && (
+          {!compactHeader && noteId && (
             <div style={{ display: 'flex', gap: 3 }}>
               {([
                 { label: '.md', title: 'Export as Markdown', onClick: exportMarkdown },
@@ -553,13 +599,13 @@ ${sanitizeHtmlForPrint(note.content ?? '')}
           )}
 
           {/* Mobile: single ⋯ button that opens a dropdown for export + templates */}
-          {isMobile && noteId && (
+          {compactHeader && noteId && (
             <div ref={moreMenuRef} style={{ position: 'relative' }}>
               <button
                 type="button"
                 title="More actions"
                 onClick={e => { setMoreMenuRect((e.currentTarget as HTMLElement).getBoundingClientRect()); setMoreMenuOpen(v => !v) }}
-                className="touch-target"
+                className="touch-target-sm"
                 style={{
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   padding: 6, borderRadius: 7,
@@ -613,8 +659,9 @@ ${sanitizeHtmlForPrint(note.content ?? '')}
             type="button"
             title={focusMode ? 'Exit focus mode' : 'Focus mode'}
             onClick={() => setFocusMode(f => !f)}
+            className="touch-target-sm"
             style={{
-              display: 'flex', alignItems: 'center',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
               padding: 6, borderRadius: 7,
               border: '1px solid var(--border)', background: 'none',
               color: 'var(--muted-foreground)', cursor: 'pointer',
@@ -632,7 +679,7 @@ ${sanitizeHtmlForPrint(note.content ?? '')}
               type="button"
               title="Outline & links"
               onClick={() => setMobilePanel(p => !p)}
-              className="touch-target"
+              className="touch-target-sm"
               style={{
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 padding: 6, borderRadius: 7,
@@ -649,12 +696,12 @@ ${sanitizeHtmlForPrint(note.content ?? '')}
           {aiConfigured && (
             <button
               type="button"
-              className="touch-target"
+              className="touch-target-sm"
               title="AI Chat — ask questions about your notes (RAG)"
               onClick={() => setChatOpen(c => !c)}
               style={{
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
-                padding: isMobile ? 6 : '5px 10px', borderRadius: 7,
+                padding: compactHeader ? 6 : '5px 10px', borderRadius: 7,
                 border: `1px solid ${chatOpen ? 'color-mix(in srgb, var(--primary) 40%, transparent)' : 'var(--border)'}`,
                 background: chatOpen ? 'color-mix(in srgb, var(--primary) 12%, transparent)' : 'none',
                 color: chatOpen ? 'var(--primary)' : 'var(--muted-foreground)', fontSize: 12, cursor: 'pointer',
@@ -663,7 +710,7 @@ ${sanitizeHtmlForPrint(note.content ?? '')}
               onMouseEnter={e => { if (!chatOpen) { e.currentTarget.style.background = 'var(--accent)'; e.currentTarget.style.color = 'var(--foreground)' } }}
               onMouseLeave={e => { if (!chatOpen) { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = 'var(--muted-foreground)' } }}
             >
-              <Sparkles size={13} />{!isMobile && ' AI Chat'}
+              <Sparkles size={13} />{!compactHeader && ' AI Chat'}
             </button>
           )}
 
@@ -671,12 +718,12 @@ ${sanitizeHtmlForPrint(note.content ?? '')}
           {aiConfigured && (
             <button
               type="button"
-              className="touch-target"
+              className="touch-target-sm"
               title="AI Writing — draft from scratch or improve existing content"
               onClick={() => { setWritingFormat(undefined); setWritingOpen(w => !w) }}
               style={{
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
-                padding: isMobile ? 6 : '5px 10px', borderRadius: 7,
+                padding: compactHeader ? 6 : '5px 10px', borderRadius: 7,
                 border: `1px solid ${writingOpen ? 'color-mix(in srgb, var(--primary) 40%, transparent)' : 'var(--border)'}`,
                 background: writingOpen ? 'color-mix(in srgb, var(--primary) 12%, transparent)' : 'none',
                 color: writingOpen ? 'var(--primary)' : 'var(--muted-foreground)', fontSize: 12, cursor: 'pointer',
@@ -685,7 +732,7 @@ ${sanitizeHtmlForPrint(note.content ?? '')}
               onMouseEnter={e => { if (!writingOpen) { e.currentTarget.style.background = 'var(--accent)'; e.currentTarget.style.color = 'var(--foreground)' } }}
               onMouseLeave={e => { if (!writingOpen) { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = 'var(--muted-foreground)' } }}
             >
-              <PenLine size={13} />{!isMobile && ' AI Write'}
+              <PenLine size={13} />{!compactHeader && ' AI Write'}
             </button>
           )}
 
@@ -696,8 +743,9 @@ ${sanitizeHtmlForPrint(note.content ?? '')}
             type="button"
             title="AI Settings (Ctrl+Shift+,)"
             onClick={() => setAISettingsOpen(true)}
+            className="touch-target-sm"
             style={{
-              display: 'flex', alignItems: 'center',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
               padding: 6, borderRadius: 7,
               border: '1px solid var(--border)', background: 'none',
               color: 'var(--muted-foreground)', cursor: 'pointer',
@@ -710,65 +758,30 @@ ${sanitizeHtmlForPrint(note.content ?? '')}
           </button>
         </div>
 
-        {/* Row 2: title + optional AI suggest button */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <input
-            ref={titleRef}
-            id="note-title"
-            name="note-title"
-            value={note.title ?? ''}
-            onChange={e => handleTitleChange(e.target.value)}
-            placeholder="Note title…"
-            style={{
-              flex: 1, background: 'none', border: 'none', outline: 'none',
-              fontSize: 22, fontWeight: 700, color: 'var(--foreground)',
-              fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
-              padding: '0 0 10px',
-            }}
-          />
-          {/* Show when AI is on and there's content worth titling */}
-          {aiConfigured && editorText.length > 30 && (
-            <button
-              type="button"
-              title="Suggest a title from your note content"
-              onClick={handleSuggestTitle}
-              disabled={titleLoading}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 4,
-                padding: '3px 9px', borderRadius: 6, flexShrink: 0, marginBottom: 8,
-                border: '1px solid color-mix(in srgb, var(--primary) 30%, transparent)',
-                backgroundColor: 'color-mix(in srgb, var(--primary) 8%, transparent)',
-                color: 'var(--primary)', fontSize: 11, cursor: titleLoading ? 'wait' : 'pointer',
-                fontWeight: 500, opacity: titleLoading ? 0.6 : 1, transition: 'all 0.15s',
-              }}
-              onMouseEnter={e => { if (!titleLoading) e.currentTarget.style.backgroundColor = 'color-mix(in srgb, var(--primary) 15%, transparent)' }}
-              onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'color-mix(in srgb, var(--primary) 8%, transparent)' }}
-            >
-              <Sparkles size={11} />
-              {titleLoading ? 'Suggesting…' : 'Suggest title'}
-            </button>
-          )}
-        </div>
+        {/* Row 2: title (inline in row 1 on short screens) */}
+        {!isShortViewport && titleRow}
       </div>
 
       {/* ── Tags bar ── */}
-      <div className="kb-collapsible" style={{
+      <div className="kb-chrome" style={{
         display: 'flex', flexDirection: 'column',
-        padding: '8px 20px',
+        padding: denseTags ? '6px 12px' : '8px 20px',
         borderBottom: '1px solid var(--border)',
         backgroundColor: 'var(--background)',
         flexShrink: 0,
         gap: 6,
       }}>
         {/* Applied tags + input row */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', minHeight: 22 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: denseTags ? 'nowrap' : 'wrap', overflowX: denseTags ? 'auto' : undefined, scrollbarWidth: 'none', minHeight: 22 }}>
           {note.tags?.map(tag => (
             <button
               key={tag}
               type="button"
               onClick={() => removeTag(tag)}
               title="Remove tag"
+              className="hit-slop"
               style={{
+                flexShrink: 0, whiteSpace: 'nowrap',
                 display: 'flex', alignItems: 'center', gap: 4,
                 fontSize: 12, color: 'var(--primary)',
                 backgroundColor: 'color-mix(in srgb, var(--primary) 12%, transparent)',
@@ -792,7 +805,7 @@ ${sanitizeHtmlForPrint(note.content ?? '')}
             style={{
               background: 'none', border: 'none', outline: 'none',
               fontSize: 12, color: 'var(--muted-foreground)',
-              width: note.tags?.length ? 80 : 100,
+              width: note.tags?.length ? 80 : 100, flexShrink: 0,
             }}
           />
           {/* AI tag suggestion trigger — only shown when AI is configured and note has content */}
@@ -944,8 +957,8 @@ ${sanitizeHtmlForPrint(note.content ?? '')}
                     <button
                       type="button"
                       onClick={() => removeCheckItem(item.id)}
-                      className="opacity-0 group-hover:opacity-100"
-                      style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 3, color: 'var(--muted-foreground)', display: 'flex', borderRadius: 4, transition: 'all 0.1s' }}
+                      className="hover-reveal touch-target-sm"
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 3, color: 'var(--muted-foreground)', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 4, transition: 'all 0.1s' }}
                       onMouseEnter={e => { e.currentTarget.style.color = 'var(--destructive)'; e.currentTarget.style.backgroundColor = 'rgba(239,68,68,0.1)' }}
                       onMouseLeave={e => { e.currentTarget.style.color = 'var(--muted-foreground)'; e.currentTarget.style.backgroundColor = 'transparent' }}
                     >
@@ -1368,7 +1381,7 @@ ${sanitizeHtmlForPrint(note.content ?? '')}
       )}
 
       {/* ── Status bar ── */}
-      {noteId && !focusMode && !loading && (
+      {noteId && !loading && (
         <div className="kb-collapsible" style={{
           display: 'flex', alignItems: 'center', gap: 0,
           padding: '0 16px',
@@ -1488,7 +1501,7 @@ ${sanitizeHtmlForPrint(note.content ?? '')}
   if (focusMode) {
     return (
       <>
-        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'var(--background)', zIndex: 100, display: 'flex', flexDirection: 'column', paddingBottom: isMobile ? 'calc(var(--bottom-nav-h, 56px) + env(safe-area-inset-bottom))' : 0 }}>
+        <div style={{ position: 'fixed', left: 0, right: 0, top: 'var(--actual-vt, 0px)', height: 'var(--actual-vh, 100dvh)', backgroundColor: 'var(--background)', zIndex: 100, display: 'flex', flexDirection: 'column', paddingBottom: 'env(safe-area-inset-bottom)' }}>
           {editorContent}
         </div>
         {aiChatOverlay}

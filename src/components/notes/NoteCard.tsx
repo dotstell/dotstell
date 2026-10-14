@@ -91,7 +91,7 @@ export function NoteCard({ note, onClick, onDelete, onContextMenu, onPin, linked
           {onPin && (
             <Button
               variant="ghost" size="icon"
-              className="opacity-0 group-hover:opacity-100 h-6 w-6 flex-shrink-0"
+              className="hover-reveal touch-target-sm h-6 w-6 flex-shrink-0"
               style={{ color: note.pinned ? 'var(--primary)' : 'var(--muted-foreground)' }}
               onClick={e => { e.stopPropagation(); onPin() }}
               title={note.pinned ? 'Unpin' : 'Pin'}
@@ -101,7 +101,7 @@ export function NoteCard({ note, onClick, onDelete, onContextMenu, onPin, linked
           )}
           <Button
             variant="ghost" size="icon"
-            className="opacity-0 group-hover:opacity-100 h-6 w-6 flex-shrink-0"
+            className="hover-reveal touch-target-sm h-6 w-6 flex-shrink-0"
             style={{ color: 'var(--muted-foreground)' }}
             onClick={e => { e.stopPropagation(); onDelete(note.id) }}
             onMouseEnter={e => { e.currentTarget.style.color = 'var(--destructive)' }}

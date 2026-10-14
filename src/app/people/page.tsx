@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import { Plus, User, Mail, Building2, Trash2 } from 'lucide-react'
+import { Plus, User, Mail, Building2, Trash2, Pencil } from 'lucide-react'
 import { toast } from 'sonner'
 import Link from 'next/link'
 import { Person } from '@/types'
@@ -109,7 +109,7 @@ export default function PeoplePage() {
             placeholder="Search people..."
             value={search}
             onChange={e => setSearch(e.target.value)}
-            className="w-full max-w-xs"
+            className="w-full sm:max-w-sm"
           />
         </div>
 
@@ -124,63 +124,67 @@ export default function PeoplePage() {
             onAction={openNew}
           />
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 12 }}>
             {people.map(person => (
               <div
                 key={person.id}
-                className="group bg-[var(--card)] border border-[var(--border)] rounded-lg p-4 hover:border-[var(--primary)]/40 hover:shadow-sm transition-all cursor-pointer"
+                className="group flex flex-col bg-[var(--card)] border border-[var(--border)] rounded-lg hover:border-[var(--primary)]/40 hover:shadow-sm transition-all cursor-pointer"
                 onClick={() => router.push(`/people/${person.id}`)}
               >
-                <div className="flex items-start justify-between mb-3">
-                  <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-full bg-[var(--primary)]/20 flex items-center justify-center flex-shrink-0">
-                      <span className="text-[var(--primary)] font-semibold text-sm">
-                        {person.name.charAt(0).toUpperCase()}
-                      </span>
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium">{person.name}</p>
-                      {person.role && (
-                        <p className="text-xs text-[var(--muted-foreground)]">{person.role}</p>
-                      )}
-                    </div>
+                <div className="flex items-center gap-3 px-4 pt-4 pb-3">
+                  <div className="w-10 h-10 rounded-full bg-[var(--primary)]/20 flex items-center justify-center flex-shrink-0">
+                    <span className="text-[var(--primary)] font-semibold text-sm">
+                      {person.name.charAt(0).toUpperCase()}
+                    </span>
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    aria-label={`Delete ${person.name}`}
-                    className="opacity-100 sm:opacity-0 sm:group-hover:opacity-100 h-6 w-6 text-[var(--muted-foreground)] hover:text-[var(--destructive)]"
-                    onClick={e => { e.stopPropagation(); setConfirmPerson(person) }}
-                  >
-                    <Trash2 size={12} />
-                  </Button>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium truncate">{person.name}</p>
+                    {person.role && (
+                      <p className="text-xs text-[var(--muted-foreground)] truncate">{person.role}</p>
+                    )}
+                  </div>
                 </div>
 
-                <div className="space-y-1 mb-3">
-                  {person.company && (
-                    <div className="flex items-center gap-1.5 text-xs text-[var(--muted-foreground)]">
-                      <Building2 size={11} /> {person.company}
-                    </div>
-                  )}
-                  {person.email && (
-                    <div className="flex items-center gap-1.5 text-xs text-[var(--muted-foreground)]">
-                      <Mail size={11} /> {person.email}
-                    </div>
-                  )}
-                </div>
+                {(person.company || person.email) && (
+                  <div className="space-y-1 px-4 pb-3">
+                    {person.company && (
+                      <div className="flex items-center gap-1.5 text-xs text-[var(--muted-foreground)] min-w-0">
+                        <Building2 size={12} className="flex-shrink-0" /> <span className="truncate">{person.company}</span>
+                      </div>
+                    )}
+                    {person.email && (
+                      <div className="flex items-center gap-1.5 text-xs text-[var(--muted-foreground)] min-w-0">
+                        <Mail size={12} className="flex-shrink-0" /> <span className="truncate">{person.email}</span>
+                      </div>
+                    )}
+                  </div>
+                )}
 
-                <div className="flex items-center justify-between">
-                  <div className="flex flex-wrap gap-1">
+                <div className="mt-auto flex items-center justify-between gap-2 border-t border-[var(--border)] px-3 py-1.5">
+                  <div className="flex flex-wrap gap-1 min-w-0">
                     {person.tags.slice(0, 2).map(tag => (
                       <Badge key={tag} variant="secondary" className="text-xs">{tag}</Badge>
                     ))}
                   </div>
-                  <button
-                    onClick={e => { e.stopPropagation(); openEdit(person) }}
-                    className="text-xs text-[var(--primary)] hover:underline"
-                  >
-                    Edit
-                  </button>
+                  <div className="flex items-center gap-0.5 flex-shrink-0">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="touch-target-sm h-8 gap-1 px-2 text-xs text-[var(--primary)]"
+                      onClick={e => { e.stopPropagation(); openEdit(person) }}
+                    >
+                      <Pencil size={12} /> Edit
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      aria-label={`Delete ${person.name}`}
+                      className="touch-target-sm h-8 w-8 text-[var(--muted-foreground)] hover:text-[var(--destructive)]"
+                      onClick={e => { e.stopPropagation(); setConfirmPerson(person) }}
+                    >
+                      <Trash2 size={14} />
+                    </Button>
+                  </div>
                 </div>
               </div>
             ))}
