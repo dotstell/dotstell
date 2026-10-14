@@ -1,4 +1,4 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import { cookies } from 'next/headers'
 import './globals.css'
 import { Toaster } from 'sonner'
@@ -17,6 +17,16 @@ export const metadata: Metadata = {
     shortcut: '/favicon-192x192.png',
     apple: '/apple-touch-icon.png',
   },
+}
+
+// Android Chrome otherwise leaves the layout viewport full-height and only shrinks and pans
+// the visual one when the keyboard opens, which is what opened a blank band above the keyboard.
+// 'resizes-content' makes the layout viewport shrink with it (iOS Safari ignores this, which
+// is why AppLayout also tracks visualViewport.offsetTop).
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  interactiveWidget: 'resizes-content',
 }
 
 const VALID_THEMES = ['dotstell','dracula','one-dark','tokyo-night','nord','solarized-dark','catppuccin','solarized-light','github-light','plain-light','pure-light','catppuccin-latte','rose-pine-dawn','gruvbox-light']

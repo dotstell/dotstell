@@ -88,6 +88,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   // platforms, so it is the primary test and the height delta is kept as a fallback.
   useEffect(() => {
     let lastH = -1
+    let lastTop = -1
     let lastKb: boolean | null = null
 
     function keyboardIsOpen(layoutH: number, visualH: number): boolean {
@@ -101,10 +102,18 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     function updateVh() {
       const layoutH = window.innerHeight
       const visualH = window.visualViewport?.height ?? window.innerHeight
+      // When the keyboard opens the browser pans the visual viewport down inside the (fixed)
+      // layout viewport to keep the caret visible. Sizing the shell to visualH alone leaves
+      // it pinned to the layout viewport's top, so offsetTop px of it are scrolled out of
+      // view above and the same amount of dead space opens up between the content and the
+      // keyboard. Shifting the shell down by offsetTop makes it cover the visible area exactly.
+      const visualTop = Math.round(window.visualViewport?.offsetTop ?? 0)
       const kbOpen  = keyboardIsOpen(layoutH, visualH)
-      if (visualH === lastH && kbOpen === lastKb) return
+      if (visualH === lastH && kbOpen === lastKb && visualTop === lastTop) return
       lastH  = visualH
       lastKb = kbOpen
+      lastTop = visualTop
+      document.documentElement.style.setProperty('--actual-vt', `${visualTop}px`)
       document.documentElement.style.setProperty('--actual-vh', `${visualH}px`)
       document.documentElement.style.setProperty('--bottom-nav-h', kbOpen ? '0px' : '56px')
       // Some WKWebView-embedding browsers (their own chrome layered over WebKit's
@@ -218,7 +227,9 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const marginLeft = showBottomNav ? 0 : showRail ? 64 : collapsed ? 64 : 240
 
   return (
-    <div style={{ display: 'flex', height: 'var(--actual-vh, 100dvh)', backgroundColor: 'var(--background)' }}>
+    // position:relative + top (not transform) so fixed-position descendants keep resolving
+    // against the viewport instead of this element.
+    <div style={{ display: 'flex', height: 'var(--actual-vh, 100dvh)', position: 'relative', top: 'var(--actual-vt, 0px)', backgroundColor: 'var(--background)' }}>
       <Sidebar
         onOpenPalette={() => setPaletteOpen(true)}
         mobileOpen={sidebarOpen}
