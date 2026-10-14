@@ -73,6 +73,19 @@ export async function POST(req: NextRequest) {
     hostname:     body.hostname,
     tags:         body.tags,
   }).select().single()
-  if (error) return NextResponse.json({ error: 'An unexpected error occurred.' }, { status: 500 })
+  if (error) {
+    // 23505 is Postgres unique_violation. bookmarks_user_url_unique (migration 002, added
+    // for bulk-import dedup) means this exact URL is already saved for this user — which
+    // is an easy thing to do by accident when dragging links in, and not a server fault.
+    // Reporting it as a generic 500 left the UI saying only "Failed to save", so the user
+    // had no way to tell "already saved" apart from a real outage.
+    if (error.code === '23505') {
+      return NextResponse.json(
+        { error: 'This URL is already in your bookmarks', code: 'duplicate' },
+        { status: 409 },
+      )
+    }
+    return NextResponse.json({ error: 'An unexpected error occurred.' }, { status: 500 })
+  }
   return NextResponse.json(data, { status: 201 })
 }

@@ -1,9 +1,10 @@
 'use client'
-import { useState, useEffect, useLayoutEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { usePathname } from 'next/navigation'
 import { AppLayout } from '@/components/layout/AppLayout'
 import { NotesSidePane } from '@/components/notes/NotesSidePane'
 import { NoteTabBar } from '@/components/notes/NoteTabBar'
+import { useBreakpoint } from '@/hooks/useBreakpoint'
 
 const PANE_WIDTH    = 220
 const PANE_OPEN_KEY = 'dotstell-notes-pane-open'
@@ -11,22 +12,12 @@ const PANE_OPEN_KEY = 'dotstell-notes-pane-open'
 export default function NotesLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const [paneOpen, setPaneOpen] = useState(true)
-  // Starts false, matching what the server always computes (no `document` there). Reading
-  // html[data-mobile] here instead mismatched the server's render for real mobile clients —
-  // a hydration mismatch that can tear down and rebuild this entire subtree, including the
-  // heavy, DOM-bound Tiptap editor inside /notes/[id] (confirmed to crash it elsewhere in
-  // this app). The useLayoutEffect below already corrects this before the browser paints,
-  // so there's no visible flash either way — it just avoids guessing during the render
-  // React uses for the hydration comparison itself.
-  const [isMobile, setIsMobile] = useState(false)
-
-  // Keep in sync on window resize (desktop users resizing the viewport)
-  useLayoutEffect(() => {
-    const check = () => setIsMobile(window.innerWidth < 768)
-    check()
-    window.addEventListener('resize', check)
-    return () => window.removeEventListener('resize', check)
-  }, [])
+  const { tier, showBottomNav } = useBreakpoint()
+  // The notes side pane overlays instead of pushing only when width is genuinely tight.
+  const paneOverlays = tier !== 'expanded'
+  // The overlay starts beside the tablet rail instead of underneath it, which kept the rail
+  // from being tapped while the list was open.
+  const overlayLeft = 'var(--sidebar-w, 0px)'
 
   useEffect(() => {
     const stored = localStorage.getItem(PANE_OPEN_KEY)
@@ -35,13 +26,13 @@ export default function NotesLayout({ children }: { children: React.ReactNode })
 
   // Auto-close pane on mobile (also closes on every navigation while mobile)
   useEffect(() => {
-    if (isMobile) setPaneOpen(false)
-  }, [pathname, isMobile])
+    if (paneOverlays) setPaneOpen(false)
+  }, [pathname, paneOverlays])
 
   function togglePane() {
     setPaneOpen(p => {
       const next = !p
-      if (!isMobile) localStorage.setItem(PANE_OPEN_KEY, String(next))
+      if (!paneOverlays) localStorage.setItem(PANE_OPEN_KEY, String(next))
       return next
     })
   }
@@ -54,7 +45,7 @@ export default function NotesLayout({ children }: { children: React.ReactNode })
     <AppLayout>
       <div style={{
         display: 'flex',
-        height: isMobile
+        height: showBottomNav
           ? 'calc(var(--actual-vh, 100dvh) - var(--bottom-nav-h, 56px) - env(safe-area-inset-bottom))'
           : 'var(--actual-vh, 100dvh)',
         overflow: 'hidden',
@@ -62,18 +53,18 @@ export default function NotesLayout({ children }: { children: React.ReactNode })
         position: 'relative',
       }}>
         {/* Side pane — overlay on mobile, push content on desktop */}
-        {isMobile ? (
+        {paneOverlays ? (
           paneOpen && (
             <>
               <div
                 onClick={() => setPaneOpen(false)}
                 style={{
-                  position: 'fixed', inset: 0, zIndex: 39,
+                  position: 'fixed', top: 0, bottom: 0, right: 0, left: overlayLeft, zIndex: 39,
                   backgroundColor: 'rgba(0,0,0,0.4)',
                 }}
               />
               <div style={{
-                position: 'fixed', left: 0, top: 0, bottom: 0, zIndex: 40,
+                position: 'fixed', left: overlayLeft, top: 0, bottom: 0, zIndex: 40,
                 width: PANE_WIDTH, overflowX: 'hidden',
                 boxShadow: '2px 0 20px rgba(0,0,0,0.3)',
               }}>

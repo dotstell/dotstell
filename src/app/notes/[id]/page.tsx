@@ -1,6 +1,7 @@
 'use client'
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { use } from 'react'
+import { createPortal } from 'react-dom'
 import { useRouter } from 'next/navigation'
 import {
   X, Maximize2, Minimize2, Plus, FileText,
@@ -28,6 +29,7 @@ import { useAISettings } from '@/hooks/useAISettings'
 import { triggerEmbedBackground } from '@/lib/ai/autoEmbed'
 import { useAITitleSuggest, useAITagSuggest, useAISummarize } from '@/hooks/useAI'
 import { MarkdownContent } from '@/components/ui/MarkdownContent'
+import { useBreakpoint } from '@/hooks/useBreakpoint'
 import '@/components/editor/editor.css'
 
 type SaveStatus = 'saved' | 'saving' | 'unsaved' | null
@@ -63,13 +65,15 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
   const [noteId, setNoteId]           = useState<string | null>(isNew ? null : id)
   const [subNotes, setSubNotes]       = useState<Note[]>([])
   const [wikiSyncCount, setWikiSyncCount] = useState(0)
-  // Starts false, matching what the server always computes (no `document` there), even
-  // though a real mobile client could read `data-mobile` as true on its first render —
-  // that mismatch is exactly the class of bug that just tore down this page's Tiptap
-  // editor (see the showTemplates/immediatelyRender fixes above). The existing mount
-  // effect below already calls check() synchronously on mount, correcting this within
-  // the same tick — so this only delays the correct value by one render, never the UI.
-  const [isMobile, setIsMobile]       = useState(false)
+  const { tier, showEditorSidePanel, isTouch, isShortViewport } = useBreakpoint()
+  // Header chrome collapses into a single menu only when width is genuinely tight.
+  const isMobile = tier === 'compact'
+  // Header actions collapse into one ⋯ menu wherever the row would otherwise wrap: phones, a phone
+  // in landscape (very short), and touch tablets in portrait where the editor column is narrow.
+  const dockedPanel = tier === 'expanded'
+  const compactHeader = isMobile || isShortViewport || (isTouch && tier === 'medium')
+  // Tags become one swipeable line instead of wrapping onto rows that push the text down the page.
+  const denseTags = isMobile || isShortViewport || tier === 'medium'
   // Live plain-text from the editor — updated on every keystroke via onTextChange
   const [editorText, setEditorText]   = useState('')
   // ToC visibility — persisted so the user's preference survives navigation. Starts true
@@ -137,13 +141,6 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
   useEffect(() => {
     if (isNew) setShowTemplates(true)
   }, [isNew])
-
-  useEffect(() => {
-    const check = () => setIsMobile(window.innerWidth < 768)
-    check()
-    window.addEventListener('resize', check)
-    return () => window.removeEventListener('resize', check)
-  }, [])
 
   // Cancel any pending auto-save when the component unmounts to prevent setState
   // calls on an unmounted component (e.g. user navigates away within 1.5 s of typing).
@@ -460,23 +457,64 @@ ${sanitizeHtmlForPrint(note.content ?? '')}
     return <div style={{ padding: 40, color: 'var(--muted-foreground)', fontSize: 14 }}>Loading…</div>
   }
 
+  const titleRow = (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8, ...(isShortViewport ? { flex: 1, minWidth: 0 } : {}) }}>
+      <input
+        ref={titleRef}
+        id="note-title"
+        name="note-title"
+        value={note.title ?? ''}
+        onChange={e => handleTitleChange(e.target.value)}
+        placeholder="Note title…"
+        style={{
+          flex: 1, minWidth: 0, background: 'none', border: 'none', outline: 'none',
+          fontSize: isShortViewport ? 16 : 22, fontWeight: 700, color: 'var(--foreground)',
+          fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+          padding: isShortViewport ? 0 : '0 0 10px',
+        }}
+      />
+      {/* Show when AI is on and there's content worth titling */}
+      {aiConfigured && editorText.length > 30 && (
+        <button
+          type="button"
+          title="Suggest a title from your note content"
+          onClick={handleSuggestTitle}
+          disabled={titleLoading}
+          style={{
+            display: 'flex', alignItems: 'center', gap: 4,
+            padding: '3px 9px', borderRadius: 6, flexShrink: 0, marginBottom: isShortViewport ? 0 : 8,
+            border: '1px solid color-mix(in srgb, var(--primary) 30%, transparent)',
+            backgroundColor: 'color-mix(in srgb, var(--primary) 8%, transparent)',
+            color: 'var(--primary)', fontSize: 11, cursor: titleLoading ? 'wait' : 'pointer',
+            fontWeight: 500, opacity: titleLoading ? 0.6 : 1, transition: 'all 0.15s',
+          }}
+          onMouseEnter={e => { if (!titleLoading) e.currentTarget.style.backgroundColor = 'color-mix(in srgb, var(--primary) 15%, transparent)' }}
+          onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'color-mix(in srgb, var(--primary) 8%, transparent)' }}
+        >
+          <Sparkles size={11} />
+          {titleLoading ? 'Suggesting…' : 'Suggest title'}
+        </button>
+      )}
+    </div>
+  )
+
   const editorContent = (
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, overflow: 'hidden' }}>
 
       {/* ── Header ── */}
-      <div style={{
+      <div className="kb-chrome" style={{
         display: 'flex', flexDirection: 'column',
-        padding: isMobile ? '8px 16px 0' : '12px 20px 0',
+        padding: isShortViewport ? '4px 12px' : isMobile ? '8px 16px 0' : '12px 20px 0',
         borderBottom: '1px solid var(--border)',
         backgroundColor: 'var(--background)',
         flexShrink: 0,
         gap: 8,
       }}>
         {/* Row 1: breadcrumb + actions */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', rowGap: 4 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: isShortViewport ? 'nowrap' : 'wrap', rowGap: 4 }}>
           {!focusMode && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'var(--muted-foreground)', flexShrink: 0 }}>
-              <Link href="/notes" style={{
+              <Link href="/notes" className="hit-slop" style={{
                 display: 'flex', alignItems: 'center', gap: 4, textDecoration: 'none',
                 color: 'var(--muted-foreground)', fontSize: 13,
               }}>
@@ -501,7 +539,7 @@ ${sanitizeHtmlForPrint(note.content ?? '')}
             </div>
           )}
 
-          <div style={{ flex: 1 }} />
+          {isShortViewport ? titleRow : <div style={{ flex: 1 }} />}
 
           {/* Save indicator — dot only in header */}
           {saveStatus && (
@@ -517,7 +555,7 @@ ${sanitizeHtmlForPrint(note.content ?? '')}
           )}
 
           {/* Desktop: export buttons + templates inline */}
-          {!isMobile && noteId && (
+          {!compactHeader && noteId && (
             <div style={{ display: 'flex', gap: 3 }}>
               {([
                 { label: '.md', title: 'Export as Markdown', onClick: exportMarkdown },
@@ -563,14 +601,15 @@ ${sanitizeHtmlForPrint(note.content ?? '')}
           )}
 
           {/* Mobile: single ⋯ button that opens a dropdown for export + templates */}
-          {isMobile && noteId && (
+          {compactHeader && noteId && (
             <div ref={moreMenuRef} style={{ position: 'relative' }}>
               <button
                 type="button"
                 title="More actions"
                 onClick={e => { setMoreMenuRect((e.currentTarget as HTMLElement).getBoundingClientRect()); setMoreMenuOpen(v => !v) }}
+                className="touch-target-sm"
                 style={{
-                  display: 'flex', alignItems: 'center',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
                   padding: 6, borderRadius: 7,
                   border: '1px solid var(--border)',
                   background: moreMenuOpen ? 'var(--accent)' : 'none',
@@ -622,8 +661,9 @@ ${sanitizeHtmlForPrint(note.content ?? '')}
             type="button"
             title={focusMode ? 'Exit focus mode' : 'Focus mode'}
             onClick={() => setFocusMode(f => !f)}
+            className="touch-target-sm"
             style={{
-              display: 'flex', alignItems: 'center',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
               padding: 6, borderRadius: 7,
               border: '1px solid var(--border)', background: 'none',
               color: 'var(--muted-foreground)', cursor: 'pointer',
@@ -635,14 +675,15 @@ ${sanitizeHtmlForPrint(note.content ?? '')}
             {focusMode ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
           </button>
 
-          {/* Panel button — mobile only: opens outline/links/sub-notes as a bottom sheet */}
-          {isMobile && noteId && (
+          {/* Panel button — compact widths only: opens outline/links/sub-notes as a bottom sheet */}
+          {!showEditorSidePanel && noteId && (
             <button
               type="button"
               title="Outline & links"
               onClick={() => setMobilePanel(p => !p)}
+              className="touch-target-sm"
               style={{
-                display: 'flex', alignItems: 'center',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
                 padding: 6, borderRadius: 7,
                 border: '1px solid var(--border)', background: mobilePanel ? 'var(--accent)' : 'none',
                 color: mobilePanel ? 'var(--foreground)' : 'var(--muted-foreground)', cursor: 'pointer',
@@ -657,11 +698,12 @@ ${sanitizeHtmlForPrint(note.content ?? '')}
           {aiConfigured && (
             <button
               type="button"
+              className="touch-target-sm"
               title="AI Chat — ask questions about your notes (RAG)"
               onClick={() => setChatOpen(c => !c)}
               style={{
-                display: 'flex', alignItems: 'center', gap: 5,
-                padding: isMobile ? 6 : '5px 10px', borderRadius: 7,
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
+                padding: compactHeader ? 6 : '5px 10px', borderRadius: 7,
                 border: `1px solid ${chatOpen ? 'color-mix(in srgb, var(--primary) 40%, transparent)' : 'var(--border)'}`,
                 background: chatOpen ? 'color-mix(in srgb, var(--primary) 12%, transparent)' : 'none',
                 color: chatOpen ? 'var(--primary)' : 'var(--muted-foreground)', fontSize: 12, cursor: 'pointer',
@@ -670,7 +712,7 @@ ${sanitizeHtmlForPrint(note.content ?? '')}
               onMouseEnter={e => { if (!chatOpen) { e.currentTarget.style.background = 'var(--accent)'; e.currentTarget.style.color = 'var(--foreground)' } }}
               onMouseLeave={e => { if (!chatOpen) { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = 'var(--muted-foreground)' } }}
             >
-              <Sparkles size={13} />{!isMobile && ' AI Chat'}
+              <Sparkles size={13} />{!compactHeader && ' AI Chat'}
             </button>
           )}
 
@@ -678,11 +720,12 @@ ${sanitizeHtmlForPrint(note.content ?? '')}
           {aiConfigured && (
             <button
               type="button"
+              className="touch-target-sm"
               title="AI Writing — draft from scratch or improve existing content"
               onClick={() => { setWritingFormat(undefined); setWritingOpen(w => !w) }}
               style={{
-                display: 'flex', alignItems: 'center', gap: 5,
-                padding: isMobile ? 6 : '5px 10px', borderRadius: 7,
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
+                padding: compactHeader ? 6 : '5px 10px', borderRadius: 7,
                 border: `1px solid ${writingOpen ? 'color-mix(in srgb, var(--primary) 40%, transparent)' : 'var(--border)'}`,
                 background: writingOpen ? 'color-mix(in srgb, var(--primary) 12%, transparent)' : 'none',
                 color: writingOpen ? 'var(--primary)' : 'var(--muted-foreground)', fontSize: 12, cursor: 'pointer',
@@ -691,7 +734,7 @@ ${sanitizeHtmlForPrint(note.content ?? '')}
               onMouseEnter={e => { if (!writingOpen) { e.currentTarget.style.background = 'var(--accent)'; e.currentTarget.style.color = 'var(--foreground)' } }}
               onMouseLeave={e => { if (!writingOpen) { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = 'var(--muted-foreground)' } }}
             >
-              <PenLine size={13} />{!isMobile && ' AI Write'}
+              <PenLine size={13} />{!compactHeader && ' AI Write'}
             </button>
           )}
 
@@ -702,8 +745,9 @@ ${sanitizeHtmlForPrint(note.content ?? '')}
             type="button"
             title="AI Settings (Ctrl+Shift+,)"
             onClick={() => setAISettingsOpen(true)}
+            className="touch-target-sm"
             style={{
-              display: 'flex', alignItems: 'center',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
               padding: 6, borderRadius: 7,
               border: '1px solid var(--border)', background: 'none',
               color: 'var(--muted-foreground)', cursor: 'pointer',
@@ -716,65 +760,30 @@ ${sanitizeHtmlForPrint(note.content ?? '')}
           </button>
         </div>
 
-        {/* Row 2: title + optional AI suggest button */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <input
-            ref={titleRef}
-            id="note-title"
-            name="note-title"
-            value={note.title ?? ''}
-            onChange={e => handleTitleChange(e.target.value)}
-            placeholder="Note title…"
-            style={{
-              flex: 1, background: 'none', border: 'none', outline: 'none',
-              fontSize: 22, fontWeight: 700, color: 'var(--foreground)',
-              fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
-              padding: '0 0 10px',
-            }}
-          />
-          {/* Show when AI is on and there's content worth titling */}
-          {aiConfigured && editorText.length > 30 && (
-            <button
-              type="button"
-              title="Suggest a title from your note content"
-              onClick={handleSuggestTitle}
-              disabled={titleLoading}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 4,
-                padding: '3px 9px', borderRadius: 6, flexShrink: 0, marginBottom: 8,
-                border: '1px solid color-mix(in srgb, var(--primary) 30%, transparent)',
-                backgroundColor: 'color-mix(in srgb, var(--primary) 8%, transparent)',
-                color: 'var(--primary)', fontSize: 11, cursor: titleLoading ? 'wait' : 'pointer',
-                fontWeight: 500, opacity: titleLoading ? 0.6 : 1, transition: 'all 0.15s',
-              }}
-              onMouseEnter={e => { if (!titleLoading) e.currentTarget.style.backgroundColor = 'color-mix(in srgb, var(--primary) 15%, transparent)' }}
-              onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'color-mix(in srgb, var(--primary) 8%, transparent)' }}
-            >
-              <Sparkles size={11} />
-              {titleLoading ? 'Suggesting…' : 'Suggest title'}
-            </button>
-          )}
-        </div>
+        {/* Row 2: title (inline in row 1 on short screens) */}
+        {!isShortViewport && titleRow}
       </div>
 
       {/* ── Tags bar ── */}
-      <div style={{
+      <div className="kb-chrome" style={{
         display: 'flex', flexDirection: 'column',
-        padding: '8px 20px',
+        padding: denseTags ? '6px 12px' : '8px 20px',
         borderBottom: '1px solid var(--border)',
         backgroundColor: 'var(--background)',
         flexShrink: 0,
         gap: 6,
       }}>
         {/* Applied tags + input row */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', minHeight: 22 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: denseTags ? 'nowrap' : 'wrap', overflowX: denseTags ? 'auto' : undefined, scrollbarWidth: 'none', minHeight: 22 }}>
           {note.tags?.map(tag => (
             <button
               key={tag}
               type="button"
               onClick={() => removeTag(tag)}
               title="Remove tag"
+              className="hit-slop"
               style={{
+                flexShrink: 0, whiteSpace: 'nowrap',
                 display: 'flex', alignItems: 'center', gap: 4,
                 fontSize: 12, color: 'var(--primary)',
                 backgroundColor: 'color-mix(in srgb, var(--primary) 12%, transparent)',
@@ -798,7 +807,7 @@ ${sanitizeHtmlForPrint(note.content ?? '')}
             style={{
               background: 'none', border: 'none', outline: 'none',
               fontSize: 12, color: 'var(--muted-foreground)',
-              width: note.tags?.length ? 80 : 100,
+              width: note.tags?.length ? 80 : 100, flexShrink: 0,
             }}
           />
           {/* AI tag suggestion trigger — only shown when AI is configured and note has content */}
@@ -950,8 +959,8 @@ ${sanitizeHtmlForPrint(note.content ?? '')}
                     <button
                       type="button"
                       onClick={() => removeCheckItem(item.id)}
-                      className="opacity-0 group-hover:opacity-100"
-                      style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 3, color: 'var(--muted-foreground)', display: 'flex', borderRadius: 4, transition: 'all 0.1s' }}
+                      className="hover-reveal touch-target-sm"
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 3, color: 'var(--muted-foreground)', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 4, transition: 'all 0.1s' }}
                       onMouseEnter={e => { e.currentTarget.style.color = 'var(--destructive)'; e.currentTarget.style.backgroundColor = 'rgba(239,68,68,0.1)' }}
                       onMouseLeave={e => { e.currentTarget.style.color = 'var(--muted-foreground)'; e.currentTarget.style.backgroundColor = 'transparent' }}
                     >
@@ -1068,8 +1077,10 @@ ${sanitizeHtmlForPrint(note.content ?? '')}
           )}
         </div>
 
-        {/* Right panel — hidden on mobile to preserve editor space */}
-        {noteId && !isMobile && (
+        {/* Right panel — a permanent column only when there is room for it beside the
+            sidebar and a comfortable writing column; otherwise it opens as a bottom
+            sheet from the header button. See useBreakpoint's EDITOR_SIDE_PANEL_MIN. */}
+        {noteId && showEditorSidePanel && (
           <div style={{
             width: 240, flexShrink: 0, borderLeft: '1px solid var(--border)',
             padding: 16, overflowY: 'auto', backgroundColor: 'var(--card)',
@@ -1284,25 +1295,38 @@ ${sanitizeHtmlForPrint(note.content ?? '')}
         )}
       </div>
 
-      {/* ── Mobile panel bottom sheet — outline, links, sub-notes ── */}
-      {isMobile && mobilePanel && noteId && (
+      {/* ── Compact-width panel bottom sheet — outline, links, sub-notes ── */}
+      {!showEditorSidePanel && mobilePanel && noteId && (
         <>
           <div
             onClick={() => setMobilePanel(false)}
-            style={{ position: 'fixed', inset: 0, zIndex: 149, backgroundColor: 'rgba(0,0,0,0.4)' }}
+            style={{ position: 'fixed', top: 0, bottom: 0, right: 0, left: focusMode ? 0 : 'var(--sidebar-w, 0px)', zIndex: 149, backgroundColor: dockedPanel ? 'transparent' : 'rgba(0,0,0,0.4)' }}
           />
           <div style={{
-            position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 150,
+            position: 'fixed', zIndex: 150,
             backgroundColor: 'var(--card)',
-            borderRadius: '14px 14px 0 0',
-            borderTop: '1px solid var(--border)',
-            maxHeight: '65vh', overflowY: 'auto',
+            // Landscape tablets dock the panel to the right so the note stays visible while
+            // jumping around its outline; portrait and phones use a bottom sheet.
+            ...(dockedPanel
+              ? { top: 0, bottom: 0, right: 0, width: 360, maxWidth: '45vw', borderLeft: '1px solid var(--border)', boxShadow: '-8px 0 24px rgba(0,0,0,0.25)' }
+              : { bottom: 0, left: focusMode ? 0 : 'var(--sidebar-w, 0px)', right: 0, borderRadius: '14px 14px 0 0', borderTop: '1px solid var(--border)', maxHeight: '58vh' }),
+            overflowY: 'auto',
             padding: '12px 16px',
-            paddingBottom: 'calc(56px + env(safe-area-inset-bottom))',
+            // Only true mobile width has AppLayout's BottomNav to clear -- reserving that
+            // 56px at tablet widths (where there's no BottomNav at all) would recreate the
+            // exact kind of dead-space gap this whole branch of work has been fixing.
+            paddingBottom: isMobile ? 'calc(56px + env(safe-area-inset-bottom))' : 'env(safe-area-inset-bottom)',
             display: 'flex', flexDirection: 'column', gap: 20,
           }}>
-            {/* Drag handle */}
-            <div style={{ width: 40, height: 4, borderRadius: 2, backgroundColor: 'var(--border)', margin: '0 auto 4px' }} />
+            {/* Drag handle + explicit close, so the sheet is dismissable without hunting for the backdrop */}
+            <div style={{ position: 'relative', flexShrink: 0, minHeight: dockedPanel ? 28 : undefined }}>
+              {!dockedPanel && <div style={{ width: 40, height: 4, borderRadius: 2, backgroundColor: 'var(--border)', margin: '0 auto 4px' }} />}
+              <button type="button" aria-label="Close panel" title="Close" onClick={() => setMobilePanel(false)}
+                className="touch-target-sm"
+                style={{ position: 'absolute', right: -6, top: -8, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted-foreground)', borderRadius: 8 }}>
+                <X size={16} />
+              </button>
+            </div>
             {/* Outline */}
             {note.type === 'checklist' ? null : headings.length > 0 && (
               <div>
@@ -1311,7 +1335,7 @@ ${sanitizeHtmlForPrint(note.content ?? '')}
                 </p>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                   {headings.map((h, i) => (
-                    <button key={i} type="button" onClick={() => { scrollToHeading(h.text); setMobilePanel(false) }}
+                    <button key={i} type="button" onClick={() => scrollToHeading(h.text)}
                       style={{ textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer', fontSize: 12, color: 'var(--foreground)', padding: '3px 0', paddingLeft: (h.level - 1) * 12, opacity: 0.85 }}>
                       {h.text}
                     </button>
@@ -1369,8 +1393,8 @@ ${sanitizeHtmlForPrint(note.content ?? '')}
       )}
 
       {/* ── Status bar ── */}
-      {noteId && !focusMode && !loading && (
-        <div style={{
+      {noteId && !loading && (
+        <div className="kb-collapsible" style={{
           display: 'flex', alignItems: 'center', gap: 0,
           padding: '0 16px',
           height: 28,
@@ -1489,9 +1513,13 @@ ${sanitizeHtmlForPrint(note.content ?? '')}
   if (focusMode) {
     return (
       <>
-        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'var(--background)', zIndex: 100, display: 'flex', flexDirection: 'column', paddingBottom: isMobile ? 'calc(var(--bottom-nav-h, 56px) + env(safe-area-inset-bottom))' : 0 }}>
-          {editorContent}
-        </div>
+        {/* On body, not in place: the app's scroll container is its own layer in WebKit and keeps the sidebar painted over anything fixed inside it. */}
+        {createPortal(
+          <div style={{ position: 'fixed', left: 0, right: 0, top: 'var(--actual-vt, 0px)', height: 'var(--actual-vh, 100dvh)', backgroundColor: 'var(--background)', zIndex: 100, display: 'flex', flexDirection: 'column', paddingBottom: 'env(safe-area-inset-bottom)' }}>
+            {editorContent}
+          </div>,
+          document.body,
+        )}
         {aiChatOverlay}
       </>
     )

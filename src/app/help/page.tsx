@@ -3,6 +3,7 @@ import { useState, useEffect, useMemo, useRef } from 'react'
 import Link from 'next/link'
 import { AppLayout } from '@/components/layout/AppLayout'
 import { RELEASES_URL } from '@/lib/version'
+import { useBreakpoint } from '@/hooks/useBreakpoint'
 
 // ── primitives ──────────────────────────────────────────────────────────────
 
@@ -98,14 +99,8 @@ const SECTIONS = [
 // ── page ─────────────────────────────────────────────────────────────────────
 
 export default function HelpPage() {
-  const [isMobile, setIsMobile] = useState(false)
+  const { tier, showBottomNav } = useBreakpoint()
   const contentScrollRef = useRef<HTMLDivElement>(null)
-  useEffect(() => {
-    function check() { setIsMobile(window.innerWidth < 768) }
-    check()
-    window.addEventListener('resize', check)
-    return () => window.removeEventListener('resize', check)
-  }, [])
 
   function scrollToSection(id: string) {
     const el = document.getElementById(id)
@@ -758,15 +753,15 @@ export default function HelpPage() {
   )
 
   /* ── Mobile: fixed-height flex column — pill nav always visible, content scrolls ── */
-  if (isMobile) return (
+  if (tier === 'compact') return (
     <AppLayout>
-      <div style={{ display: 'flex', flexDirection: 'column', height: 'calc(100dvh - 56px - env(safe-area-inset-bottom))', overflow: 'hidden' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', height: showBottomNav ? 'calc(var(--actual-vh, 100dvh) - 56px - env(safe-area-inset-bottom))' : 'var(--actual-vh, 100dvh)', overflow: 'hidden' }}>
         {/* Pill nav — always visible, never scrolls away */}
         <div style={{ flexShrink: 0, backgroundColor: 'var(--background)' }}>
           {pillNav}
         </div>
         {/* Content — scrolls independently */}
-        <div ref={contentScrollRef} style={{ flex: 1, overflowY: 'auto', padding: '20px 16px 0', paddingBottom: 'calc(56px + env(safe-area-inset-bottom))' }}>
+        <div ref={contentScrollRef} style={{ flex: 1, overflowY: 'auto', padding: '20px 16px 0', paddingBottom: showBottomNav ? 'calc(56px + env(safe-area-inset-bottom))' : 0 }}>
           {sectionContent}
         </div>
       </div>

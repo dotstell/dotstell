@@ -16,6 +16,31 @@ function sanitizeBaseUrl(url: string): void {
 }
 
 /**
+ * OpenAI's first-generation reasoning models reject `role: "system"` outright with a 400.
+ * Every route here prepends a system prompt, so picking one of these models from the model
+ * dropdown fails 100% of the time. Folding the system text into the first user turn keeps
+ * the instructions intact and is accepted by every OpenAI chat model.
+ * Only applied to the models that actually reject it — later reasoning models accept
+ * `system` (translating it to `developer` internally), so they are left untouched.
+ */
+const NO_SYSTEM_ROLE_MODELS = /^(o1-mini|o1-preview)/i
+
+function adaptMessages(config: AIConfig, messages: AIMessage[]): AIMessage[] {
+  if (config.provider !== 'openai' || !NO_SYSTEM_ROLE_MODELS.test(config.model ?? '')) return messages
+
+  const systemText = messages.filter(m => m.role === 'system').map(m => m.content).join('\n\n')
+  const rest       = messages.filter(m => m.role !== 'system')
+  if (!systemText) return rest
+
+  const firstUser = rest.findIndex(m => m.role === 'user')
+  if (firstUser === -1) return [{ role: 'user', content: systemText }, ...rest]
+
+  return rest.map((m, i) =>
+    i === firstUser ? { ...m, content: `${systemText}\n\n${m.content}` } : m
+  )
+}
+
+/**
  * Stream a chat completion from the OpenAI API (or any OpenAI-compatible endpoint).
  * Used directly for OpenAI, and as the delegate for Ollama and Groq which share the same wire format.
  * `config.baseUrl` overrides the default endpoint — used by Ollama and Groq.
@@ -35,7 +60,7 @@ export async function openaiStream(
       'Content-Type': 'application/json',
       Authorization: `Bearer ${config.apiKey ?? ''}`,
     },
-    body:   JSON.stringify({ model: config.model, messages, stream: true }),
+    body:   JSON.stringify({ model: config.model, messages: adaptMessages(config, messages), stream: true }),
     signal: AbortSignal.timeout(30_000),
   })
 
@@ -71,6 +96,11 @@ export async function openaiEmbed(config: AIConfig, text: string): Promise<numbe
   const baseUrl = config.embeddingBaseUrl?.replace(/\/$/, '') || 'https://api.openai.com/v1'
   // Validate the embeddingBaseUrl hostname when a custom one is provided (skip Ollama — it uses assertLocalhost)
   if (config.embeddingBaseUrl && config.embeddingProvider !== 'ollama') sanitizeBaseUrl(baseUrl)
+  // Only the text-embedding-3-* family accepts `dimensions`; ada-002 rejects the parameter
+  // itself with a 400, which would mask the clearer "this model can't do 768 dims" guidance
+  // below. Omitting it for unsupported models lets that check do its job.
+  const supportsDimensions = /^text-embedding-3/i.test(config.embeddingModel ?? '')
+
   const res = await fetch(`${baseUrl}/embeddings`, {
     method: 'POST',
     headers: {
@@ -78,9 +108,9 @@ export async function openaiEmbed(config: AIConfig, text: string): Promise<numbe
       Authorization: `Bearer ${config.embeddingApiKey ?? config.apiKey ?? ''}`,
     },
     body: JSON.stringify({
-      model:      config.embeddingModel,
-      input:      text,
-      dimensions: 768, // request 768-dim output (text-embedding-3-* supports this natively)
+      model: config.embeddingModel,
+      input: text,
+      ...(supportsDimensions ? { dimensions: 768 } : {}),
     }),
   })
   if (!res.ok) {

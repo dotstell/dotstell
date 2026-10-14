@@ -168,7 +168,7 @@ export function ThemePicker({ current, onSelect, collapsed }: Props) {
         style={{
           display: 'flex', alignItems: 'center', gap: 6,
           width: '100%', background: 'none', border: 'none',
-          cursor: 'pointer', padding: '4px 4px', borderRadius: 6,
+          cursor: 'pointer', padding: '8px 4px', borderRadius: 6,
           transition: 'background 0.12s',
         }}
         onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = 'var(--sidebar-hover-bg)' }}

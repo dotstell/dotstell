@@ -498,16 +498,29 @@
 html {
   background-color: var(--background);
   color: var(--foreground);
-  overflow-x: hidden;
+  height: 100%;
+  overflow: hidden;
 }
 
+/* The document itself must never scroll -- not even via touch rubber-banding. On iOS
+   Safari, scrolling the outermost viewport (including an overscroll bounce once a nested
+   scroller like <main> hits ITS OWN limit and the gesture "chains" up to the document) is
+   what triggers the toolbar to auto-hide/show, changing the visual viewport height out from
+   under any position:fixed element (like the sidebar) after the fact -- reproducing the gap
+   even with the fixed element's own sizing correct. `overflow: hidden` alone stops
+   programmatic/wheel scrolling but iOS has long been known to still rubber-band the body on
+   touch; `position: fixed` on body is the actual iOS-reliable lock. Scrolling instead
+   happens inside AppLayout's <main>, which never reaches the document, and its own
+   `overscroll-behavior: contain` (see AppLayout.tsx) stops the chaining at the source. */
 body {
   background-color: var(--background);
   color: var(--foreground);
-  min-height: 100vh;
+  position: fixed;
+  inset: 0;
+  height: 100%;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   -webkit-font-smoothing: antialiased;
-  overflow-x: hidden;
+  overflow: hidden;
 }
 
 /* ── Scrollbars ── */
@@ -634,15 +647,165 @@ body {
 }
 .md-content--compact blockquote { padding: 0.3em 0.6em 0.3em 0.7em; }
 
-/* ── Mobile layout ───────────────────────────────── */
-@media (max-width: 767px) {
+/* ── Compact layout ──────────────────────────────────────────────────────────
+   Must stay in step with the compact tier in hooks/useBreakpoint.ts (< 600px).
+   The bottom-nav shell has no top chrome at all — its hamburger lives inside
+   BottomNav, at the bottom — so nothing here needs top clearance. The 64px
+   top padding this used to carry was leftover from an earlier top-app-bar
+   design that predates BottomNav; it produced exactly the large dead strip
+   above the greeting that showed up as "so much empty space" on mobile
+   dashboards. (.note-header-bar was the other half of that old design and is
+   unused by any component now, so it is removed rather than corrected.) */
+@media (max-width: 599px) {
   .page-container {
-    padding: 64px 16px 24px !important;
+    padding: 16px 16px 56px !important;
   }
-  .note-header-bar {
-    padding-left: 56px !important;
-  }
+}
+/* The bottom-nav shell only applies when the viewport is also at least 500px tall
+   (SHORT_VIEWPORT_MAX in useBreakpoint). A narrow but short screen — a small phone in
+   landscape — gets the 64px rail instead, and zeroing the margin there slid the page
+   underneath it. AppLayout sets the real margin inline; this only prevents a flash of the
+   desktop offset on phones before hydration. */
+@media (max-width: 599px) and (min-height: 500px) {
   .app-main {
     margin-left: 0 !important;
+  }
+}
+
+/* ── Touch ergonomics ───────────────────────────────────────────────────────
+   Everything here is gated on a coarse pointer, so mouse-driven layouts keep
+   their exact current density. Layout structure is decided by width elsewhere
+   (see hooks/useBreakpoint.ts); this block only adjusts how things feel under
+   a finger. */
+@media (pointer: coarse) {
+
+  /* iOS Safari zooms the whole page whenever focus lands in a field whose text
+     is smaller than 16px, so every tap into a search box or note title yanked
+     the layout about. Raising the floor to 16px is the only fix that does not
+     involve disabling pinch-zoom, which would be worse for accessibility.
+     !important is unavoidable: nearly every field here sets its size either
+     inline or through a Tailwind class, and both outrank a bare element
+     selector. */
+  input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='color']),
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
+
+  /* Removes the ~300ms delay iOS holds every tap for while it waits to see if
+     a double-tap-to-zoom is coming, which makes the whole UI feel laggy. */
+  button, a, [role='button'], summary, label {
+    touch-action: manipulation;
+  }
+
+  /* The default grey flash is crude and fires on the wrong element in nested
+     controls; an explicit active state reads as deliberate feedback instead. */
+  button, a, [role='button'] {
+    -webkit-tap-highlight-color: transparent;
+  }
+  button:active, a:active, [role='button']:active {
+    opacity: 0.65;
+  }
+
+  /* Apple's HIG puts the minimum comfortable target at 44px and Material at
+     48px; the icon buttons in this app sit closer to 26-32px, which is a lot
+     of missed taps. Applied through utility classes rather than a blanket
+     `button` rule so that tightly packed rows (toolbars, chips) are not forced
+     apart, and so each use is a deliberate, reviewable choice. */
+  .touch-target {
+    min-width: 44px;
+    min-height: 44px;
+  }
+  /* For controls that only need vertical room — full-width rows, list items —
+     where widening would fight the layout. */
+  .touch-target-y {
+    min-height: 44px;
+  }
+
+  /* Dense clusters — the editor toolbar packs ~20 controls into one strip. Making each
+     a full 44px square would push it onto several rows on a tablet in portrait and eat
+     the writing space we just recovered, so height gets the full target (the axis that
+     causes most mis-taps in a horizontal strip) while width grows more modestly. */
+  /* Middle size for controls that sit beside text or in tight shell chrome (floating AI
+     badge, sidebar chevrons): clears WCAG 2.2's 24px floor with room to spare without the
+     visual weight of a full 44px square. */
+  .touch-target-sm {
+    min-width: 36px;
+    min-height: 36px;
+  }
+
+  .touch-target-dense {
+    min-width: 38px;
+    min-height: 44px;
+  }
+}
+
+/* ── Short screens ───────────────────────────────────────────────────────────
+   A phone in landscape is ~320-400px tall. Anything that is only a convenience gets out of
+   the way so the note itself has room (the note tab bar, here). */
+@media (max-height: 499px) and (pointer: coarse) {
+  .short-hide { display: none !important; }
+}
+
+/* Invisible extra hit area for small controls inside dense rows (tag chips, inline links),
+   so a fingertip can hit them without changing how they look or where they sit. */
+@media (pointer: coarse) {
+  .hit-slop { position: relative; }
+  .hit-slop::after { content: ''; position: absolute; inset: -9px -6px; }
+}
+
+/* ── Row actions ─────────────────────────────────────────────────────────────
+   Edit/delete/pin buttons that live on a card or row. With a mouse they stay out of the
+   way until the row is hovered (or focused, for keyboard users); with a finger there is no
+   hover, so hiding them means they can never be reached — which is what happened on every
+   phone and tablet when this was written as opacity-0 + group-hover. */
+@media (hover: hover) and (pointer: fine) {
+  .hover-reveal { opacity: 0; transition: opacity 0.12s; }
+  .group:hover .hover-reveal,
+  .group:focus-within .hover-reveal,
+  .hover-reveal:focus-visible { opacity: 1; }
+}
+
+/* ── Typing with the on-screen keyboard ──────────────────────────────────────
+   AppLayout sets data-kb-open while the keyboard is up, and data-kb-mode while it is up
+   with the note editor focused and not much room left above it:
+     typing   (< 560px visible)  hide the page chrome (tab bar, title, tags, paste row) and
+                                 keep the formatting toolbar and the word count
+     cramped  (< 320px visible)  a phone in landscape — hide everything but the text
+   Everything comes back as soon as the keyboard closes.
+   The bottom nav is hidden whenever the keyboard is open: it is a navigation bar, not
+   something to type next to, and with the layout shrinking to the keyboard it would sit
+   directly above it and cover the word count. */
+/* Backstop that does not depend on measuring the keyboard: on a touch device, a focused text
+   field means the bar is out of the way. Its reserved space (--bottom-nav-h) is released with
+   it, otherwise the word count floats above an empty strip once the keyboard is dismissed
+   while the field keeps focus. */
+@media (pointer: coarse) {
+  html:has(.ProseMirror:focus, input:focus, textarea:focus) .bottom-nav { display: none !important; }
+  html:has(.ProseMirror:focus, input:focus, textarea:focus) { --bottom-nav-h: 0px !important; }
+}
+html[data-kb-open] .bottom-nav {
+  display: none !important;
+}
+html[data-kb-mode] .kb-chrome {
+  display: none !important;
+}
+html[data-kb-mode="cramped"] .kb-collapsible {
+  display: none !important;
+}
+
+/* ── Landing page nav ────────────────────────────────────────────────────────
+   On an actual phone (<480px) there isn't room for About + GitHub + Sign in +
+   Get started without wrapping or clipping — confirmed by screenshot: "Get
+   started free" rendered partly off-screen. About/GitHub are secondary to a
+   visitor deciding whether to sign up, so they are what gives way. */
+@media (max-width: 479px) {
+  .landing-nav-secondary {
+    /* The GitHub link sets display:'flex' inline (to align its icon+text); an inline
+       style always wins over a stylesheet rule regardless of selector specificity, so
+       plain `display: none` here was silently overridden and only the About link (no
+       inline display) actually hid. !important is the only way a stylesheet class can
+       still win against an inline style. */
+    display: none !important;
   }
 }

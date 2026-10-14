@@ -171,7 +171,11 @@ export default function TasksPage() {
             <div className="w-8 h-8 rounded-full border-2 border-[var(--primary)] border-t-transparent animate-spin" />
           </div>
         ) : viewMode === 'board' ? (
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          // auto-fit/minmax instead of a 1-col -> 3-col jump at the sm: breakpoint --
+          // that jump squeezed 3 equal columns onto modest tablet widths (e.g. an 8" tablet
+          // at ~744px), each too narrow for a task card. This scales continuously: 1 column
+          // on a phone, 2 on a modest tablet, 3 once there's enough width for all three.
+          <div className="grid gap-4" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))' }}>
             {STATUS_COLUMNS.map(status => {
               const colTasks = tasks.filter(t => t.status === status)
               return (
@@ -232,9 +236,9 @@ export default function TasksPage() {
                     <Calendar size={10} />{formatDate(task.due_date)}
                   </span>
                 )}
-                <div className="flex gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100">
-                  <Button variant="ghost" size="icon" className="hidden sm:flex h-6 w-6 text-[var(--muted-foreground)]" onClick={() => { setEditing(task); setDialogOpen(true) }}>✏️</Button>
-                  <Button variant="ghost" size="icon" className="h-6 w-6 text-[var(--muted-foreground)] hover:text-[var(--destructive)]" onClick={() => openConfirm({ title: 'Delete task', body: `"${task.title}" will be permanently deleted.`, confirmLabel: 'Delete forever', onConfirm: () => deleteTask(task.id) })}><Trash2 size={12} /></Button>
+                <div className="flex gap-1 hover-reveal">
+                  <Button variant="ghost" size="icon" className="hidden sm:flex touch-target-sm h-6 w-6 text-[var(--muted-foreground)]" onClick={() => { setEditing(task); setDialogOpen(true) }}>✏️</Button>
+                  <Button variant="ghost" size="icon" className="touch-target-sm h-6 w-6 text-[var(--muted-foreground)] hover:text-[var(--destructive)]" onClick={() => openConfirm({ title: 'Delete task', body: `"${task.title}" will be permanently deleted.`, confirmLabel: 'Delete forever', onConfirm: () => deleteTask(task.id) })}><Trash2 size={12} /></Button>
                 </div>
               </div>
             ))}
@@ -397,9 +401,9 @@ function TaskCard({ task, isOverdue, onEdit, onDelete, onStatusChange }: {
         <p className={cn('font-medium text-xs', task.status === 'done' && 'line-through text-[var(--muted-foreground)]')}>
           {task.title}
         </p>
-        <div className="flex gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100">
-          <button onClick={onEdit} className="text-[var(--muted-foreground)] hover:text-[var(--foreground)] text-xs">✏️</button>
-          <button onClick={onDelete} className="text-[var(--muted-foreground)] hover:text-[var(--destructive)] text-xs"><Trash2 size={10} /></button>
+        <div className="flex gap-1 hover-reveal">
+          <button onClick={onEdit} className="touch-target-sm inline-flex items-center justify-center text-[var(--muted-foreground)] hover:text-[var(--foreground)] text-xs">✏️</button>
+          <button onClick={onDelete} className="touch-target-sm inline-flex items-center justify-center text-[var(--muted-foreground)] hover:text-[var(--destructive)] text-xs"><Trash2 size={10} /></button>
         </div>
       </div>
       <div className="flex items-center justify-between">

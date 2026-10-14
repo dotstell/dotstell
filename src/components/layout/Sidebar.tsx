@@ -10,6 +10,7 @@ import { createClient } from '@/lib/supabase/client'
 import { DotstellLogo, ConstellationIcon } from '@/components/brand/DotstellLogo'
 import { ThemePicker } from '@/components/ui/ThemePicker'
 import { useTheme, type ThemeId } from '@/hooks/useTheme'
+import { useBreakpoint } from '@/hooks/useBreakpoint'
 
 const NAV_ITEMS = [
   { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
@@ -39,14 +40,15 @@ export function Sidebar({ onOpenPalette, mobileOpen: mobileOpenProp, onMobileOpe
   const { theme, setTheme } = useTheme()
   const [isDesktop, setIsDesktop] = useState(false)
   const [appVersion, setAppVersion] = useState<string | null>(null)
-  const [isMobile, setIsMobile] = useState(false)
+  const { showBottomNav, showRail, isTouch, isShortViewport } = useBreakpoint()
   const [mobileOpen, setMobileOpen] = useState(false)
+  // Tablet portrait keeps the 64px rail; expanding it opens the full sidebar over the page.
+  const [railOpen, setRailOpen] = useState(false)
   const [isMac, setIsMac] = useState(false)
 
   useEffect(() => {
     // All client-only state set here to avoid SSR hydration mismatches
     setCollapsed(localStorage.getItem('sidebar-collapsed') === 'true')
-    setIsMobile(window.innerWidth < 768)
     setIsMac(/Mac|iPhone|iPad/.test(navigator.platform))
 
     const desktop = '__TAURI__' in window
@@ -56,18 +58,23 @@ export function Sidebar({ onOpenPalette, mobileOpen: mobileOpenProp, onMobileOpe
         invoke<string>('app_version').then(setAppVersion).catch(() => null)
       )
     }
-
-    function onResize() { setIsMobile(window.innerWidth < 768) }
-    window.addEventListener('resize', onResize)
-    return () => window.removeEventListener('resize', onResize)
   }, [])
 
   // Close mobile drawer on route change
   useEffect(() => {
     setMobileOpen(false)
+    setRailOpen(false)
   }, [pathname])
 
+  useEffect(() => {
+    if (!showRail) setRailOpen(false)
+  }, [showRail])
+
   function toggle() {
+    setTooltip(null)
+    // The stored collapsed preference only applies to the desktop layout; on a railed tablet
+    // it changes nothing, which left the expand button dead.
+    if (showRail) { setRailOpen(o => !o); return }
     const next = !collapsed
     setCollapsed(next)
     localStorage.setItem('sidebar-collapsed', String(next))
@@ -84,7 +91,7 @@ export function Sidebar({ onOpenPalette, mobileOpen: mobileOpenProp, onMobileOpe
   }
 
   function showTip(e: React.MouseEvent<HTMLElement>, label: string) {
-    if (isMobile) return
+    if (isTouch) return
     const rect = e.currentTarget.getBoundingClientRect()
     setTooltip({ label, top: rect.top + rect.height / 2 })
   }
@@ -93,15 +100,28 @@ export function Sidebar({ onOpenPalette, mobileOpen: mobileOpenProp, onMobileOpe
     setTooltip(null)
   }
 
-  const sidebarWidth = collapsed ? 64 : 240
+  // Medium viewports (tablet portrait, an unfolded foldable, iPad Split View) show the
+  // sidebar as a 64px icon rail so the content keeps most of the width. Derived rather
+  // than stored: persisting it would clobber the user's own desktop preference, and would
+  // leave an iPad still railed after rotating into landscape where there is room for the
+  // full sidebar. AppLayout derives its left offset from the same flag, so the two cannot
+  // disagree and overlap.
+  const railed = showRail ? !railOpen : collapsed
+  const sidebarWidth = railed ? 64 : 240
+  // A phone in landscape is ~320-400px tall, but the rail stacks ~250px of fixed chrome (logo,
+  // search, expand, theme, sign out) around the nav list, leaving it only a couple of items of
+  // room inside its own little scroller. On a short screen the whole rail scrolls as one
+  // surface instead, with a slimmer header, so every destination is reachable.
+  const shortRail = railed && isShortViewport
 
   // When controlled from outside (AppLayout), use the prop values; otherwise fall back to local state.
   const isDrawerOpen = mobileOpenProp !== undefined ? mobileOpenProp : mobileOpen
   const openDrawer   = onMobileOpen  ?? (() => setMobileOpen(true))
   const closeDrawer  = onMobileClose ?? (() => setMobileOpen(false))
 
-  // Mobile: render slide-in drawer only (hamburger button lives in BottomNav)
-  if (isMobile) {
+  // Compact tier only: navigation lives in a drawer behind the BottomNav's hamburger.
+  // Medium and expanded both keep a persistent sidebar (rail or full) instead.
+  if (showBottomNav) {
     return (
       <>
         {/* Backdrop */}
@@ -119,7 +139,7 @@ export function Sidebar({ onOpenPalette, mobileOpen: mobileOpenProp, onMobileOpe
         {/* Drawer */}
         <aside style={{
           position: 'fixed', left: 0, top: 0,
-          height: 'calc(var(--actual-vh, 100dvh) - var(--bottom-nav-h, 56px) - env(safe-area-inset-bottom))',
+          bottom: 'calc(var(--bottom-nav-h, 56px) + env(safe-area-inset-bottom))',
           zIndex: 49,
           width: 260,
           backgroundColor: 'var(--sidebar-bg)',
@@ -226,32 +246,38 @@ export function Sidebar({ onOpenPalette, mobileOpen: mobileOpenProp, onMobileOpe
   // Desktop: original sidebar
   return (
     <>
+      {showRail && railOpen && (
+        <div onClick={() => setRailOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 54, backgroundColor: 'rgba(0,0,0,0.45)' }} />
+      )}
       <aside style={{
-        position: 'fixed', left: 0, top: 0, height: '100vh', zIndex: 40,
+        position: 'fixed', left: 0, top: 0, bottom: 0, zIndex: showRail && railOpen ? 55 : 40,
+        boxShadow: showRail && railOpen ? '4px 0 24px rgba(0,0,0,0.35)' : undefined,
+        // Pinning top AND bottom (instead of setting an explicit height, even a JS-computed
+        // one) lets WebKit resolve the box's height continuously against whatever the visual
+        // viewport is *right now*. A height value — vh, dvh, or --actual-vh synced from a
+        // resize listener — is one snapshot in time; on iOS/iPadOS the toolbar show/hide
+        // animation can outrun that snapshot, leaving a gap or clipped edge for a frame or
+        // more. top:0/bottom:0 has no snapshot to go stale.
         width: sidebarWidth,
         backgroundColor: 'var(--sidebar-bg)',
         borderRight: '1px solid var(--sidebar-border)',
         transition: 'width 0.22s cubic-bezier(0.4,0,0.2,1)',
         // overflowX hidden preserves the label-clipping needed during the width collapse
-        // animation. overflowY auto (not hidden) is the fix: on a short-but-wide viewport
-        // (any iPad, portrait or landscape — this app only has a <768px "mobile" breakpoint,
-        // so tablets always get this fixed-height desktop sidebar) the fixed-height column
-        // below can exceed the viewport, and hidden silently clipped the theme picker and
-        // sign out with no way to ever reach them. auto only activates a scrollbar when
-        // content genuinely doesn't fit — no visual change on any screen where it already did.
+        // animation. overflowY auto is a secondary safety net: if content still doesn't
+        // fit even at the correct height, it becomes scrollable instead of silently clipped.
         overflowX: 'hidden', overflowY: 'auto',
         display: 'flex', flexDirection: 'column',
       }}>
 
         {/* ── Logo ── */}
         <div style={{
-          height: 64, flexShrink: 0,
+          height: shortRail ? 44 : 64, flexShrink: 0,
           borderBottom: '1px solid var(--sidebar-border)',
           display: 'flex', alignItems: 'center',
           padding: '0 14px',
-          justifyContent: collapsed ? 'center' : 'space-between',
+          justifyContent: railed ? 'center' : 'space-between',
         }}>
-          {collapsed ? (
+          {railed ? (
             <button
               type="button"
               onClick={toggle}
@@ -259,13 +285,14 @@ export function Sidebar({ onOpenPalette, mobileOpen: mobileOpenProp, onMobileOpe
               onMouseLeave={hideTip}
               style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
             >
-              <ConstellationIcon size={32} />
+              <ConstellationIcon size={shortRail ? 26 : 32} />
             </button>
           ) : (
             <>
               <DotstellLogo size="md" />
               <button
                 type="button"
+                className="touch-target-sm"
                 onClick={toggle}
                 style={{
                   width: 26, height: 26, borderRadius: 7,
@@ -283,8 +310,8 @@ export function Sidebar({ onOpenPalette, mobileOpen: mobileOpenProp, onMobileOpe
         </div>
 
         {/* ── Search ── */}
-        <div style={{ padding: collapsed ? '10px 12px' : '10px 10px 4px', flexShrink: 0 }}>
-          {collapsed ? (
+        <div style={{ padding: railed ? (shortRail ? '6px 12px' : '10px 12px') : '10px 10px 4px', flexShrink: 0 }}>
+          {railed ? (
             <SidebarIconBtn
               as="button"
               label="Search"
@@ -319,27 +346,38 @@ export function Sidebar({ onOpenPalette, mobileOpen: mobileOpenProp, onMobileOpe
         </div>
 
         {/* ── Section label ── */}
-        {!collapsed && (
+        {!railed && (
           <div style={{ padding: '8px 16px 2px' }}>
             <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--sidebar-section-fg)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Menu</span>
           </div>
         )}
 
         {/* ── Nav items ── */}
-        <nav style={{ flex: 1, padding: collapsed ? '4px 12px' : '4px 8px', display: 'flex', flexDirection: 'column', gap: 2, overflowY: 'auto' }}>
+        <nav style={{ flex: shortRail ? '0 0 auto' : 1, padding: railed ? (isTouch ? '4px 6px' : '4px 12px') : '4px 8px', display: 'flex', flexDirection: 'column', gap: 2, overflowY: shortRail ? 'visible' : 'auto' }}>
           {NAV_ITEMS.map(({ href, icon: Icon, label }) => {
             const active = pathname === href || (href !== '/dashboard' && pathname.startsWith(href))
-            if (collapsed) {
+            if (railed) {
               return (
                 <SidebarIconBtn
                   key={href}
                   as="link" href={href}
                   active={active}
                   label={label}
+                  stacked={isTouch}
                   onMouseEnter={e => showTip(e, label)}
                   onMouseLeave={hideTip}
                 >
-                  <Icon size={18} />
+                  <Icon size={isTouch ? 17 : 18} />
+                  {/* A finger has no hover, so the tooltip that labels these icons for a
+                      mouse user never appears on a tablet. A short caption under the icon
+                      keeps the rail readable there without widening it. */}
+                  {isTouch && (
+                    <span style={{
+                      fontSize: 9, lineHeight: 1.1, marginTop: 3,
+                      maxWidth: 50, textAlign: 'center',
+                      overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                    }}>{label}</span>
+                  )}
                 </SidebarIconBtn>
               )
             }
@@ -364,7 +402,7 @@ export function Sidebar({ onOpenPalette, mobileOpen: mobileOpenProp, onMobileOpe
         </nav>
 
         {/* ── Expand button (collapsed only) ── */}
-        {collapsed && (
+        {railed && (
           <div style={{ padding: '6px 12px', flexShrink: 0 }}>
             <SidebarIconBtn
               as="button"
@@ -380,19 +418,26 @@ export function Sidebar({ onOpenPalette, mobileOpen: mobileOpenProp, onMobileOpe
 
         {/* ── Theme picker ── */}
         <div style={{
-          padding: collapsed ? '6px 12px' : '4px 8px',
+          padding: railed ? '6px 12px' : '4px 8px',
           borderTop: '1px solid var(--sidebar-border)',
           flexShrink: 0,
+          // marginTop:auto absorbs any leftover vertical space in the flex column above
+          // this point, pushing this block + Sign out to the true bottom of the sidebar.
+          // On some tablet viewports the nav list's own flex:1 growth wasn't fully
+          // consuming leftover space, leaving a visible blank gap below Sign out instead
+          // of before it. This guarantees the bottom-anchored position directly, rather
+          // than depending on nav's sizing behavior to happen to work out correctly.
+          marginTop: 'auto',
         }}
-          onMouseEnter={collapsed ? e => showTip(e as React.MouseEvent<HTMLElement>, 'Change theme') : undefined}
-          onMouseLeave={collapsed ? hideTip : undefined}
+          onMouseEnter={railed ? e => showTip(e as React.MouseEvent<HTMLElement>, 'Change theme') : undefined}
+          onMouseLeave={railed ? hideTip : undefined}
         >
-          <ThemePicker current={theme} onSelect={setTheme} collapsed={collapsed} />
+          <ThemePicker current={theme} onSelect={setTheme} collapsed={railed} />
         </div>
 
         {/* ── Sign out ── */}
-        <div style={{ padding: collapsed ? '6px 12px' : '8px', borderTop: '1px solid var(--sidebar-border)', flexShrink: 0 }}>
-          {collapsed ? (
+        <div style={{ padding: railed ? '6px 12px' : '8px', borderTop: '1px solid var(--sidebar-border)', flexShrink: 0 }}>
+          {railed ? (
             <SidebarIconBtn
               as="button"
               label="Sign out"
@@ -420,7 +465,7 @@ export function Sidebar({ onOpenPalette, mobileOpen: mobileOpenProp, onMobileOpe
           )}
         </div>
         {/* ── Desktop badge ── */}
-        {isDesktop && !collapsed && (
+        {isDesktop && !railed && (
           <div style={{
             padding: '6px 14px 10px',
             display: 'flex', alignItems: 'center', gap: 6,
@@ -449,7 +494,7 @@ export function Sidebar({ onOpenPalette, mobileOpen: mobileOpenProp, onMobileOpe
       </aside>
 
       {/* ── Tooltip ── */}
-      {collapsed && tooltip && (
+      {railed && tooltip && (
         <div style={{
           position: 'fixed',
           left: 72,
@@ -492,9 +537,11 @@ interface IconBtnProps {
   onMouseEnter: (e: React.MouseEvent<HTMLElement>) => void
   onMouseLeave: () => void
   onClick?: () => void
+  /** Stack the icon above a caption instead of centring it alone. */
+  stacked?: boolean
 }
 
-function SidebarIconBtn({ as, href, active, danger, children, onMouseEnter, onMouseLeave, onClick }: IconBtnProps) {
+function SidebarIconBtn({ as, href, active, danger, children, onMouseEnter, onMouseLeave, onClick, stacked }: IconBtnProps) {
   const [hovered, setHovered] = useState(false)
 
   const bgColor = active
@@ -510,14 +557,19 @@ function SidebarIconBtn({ as, href, active, danger, children, onMouseEnter, onMo
       : 'var(--sidebar-muted)'
 
   const baseStyle: React.CSSProperties = {
-    width: '100%', height: 40, borderRadius: 8,
-    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    width: '100%', height: stacked ? 48 : 40, minHeight: 40, borderRadius: 8,
+    display: 'flex', flexDirection: stacked ? 'column' : 'row',
+    alignItems: 'center', justifyContent: 'center',
     cursor: 'pointer', transition: 'background 0.15s, color 0.15s',
     backgroundColor: bgColor,
     border: active ? '1px solid color-mix(in srgb, var(--primary) 25%, transparent)' : '1px solid transparent',
     color: fgColor,
     textDecoration: 'none',
   }
+
+  // touch-target-y raises these to 44px under a coarse pointer and does nothing for a
+  // mouse, so the desktop sidebar keeps its current rhythm.
+  const className = 'touch-target-y'
 
   function handleEnter(e: React.MouseEvent<HTMLElement>) {
     setHovered(true)
@@ -531,14 +583,14 @@ function SidebarIconBtn({ as, href, active, danger, children, onMouseEnter, onMo
 
   if (as === 'link' && href) {
     return (
-      <Link href={href} style={baseStyle} onMouseEnter={handleEnter} onMouseLeave={handleLeave}>
+      <Link href={href} className={className} style={baseStyle} onMouseEnter={handleEnter} onMouseLeave={handleLeave}>
         {children}
       </Link>
     )
   }
 
   return (
-    <button type="button" style={baseStyle} onMouseEnter={handleEnter} onMouseLeave={handleLeave} onClick={onClick}>
+    <button type="button" className={className} style={baseStyle} onMouseEnter={handleEnter} onMouseLeave={handleLeave} onClick={onClick}>
       {children}
     </button>
   )
