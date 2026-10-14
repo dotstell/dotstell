@@ -40,7 +40,7 @@ export function Sidebar({ onOpenPalette, mobileOpen: mobileOpenProp, onMobileOpe
   const { theme, setTheme } = useTheme()
   const [isDesktop, setIsDesktop] = useState(false)
   const [appVersion, setAppVersion] = useState<string | null>(null)
-  const { showBottomNav, showRail, isTouch } = useBreakpoint()
+  const { showBottomNav, showRail, isTouch, isShortViewport } = useBreakpoint()
   const [mobileOpen, setMobileOpen] = useState(false)
   const [isMac, setIsMac] = useState(false)
 
@@ -97,6 +97,11 @@ export function Sidebar({ onOpenPalette, mobileOpen: mobileOpenProp, onMobileOpe
   // disagree and overlap.
   const railed = showRail || collapsed
   const sidebarWidth = railed ? 64 : 240
+  // A phone in landscape is ~320-400px tall, but the rail stacks ~250px of fixed chrome (logo,
+  // search, expand, theme, sign out) around the nav list, leaving it only a couple of items of
+  // room inside its own little scroller. On a short screen the whole rail scrolls as one
+  // surface instead, with a slimmer header, so every destination is reachable.
+  const shortRail = railed && isShortViewport
 
   // When controlled from outside (AppLayout), use the prop values; otherwise fall back to local state.
   const isDrawerOpen = mobileOpenProp !== undefined ? mobileOpenProp : mobileOpen
@@ -251,7 +256,7 @@ export function Sidebar({ onOpenPalette, mobileOpen: mobileOpenProp, onMobileOpe
 
         {/* ── Logo ── */}
         <div style={{
-          height: 64, flexShrink: 0,
+          height: shortRail ? 44 : 64, flexShrink: 0,
           borderBottom: '1px solid var(--sidebar-border)',
           display: 'flex', alignItems: 'center',
           padding: '0 14px',
@@ -265,13 +270,14 @@ export function Sidebar({ onOpenPalette, mobileOpen: mobileOpenProp, onMobileOpe
               onMouseLeave={hideTip}
               style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
             >
-              <ConstellationIcon size={32} />
+              <ConstellationIcon size={shortRail ? 26 : 32} />
             </button>
           ) : (
             <>
               <DotstellLogo size="md" />
               <button
                 type="button"
+                className="touch-target-sm"
                 onClick={toggle}
                 style={{
                   width: 26, height: 26, borderRadius: 7,
@@ -289,7 +295,7 @@ export function Sidebar({ onOpenPalette, mobileOpen: mobileOpenProp, onMobileOpe
         </div>
 
         {/* ── Search ── */}
-        <div style={{ padding: railed ? '10px 12px' : '10px 10px 4px', flexShrink: 0 }}>
+        <div style={{ padding: railed ? (shortRail ? '6px 12px' : '10px 12px') : '10px 10px 4px', flexShrink: 0 }}>
           {railed ? (
             <SidebarIconBtn
               as="button"
@@ -332,7 +338,7 @@ export function Sidebar({ onOpenPalette, mobileOpen: mobileOpenProp, onMobileOpe
         )}
 
         {/* ── Nav items ── */}
-        <nav style={{ flex: 1, padding: railed ? '4px 12px' : '4px 8px', display: 'flex', flexDirection: 'column', gap: 2, overflowY: 'auto' }}>
+        <nav style={{ flex: shortRail ? '0 0 auto' : 1, padding: railed ? '4px 12px' : '4px 8px', display: 'flex', flexDirection: 'column', gap: 2, overflowY: shortRail ? 'visible' : 'auto' }}>
           {NAV_ITEMS.map(({ href, icon: Icon, label }) => {
             const active = pathname === href || (href !== '/dashboard' && pathname.startsWith(href))
             if (railed) {

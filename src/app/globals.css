@@ -658,8 +658,15 @@ body {
    unused by any component now, so it is removed rather than corrected.) */
 @media (max-width: 599px) {
   .page-container {
-    padding: 16px 16px 24px !important;
+    padding: 16px 16px 56px !important;
   }
+}
+/* The bottom-nav shell only applies when the viewport is also at least 500px tall
+   (SHORT_VIEWPORT_MAX in useBreakpoint). A narrow but short screen — a small phone in
+   landscape — gets the 64px rail instead, and zeroing the margin there slid the page
+   underneath it. AppLayout sets the real margin inline; this only prevents a flash of the
+   desktop offset on phones before hydration. */
+@media (max-width: 599px) and (min-height: 500px) {
   .app-main {
     margin-left: 0 !important;
   }
@@ -719,6 +726,14 @@ body {
      a full 44px square would push it onto several rows on a tablet in portrait and eat
      the writing space we just recovered, so height gets the full target (the axis that
      causes most mis-taps in a horizontal strip) while width grows more modestly. */
+  /* Middle size for controls that sit beside text or in tight shell chrome (floating AI
+     badge, sidebar chevrons): clears WCAG 2.2's 24px floor with room to spare without the
+     visual weight of a full 44px square. */
+  .touch-target-sm {
+    min-width: 36px;
+    min-height: 36px;
+  }
+
   .touch-target-dense {
     min-width: 38px;
     min-height: 44px;

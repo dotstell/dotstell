@@ -611,7 +611,7 @@ export default function DashboardPage() {
             <div style={{ padding: '12px 18px', borderBottom: '1px solid var(--secondary)', display: 'flex', alignItems: 'center' }}>
               <TrendingUp size={14} color="var(--primary)" />
               <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--foreground)', marginLeft: 8 }}>Task progress</span>
-              <Link href="/tasks" style={{ marginLeft: 'auto', fontSize: 11, color: 'var(--muted-foreground)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 3 }}
+              <Link href="/tasks" className="touch-target-sm" style={{ marginLeft: 'auto', fontSize: 11, color: 'var(--muted-foreground)', textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 3 }}
                 onMouseEnter={e => (e.currentTarget.style.color = 'var(--primary)')}
                 onMouseLeave={e => (e.currentTarget.style.color = 'var(--muted-foreground)')}
               >
@@ -1383,13 +1383,13 @@ function Panel({ title, subtitle, icon, href, action, actionHref, children }: {
           </div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <Link href={actionHref} style={{ fontSize: 11, color: 'var(--muted-foreground)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 3 }}
+          <Link href={actionHref} className="touch-target-sm" style={{ fontSize: 11, color: 'var(--muted-foreground)', textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 3 }}
             onMouseEnter={e => (e.currentTarget.style.color = 'var(--primary)')}
             onMouseLeave={e => (e.currentTarget.style.color = 'var(--muted-foreground)')}
           >
             <Plus size={11} />
           </Link>
-          <Link href={href} style={{ fontSize: 11, color: 'var(--muted-foreground)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 3 }}
+          <Link href={href} className="touch-target-sm" style={{ fontSize: 11, color: 'var(--muted-foreground)', textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 3 }}
             onMouseEnter={e => (e.currentTarget.style.color = 'var(--primary)')}
             onMouseLeave={e => (e.currentTarget.style.color = 'var(--muted-foreground)')}
           >

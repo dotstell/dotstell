@@ -16,7 +16,8 @@ export function PageContainer({ children, className, style, narrow, wide, ...res
       {...rest}
       className={cn('page-container', className)}
       style={{
-        padding: '28px 32px',
+        // Bottom clears the floating AI/version badge so the last row stays fully reachable.
+        padding: '28px 32px 56px',
         maxWidth,
         width: '100%',
         margin: '0 auto',
