@@ -1,13 +1,13 @@
 # Exporting your data
 
-Dotstell never holds your notes hostage. **Settings → Export everything** downloads a single
-`dotstell-export-YYYY-MM-DD.zip` of plain files that open in Obsidian, any text editor, a
+Dotstell never holds your notes hostage. **Import & Export → Export everything** downloads a single
+`dotstell-export-YYYY-MM-DD_HH-MM.zip` (your local date and time) of plain files that open in Obsidian, any text editor, a
 spreadsheet, or a browser.
 
 ## What is in the archive
 
 ```
-dotstell-export-2026-10-16/
+dotstell-export-2026-10-16_14-30/
 ├── README.md                 # a short guide, included in every export
 ├── dotstell-export.json      # complete, lossless backup of everything
 ├── notes/

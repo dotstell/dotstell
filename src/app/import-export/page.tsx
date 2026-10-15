@@ -18,7 +18,7 @@ const INCLUDED = [
   { icon: Users,       text: 'People, each with the notes and tasks linked to them' },
   { icon: CheckSquare, text: 'Tasks as a checklist and as a spreadsheet (CSV)' },
   { icon: Bookmark,    text: 'Bookmarks as a list and as a file any browser can import' },
-  { icon: Database,    text: 'A complete JSON backup of everything, including formatting Markdown cannot hold' },
+  { icon: Database,    text: 'A full backup file (JSON) that keeps everything exactly as it is in dotstell, including colours and fonts' },
 ]
 
 type Phase = 'idle' | 'working' | 'done' | 'error'
@@ -50,7 +50,7 @@ export default function SettingsPage() {
   return (
     <AppLayout>
       <PageContainer>
-        <PageHeader title="Settings" description="Manage your data" />
+        <PageHeader title="Import & Export" description="Take your data with you" />
 
         <Card style={{ maxWidth: 720 }}>
           <CardHeader>

@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
   FileText, Bookmark, Users, CheckSquare, Network,
-  LayoutDashboard, LogOut, Search, ChevronLeft, ChevronRight, Tag, Menu, X, HelpCircle, Settings
+  LayoutDashboard, LogOut, Search, ChevronLeft, ChevronRight, Tag, Menu, X, HelpCircle, ArrowLeftRight
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { DotstellLogo, ConstellationIcon } from '@/components/brand/DotstellLogo'
@@ -21,7 +21,8 @@ const NAV_ITEMS = [
   { href: '/tags',      icon: Tag,             label: 'Tags' },
   { href: '/graph',     icon: Network,         label: 'Graph' },
   { href: '/help',      icon: HelpCircle,      label: 'Help' },
-  { href: '/settings',  icon: Settings,        label: 'Settings' },
+  // railLabel: the 64px tablet rail only has room for ~9 characters under the icon.
+  { href: '/import-export', icon: ArrowLeftRight, label: 'Import & Export', railLabel: 'Data' },
 ]
 
 interface TooltipState {
@@ -355,7 +356,7 @@ export function Sidebar({ onOpenPalette, mobileOpen: mobileOpenProp, onMobileOpe
 
         {/* ── Nav items ── */}
         <nav style={{ flex: shortRail ? '0 0 auto' : 1, padding: railed ? (isTouch ? '4px 6px' : '4px 12px') : '4px 8px', display: 'flex', flexDirection: 'column', gap: 2, overflowY: shortRail ? 'visible' : 'auto' }}>
-          {NAV_ITEMS.map(({ href, icon: Icon, label }) => {
+          {NAV_ITEMS.map(({ href, icon: Icon, label, railLabel }) => {
             const active = pathname === href || (href !== '/dashboard' && pathname.startsWith(href))
             if (railed) {
               return (
@@ -377,7 +378,7 @@ export function Sidebar({ onOpenPalette, mobileOpen: mobileOpenProp, onMobileOpe
                       fontSize: 9, lineHeight: 1.1, marginTop: 3,
                       maxWidth: 50, textAlign: 'center',
                       overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                    }}>{label}</span>
+                    }}>{railLabel ?? label}</span>
                   )}
                 </SidebarIconBtn>
               )
