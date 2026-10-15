@@ -75,6 +75,8 @@ Every star, issue, and PR genuinely matters for an early-stage OSS project.
 | ✅ | **Tasks & Priorities** | Kanban board + list view with priorities, due dates and overdue alerts |
 | 🌐 | **Knowledge Graph** | Visual map of everything — wikilinks and manual connections appear as live edges |
 | 🔍 | **Universal Search** | Ctrl+K command palette across all notes, people, tasks and bookmarks |
+| 📤 | **Export & No Lock-in** | One click exports everything as a zip: Markdown notes with wikilinks and front matter (opens in Obsidian), people, tasks (Markdown + CSV), browser-importable bookmarks, and a lossless JSON backup — see [docs/EXPORT.md](docs/EXPORT.md) |
+| 📥 | **Import** | Bring in Markdown (Obsidian, Notion, Bear, a dotstell export), Evernote (`.enex`), Google Keep (Takeout) and contacts (`.vcf`, `.csv`): notebooks, tags, dates and `[[wikilinks]]` are kept; unsafe files are refused; preview first and one-click undo — see [docs/IMPORT.md](docs/IMPORT.md) |
 | 🔗 | **Manual Linking** | Connect any entity to any other — note → person, bookmark → task, etc. |
 | 🏠 | **Dashboard** | Unified home screen: overdue alerts, task progress, recent notes and bookmarks |
 | ✨ | **AI — Chat, Write, Assist & Search** | RAG-grounded chat (notes, bookmarks, and tasks all in context), AI Writing Assistant (draft from scratch or improve existing), inline text assist (rewrite, expand, fix), smart titles, auto-tagging, note summaries, AI Digest, Person Intelligence, semantic Related Notes — works with Ollama (local/private), OpenAI, Anthropic, Gemini, or Groq |
@@ -298,6 +300,7 @@ The full annotated directory tree is in [docs/ARCHITECTURE.md](docs/ARCHITECTURE
 | AI layer — Chat, Assist, Semantic Search, Person Intelligence, Summaries, Digest | ✅ Live (v0.4.0) |
 | Local AI via Ollama — works from both live app and local dev | ✅ Live (v0.4.0) |
 | AI Writing Assistant — draft from scratch (8 templates) + improve existing content | ✅ Live (v0.5.0) |
+| Import (Markdown, Evernote, Google Keep, contacts) and full Export | ✅ Live (v0.7.0) |
 | Docs (per-project documentation) | 🔜 Soon |
 | Browser extension | 🔜 Planned |
 | Integrations (Slack, Teams, etc.) | 🔜 Planned |
