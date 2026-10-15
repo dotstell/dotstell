@@ -82,6 +82,7 @@
     "sonner": "^2.0.7",
     "tailwind-merge": "^3.6.0",
     "turndown": "^7.2.4",
+    "yaml": "^2.9.1",
     "zustand": "^5.0.14"
   },
   "devDependencies": {

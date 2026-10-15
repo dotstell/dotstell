@@ -7,6 +7,7 @@ import { PageContainer } from '@/components/layout/PageContainer'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { Button } from '@/components/ui/button'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
+import { ImportCard } from '@/components/import/ImportCard'
 import { createExportArchive, downloadBlob, type ExportProgress, type ExportSummary } from '@/lib/export'
 
 const STAGE_LABEL: Record<ExportProgress['entity'], string> = {
@@ -50,7 +51,11 @@ export default function SettingsPage() {
   return (
     <AppLayout>
       <PageContainer>
-        <PageHeader title="Import & Export" description="Take your data with you" />
+        <PageHeader title="Import & Export" description="Bring your notes in, and take them with you" />
+
+        <div style={{ marginBottom: 20 }}>
+          <ImportCard />
+        </div>
 
         <Card style={{ maxWidth: 720 }}>
           <CardHeader>
