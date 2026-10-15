@@ -14,7 +14,7 @@ export async function createExportArchive(
   // yesterday's date, and two exports on the same day must not share a name. Dashes, not
   // colons, because colons are not allowed in Windows file names.
   const pad = (n: number) => String(n).padStart(2, '0')
-  const stamp = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}_${pad(now.getHours())}-${pad(now.getMinutes())}`
+  const stamp = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}_${pad(now.getHours())}-${pad(now.getMinutes())}-${pad(now.getSeconds())}`
   const root = `dotstell-export-${stamp}`
   const { files, summary } = buildExport(data, now)
   // Copy into a plain ArrayBuffer-backed view: Blob rejects SharedArrayBuffer-typed views.
