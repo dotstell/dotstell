@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { rateLimit } from '@/lib/ratelimit'
+import { containsActiveContent } from '@/lib/import/safety'
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 const IMPORT_TAG = /^imported-[A-Za-z0-9-]{1,40}$/
@@ -66,6 +67,10 @@ export async function POST(req: NextRequest) {
     }
     if (typeof n.html !== 'string' || n.html.length > MAX_HTML_LENGTH) {
       return NextResponse.json({ error: 'A note is too large to import (max 2 MB)' }, { status: 413 })
+    }
+    // The importer escapes scripts; anything that still looks active did not come from it.
+    if (containsActiveContent(n.html)) {
+      return NextResponse.json({ error: 'A note contains content that is not allowed (scripts or unsafe links).' }, { status: 400 })
     }
     if (!Array.isArray(n.tags) || n.tags.some(t => typeof t !== 'string')) {
       return NextResponse.json({ error: 'Invalid tags' }, { status: 400 })

@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { strToU8, unzipSync } from 'fflate'
 import { splitFrontMatter, toIsoDate, toStringList } from './frontmatter'
 import { extractInlineTags } from './markdown'
+import { containsActiveContent } from './safety'
 import { planMarkdownImport, type VaultFile } from './vault'
 import { buildExport } from '../export/build'
 import { zipExport } from '../export/zip'
@@ -69,7 +70,7 @@ describe('planMarkdownImport', () => {
   ]
   // Real bytes for the images (strToU8('') above is a placeholder replaced here).
   vault.find(f => f.path.endsWith('pic.png'))!.data = PNG
-  vault.push({ path: 'MyVault/assets/huge.png', data: new Uint8Array(600 * 1024) })
+  vault.push({ path: 'MyVault/assets/huge.png', data: Uint8Array.from({ length: 600 * 1024 }, (_, i) => PNG[i] ?? 0) })
 
   const result = plan(vault)
   const alpha = byTitle(result, 'Alpha')
@@ -142,7 +143,7 @@ describe('planMarkdownImport', () => {
   })
 
   it('reports files it did not import', () => {
-    expect(result.report.issues.join(' ')).toMatch(/1 non-image file\(s\)/)
+    expect(result.report.issues.join(' ')).toMatch(/Unsupported files were skipped.*\.pdf ×1/)
   })
 })
 
@@ -219,4 +220,65 @@ describe('round trip with a dotstell export', () => {
     expect(road.parentId).toBe(n.id)
     expect(n.html).toContain('data-type="taskItem" data-checked="true"')
   })
+})
+
+describe('untrusted input', () => {
+  const bytes = (...n: number[]) => Uint8Array.from(n)
+  const evil = plan([
+    file('v/ok.md', 'fine'),
+    { path: 'v/setup.exe', data: bytes(0x4d, 0x5a, 0, 0) },
+    { path: 'v/run.sh', data: strToU8('rm -rf /') },
+    { path: 'v/page.html', data: strToU8('<script>1</script>') },
+    { path: 'v/inner.zip', data: bytes(0x50, 0x4b, 3, 4) },
+    { path: 'v/fake.png', data: strToU8('<html><script>alert(1)</script>') },
+    { path: 'v/evil.svg', data: strToU8('<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script></svg>') },
+    { path: 'v/good.svg', data: strToU8('<svg xmlns="http://www.w3.org/2000/svg"><circle r="1"/></svg>') },
+    { path: 'v/binary.md', data: bytes(0x50, 0x4b, 0, 0, 1, 2) },
+    { path: 'v/../../escape.md', data: strToU8('outside') },
+    { path: 'C:/Windows/x.md', data: strToU8('abs') },
+    file('v/notes.pdf', 'pdf'),
+  ])
+  const warnings = evil.report.warnings.join(' | ')
+
+  it('imports only the harmless note', () => {
+    expect(evil.notes.map(n => n.title)).toEqual(['ok'])
+  })
+  it('refuses programs and scripts and says so', () => {
+    expect(warnings).toMatch(/\.exe ×1/)
+    expect(warnings).toMatch(/\.sh ×1/)
+    expect(warnings).toMatch(/\.html ×1/)
+  })
+  it('does not trust image file names or unsafe SVGs', () => {
+    expect(warnings).toMatch(/1 file\(s\) with an image name are not valid images/)
+    expect(warnings).toMatch(/1 SVG image\(s\) contain scripts/)
+  })
+  it('refuses binary files named .md, nested archives and escaping paths', () => {
+    expect(warnings).toMatch(/not text files/)
+    expect(warnings).toMatch(/zip or archive file\(s\) inside the import/)
+    expect(warnings).toMatch(/2 file\(s\) with unsafe paths/)
+  })
+  it('reports unsupported-but-harmless files as plain notes, not warnings', () => {
+    expect(evil.report.issues.join(' ')).toMatch(/\.pdf ×1/)
+    expect(warnings).not.toMatch(/pdf/)
+  })
+  it('skips a note too large for the server instead of failing mid-import', () => {
+    const r = plan([file('a.md', 'x'.repeat(2_000_000)), file('b.md', 'small')])
+    expect(r.notes.map(n => n.title)).toEqual(['b'])
+    expect(r.report.warnings.join(' ')).toMatch(/too large/)
+  })
+  it('never lets importer output trip the server-side check', () => {
+    const r = plan([file('a.md', '<script>alert(1)</script>\n\n<img src=x onerror=alert(1)>\n\n[x](javascript:alert(1)) ![p](data:text/html;base64,AAAA)')])
+    expect(containsActiveContent(r.notes[0].html)).toBe(false)
+  })
+})
+
+describe('containsActiveContent', () => {
+  it.each([
+    '<script>x</script>', '<p onclick="x">a</p>', '<a href="javascript:alert(1)">a</a>',
+    '<iframe src="x"></iframe>', '<img src="data:text/html;base64,AA">', '<svg onload=x>', '<style>a{}</style>',
+  ])('flags %s', html => expect(containsActiveContent(html)).toBe(true))
+  it.each([
+    '<p>hello &lt;script&gt; onclick=1</p>', '<a href="https://x.com">a</a>',
+    '<img src="data:image/png;base64,AAAA">', '<code>a &lt; b onerror=x</code>',
+  ])('allows %s', html => expect(containsActiveContent(html)).toBe(false))
 })

@@ -51,13 +51,13 @@ export default function SettingsPage() {
   return (
     <AppLayout>
       <PageContainer>
-        <PageHeader title="Import & Export" description="Bring your notes in, and take them with you" />
+        <PageHeader title="Import & Export" description="Move your notes in or out of dotstell, any time. Your data stays yours." />
 
-        <div style={{ marginBottom: 20 }}>
-          <ImportCard />
-        </div>
+        {/* Two equal cards side by side when there is room; stacked (import first) on phones and tablets. */}
+        <div className="grid gap-5 items-stretch" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 380px), 1fr))' }}>
+        <ImportCard />
 
-        <Card style={{ maxWidth: 720 }}>
+        <Card className="h-full">
           <CardHeader>
             <CardTitle>Export your data</CardTitle>
             <p className="text-sm text-[var(--muted-foreground)]">
@@ -107,6 +107,7 @@ export default function SettingsPage() {
             </p>
           </CardContent>
         </Card>
+        </div>
       </PageContainer>
     </AppLayout>
   )

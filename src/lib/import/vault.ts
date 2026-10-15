@@ -1,4 +1,5 @@
 import { splitFrontMatter, toIsoDate, toStringList } from './frontmatter'
+import { classifyFile, extensionOf, hasUnsafePath, isSafeSvg, looksBinary, sniffImage } from './safety'
 import { extractInlineTags, parseWikiTarget, renderMarkdown } from './markdown'
 
 export interface VaultFile {
@@ -31,6 +32,8 @@ export interface ImportReport {
   links: { resolved: number; unresolved: number }
   /** Short human-readable lines: what was not imported or was changed along the way. */
   issues: string[]
+  /** Files that were refused for safety reasons. Shown prominently, separate from the notes about conversion. */
+  warnings: string[]
 }
 
 export interface ImportPlan {
@@ -46,13 +49,15 @@ export interface PlanOptions {
 }
 
 const DEFAULT_MAX_IMAGE_BYTES = 500 * 1024
+// Stays under the server's 2 MB limit so one oversized note never aborts the whole import.
+const MAX_NOTE_HTML = 1_900_000
 
 const IMAGE_MIME: Record<string, string> = {
   png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', gif: 'image/gif',
   webp: 'image/webp', svg: 'image/svg+xml', bmp: 'image/bmp', avif: 'image/avif',
 }
 
-const extOf = (p: string) => (p.split('.').pop() ?? '').toLowerCase()
+const extOf = extensionOf
 const baseName = (p: string) => p.slice(p.lastIndexOf('/') + 1)
 const stripMd = (p: string) => p.replace(/\.md$/i, '')
 
@@ -85,13 +90,19 @@ export function planMarkdownImport(input: VaultFile[], options: PlanOptions = {}
   const newId = options.newId ?? (() => crypto.randomUUID())
   const maxImageBytes = options.maxImageBytes ?? DEFAULT_MAX_IMAGE_BYTES
   const issues: string[] = []
+  const warnings: string[] = []
   const counts = new Map<string, number>()
   const tally = (kind: string, detail: string) => {
     counts.set(`${kind}\u0000${detail}`, (counts.get(`${kind}\u0000${detail}`) ?? 0) + 1)
   }
 
+  // ── Refuse paths that try to escape the import before anything else looks at them
+  const unsafePaths = input.filter(f => hasUnsafePath(f.path)).length
+  if (unsafePaths) warnings.push(`${unsafePaths} file(s) with unsafe paths (such as "../") were refused.`)
+
   // ── Normalise paths and drop noise
   let files = input
+    .filter(f => !hasUnsafePath(f.path))
     .map(f => ({ path: f.path.replace(/\\/g, '/').replace(/^\.?\/+/, ''), data: f.data }))
     .filter(f => f.path && !isIgnorable(f.path))
 
@@ -110,21 +121,37 @@ export function planMarkdownImport(input: VaultFile[], options: PlanOptions = {}
   }
 
   const decoder = new TextDecoder('utf-8')
-  const mdFiles = files.filter(f => extOf(f.path) === 'md')
+  const mdFiles = files.filter(f => extOf(f.path) === 'md' && !looksBinary(f.data))
+  const fakeText = files.filter(f => extOf(f.path) === 'md').length - mdFiles.length
+  if (fakeText) warnings.push(`${fakeText} file(s) named .md are not text files and were refused.`)
   const imageFiles = new Map<string, VaultFile>()
   const imageByName = new Map<string, VaultFile>()
-  let ignoredAttachments = 0
+  const unsupported = new Map<string, number>()
+  const blocked = new Map<string, number>()
+  const bump = (m: Map<string, number>, ext: string) => m.set(ext || 'no extension', (m.get(ext || 'no extension') ?? 0) + 1)
+  let nestedArchives = 0
+  let fakeImages = 0
+  let unsafeSvgs = 0
   for (const f of files) {
-    const ext = extOf(f.path)
-    if (ext === 'md') continue
-    if (ext in IMAGE_MIME) {
+    const kind = classifyFile(f.path)
+    if (kind === 'markdown') continue
+    if (kind === 'image') {
+      // The bytes decide what a file is, not its name.
+      const real = sniffImage(f.data)
+      if (!real || real !== IMAGE_MIME[extOf(f.path)] && !(real === 'image/jpeg' && extOf(f.path) === 'jpg')) { fakeImages++; continue }
+      if (real === 'image/svg+xml' && !isSafeSvg(f.data)) { unsafeSvgs++; continue }
       imageFiles.set(f.path.toLowerCase(), f)
       if (!imageByName.has(baseName(f.path).toLowerCase())) imageByName.set(baseName(f.path).toLowerCase(), f)
-    } else {
-      ignoredAttachments++
-    }
+    } else if (kind === 'blocked') bump(blocked, extOf(f.path))
+    else if (kind === 'archive') nestedArchives++
+    else bump(unsupported, extOf(f.path))
   }
-  if (ignoredAttachments) issues.push(`${ignoredAttachments} non-image file(s) (PDFs, audio, canvases …) were not imported.`)
+  const list = (m: Map<string, number>) => [...m].map(([e, n]) => `.${e} ×${n}`).join(', ')
+  if (blocked.size) warnings.push(`Program or script files were refused and never opened: ${list(blocked)}.`)
+  if (fakeImages) warnings.push(`${fakeImages} file(s) with an image name are not valid images and were refused.`)
+  if (unsafeSvgs) warnings.push(`${unsafeSvgs} SVG image(s) contain scripts or external references and were refused.`)
+  if (nestedArchives) warnings.push(`${nestedArchives} zip or archive file(s) inside the import were not opened. Extract them and import the folder instead.`)
+  if (unsupported.size) issues.push(`Unsupported files were skipped (PDFs, audio, canvases …): ${list(unsupported)}.`)
 
   // ── Pass 1: identities, so every link can be resolved in pass 2
   interface Draft {
@@ -248,6 +275,17 @@ export function planMarkdownImport(input: VaultFile[], options: PlanOptions = {}
     }
   })
 
+  // A note too large for the server is dropped here, with its references, instead of failing mid-import.
+  const tooBig = new Set(notes.filter(n => n.html.length > MAX_NOTE_HTML).map(n => n.id))
+  if (tooBig.size) {
+    warnings.push(`${tooBig.size} note(s) are too large to import (over 2 MB of content) and were skipped.`)
+    for (const n of notes) {
+      n.linkedIds = n.linkedIds.filter(id => !tooBig.has(id))
+      if (n.parentId && tooBig.has(n.parentId)) n.parentId = null
+    }
+    notes.splice(0, notes.length, ...notes.filter(n => !tooBig.has(n.id)))
+  }
+
   // A parent chain that loops back on itself would make the notes unreachable in a tree.
   const byId = new Map(notes.map(n => [n.id, n]))
   for (const n of notes) {
@@ -278,6 +316,7 @@ export function planMarkdownImport(input: VaultFile[], options: PlanOptions = {}
       images: { embedded: embedded.count, skipped: embedded.skipped },
       links: { resolved: resolvedLinks, unresolved: unresolvedLinks },
       issues,
+      warnings,
     },
   }
 }

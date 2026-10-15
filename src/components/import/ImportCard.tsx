@@ -1,12 +1,12 @@
 'use client'
 import { useRef, useState } from 'react'
 import Link from 'next/link'
-import { Upload, FolderOpen, Loader2, CheckCircle2, AlertCircle, Undo2, FileText, Folder, Link2, Image as ImageIcon } from 'lucide-react'
+import { Upload, FolderOpen, Loader2, CheckCircle2, AlertCircle, AlertTriangle, Undo2, FileText, Folder, Link2, Image as ImageIcon } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { planMarkdownImport, type ImportPlan } from '@/lib/import/vault'
-import { ImportError, makeImportTag, readVaultFiles, runImport, undoImport, type RunProgress } from '@/lib/import/run'
+import { ImportError, fromDataTransfer, fromFileList, makeImportTag, readVaultFiles, runImport, undoImport, type InputFile, type RunProgress } from '@/lib/import/run'
 
 type Phase = 'idle' | 'reading' | 'preview' | 'importing' | 'done' | 'error'
 
@@ -25,6 +25,7 @@ export function ImportCard() {
   const [undone, setUndone] = useState<number | null>(null)
   const [error, setError] = useState('')
   const [showAllIssues, setShowAllIssues] = useState(false)
+  const [dragging, setDragging] = useState(false)
 
   function reset() {
     setPhase('idle'); setPlan(null); setProgress(null); setResult(null); setUndone(null)
@@ -33,14 +34,14 @@ export function ImportCard() {
     if (folderInput.current) folderInput.current.value = ''
   }
 
-  async function handleFiles(list: FileList | null) {
-    if (!list || list.length === 0) return
+  async function handleFiles(input: InputFile[]) {
+    if (input.length === 0) return
     setPhase('reading'); setError('')
     try {
-      const { files, oversized } = await readVaultFiles(Array.from(list))
+      const { files, oversized } = await readVaultFiles(input)
       const next = planMarkdownImport(files)
       if (next.notes.length === 0) {
-        setError('No Markdown (.md) notes were found in that selection.')
+        setError(['No Markdown (.md) notes were found in that selection.', ...next.report.warnings].join(' '))
         setPhase('error')
         return
       }
@@ -85,13 +86,26 @@ export function ImportCard() {
   const busy = phase === 'reading' || phase === 'importing'
   const pct = progress && progress.total ? Math.round((progress.done / progress.total) * 100) : 0
 
+  const canDrop = phase === 'idle' || phase === 'error'
+  async function handleDrop(e: React.DragEvent) {
+    e.preventDefault(); setDragging(false)
+    if (!canDrop) return
+    handleFiles(await fromDataTransfer(e.dataTransfer))
+  }
+
   return (
-    <Card style={{ maxWidth: 720 }}>
+    <Card
+      className="h-full"
+      style={dragging && canDrop ? { outline: '2px dashed var(--primary)', outlineOffset: -2 } : undefined}
+      onDragOver={e => { e.preventDefault(); if (canDrop) setDragging(true) }}
+      onDragLeave={e => { if (!e.currentTarget.contains(e.relatedTarget as Node)) setDragging(false) }}
+      onDrop={handleDrop}
+    >
       <CardHeader>
         <CardTitle>Import notes</CardTitle>
         <p className="text-sm text-[var(--muted-foreground)]">
-          Bring notes in from a zip or a folder of Markdown files. Folders become notebooks, tags and
-          dates are kept, and <code>[[wikilinks]]</code> between notes keep working.{' '}
+          Choose or drop a zip or a folder of Markdown files. Folders become notebooks, and tags, dates and
+          <code>[[wikilinks]]</code> are kept.{' '}
           <a
             href="https://github.com/dotstell/dotstell/blob/main/docs/IMPORT.md"
             target="_blank" rel="noopener noreferrer"
@@ -120,10 +134,10 @@ export function ImportCard() {
           </div>
         )}
 
-        <input ref={zipInput} type="file" accept=".zip,application/zip" hidden onChange={e => handleFiles(e.target.files)} />
+        <input ref={zipInput} type="file" accept=".zip,application/zip" hidden onChange={e => e.target.files && handleFiles(fromFileList(e.target.files))} />
         {/* webkitdirectory is non-standard but supported by every current browser except mobile Safari. */}
         <input
-          ref={folderInput} type="file" hidden multiple onChange={e => handleFiles(e.target.files)}
+          ref={folderInput} type="file" hidden multiple onChange={e => e.target.files && handleFiles(fromFileList(e.target.files))}
           {...({ webkitdirectory: '', directory: '' } as Record<string, string>)}
         />
 
@@ -143,6 +157,18 @@ export function ImportCard() {
                 {plan.notes.length > 5 && ` · and ${plan.notes.length - 5} more`}
               </p>
             </div>
+
+            {plan.report.warnings.length > 0 && (
+              <div role="alert" className="rounded-md border border-amber-500/60 bg-amber-500/10 p-3">
+                <p className="text-xs font-medium text-[var(--foreground)] mb-1.5 inline-flex items-center gap-1.5">
+                  <AlertTriangle size={14} className="text-amber-500 flex-shrink-0" /> Refused for your safety
+                </p>
+                <ul className="flex flex-col gap-1 text-sm">
+                  {plan.report.warnings.map(line => <li key={line} className="text-[var(--foreground)]">{line}</li>)}
+                </ul>
+                <p className="text-xs text-[var(--muted-foreground)] mt-2">These files were not opened or saved. The rest can still be imported.</p>
+              </div>
+            )}
 
             {issues.length > 0 && (
               <div className="rounded-md border border-[var(--border)] p-3">

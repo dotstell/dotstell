@@ -4,10 +4,14 @@ import type { ImportPlan, PlannedNote, VaultFile } from './vault'
 // Limits that keep a hostile or accidental huge archive from exhausting the tab's memory.
 const MAX_FILE_BYTES = 25 * 1024 * 1024
 const MAX_TOTAL_BYTES = 400 * 1024 * 1024
+const MAX_ENTRIES = 20_000
 
 // Must match the server (src/app/api/import/*).
 const NOTES_PER_REQUEST = 25
 const PAIRS_PER_REQUEST = 60
+
+/** A refusal with a message that is safe and useful to show as is. */
+class LimitError extends Error {}
 
 export interface ReadResult {
   files: VaultFile[]
@@ -15,8 +19,14 @@ export interface ReadResult {
   oversized: number
 }
 
-/** Reads either one .zip or the contents of a chosen folder into the shape the planner expects. */
-export async function readVaultFiles(input: File[]): Promise<ReadResult> {
+/** A file together with where it sat inside the chosen folder. */
+export interface InputFile {
+  file: File
+  path: string
+}
+
+/** Reads either one .zip or a set of files into the shape the planner expects. */
+export async function readVaultFiles(input: InputFile[]): Promise<ReadResult> {
   const files: VaultFile[] = []
   let oversized = 0
   let total = 0
@@ -28,29 +38,71 @@ export async function readVaultFiles(input: File[]): Promise<ReadResult> {
     files.push({ path, data })
   }
 
-  if (input.length === 1 && /\.zip$/i.test(input[0].name)) {
-    const bytes = new Uint8Array(await input[0].arrayBuffer())
+  if (input.length === 1 && /\.zip$/i.test(input[0].file.name)) {
+    const bytes = new Uint8Array(await input[0].file.arrayBuffer())
     // The filter runs before a file is inflated, so a zip bomb is refused without decompressing it.
     let declared = 0
-    const entries = unzipSync(bytes, {
-      filter: ({ name, originalSize }) => {
-        if (name.endsWith('/')) return false
-        if (originalSize > MAX_FILE_BYTES) { oversized++; return false }
-        declared += originalSize
-        if (declared > MAX_TOTAL_BYTES) throw new Error('This zip is too large for the browser (over 400 MB uncompressed).')
-        return true
-      },
-    })
+    let count = 0
+    let entries: Record<string, Uint8Array>
+    try {
+      entries = unzipSync(bytes, {
+        filter: ({ name, originalSize }) => {
+          if (name.endsWith('/')) return false
+          if (++count > MAX_ENTRIES) throw new LimitError(`This zip holds more than ${MAX_ENTRIES.toLocaleString()} files. Import a smaller folder.`)
+          if (originalSize > MAX_FILE_BYTES) { oversized++; return false }
+          declared += originalSize
+          if (declared > MAX_TOTAL_BYTES) throw new LimitError('This zip is too large for the browser (over 400 MB uncompressed).')
+          return true
+        },
+      })
+    } catch (e) {
+      if (e instanceof LimitError) throw e
+      throw new Error('That zip could not be read. It may be damaged, encrypted or not a zip file.')
+    }
     for (const [path, data] of Object.entries(entries)) files.push({ path, data })
     return { files, oversized }
   }
 
-  for (const f of input) {
-    // A folder pick gives each file its path relative to the chosen folder's parent.
-    const path = (f as File & { webkitRelativePath?: string }).webkitRelativePath || f.name
-    accept(path, new Uint8Array(await f.arrayBuffer()))
-  }
+  for (const { file, path } of input) accept(path, new Uint8Array(await file.arrayBuffer()))
   return { files, oversized }
+}
+
+/** Files from an <input type=file>: a folder pick carries each file's path relative to the folder. */
+export function fromFileList(list: FileList): InputFile[] {
+  return Array.from(list).map(file => ({ file, path: (file as File & { webkitRelativePath?: string }).webkitRelativePath || file.name }))
+}
+
+/**
+ * Files from a drag and drop. Dropped folders are only reachable through the (webkit-prefixed)
+ * entries API, which hands out one directory level at a time.
+ */
+export async function fromDataTransfer(dt: DataTransfer): Promise<InputFile[]> {
+  const out: InputFile[] = []
+
+  const walk = async (entry: FileSystemEntry): Promise<void> => {
+    if (entry.isFile) {
+      const file = await new Promise<File>((res, rej) => (entry as FileSystemFileEntry).file(res, rej))
+      out.push({ file, path: entry.fullPath.replace(/^\//, '') })
+    } else if (entry.isDirectory) {
+      const reader = (entry as FileSystemDirectoryEntry).createReader()
+      // readEntries returns results in chunks and signals the end with an empty one.
+      for (;;) {
+        const chunk = await new Promise<FileSystemEntry[]>((res, rej) => reader.readEntries(res, rej))
+        if (chunk.length === 0) break
+        for (const child of chunk) await walk(child)
+      }
+    }
+  }
+
+  const entries = Array.from(dt.items ?? [])
+    .map(item => (item.kind === 'file' ? item.webkitGetAsEntry?.() ?? null : null))
+    .filter((e): e is FileSystemEntry => !!e)
+
+  if (entries.length) {
+    for (const e of entries) await walk(e)
+    return out
+  }
+  return Array.from(dt.files).map(file => ({ file, path: file.name }))
 }
 
 /** `imported-2026-10-16-1430`: marks one run so it can be found, and undone, later. */
