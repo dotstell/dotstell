@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
   FileText, Bookmark, Users, CheckSquare, Network,
-  LayoutDashboard, LogOut, Search, ChevronLeft, ChevronRight, Tag, Menu, X, HelpCircle
+  LayoutDashboard, LogOut, Search, ChevronLeft, ChevronRight, Tag, Menu, X, HelpCircle, Settings
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { DotstellLogo, ConstellationIcon } from '@/components/brand/DotstellLogo'
@@ -21,6 +21,7 @@ const NAV_ITEMS = [
   { href: '/tags',      icon: Tag,             label: 'Tags' },
   { href: '/graph',     icon: Network,         label: 'Graph' },
   { href: '/help',      icon: HelpCircle,      label: 'Help' },
+  { href: '/settings',  icon: Settings,        label: 'Settings' },
 ]
 
 interface TooltipState {

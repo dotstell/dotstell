@@ -8,6 +8,7 @@
     "build": "cross-env NODE_OPTIONS=--use-openssl-ca next build",
     "start": "cross-env NODE_OPTIONS=--use-openssl-ca next start",
     "lint": "eslint",
+    "test": "vitest run",
     "tauri": "tauri",
     "desktop:dev": "cross-env NODE_OPTIONS=--use-openssl-ca tauri dev",
     "desktop:build": "cross-env NODE_OPTIONS=--use-openssl-ca tauri build"
@@ -67,6 +68,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "date-fns": "^4.4.0",
+    "fflate": "^0.8.3",
     "lowlight": "^3.3.0",
     "lucide-react": "^1.23.0",
     "marked": "^18.0.9",
@@ -92,6 +94,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.3.4",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^5.0.4"
   }
 }
