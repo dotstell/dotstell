@@ -56,8 +56,8 @@ export default function SettingsPage() {
           <CardHeader>
             <CardTitle>Export your data</CardTitle>
             <p className="text-sm text-[var(--muted-foreground)]">
-              Your notes are yours. Download everything as a single zip of plain files you can open in
-              Obsidian, any text editor, or keep as a backup.
+              Your notes are yours. Download everything as a single zip of plain files (Markdown, CSV and
+              JSON) that open in any notes app or text editor, or keep it as a backup.
             </p>
           </CardHeader>
           <CardContent>
