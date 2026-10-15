@@ -1,14 +1,14 @@
 # Importing notes
 
-**Import & Export → Import notes** reads a zip (or a folder) of Markdown files and creates the
-notes in your account. Nothing is saved until you have seen the preview and confirmed, and the
+**Import & Export → Import** reads Markdown files, Evernote exports, Google Keep exports and contact
+files, and creates the notes (and people) in your account. Nothing is saved until you have seen the preview and confirmed, and the
 whole import can be undone afterwards.
 
 The file is read in your browser. Only the cleaned-up notes are sent to the server, in small batches.
 
 ## Where the files come from
 
-Anything that can export plain Markdown should work. The importer follows the conventions these apps share (front matter, `[[wikilinks]]`, relative links, folders). It is tested with Obsidian-style vaults and with dotstell's own export; exports from the other apps vary by version, so **try a small folder first** and use Undo if something looks off.
+Anything that can export plain Markdown should work. The importer follows the conventions these apps share (front matter, `[[wikilinks]]`, relative links, folders). It is tested with Obsidian-style vaults and with dotstell's own export; the Evernote, Google Keep and contacts readers follow the published formats and are covered by tests built from sample files, but have not yet been run against large real-world exports. Exports vary by app version, so **try a small folder first** and use Undo if something looks off.
 
 | App | How to get the files |
 |---|---|
@@ -17,9 +17,24 @@ Anything that can export plain Markdown should work. The importer follows the co
 | **Bear**, **Joplin** | Export notes as Markdown, then zip the result. |
 | **Notion** | *Settings → Export content → Markdown & CSV*, then choose the downloaded zip. |
 | **dotstell** | A zip from *Export everything*. Notes are restored with their notebooks, tags, dates, links and sub-notes. |
+| **Evernote** | *File → Export notes…* (or right-click a notebook) and choose **ENEX**. Choose the `.enex` file. Each file becomes a notebook named after the file. |
+| **Google Keep** | [Google Takeout](https://takeout.google.com), select only **Keep**, then choose the downloaded zip. Notes go into a "Google Keep" notebook. |
+| **Contacts** | Export a `.vcf` (vCard) from your phone or address book, or **Google Contacts → Export → Google CSV / Outlook CSV**. They are added to People. |
 | **Anything else** | A folder of `.md` files. |
 
-Evernote (`.enex`), Google Keep and contacts (vCard / CSV) are not supported yet.
+The app recognises each file by what it contains, so you can drop several kinds at once. A `.csv` is only
+treated as contacts when it has a name column plus an email or phone column; any other spreadsheet is skipped.
+
+### What carries over from Evernote, Keep and contacts
+
+- **Evernote:** title, text formatting, links, tables, checklists, images, tags, created and updated
+  dates, and the source URL. Not imported: PDFs and other attachments, encrypted text (both are listed
+  in the preview), and notebook stacks (every `.enex` file is one notebook).
+- **Google Keep:** title, text, checklists, labels (as tags), pinned state, dates, links and images. Notes in
+  Keep's trash are skipped. The `.html` copies Takeout adds next to every note are ignored.
+- **Contacts:** name, job title, company, one email and one phone number. Addresses, birthdays, notes and
+  photos are not stored by dotstell and are left out. People who already exist (same email, or same name
+  when there is no email) are skipped, so importing twice does not duplicate anyone.
 
 ## What is imported
 
@@ -59,6 +74,8 @@ under "Refused for your safety" (the rest of the import can still go ahead):
 - zip files inside the zip (extract them and import the folder instead)
 - paths that try to leave the import (`../x` or a drive letter)
 - notes over 2 MB, which the server would reject
+- Evernote files that define XML entities or are damaged (a damaged file is refused whole, not half-read)
+- Evernote and Keep images that are not real images, and SVGs that contain scripts
 
 The server repeats the check: a note whose HTML still contains scripts, event handlers or
 `javascript:` links is rejected, even if the request did not come from the app.
@@ -72,10 +89,11 @@ the browser and cannot be changed. Dropping a folder onto the card, or choosing 
 
 Every import is tagged `imported-YYYY-MM-DD-HHMMSS`. **Undo import** moves exactly those notes to the
 trash, from where they can be restored. Notebooks created by the import stay (they may be empty).
+People added by the import are removed (people have no trash); people who already existed are never touched.
 
 ## Limits
 
-Up to 25 MB per file and 400 MB per zip, because everything is read in the browser. Very large vaults
+Up to 25 MB per file (150 MB for an Evernote `.enex`) and 400 MB in total, and 20,000 files per zip, because everything is read in the browser. Very large vaults
 are best imported in a few folders at a time.
 
 ## How it works

@@ -1,4 +1,5 @@
 import { splitFrontMatter, toIsoDate, toStringList } from './frontmatter'
+import type { PlannedContact } from './types'
 import { classifyFile, extensionOf, hasUnsafePath, isSafeSvg, looksBinary, sniffImage } from './safety'
 import { extractInlineTags, parseWikiTarget, renderMarkdown } from './markdown'
 
@@ -27,6 +28,7 @@ export interface PlannedNote {
 
 export interface ImportReport {
   notes: number
+  contacts: number
   notebooks: number
   images: { embedded: number; skipped: number }
   links: { resolved: number; unresolved: number }
@@ -38,6 +40,7 @@ export interface ImportReport {
 
 export interface ImportPlan {
   notes: PlannedNote[]
+  contacts: PlannedContact[]
   notebooks: string[]
   report: ImportReport
 }
@@ -50,7 +53,7 @@ export interface PlanOptions {
 
 const DEFAULT_MAX_IMAGE_BYTES = 500 * 1024
 // Stays under the server's 2 MB limit so one oversized note never aborts the whole import.
-const MAX_NOTE_HTML = 1_900_000
+export const MAX_NOTE_HTML = 1_900_000
 
 const IMAGE_MIME: Record<string, string> = {
   png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', gif: 'image/gif',
@@ -82,7 +85,7 @@ function toBase64(bytes: Uint8Array): string {
 }
 
 /** Drops files that are never part of a vault's content (app config, trash, OS litter). */
-function isIgnorable(path: string): boolean {
+export function isIgnorable(path: string): boolean {
   return path.split('/').some(seg => seg.startsWith('.') || seg === '__MACOSX')
 }
 
@@ -309,9 +312,11 @@ export function planMarkdownImport(input: VaultFile[], options: PlanOptions = {}
 
   return {
     notes,
+    contacts: [],
     notebooks: [...notebooks],
     report: {
       notes: notes.length,
+      contacts: 0,
       notebooks: notebooks.size,
       images: { embedded: embedded.count, skipped: embedded.skipped },
       links: { resolved: resolvedLinks, unresolved: unresolvedLinks },

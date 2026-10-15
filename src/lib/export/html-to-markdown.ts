@@ -1,4 +1,5 @@
 import TurndownService from 'turndown'
+import { safeHref } from './urls'
 
 /**
  * Builds a converter from the editor's HTML to Markdown that other tools can read.
@@ -31,6 +32,14 @@ export function createMarkdownConverter(
   td.addRule('highlight', {
     filter: node => node.nodeName === 'MARK',
     replacement: c => `==${c}==`,
+  })
+
+  // Turndown applies the most recently added matching rule first, so this sits before the wikilink rule.
+  // A link whose address could run code when opened elsewhere keeps its text but loses the link.
+  td.addRule('unsafeLink', {
+    filter: node => node.nodeName === 'A' && !(node as HTMLElement).hasAttribute('data-wikilink')
+      && !safeHref((node as HTMLElement).getAttribute('href') ?? ''),
+    replacement: c => c,
   })
 
   td.addRule('wikilink', {

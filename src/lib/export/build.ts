@@ -1,4 +1,5 @@
 import { createMarkdownConverter, looksLikeHtml } from './html-to-markdown'
+import { safeHref } from './urls'
 import { createNamer, encodePath, sanitizeFileName } from './filenames'
 import type {
   ExportData, ExportFile, ExportFiles, ExportNote, ExportTask, ExportBookmark,
@@ -66,8 +67,17 @@ function decodeBase64(b64: string): Uint8Array {
   return bytes
 }
 
+/**
+ * Spreadsheet apps run a cell that starts with = + - @ (or a tab/CR) as a formula. Text from notes,
+ * tasks or bookmarks is untrusted, so such cells are prefixed with an apostrophe and show as text.
+ * Numbers are left alone.
+ */
+function neutraliseFormula(value: unknown, s: string): string {
+  return typeof value === 'string' && /^[=+\-@\t\r]/.test(s) ? `'${s}` : s
+}
+
 function csvCell(value: unknown): string {
-  const s = value === null || value === undefined ? '' : String(value)
+  const s = value === null || value === undefined ? '' : neutraliseFormula(value, String(value))
   return /[",\r\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s
 }
 
@@ -299,17 +309,22 @@ function bookmarksMarkdown(bookmarks: ExportBookmark[]): string {
   const lines = bookmarks.map(b => {
     const tags = (b.tags ?? []).map(t => `#${toTag(t)}`).join(' ')
     const desc = b.description?.trim() ? ` — ${b.description.trim().replace(/\s+/g, ' ')}` : ''
-    return `- [${b.title.replace(/[[\]]/g, '')}](${b.url})${desc}${tags ? ` ${tags}` : ''}`
+    const href = safeHref(b.url)
+    // Parentheses and spaces would end the Markdown link early, so they are percent-encoded.
+    const target = href?.replace(/[()\s]/g, c => encodeURIComponent(c).replace('(', '%28').replace(')', '%29'))
+    const label = b.title.replace(/[[\]]/g, '')
+    return `- ${target ? `[${label}](${target})` : `${label} (${b.url.replace(/[\r\n]+/g, ' ')})`}${desc}${tags ? ` ${tags}` : ''}`
   })
   return `# Bookmarks\n\n${lines.join('\n')}\n`
 }
 
 /** Netscape bookmark file: the format Chrome, Firefox, Safari and Edge all import. */
 function bookmarksNetscapeHtml(bookmarks: ExportBookmark[]): string {
-  const items = bookmarks.map(b => {
+  // A javascript: URL would become a bookmarklet that runs when clicked, so only safe links are listed.
+  const items = bookmarks.filter(b => safeHref(b.url)).map(b => {
     const added = Math.floor(new Date(b.created_at).getTime() / 1000)
     const tags = (b.tags ?? []).join(',')
-    return `    <DT><A HREF="${escapeHtml(b.url)}" ADD_DATE="${added}"${tags ? ` TAGS="${escapeHtml(tags)}"` : ''}>${escapeHtml(b.title)}</A>` +
+    return `    <DT><A HREF="${escapeHtml(safeHref(b.url)!)}" ADD_DATE="${added}"${tags ? ` TAGS="${escapeHtml(tags)}"` : ''}>${escapeHtml(b.title)}</A>` +
       (b.description?.trim() ? `\n    <DD>${escapeHtml(b.description.trim())}` : '')
   })
   return [

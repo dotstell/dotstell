@@ -68,6 +68,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "date-fns": "^4.4.0",
+    "fast-xml-parser": "^5.11.2",
     "fflate": "^0.8.3",
     "lowlight": "^3.3.0",
     "lucide-react": "^1.23.0",

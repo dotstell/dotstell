@@ -3,12 +3,18 @@ import type { ImportPlan, PlannedNote, VaultFile } from './vault'
 
 // Limits that keep a hostile or accidental huge archive from exhausting the tab's memory.
 const MAX_FILE_BYTES = 25 * 1024 * 1024
+// Evernote puts a whole notebook, attachments included, in one file.
+const MAX_ENEX_BYTES = 150 * 1024 * 1024
+const limitFor = (path: string) => (/\.enex$/i.test(path) ? MAX_ENEX_BYTES : MAX_FILE_BYTES)
 const MAX_TOTAL_BYTES = 400 * 1024 * 1024
 const MAX_ENTRIES = 20_000
 
 // Must match the server (src/app/api/import/*).
 const NOTES_PER_REQUEST = 25
 const PAIRS_PER_REQUEST = 60
+const PEOPLE_PER_REQUEST = 50
+// Vercel rejects request bodies over 4.5 MB, so a batch also stops growing at this many characters.
+const MAX_BATCH_CHARS = 3_000_000
 
 /** A refusal with a message that is safe and useful to show as is. */
 class LimitError extends Error {}
@@ -32,7 +38,7 @@ export async function readVaultFiles(input: InputFile[]): Promise<ReadResult> {
   let total = 0
 
   const accept = (path: string, data: Uint8Array) => {
-    if (data.length > MAX_FILE_BYTES) { oversized++; return }
+    if (data.length > limitFor(path)) { oversized++; return }
     total += data.length
     if (total > MAX_TOTAL_BYTES) throw new Error('This import is too large for the browser (over 400 MB). Try importing a smaller folder.')
     files.push({ path, data })
@@ -49,7 +55,7 @@ export async function readVaultFiles(input: InputFile[]): Promise<ReadResult> {
         filter: ({ name, originalSize }) => {
           if (name.endsWith('/')) return false
           if (++count > MAX_ENTRIES) throw new LimitError(`This zip holds more than ${MAX_ENTRIES.toLocaleString()} files. Import a smaller folder.`)
-          if (originalSize > MAX_FILE_BYTES) { oversized++; return false }
+          if (originalSize > limitFor(name)) { oversized++; return false }
           declared += originalSize
           if (declared > MAX_TOTAL_BYTES) throw new LimitError('This zip is too large for the browser (over 400 MB uncompressed).')
           return true
@@ -123,9 +129,27 @@ export function orderForInsert(notes: PlannedNote[]): PlannedNote[] {
 }
 
 export interface RunProgress {
-  phase: 'notes' | 'links'
+  phase: 'notes' | 'links' | 'people'
   done: number
   total: number
+}
+
+/** Groups notes into requests: at most NOTES_PER_REQUEST, and never more than MAX_BATCH_CHARS of content. */
+export function batchNotes(notes: PlannedNote[]): PlannedNote[][] {
+  const batches: PlannedNote[][] = []
+  let current: PlannedNote[] = []
+  let size = 0
+  for (const n of notes) {
+    if (current.length && (current.length >= NOTES_PER_REQUEST || size + n.html.length > MAX_BATCH_CHARS)) {
+      batches.push(current)
+      current = []
+      size = 0
+    }
+    current.push(n)
+    size += n.html.length
+  }
+  if (current.length) batches.push(current)
+  return batches
 }
 
 export class ImportError extends Error {
@@ -151,13 +175,13 @@ export async function runImport(
   plan: ImportPlan,
   importTag: string,
   onProgress: (p: RunProgress) => void,
-): Promise<{ created: number; linked: number }> {
+  includeContacts = true,
+): Promise<{ created: number; linked: number; contacts: number }> {
   const ordered = orderForInsert(plan.notes)
   let created = 0
 
   try {
-    for (let i = 0; i < ordered.length; i += NOTES_PER_REQUEST) {
-      const batch = ordered.slice(i, i + NOTES_PER_REQUEST)
+    for (const batch of batchNotes(ordered)) {
       await post('/api/import/notes', {
         importTag,
         notes: batch.map(n => ({
@@ -185,10 +209,22 @@ export async function runImport(
     // The notes are saved; only the graph edges are missing, and the [[links]] still work in the text.
     throw new ImportError(`Notes were imported, but connecting them failed: ${e instanceof Error ? e.message : 'unknown error'}`, created)
   }
-  return { created, linked }
+
+  let contacts = 0
+  const people = includeContacts ? plan.contacts : []
+  try {
+    for (let i = 0; i < people.length; i += PEOPLE_PER_REQUEST) {
+      const chunk = people.slice(i, i + PEOPLE_PER_REQUEST)
+      const res = await post<{ created: number }>('/api/import/people', { importTag, people: chunk })
+      contacts += res.created
+      onProgress({ phase: 'people', done: Math.min(i + chunk.length, people.length), total: people.length })
+    }
+  } catch (e) {
+    throw new ImportError(`Notes were imported, but the contacts could not be saved: ${e instanceof Error ? e.message : 'unknown error'}`, created)
+  }
+  return { created, linked, contacts }
 }
 
-export async function undoImport(importTag: string): Promise<number> {
-  const res = await post<{ trashed: number }>('/api/import/undo', { importTag })
-  return res.trashed
+export async function undoImport(importTag: string): Promise<{ trashed: number; removedPeople: number }> {
+  return post('/api/import/undo', { importTag })
 }

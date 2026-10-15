@@ -1,11 +1,12 @@
 'use client'
 import { useRef, useState } from 'react'
 import Link from 'next/link'
-import { Upload, FolderOpen, Loader2, CheckCircle2, AlertCircle, AlertTriangle, Undo2, FileText, Folder, Link2, Image as ImageIcon } from 'lucide-react'
+import { Upload, FolderOpen, Loader2, CheckCircle2, AlertCircle, AlertTriangle, Undo2, FileText, Folder, Link2, Image as ImageIcon, Users } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
-import { planMarkdownImport, type ImportPlan } from '@/lib/import/vault'
+import { planImport } from '@/lib/import/plan'
+import type { ImportPlan } from '@/lib/import/vault'
 import { ImportError, fromDataTransfer, fromFileList, makeImportTag, readVaultFiles, runImport, undoImport, type InputFile, type RunProgress } from '@/lib/import/run'
 
 type Phase = 'idle' | 'reading' | 'preview' | 'importing' | 'done' | 'error'
@@ -21,15 +22,16 @@ export function ImportCard() {
   const [extraIssues, setExtraIssues] = useState<string[]>([])
   const [progress, setProgress] = useState<RunProgress | null>(null)
   const [importTag, setImportTag] = useState('')
-  const [result, setResult] = useState<{ created: number; linked: number } | null>(null)
-  const [undone, setUndone] = useState<number | null>(null)
+  const [result, setResult] = useState<{ created: number; linked: number; contacts: number } | null>(null)
+  const [undone, setUndone] = useState<{ trashed: number; removedPeople: number } | null>(null)
+  const [includeContacts, setIncludeContacts] = useState(true)
   const [error, setError] = useState('')
   const [showAllIssues, setShowAllIssues] = useState(false)
   const [dragging, setDragging] = useState(false)
 
   function reset() {
     setPhase('idle'); setPlan(null); setProgress(null); setResult(null); setUndone(null)
-    setError(''); setExtraIssues([]); setShowAllIssues(false)
+    setError(''); setExtraIssues([]); setShowAllIssues(false); setIncludeContacts(true)
     if (zipInput.current) zipInput.current.value = ''
     if (folderInput.current) folderInput.current.value = ''
   }
@@ -39,9 +41,9 @@ export function ImportCard() {
     setPhase('reading'); setError('')
     try {
       const { files, oversized } = await readVaultFiles(input)
-      const next = planMarkdownImport(files)
-      if (next.notes.length === 0) {
-        setError(['No Markdown (.md) notes were found in that selection.', ...next.report.warnings].join(' '))
+      const next = planImport(files)
+      if (next.notes.length === 0 && next.contacts.length === 0) {
+        setError(['Nothing to import was found in that selection: no Markdown, Evernote, Google Keep or contacts files.', ...next.report.warnings].join(' '))
         setPhase('error')
         return
       }
@@ -60,13 +62,13 @@ export function ImportCard() {
     setImportTag(tag)
     setPhase('importing'); setProgress(null); setError('')
     try {
-      const res = await runImport(plan, tag, setProgress)
+      const res = await runImport(plan, tag, setProgress, includeContacts)
       setResult(res)
       setPhase('done')
-      toast.success(`Imported ${res.created} notes`)
+      toast.success(summarise(res.created, res.contacts))
     } catch (e) {
       const saved = e instanceof ImportError ? e.savedNotes : 0
-      setResult(saved ? { created: saved, linked: 0 } : null)
+      setResult(saved ? { created: saved, linked: 0, contacts: 0 } : null)
       setError(e instanceof Error ? e.message : 'Import failed.')
       setPhase('error')
     }
@@ -75,7 +77,7 @@ export function ImportCard() {
   async function handleUndo() {
     try {
       setUndone(await undoImport(importTag))
-      toast.success('Import moved to the trash')
+      toast.success('Import undone')
     } catch (e) {
       toast.error(e instanceof Error ? e.message : 'Could not undo the import')
     }
@@ -101,16 +103,16 @@ export function ImportCard() {
       onDrop={handleDrop}
     >
       <CardHeader>
-        <CardTitle>Import notes</CardTitle>
+        <CardTitle>Import</CardTitle>
         <p className="text-sm text-[var(--muted-foreground)]">
-          Choose or drop a zip or a folder of Markdown files. Folders become notebooks, and tags, dates and
-          <code>[[wikilinks]]</code> are kept.{' '}
+          Bring in Markdown notes (Obsidian, Notion, Bear …), Evernote (<code>.enex</code>), Google Keep
+          (Takeout) and contacts (<code>.vcf</code>, <code>.csv</code>). Notebooks, tags, dates and links are kept.{' '}
           <a
             href="https://github.com/dotstell/dotstell/blob/main/docs/IMPORT.md"
             target="_blank" rel="noopener noreferrer"
             className="underline text-[var(--primary)]"
           >
-            How to export from other apps
+            How to export from each app
           </a>
         </p>
       </CardHeader>
@@ -131,13 +133,13 @@ export function ImportCard() {
             </span>
             <div>
               <p className="text-sm font-medium text-[var(--foreground)]">
-                {phase === 'reading' ? 'Reading your files…' : dragging ? 'Drop to preview' : 'Drop a zip or folder here'}
+                {phase === 'reading' ? 'Reading your files…' : dragging ? 'Drop to preview' : 'Drop files, a zip or a folder here'}
               </p>
               <p className="text-xs text-[var(--muted-foreground)] mt-0.5">or choose one below. You will see a preview before anything is saved.</p>
             </div>
             <div className="flex items-center justify-center gap-3 flex-wrap">
               <Button onClick={() => zipInput.current?.click()} disabled={busy} className="touch-target-sm">
-                <Upload size={16} /> Choose a zip
+                <Upload size={16} /> Choose files
               </Button>
               <Button variant="outline" onClick={() => folderInput.current?.click()} disabled={busy} className="touch-target-sm">
                 <FolderOpen size={16} /> Choose a folder
@@ -155,7 +157,7 @@ export function ImportCard() {
           </div>
         )}
 
-        <input ref={zipInput} type="file" accept=".zip,application/zip" hidden onChange={e => e.target.files && handleFiles(fromFileList(e.target.files))} />
+        <input ref={zipInput} type="file" multiple accept=".zip,.enex,.vcf,.csv,.md,.json" hidden onChange={e => e.target.files && handleFiles(fromFileList(e.target.files))} />
         {/* webkitdirectory is non-standard but supported by every current browser except mobile Safari. */}
         <input
           ref={folderInput} type="file" hidden multiple onChange={e => e.target.files && handleFiles(fromFileList(e.target.files))}
@@ -165,19 +167,29 @@ export function ImportCard() {
         {phase === 'preview' && plan && (
           <div className="flex flex-col gap-4">
             <ul className="grid gap-2 text-sm" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))' }}>
-              <Stat icon={FileText} value={plan.report.notes} one="note" many="notes" />
-              <Stat icon={Folder} value={plan.report.notebooks} one="notebook" many="notebooks" />
-              <Stat icon={Link2} value={plan.report.links.resolved} one="link kept" many="links kept" />
-              <Stat icon={ImageIcon} value={plan.report.images.embedded} one="image" many="images" />
+              {plan.report.notes > 0 && <Stat icon={FileText} value={plan.report.notes} one="note" many="notes" />}
+              {plan.report.notebooks > 0 && <Stat icon={Folder} value={plan.report.notebooks} one="notebook" many="notebooks" />}
+              {plan.report.links.resolved > 0 && <Stat icon={Link2} value={plan.report.links.resolved} one="link kept" many="links kept" />}
+              {plan.report.images.embedded > 0 && <Stat icon={ImageIcon} value={plan.report.images.embedded} one="image" many="images" />}
+              {plan.report.contacts > 0 && <Stat icon={Users} value={plan.report.contacts} one="contact" many="contacts" />}
             </ul>
 
-            <div>
-              <p className="text-xs font-medium text-[var(--muted-foreground)] mb-1.5">Includes</p>
-              <p className="text-sm text-[var(--foreground)]">
-                {plan.notes.slice(0, 5).map(n => n.title || 'Untitled').join(' · ')}
-                {plan.notes.length > 5 && ` · and ${plan.notes.length - 5} more`}
-              </p>
-            </div>
+            {plan.notes.length > 0 && (
+              <div>
+                <p className="text-xs font-medium text-[var(--muted-foreground)] mb-1.5">Includes</p>
+                <p className="text-sm text-[var(--foreground)]">
+                  {plan.notes.slice(0, 5).map(n => n.title || 'Untitled').join(' · ')}
+                  {plan.notes.length > 5 && ` · and ${plan.notes.length - 5} more`}
+                </p>
+              </div>
+            )}
+
+            {plan.contacts.length > 0 && plan.notes.length > 0 && (
+              <label className="flex items-center gap-2 text-sm text-[var(--foreground)] cursor-pointer">
+                <input type="checkbox" checked={includeContacts} onChange={e => setIncludeContacts(e.target.checked)} />
+                Also add the {plan.contacts.length} {plan.contacts.length === 1 ? 'contact' : 'contacts'} to People
+              </label>
+            )}
 
             {plan.report.warnings.length > 0 && (
               <div role="alert" className="rounded-md border border-amber-500/60 bg-amber-500/10 p-3">
@@ -207,7 +219,7 @@ export function ImportCard() {
 
             <div className="flex items-center gap-3 flex-wrap">
               <Button onClick={handleImport} className="touch-target-sm">
-                <Upload size={16} /> Import {plan.report.notes} {plan.report.notes === 1 ? 'note' : 'notes'}
+                <Upload size={16} /> Import {summarise(plan.report.notes, includeContacts || plan.notes.length === 0 ? plan.report.contacts : 0, false)}
               </Button>
               <Button variant="outline" onClick={reset} className="touch-target-sm">Cancel</Button>
             </div>
@@ -221,7 +233,7 @@ export function ImportCard() {
           <div aria-live="polite" className="flex flex-col gap-2">
             <p className="text-sm text-[var(--foreground)] inline-flex items-center gap-2">
               <Loader2 size={15} className="animate-spin" />
-              {progress ? (progress.phase === 'notes' ? 'Saving notes' : 'Connecting notes') : 'Starting'}
+              {progress ? (progress.phase === 'notes' ? 'Saving notes' : progress.phase === 'links' ? 'Connecting notes' : 'Adding contacts') : 'Starting'}
               {progress && ` — ${progress.done} of ${progress.total}`}
             </p>
             <div
@@ -239,11 +251,11 @@ export function ImportCard() {
             {undone === null ? (
               <p className="inline-flex items-center gap-1.5 text-sm text-[var(--foreground)]">
                 <CheckCircle2 size={15} className="text-green-500 flex-shrink-0" />
-                Imported {result.created} notes{result.linked > 0 && ` and ${result.linked} links`}.
+                {summarise(result.created, result.contacts, true)}{result.linked > 0 && `, with ${result.linked} links`}.
               </p>
             ) : (
               <p className="text-sm text-[var(--foreground)]">
-                Moved {undone} notes to the trash. You can restore them from the Notes page.
+                {undone.trashed > 0 && `Moved ${undone.trashed} notes to the trash; you can restore them from the Notes page.`}{undone.trashed > 0 && undone.removedPeople > 0 && ' '}{undone.removedPeople > 0 && `Removed ${undone.removedPeople} imported contacts.`}
               </p>
             )}
             <div className="flex items-center gap-3 flex-wrap">
@@ -267,6 +279,15 @@ export function ImportCard() {
       </CardContent>
     </Card>
   )
+}
+
+/** "3 notes and 2 contacts"; with `past`, "Imported 3 notes and 2 contacts". */
+function summarise(notes: number, contacts: number, past = true): string {
+  const parts = [
+    notes > 0 ? `${notes} ${notes === 1 ? 'note' : 'notes'}` : '',
+    contacts > 0 ? `${contacts} ${contacts === 1 ? 'contact' : 'contacts'}` : '',
+  ].filter(Boolean)
+  return `${past ? 'Imported ' : ''}${parts.join(' and ') || 'nothing'}`
 }
 
 function Stat({ icon: Icon, value, one, many }: { icon: typeof FileText; value: number; one: string; many: string }) {

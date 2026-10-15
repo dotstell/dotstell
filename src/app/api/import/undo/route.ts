@@ -7,7 +7,8 @@ const IMPORT_TAG = /^imported-[A-Za-z0-9-]{1,40}$/
 // POST /api/import/undo
 // Body: { importTag }
 // Moves every note from one import to the trash. It is the soft delete the app already uses, so
-// nothing is lost: the notes can still be restored from the trash.
+// nothing is lost: the notes can still be restored from the trash. People created by the same import
+// are removed (they have no trash); people who already existed never carry the import tag.
 export async function POST(req: NextRequest) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -32,5 +33,14 @@ export async function POST(req: NextRequest) {
     .select('id')
 
   if (error) return NextResponse.json({ error: 'An unexpected error occurred.' }, { status: 500 })
-  return NextResponse.json({ trashed: data?.length ?? 0 })
+
+  const { data: removed, error: peopleError } = await supabase
+    .from('people')
+    .delete()
+    .eq('user_id', user.id)
+    .contains('tags', [body.importTag])
+    .select('id')
+  if (peopleError) return NextResponse.json({ error: 'An unexpected error occurred.' }, { status: 500 })
+
+  return NextResponse.json({ trashed: data?.length ?? 0, removedPeople: removed?.length ?? 0 })
 }
