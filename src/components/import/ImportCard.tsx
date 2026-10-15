@@ -96,7 +96,6 @@ export function ImportCard() {
   return (
     <Card
       className="h-full"
-      style={dragging && canDrop ? { outline: '2px dashed var(--primary)', outlineOffset: -2 } : undefined}
       onDragOver={e => { e.preventDefault(); if (canDrop) setDragging(true) }}
       onDragLeave={e => { if (!e.currentTarget.contains(e.relatedTarget as Node)) setDragging(false) }}
       onDrop={handleDrop}
@@ -118,17 +117,39 @@ export function ImportCard() {
 
       <CardContent>
         {(phase === 'idle' || phase === 'reading' || phase === 'error') && (
-          <div className="flex items-center gap-3 flex-wrap">
-            <Button onClick={() => zipInput.current?.click()} disabled={busy} className="touch-target-sm">
-              {phase === 'reading' ? <Loader2 size={16} className="animate-spin" /> : <Upload size={16} />}
-              {phase === 'reading' ? 'Reading files…' : 'Choose a zip'}
-            </Button>
-            <Button variant="outline" onClick={() => folderInput.current?.click()} disabled={busy} className="touch-target-sm">
-              <FolderOpen size={16} /> Choose a folder
-            </Button>
+          <div
+            className="flex flex-col items-center gap-3 rounded-lg border-2 border-dashed px-4 py-8 text-center transition-colors"
+            style={{
+              borderColor: dragging ? 'var(--primary)' : 'var(--border)',
+              background: dragging ? 'color-mix(in srgb, var(--primary) 8%, transparent)' : 'transparent',
+            }}
+          >
+            <span className="flex h-11 w-11 items-center justify-center rounded-full bg-[var(--muted)]">
+              {phase === 'reading'
+                ? <Loader2 size={20} className="animate-spin text-[var(--primary)]" />
+                : <Upload size={20} className="text-[var(--primary)]" />}
+            </span>
+            <div>
+              <p className="text-sm font-medium text-[var(--foreground)]">
+                {phase === 'reading' ? 'Reading your files…' : dragging ? 'Drop to preview' : 'Drop a zip or folder here'}
+              </p>
+              <p className="text-xs text-[var(--muted-foreground)] mt-0.5">or choose one below. You will see a preview before anything is saved.</p>
+            </div>
+            <div className="flex items-center justify-center gap-3 flex-wrap">
+              <Button onClick={() => zipInput.current?.click()} disabled={busy} className="touch-target-sm">
+                <Upload size={16} /> Choose a zip
+              </Button>
+              <Button variant="outline" onClick={() => folderInput.current?.click()} disabled={busy} className="touch-target-sm">
+                <FolderOpen size={16} /> Choose a folder
+              </Button>
+            </div>
+            <p className="text-xs text-[var(--muted-foreground)] max-w-xs">
+              Your browser asks you to confirm before sharing a folder. Files are read on your device;
+              only the cleaned-up notes are saved to your account.
+            </p>
             {phase === 'error' && (
-              <span className="inline-flex items-center gap-1.5 text-sm text-[var(--destructive)]" role="alert">
-                <AlertCircle size={15} className="flex-shrink-0" /> {error}
+              <span className="inline-flex items-start gap-1.5 text-sm text-[var(--destructive)] text-left" role="alert">
+                <AlertCircle size={15} className="flex-shrink-0 mt-0.5" /> {error}
               </span>
             )}
           </div>
