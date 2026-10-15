@@ -65,12 +65,17 @@ export function Sidebar({ onOpenPalette, mobileOpen: mobileOpenProp, onMobileOpe
   // Close mobile drawer on route change
   useEffect(() => {
     setMobileOpen(false)
-    setRailOpen(false)
   }, [pathname])
 
-  useEffect(() => {
-    if (!showRail) setRailOpen(false)
-  }, [showRail])
+  // The expanded rail closes on navigation and whenever the tablet rail itself goes away
+  // (rotating to landscape). Reset during render, keyed on both, rather than in an effect:
+  // an effect would paint one frame with the stale value first.
+  const railKey = `${pathname}|${showRail}`
+  const [prevRailKey, setPrevRailKey] = useState(railKey)
+  if (prevRailKey !== railKey) {
+    setPrevRailKey(railKey)
+    setRailOpen(false)
+  }
 
   function toggle() {
     setTooltip(null)
