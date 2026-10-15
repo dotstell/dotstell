@@ -1,6 +1,6 @@
 import { splitFrontMatter, toIsoDate, toStringList } from './frontmatter'
 import type { PlannedContact } from './types'
-import { classifyFile, extensionOf, hasUnsafePath, isSafeSvg, looksBinary, sniffImage } from './safety'
+import { containsActiveContent, classifyFile, extensionOf, hasUnsafePath, isSafeSvg, looksBinary, sniffImage } from './safety'
 import { extractInlineTags, parseWikiTarget, renderMarkdown } from './markdown'
 
 export interface VaultFile {
@@ -235,7 +235,10 @@ export function planMarkdownImport(input: VaultFile[], options: PlanOptions = {}
   const notebooks = new Set<string>()
   let resolvedLinks = 0
   let unresolvedLinks = 0
+  let madeHarmless = 0
   const notes: PlannedNote[] = drafts.map(d => {
+    // The writer's raw text is checked, not the output: the output is already safe.
+    if (containsActiveContent(d.body) || /\]\(\s*(javascript|vbscript|data:text)/i.test(d.body)) madeHarmless++
     const linked = new Set<string>()
     const html = renderMarkdown(d.body, {
       resolveLink: target => {
@@ -308,6 +311,7 @@ export function planMarkdownImport(input: VaultFile[], options: PlanOptions = {}
   if (total('image-skipped')) issues.push(`${total('image-skipped')} image(s) could not be found in the import.`)
   if (total('local-link')) issues.push(`${total('local-link')} link(s) to local files were kept as plain text.`)
   if (total('unsafe-link')) issues.push(`${total('unsafe-link')} link(s) with an unsafe address were removed.`)
+  if (madeHarmless) warnings.push(`${madeHarmless} note(s) contained scripts or unsafe code. They were imported with that code made harmless: it shows as plain text and cannot run.`)
   if (ambiguous) issues.push(`${ambiguous} link(s) matched several notes with the same name; the closest one was used.`)
 
   return {

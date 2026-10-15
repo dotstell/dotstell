@@ -266,6 +266,11 @@ describe('untrusted input', () => {
     expect(r.notes.map(n => n.title)).toEqual(['b'])
     expect(r.report.warnings.join(' ')).toMatch(/too large/)
   })
+  it('tells the user when a note had its code made harmless', () => {
+    const r = plan([file('u.md', 'x <script>alert(1)</script>'), file('v.md', '[a](javascript:alert(1))'), file('w.md', 'clean')])
+    expect(r.notes).toHaveLength(3)
+    expect(r.report.warnings.join(' ')).toMatch(/2 note\(s\) contained scripts or unsafe code/)
+  })
   it('never lets importer output trip the server-side check', () => {
     const r = plan([file('a.md', '<script>alert(1)</script>\n\n<img src=x onerror=alert(1)>\n\n[x](javascript:alert(1)) ![p](data:text/html;base64,AAAA)')])
     expect(containsActiveContent(r.notes[0].html)).toBe(false)
