@@ -92,6 +92,7 @@ const SECTIONS = [
   { id: 'ai',               label: '✨ AI features' },
   { id: 'tags',             label: '🏷️ Tags' },
   { id: 'search',           label: '🔍 Search & command palette' },
+  { id: 'import-export',    label: '📦 Import & Export' },
   { id: 'shortcuts',        label: '⌨️ Keyboard shortcuts' },
   { id: 'whats-new',        label: '✨ Changelog' },
 ]
@@ -448,6 +449,34 @@ export default function HelpPage() {
               />
             </Section>
 
+            {/* IMPORT & EXPORT */}
+            <Section id="import-export" title="📦 Import & Export">
+              <Tip icon="📤" title="Export everything"
+                body="Open Import & Export in the sidebar and press Export everything. You get one zip of plain files: Markdown notes (notebooks as folders, wikilinks kept), people, tasks as a checklist and a spreadsheet, bookmarks, and a full JSON backup. It is built in your browser and never stored on a server. Notes in the trash are not included."
+              />
+              <Tip icon="📥" title="Import notes"
+                body="Drop a zip, some files or a whole folder onto the Import card, or use Choose files / Choose a folder. Markdown from Obsidian, Notion, Bear, Joplin and Logseq works, and so does a dotstell export. Folders become notebooks; tags, dates, task lists, tables, images and [[wikilinks]] are kept."
+              />
+              <Tip icon="🐘" title="Evernote"
+                body="In Evernote choose File, Export notes, and pick the ENEX format, then choose the .enex file here. Each file becomes a notebook named after the file. Formatting, checklists, tables, images, tags and dates come across; PDFs and other attachments are listed in the preview as not imported."
+              />
+              <Tip icon="🗒️" title="Google Keep"
+                body="Go to takeout.google.com, select only Keep, and download the zip. Choose that zip here. Notes land in a Google Keep notebook with checklists, labels (as tags), pinned state and dates. Notes in Keep's trash are skipped."
+              />
+              <Tip icon="👥" title="Contacts"
+                body="Choose a .vcf file from your phone or address book, or a Google or Outlook CSV. People are added with name, job title, company, one email and one phone number; addresses, birthdays, notes and photos are not stored. People who already exist are skipped."
+              />
+              <Tip icon="🔍" title="Preview and undo"
+                body="Nothing is saved until you press Import. The preview shows what will be created and anything that will be left out. Afterwards, Undo import moves the imported notes to the trash and removes the people it added."
+              />
+              <Tip icon="🛡️" title="Unsafe files are refused"
+                body="Imported files are never trusted. Program and script files, fake images, SVGs with scripts, zips inside zips and damaged files are refused and listed in an amber box in the preview. Scripts and javascript: links inside a note are made harmless and shown as plain text."
+              />
+              <Tip icon="🗂️" title="Why the browser asks about the folder"
+                body="Choosing a folder shows a browser prompt about uploading files. That message comes from the browser: the files are read on your device and only the cleaned-up notes are saved. Dropping the folder or choosing a zip does not show it."
+              />
+            </Section>
+
             {/* SHORTCUTS */}
             <Section id="shortcuts" title="⌨️ Keyboard shortcuts">
               {[
@@ -505,11 +534,31 @@ export default function HelpPage() {
             {/* WHAT'S NEW */}
             <Section id="whats-new" title="✨ Changelog">
 
+              {/* v0.7.0 */}
+              <div style={{ marginBottom: 32 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--primary)', background: 'color-mix(in srgb, var(--primary) 10%, transparent)', border: '1px solid color-mix(in srgb, var(--primary) 25%, transparent)', padding: '3px 10px', borderRadius: 99 }}>v0.7.0</span>
+                  <span style={{ fontSize: 12, fontWeight: 600, color: '#10b981', background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.2)', padding: '2px 8px', borderRadius: 99 }}>Latest</span>
+                  <span style={{ fontSize: 12, color: 'var(--muted-foreground)' }}>Oct 2026</span>
+                </div>
+                <Tip icon="📦" title="Import & Export"
+                  body="A new page in the sidebar brings notes in and takes them out. Export everything as one zip of plain files (Markdown, CSV, JSON backup). Import Markdown from Obsidian, Notion, Bear, Joplin or Logseq, plus Evernote, Google Keep and contacts, with a preview first and one-click undo."
+                />
+                <Tip icon="🖱️" title="Drag and drop import"
+                  body="Drop a zip, files or a whole folder onto the Import card. The page shows Import and Export side by side on wide screens and stacks them on phones and tablets."
+                />
+                <Tip icon="🛡️" title="Safe by design"
+                  body="Imported files are treated as untrusted: program and script files, fake images, SVGs with scripts and damaged files are refused and listed in the preview, and scripts inside notes are made harmless. Exports no longer let spreadsheet formulas or javascript: links through."
+                />
+                <Tip icon="📱" title="Tablet and phone polish"
+                  body="A working tablet rail that expands to the full menu, overlays and colour pickers that stay clear of it, the bottom navigation hiding while you type, a steadier editor when the Android keyboard opens, and larger touch targets."
+                />
+              </div>
+
               {/* v0.6.0 */}
               <div style={{ marginBottom: 32 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
                   <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--primary)', background: 'color-mix(in srgb, var(--primary) 10%, transparent)', border: '1px solid color-mix(in srgb, var(--primary) 25%, transparent)', padding: '3px 10px', borderRadius: 99 }}>v0.6.0</span>
-                  <span style={{ fontSize: 12, fontWeight: 600, color: '#10b981', background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.2)', padding: '2px 8px', borderRadius: 99 }}>Latest</span>
                   <span style={{ fontSize: 12, color: 'var(--muted-foreground)' }}>Sep 2026</span>
                 </div>
                 <Tip icon="🌅" title="AI Digest"
