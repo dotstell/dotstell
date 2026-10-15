@@ -4,6 +4,50 @@ All notable changes to Dotstell are documented here.
 
 ---
 
+## [v0.7.0] — Oct 2026
+
+### 📦 Import & Export
+
+- **New Import & Export page** — one place to bring notes in and take them out, with a side-by-side layout that stacks on phones and tablets
+- **Export everything** — one zip of plain files: Markdown notes (notebooks as folders, `[[wikilinks]]`, front matter, tasks and images kept), people, tasks as a checklist and as CSV, bookmarks as a list and as a browser-importable file, and a lossless JSON backup. Built in your browser; nothing is stored on a server
+- **Import Markdown** — Obsidian, Notion, Bear, Joplin, Logseq or a dotstell export. Folders become notebooks; tags, dates, aliases, sub-notes, task lists, tables and images are kept and `[[wikilinks]]` still work
+- **Import Evernote** (`.enex`), **Google Keep** (Takeout) and **contacts** (`.vcf`, Google or Outlook CSV)
+- **Preview first, undo anytime** — see exactly what will be created before anything is saved; one click removes an import afterwards
+- **Drag and drop** a zip, files or a whole folder onto the import card
+
+### 🛡️ Safe by design
+
+- Imported files are treated as untrusted: program and script files, images that are not really images, SVGs with scripts, binary files named `.md`, zips inside zips, paths that escape the import, oversized notes and damaged or hostile Evernote files are refused and listed in the preview
+- Scripts and `javascript:` links inside notes are made harmless, and you are told when it happens
+- The server re-checks every imported note and contact
+- Export: spreadsheet cells that start with `=`, `+`, `-` or `@` can no longer run as formulas, and `javascript:` links are no longer exported as clickable bookmarks or links
+
+### 📱 Tablets and phones
+
+- Working tablet rail (expand to the full menu), overlays and colour pickers that stay clear of the rail, focus mode and note panels that respect the sidebar
+- The bottom navigation hides while you type, and the editor stays visible when the Android keyboard is up
+- Larger touch targets, long email addresses wrap, touch-visible actions on People and notes
+
+---
+
+## [v0.6.0] — Sep 2026
+
+### 🌅 AI Digest & Dashboard
+
+- **AI Digest** — pulls from your notes, open tasks and saved bookmarks to surface insights, relationships and priorities you might otherwise overlook
+- **Knowledge Health redesign** — four stat boxes (capture volume, week-over-week trend, unique topics, notes organised %), each with a plain-language explanation
+- **Cleanup signals** — stale notes (30+ days), stale bookmarks (90+ days, never revisited) and empty notes
+- **AI tag suggestions** — suggest tags for all untagged notes and bookmarks at once
+- **Knowledge Connections** and **Connections to explore** — related notes, tasks and bookmarks on the dashboard
+
+### 🛡️ Reliability & security
+
+- Fixed an intermittent "This page couldn't load" error on first load or after a long idle
+- Several AI reliability fixes: Related notes shows an error when search fails, notebook summaries cover every note
+- Fixed a middleware auth bypass that allowed access during Supabase outages; capped inputs to the AI Write route
+
+---
+
 ## [v0.5.1] — Aug 2026
 
 ### 🧠 Tasks in AI Chat & Semantic Search

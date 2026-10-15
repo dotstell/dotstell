@@ -300,6 +300,7 @@ The full annotated directory tree is in [docs/ARCHITECTURE.md](docs/ARCHITECTURE
 | AI layer — Chat, Assist, Semantic Search, Person Intelligence, Summaries, Digest | ✅ Live (v0.4.0) |
 | Local AI via Ollama — works from both live app and local dev | ✅ Live (v0.4.0) |
 | AI Writing Assistant — draft from scratch (8 templates) + improve existing content | ✅ Live (v0.5.0) |
+| Import (Markdown, Evernote, Google Keep, contacts) and full Export | ✅ Live (v0.7.0) |
 | Docs (per-project documentation) | 🔜 Soon |
 | Browser extension | 🔜 Planned |
 | Integrations (Slack, Teams, etc.) | 🔜 Planned |
