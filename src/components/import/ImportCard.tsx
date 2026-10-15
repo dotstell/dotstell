@@ -1,7 +1,7 @@
 'use client'
 import { useRef, useState } from 'react'
 import Link from 'next/link'
-import { Upload, FolderOpen, Loader2, CheckCircle2, AlertCircle, AlertTriangle, Undo2, FileText, Folder, Link2, Image as ImageIcon, Users } from 'lucide-react'
+import { Upload, FolderOpen, Loader2, CheckCircle2, AlertCircle, AlertTriangle, Info, Undo2, FileText, Folder, Link2, Image as ImageIcon, Users } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
@@ -22,7 +22,7 @@ export function ImportCard() {
   const [extraIssues, setExtraIssues] = useState<string[]>([])
   const [progress, setProgress] = useState<RunProgress | null>(null)
   const [importTag, setImportTag] = useState('')
-  const [result, setResult] = useState<{ created: number; linked: number; contacts: number } | null>(null)
+  const [result, setResult] = useState<{ created: number; linked: number; contacts: number; skippedContacts: number } | null>(null)
   const [undone, setUndone] = useState<{ trashed: number; removedPeople: number } | null>(null)
   const [includeContacts, setIncludeContacts] = useState(true)
   const [error, setError] = useState('')
@@ -68,7 +68,7 @@ export function ImportCard() {
       toast.success(summarise(res.created, res.contacts))
     } catch (e) {
       const saved = e instanceof ImportError ? e.savedNotes : 0
-      setResult(saved ? { created: saved, linked: 0, contacts: 0 } : null)
+      setResult(saved ? { created: saved, linked: 0, contacts: 0, skippedContacts: 0 } : null)
       setError(e instanceof Error ? e.message : 'Import failed.')
       setPhase('error')
     }
@@ -88,6 +88,7 @@ export function ImportCard() {
   const busy = phase === 'reading' || phase === 'importing'
   const pct = progress && progress.total ? Math.round((progress.done / progress.total) * 100) : 0
 
+  const savedAnything = !!result && (result.created > 0 || result.contacts > 0)
   const canDrop = phase === 'idle' || phase === 'error'
   async function handleDrop(e: React.DragEvent) {
     e.preventDefault(); setDragging(false)
@@ -249,20 +250,37 @@ export function ImportCard() {
         {phase === 'done' && result && (
           <div className="flex flex-col gap-3" aria-live="polite">
             {undone === null ? (
-              <p className="inline-flex items-center gap-1.5 text-sm text-[var(--foreground)]">
-                <CheckCircle2 size={15} className="text-green-500 flex-shrink-0" />
-                {summarise(result.created, result.contacts, true)}{result.linked > 0 && `, with ${result.linked} links`}.
-              </p>
+              <div className="flex flex-col gap-1">
+                <p className="inline-flex items-center gap-1.5 text-sm text-[var(--foreground)]">
+                  {savedAnything
+                    ? <CheckCircle2 size={15} className="text-green-500 flex-shrink-0" />
+                    : <Info size={15} className="text-[var(--muted-foreground)] flex-shrink-0" />}
+                  {savedAnything
+                    ? <>{summarise(result.created, result.contacts, true)}{result.linked > 0 && `, with ${result.linked} links`}.</>
+                    : 'Nothing new was added.'}
+                </p>
+                {result.skippedContacts > 0 && (
+                  <p className="text-xs text-[var(--muted-foreground)]">
+                    {result.skippedContacts} {result.skippedContacts === 1 ? 'contact was' : 'contacts were'} already in People
+                    (same email or name) and {result.skippedContacts === 1 ? 'was' : 'were'} skipped.
+                  </p>
+                )}
+              </div>
             ) : (
               <p className="text-sm text-[var(--foreground)]">
                 {undone.trashed > 0 && `Moved ${undone.trashed} notes to the trash; you can restore them from the Notes page.`}{undone.trashed > 0 && undone.removedPeople > 0 && ' '}{undone.removedPeople > 0 && `Removed ${undone.removedPeople} imported contacts.`}
               </p>
             )}
             <div className="flex items-center gap-3 flex-wrap">
-              {undone === null && (
+              {undone === null && result.created > 0 && (
                 <Link href="/notes" className="inline-flex"><Button className="touch-target-sm">View notes</Button></Link>
               )}
-              {undone === null && (
+              {undone === null && result.contacts > 0 && (
+                <Link href="/people" className="inline-flex">
+                  <Button variant={result.created > 0 ? 'outline' : 'default'} className="touch-target-sm">View people</Button>
+                </Link>
+              )}
+              {undone === null && savedAnything && (
                 <Button variant="outline" onClick={handleUndo} className="touch-target-sm"><Undo2 size={16} /> Undo import</Button>
               )}
               <Button variant="outline" onClick={reset} className="touch-target-sm">Import more</Button>

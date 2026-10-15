@@ -176,7 +176,7 @@ export async function runImport(
   importTag: string,
   onProgress: (p: RunProgress) => void,
   includeContacts = true,
-): Promise<{ created: number; linked: number; contacts: number }> {
+): Promise<{ created: number; linked: number; contacts: number; skippedContacts: number }> {
   const ordered = orderForInsert(plan.notes)
   let created = 0
 
@@ -211,18 +211,20 @@ export async function runImport(
   }
 
   let contacts = 0
+  let skippedContacts = 0
   const people = includeContacts ? plan.contacts : []
   try {
     for (let i = 0; i < people.length; i += PEOPLE_PER_REQUEST) {
       const chunk = people.slice(i, i + PEOPLE_PER_REQUEST)
-      const res = await post<{ created: number }>('/api/import/people', { importTag, people: chunk })
+      const res = await post<{ created: number; skipped: number }>('/api/import/people', { importTag, people: chunk })
       contacts += res.created
+      skippedContacts += res.skipped
       onProgress({ phase: 'people', done: Math.min(i + chunk.length, people.length), total: people.length })
     }
   } catch (e) {
     throw new ImportError(`Notes were imported, but the contacts could not be saved: ${e instanceof Error ? e.message : 'unknown error'}`, created)
   }
-  return { created, linked, contacts }
+  return { created, linked, contacts, skippedContacts }
 }
 
 export async function undoImport(importTag: string): Promise<{ trashed: number; removedPeople: number }> {
