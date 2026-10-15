@@ -48,6 +48,26 @@ PDFs, audio, video, canvases and database views are skipped (counted in the prev
 `<mark>` and `<br>`, and links with unsafe addresses (such as `javascript:`) are removed, because
 imported files are not trusted.
 
+## Files that are refused
+
+Imported files are treated as untrusted. These are never opened or saved, and the preview lists them
+under "Refused for your safety" (the rest of the import can still go ahead):
+
+- program and script files (`.exe`, `.sh`, `.bat`, `.js`, `.html` and similar)
+- files whose contents do not match their name: a "PNG" that is not an image, a `.md` that is binary
+- SVG images that contain scripts or external references
+- zip files inside the zip (extract them and import the folder instead)
+- paths that try to leave the import (`../x` or a drive letter)
+- notes over 2 MB, which the server would reject
+
+The server repeats the check: a note whose HTML still contains scripts, event handlers or
+`javascript:` links is rejected, even if the request did not come from the app.
+
+## Folder prompt
+
+When you press "Choose a folder", the browser asks you to confirm sharing it. That prompt belongs to
+the browser and cannot be changed. Dropping a folder onto the card, or choosing a zip, does not show it.
+
 ## Undo
 
 Every import is tagged `imported-YYYY-MM-DD-HHMMSS`. **Undo import** moves exactly those notes to the
