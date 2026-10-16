@@ -14,7 +14,7 @@ All notable changes to Dotstell are documented here.
 - **Dictate** — speak and the words are added at the cursor, in 12 languages, using your browser's speech recognition. You are told where the audio goes the first time
 - **Record a meeting** — record your microphone, and optionally a shared browser tab for online meetings, and watch the transcript fill in as you go. Speech-to-text uses your own OpenAI, Groq or Gemini key, sent straight from your browser; dotstell does not receive or keep the audio. If your chat provider is Anthropic or Ollama, which cannot transcribe, add a separate speech key in the recording box
 
-### 🤖 Works with every AI provider
+### 🔌 Works with every AI provider
 
 - Summaries work with OpenAI, Anthropic, Gemini, Groq and Ollama; providers that have a JSON mode are asked to use it. Small local models are read in small parts, which found noticeably more action items in testing
 - **Ollama on the live site** now works for Meetings and AI Write: the browser talks to Ollama through the Local AI Agent, as Chat already did. Previously these two features asked the dotstell server, which cannot reach your computer
