@@ -108,6 +108,7 @@ Verify the agent is running at [http://127.0.0.1:12345/health](http://127.0.0.1:
 | `DOTSTELL_AGENT_PORT` | `12345` | Port the agent listens on |
 | `OLLAMA_HOST` | `127.0.0.1` | Hostname of your Ollama instance |
 | `OLLAMA_PORT` | `11434` | Port of your Ollama instance |
+| `DOTSTELL_ALLOWED_ORIGINS` | *(none)* | Extra origins allowed to use the agent, comma separated, for a self-hosted dotstell (for example `https://notes.example.com`) |
 
 Example with a custom Ollama port:
 
@@ -166,9 +167,11 @@ The Local Agent runs on `http://127.0.0.1:12345` (a permitted local address), ac
 The agent is designed to be safe to run persistently in the background:
 
 - **Loopback only** — binds to `127.0.0.1`, never `0.0.0.0`. It is not reachable from other machines on your network.
-- **Origin allow-list** — only requests from `https://dotstell.app`, `https://dotstell.com`, `https://*.vercel.app`, and localhost origins are accepted. All other origins receive a 403.
+- **Origin allow-list** — only requests from `https://dotstell.app`, `https://dotstell.com` and localhost are accepted, plus any origin you list in `DOTSTELL_ALLOWED_ORIGINS`. Every other origin gets a 403 *before* anything is sent to Ollama. There is deliberately no wildcard such as `*.vercel.app`: anyone can publish a site there, and a hostile page could otherwise use your Ollama.
+- **Host check** — requests must be addressed to `127.0.0.1`, `localhost` or `[::1]` on the agent's port, which stops DNS-rebinding attacks.
+- **Only the endpoints dotstell uses** — chat, generate, embeddings, tags, show, version and ps. Pulling, creating, copying, pushing and deleting models are not proxied.
 - **No credentials stored** — the agent never sees your AI provider API keys. Those are sent directly from your browser to the cloud providers (OpenAI, Gemini, etc.) over TLS.
-- **No npm dependencies** — the entire agent is a single `index.mjs` file using only Node.js built-ins (`node:http`). No supply chain attack surface.
+- **No npm dependencies** — the agent is two small files (`index.mjs` and `guard.mjs`) using only Node.js built-ins (`node:http`). No supply chain attack surface.
 - **SSRF prevention** — only proxies to the configured Ollama host (default `127.0.0.1`). The target is not controllable by the browser request.
 
 ---
@@ -181,7 +184,7 @@ The agent is designed to be safe to run persistently in the background:
 | Agent starts but "fetch failed" in app | Ollama is not running | Run `ollama serve` or check the system tray for the Ollama icon |
 | "model not found" error | Model not pulled | Run `ollama pull <model-name>` |
 | Agent not detected in AI Settings | Port 12345 in use | Set `DOTSTELL_AGENT_PORT=12346` and restart |
-| CORS error despite agent running | App is on a non-allowed origin (e.g. custom domain) | The origin allow-list only covers known dotstell origins; file a GitHub issue |
+| 403 "Origin not allowed" despite agent running | You self-host dotstell on your own domain | Start the agent with `DOTSTELL_ALLOWED_ORIGINS=https://your-domain` (comma separate several) |
 
 ---
 
