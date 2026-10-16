@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { ilikeContains } from '@/lib/postgrest'
 import { createClient } from '@/lib/supabase/server'
 import { rateLimit }    from '@/lib/ratelimit'
 import { complete, validateConfig } from '@/lib/ai/client'
@@ -40,13 +41,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Person name is required' }, { status: 400 })
   }
 
-  // Escape ILIKE wildcards to prevent pattern injection
-  const safeName = name.replace(/%/g, '\\%').replace(/_/g, '\\_')
   // Strip characters that could be used for prompt injection before inserting into AI prompts
   const safeNameForPrompt = name.replace(/[^a-zA-Z0-9 \-']/g, '')
 
   // Search notes and bookmarks for mentions of the person
-  const pattern = `%${safeName}%`
+  const pattern = ilikeContains(name)
   const [notesRes, bookmarksRes] = await Promise.all([
     supabase
       .from('notes')

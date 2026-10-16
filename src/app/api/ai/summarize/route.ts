@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { notebookTag } from '@/lib/notebooks'
 import { rateLimit }    from '@/lib/ratelimit'
 import { complete, validateConfig } from '@/lib/ai/client'
 import { AIConfig, AIMessage } from '@/lib/ai/types'
@@ -74,7 +75,7 @@ export async function POST(req: NextRequest) {
         .eq('user_id', user.id)
         .single()
       if (!nb) return NextResponse.json({ error: 'Notebook not found' }, { status: 404 })
-      const nbTag = `nb:${nb.name.toLowerCase().replace(/\s+/g, '-')}`
+      const nbTag = notebookTag(nb.name)
       const { data: notes } = await supabase
         .from('notes')
         .select('title, content')

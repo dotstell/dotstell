@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { rateLimit } from '@/lib/ratelimit'
+import { notebookTag } from '@/lib/notebooks'
 import { containsActiveContent } from '@/lib/import/safety'
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
@@ -25,7 +26,6 @@ interface IncomingNote {
   parentId: string | null
 }
 
-const notebookTag = (name: string) => `nb:${name.toLowerCase().replace(/\s+/g, '-')}`
 
 const validDate = (v: unknown): string | undefined =>
   typeof v === 'string' && !Number.isNaN(Date.parse(v)) ? new Date(v).toISOString() : undefined

@@ -2,16 +2,13 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { toast } from 'sonner'
 import { Notebook } from '@/types'
+import { notebookTag } from '@/lib/notebooks'
 
 // Note membership is stored as a tag, not a foreign key. "My Notebook" → tag "nb:my-notebook".
 // Changing this prefix breaks all existing notebook associations.
 export const NOTEBOOK_TAG_PREFIX = 'nb:'
 
-// Produces the canonical tag for a notebook name. Must match the slug used when the
-// notebook was created — renames do NOT retroactively update note tags.
-export function notebookTag(name: string) {
-  return `${NOTEBOOK_TAG_PREFIX}${name.toLowerCase().replace(/\s+/g, '-')}`
-}
+export { notebookTag }
 
 export function notebookFromTag(tag: string): string | null {
   if (!tag.startsWith(NOTEBOOK_TAG_PREFIX)) return null
@@ -147,6 +144,11 @@ export function useNotebooks() {
       })
       if (!res.ok && originalName !== undefined) {
         setNotebooks(prev => prev.map(n => n.id === id ? { ...n, name: originalName } : n))
+        const body = await res.json().catch(() => ({}))
+        toast.error(body.error ?? 'Could not rename notebook')
+      } else if (res.ok) {
+        // The server moves the notebook's notes to the new tag; refresh anything showing them.
+        window.dispatchEvent(new Event('dotstell:notes-updated'))
       }
     } catch {
       if (originalName !== undefined) {
