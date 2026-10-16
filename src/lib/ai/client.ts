@@ -1,4 +1,4 @@
-import { AIConfig, AIMessage, EmbeddingResult } from './types'
+import { AIConfig, AIMessage, ChatOptions, EmbeddingResult } from './types'
 import { openaiStream, openaiEmbed, groqStream } from './providers/openai'
 import { anthropicStream }                        from './providers/anthropic'
 import { geminiStream, geminiEmbed }             from './providers/gemini'
@@ -12,13 +12,14 @@ import { ollamaStream, ollamaEmbed }             from './providers/ollama'
 export async function streamChat(
   config: AIConfig,
   messages: AIMessage[],
+  opts: ChatOptions = {},
 ): Promise<ReadableStream<Uint8Array>> {
   switch (config.provider) {
-    case 'ollama':    return ollamaStream(config, messages)
-    case 'openai':    return openaiStream(config, messages)
-    case 'anthropic': return anthropicStream(config, messages)
-    case 'gemini':    return geminiStream(config, messages)
-    case 'groq':      return groqStream(config, messages)
+    case 'ollama':    return ollamaStream(config, messages, opts)
+    case 'openai':    return openaiStream(config, messages, opts)
+    case 'anthropic': return anthropicStream(config, messages) // no JSON mode; the prompt asks for JSON and the reader is lenient
+    case 'gemini':    return geminiStream(config, messages, opts)
+    case 'groq':      return groqStream(config, messages, opts)
     default:          throw new Error(`Unknown provider: ${(config as AIConfig).provider}`)
   }
 }
@@ -40,8 +41,8 @@ export async function embed(config: AIConfig, text: string): Promise<EmbeddingRe
  * Collect a full streamed response into a single string.
  * Use for short non-UI tasks (summarise, title generation, auto-tag).
  */
-export async function complete(config: AIConfig, messages: AIMessage[]): Promise<string> {
-  const stream   = await streamChat(config, messages)
+export async function complete(config: AIConfig, messages: AIMessage[], opts: ChatOptions = {}): Promise<string> {
+  const stream   = await streamChat(config, messages, opts)
   const reader   = stream.getReader()
   const decoder  = new TextDecoder()
   let   result   = ''

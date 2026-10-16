@@ -595,7 +595,8 @@ export function RichTextEditor({
     if (!slashOpen) return
     if (e.key === 'ArrowDown')  { e.preventDefault(); setSlashIdx(i => Math.min(i + 1, flatFiltered.length - 1)) }
     if (e.key === 'ArrowUp')    { e.preventDefault(); setSlashIdx(i => Math.max(i - 1, 0)) }
-    if (e.key === 'Enter')      { e.preventDefault(); if (flatFiltered[slashIdx]) applySlashCommand(flatFiltered[slashIdx]) }
+    // Only take Enter when there is a command to run, so a slash with no match never blocks a new line.
+    if (e.key === 'Enter' && flatFiltered[slashIdx]) { e.preventDefault(); applySlashCommand(flatFiltered[slashIdx]) }
     if (e.key === 'Escape')     { setSlashOpen(false) }
   }
 

@@ -5,6 +5,15 @@ import { AIConfig, AIMessage } from './types'
 const DEFAULT_BASE_URL  = 'http://127.0.0.1:11434'
 export const LOCAL_AGENT_BASE = 'http://127.0.0.1:12345'
 
+/** `json` asks Ollama to reply with a JSON object; `numCtx` and `maxTokens` set the context window and reply length. */
+export interface OllamaBrowserOptions {
+  json?: boolean
+  numCtx?: number
+  maxTokens?: number
+  /** Lower is more repeatable; extraction tasks use a low value so the same meeting gives the same notes. */
+  temperature?: number
+}
+
 /**
  * Returns true if the Dotstell Local AI Agent is running on port 12345.
  * The agent adds the Private Network Access header that Ollama is missing,
@@ -113,6 +122,7 @@ export async function fetchOllamaModelsBrowser(
 export async function streamOllamaBrowser(
   config: AIConfig,
   messages: AIMessage[],
+  opts: OllamaBrowserOptions = {},
 ): Promise<ReadableStream<Uint8Array>> {
   const baseUrl = normalizeBaseUrl(config.baseUrl ?? DEFAULT_BASE_URL)
 
@@ -132,6 +142,11 @@ export async function streamOllamaBrowser(
         model:    config.model,
         messages: messages.map(m => ({ role: m.role, content: m.content })),
         stream:   true,
+        ...(opts.json ? { format: 'json' } : {}),
+        // Ollama's default context window is small and silently drops the start of a long prompt.
+        ...(opts.numCtx || opts.temperature !== undefined
+          ? { options: { ...(opts.numCtx ? { num_ctx: opts.numCtx, num_predict: opts.maxTokens ?? 2048 } : {}), ...(opts.temperature !== undefined ? { temperature: opts.temperature } : {}) } }
+          : {}),
       }),
     })
   } catch {
@@ -191,8 +206,9 @@ export async function streamOllamaBrowser(
 export async function completeOllamaBrowser(
   config: AIConfig,
   messages: AIMessage[],
+  opts: OllamaBrowserOptions = {},
 ): Promise<string> {
-  const readable = await streamOllamaBrowser(config, messages)
+  const readable = await streamOllamaBrowser(config, messages, opts)
   const reader   = readable.getReader()
   const decoder  = new TextDecoder()
   let   result   = ''
@@ -212,4 +228,24 @@ export async function completeOllamaBrowser(
     }
   }
   return result.trim()
+}
+
+/**
+ * Embed a piece of text through the Local AI Agent, for use when the dotstell server cannot reach the user's Ollama.
+ * Returns null when the agent is not running or the model gives no usable vector, so callers can carry on without it.
+ */
+export async function embedOllamaBrowser(config: AIConfig, text: string): Promise<number[] | null> {
+  try {
+    const res = await fetch(`${LOCAL_AGENT_BASE}/api/embeddings`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model: config.embeddingModel, prompt: text.slice(0, 2000) }),
+      signal: AbortSignal.timeout(15_000),
+    })
+    if (!res.ok) return null
+    const { embedding } = await res.json()
+    return Array.isArray(embedding) && embedding.length > 0 ? embedding : null
+  } catch {
+    return null
+  }
 }

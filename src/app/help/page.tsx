@@ -90,6 +90,7 @@ const SECTIONS = [
   { id: 'tasks',            label: '✅ Tasks' },
   { id: 'graph',            label: '🌐 Knowledge graph' },
   { id: 'ai',               label: '✨ AI features' },
+  { id: 'meetings',         label: '🎙️ Meetings & voice' },
   { id: 'tags',             label: '🏷️ Tags' },
   { id: 'search',           label: '🔍 Search & command palette' },
   { id: 'import-export',    label: '📦 Import & Export' },
@@ -410,6 +411,31 @@ export default function HelpPage() {
             </Section>
 
             {/* TAGS */}
+            {/* MEETINGS & VOICE */}
+            <Section id="meetings" title="🎙️ Meetings & voice">
+              <Tip icon="📝" title="Meeting assistant"
+                body="Open a note and press Meeting in the toolbar. Paste a transcript or your rough notes, or choose a file, and press Summarise meeting. You get a summary, key points, decisions, action items and open questions. Edit or remove anything, then insert it into the note. It needs an AI provider set up in AI Settings."
+              />
+              <Tip icon="📄" title="Zoom, Teams and Meet transcripts"
+                body="Choose the transcript file the meeting tool gives you: .vtt, .srt or .txt, up to 2 MB. Zoom (cloud recording transcript, audio transcript and chat), Microsoft Teams and Google Meet files are understood, and speaker names are picked up and passed on as attendees. Long meetings are read in parts, with a progress bar and a Cancel button."
+              />
+              <Tip icon="✅" title="Action items become tasks"
+                body="Tick the action items you want and press Create tasks. Each becomes a task. If the owner matches someone in People, the task is linked to them; a date written as 2026-10-30 becomes the due date, and other wording such as Friday is kept in the description. When the note is saved, the tasks are linked back to it."
+              />
+              <Tip icon="🎤" title="Dictate"
+                body="Press Dictate in the toolbar and speak; words are added at the cursor. It uses your browser's built-in speech recognition (it works in Chrome and Edge), so the button is hidden in browsers that do not have it. In Chrome and Edge your voice is sent to Google or Microsoft to be turned into text, and dotstell never receives the audio. You are told this the first time. Choose the language in the bar."
+              />
+              <Tip icon="⏺️" title="Record a meeting"
+                body="In the Meeting assistant, press Start recording. Your microphone is recorded in short parts and each part is turned into text as you go, so the transcript fills in during the meeting. For an online meeting in a browser tab, tick the tab option and choose the tab with Also share tab audio. Turning speech into text needs a speech service key: your OpenAI, Groq or Gemini key works, and if your chat provider is Anthropic or Ollama (which cannot transcribe) you add a separate key right in the recording box. Groq and Google AI Studio offer free keys with limits. The sound goes straight from your browser to that service; dotstell does not receive or keep the audio. Tell everyone you are recording."
+              />
+              <Tip icon="🤖" title="Which AI provider works best"
+                body="Meeting summaries work with every provider: OpenAI, Anthropic, Gemini, Groq and Ollama. Larger models find more action items and follow the owner and deadline wording more closely. A small local model (about 4 billion parameters) works, but it is read in small parts, takes a little longer and can miss some commitments, so check the list before creating tasks. With Ollama on the live site, run the Local AI Agent; the summary then never leaves your computer."
+              />
+              <Tip icon="🛡️" title="Privacy"
+                body="A transcript you summarise goes to the AI provider you chose, through the dotstell server, and is not stored; with Ollama it stays on your computer. Summaries are shown as plain text, and tasks are only created when you press the button."
+              />
+            </Section>
+
             <Section id="tags" title="🏷️ Tags">
               <Tip icon="🗂️" title="Cross-type tag browser"
                 body={<>The <Link href="/tags" style={{ color: 'var(--primary)', textDecoration: 'underline', textUnderlineOffset: 2 }}>Tags page</Link> has a left panel listing all your tags sorted by item count. Click any tag to see every item with that tag — notes, people, bookmarks, and tasks — all in one place.</>}
@@ -534,11 +560,31 @@ export default function HelpPage() {
             {/* WHAT'S NEW */}
             <Section id="whats-new" title="✨ Changelog">
 
+              {/* v0.8.0 */}
+              <div style={{ marginBottom: 32 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--primary)', background: 'color-mix(in srgb, var(--primary) 10%, transparent)', border: '1px solid color-mix(in srgb, var(--primary) 25%, transparent)', padding: '3px 10px', borderRadius: 99 }}>v0.8.0</span>
+                  <span style={{ fontSize: 12, fontWeight: 600, color: '#10b981', background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.2)', padding: '2px 8px', borderRadius: 99 }}>Latest</span>
+                  <span style={{ fontSize: 12, color: 'var(--muted-foreground)' }}>Oct 2026</span>
+                </div>
+                <Tip icon="📝" title="Meeting assistant"
+                  body="Press Meeting in a note's toolbar, paste a transcript or choose a Zoom, Teams or Meet file, and get a summary, decisions and action items. Action items can become tasks linked to the people involved and to the note."
+                />
+                <Tip icon="🎤" title="Dictate"
+                  body="Speak to add text at the cursor, in 12 languages, using your browser's speech recognition. You are told where the audio goes the first time."
+                />
+                <Tip icon="⏺️" title="Record a meeting"
+                  body="Record your microphone, or a browser tab for online meetings, and watch the transcript fill in as you go. It uses your own OpenAI, Groq or Gemini key (separate from your chat provider if you like), straight from your browser; dotstell does not receive or keep the audio."
+                />
+                <Tip icon="🛠️" title="Fixes"
+                  body="The Enter key works again in the note editor. AI Chat's All knowledge mode now finds your notes when your embeddings run on Ollama and you use the live site. Meetings and AI Write also work with Ollama on the live site."
+                />
+              </div>
+
               {/* v0.7.1 */}
               <div style={{ marginBottom: 32 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
                   <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--primary)', background: 'color-mix(in srgb, var(--primary) 10%, transparent)', border: '1px solid color-mix(in srgb, var(--primary) 25%, transparent)', padding: '3px 10px', borderRadius: 99 }}>v0.7.1</span>
-                  <span style={{ fontSize: 12, fontWeight: 600, color: '#10b981', background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.2)', padding: '2px 8px', borderRadius: 99 }}>Latest</span>
                   <span style={{ fontSize: 12, color: 'var(--muted-foreground)' }}>Oct 2026</span>
                 </div>
                 <Tip icon="🛡️" title="Security hardening"
