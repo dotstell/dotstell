@@ -1,22 +1,7 @@
 'use client'
 import { marked } from 'marked'
 import { useMemo } from 'react'
-
-// Strip dangerous elements/attributes from marked HTML output.
-// Guards against prompt-injection → XSS: an AI response echoing user note content
-// with <script> or <img onerror=...> would otherwise execute in the browser.
-function sanitizeHtml(html: string): string {
-  const doc = new DOMParser().parseFromString(html, 'text/html')
-  doc.querySelectorAll('script, iframe, object, embed, form').forEach(el => el.remove())
-  doc.querySelectorAll('*').forEach(el => {
-    for (const attr of Array.from(el.attributes)) {
-      if (attr.name.startsWith('on')) { el.removeAttribute(attr.name); continue }
-      if (attr.name === 'href' && /^javascript:/i.test(attr.value)) el.removeAttribute(attr.name)
-      if (attr.name === 'src'  && /^(javascript:|data:)/i.test(attr.value)) el.removeAttribute(attr.name)
-    }
-  })
-  return doc.body.innerHTML
-}
+import { sanitizeHtml } from '@/lib/sanitize-html'
 
 interface Props {
   children: string
@@ -49,7 +34,9 @@ function normalizeMarkdown(text: string): string {
 export function MarkdownContent({ children, className = '', compact = false }: Props) {
   const html = useMemo(() => {
     const raw = marked(normalizeMarkdown(children), { gfm: true, breaks: false }) as string
-    return sanitizeHtml(raw)
+    // marked passes raw HTML through, and the text can come from an AI echoing a note or bookmark,
+    // so the result is rebuilt from an allow-list before it is put on the page.
+    return sanitizeHtml(raw, 'markdown')
   }, [children])
 
   return (

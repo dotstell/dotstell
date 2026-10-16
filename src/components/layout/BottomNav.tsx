@@ -25,7 +25,7 @@ export function BottomNav({ onMenuOpen }: { onMenuOpen?: () => void }) {
       {onMenuOpen && (
         <button
           type="button"
-          aria-label="Open navigation"
+          aria-label="Open menu"
           onClick={onMenuOpen}
           style={{
             flex: 1,

@@ -195,12 +195,12 @@ export function ImportCard() {
             {plan.report.warnings.length > 0 && (
               <div role="alert" className="rounded-md border border-amber-500/60 bg-amber-500/10 p-3">
                 <p className="text-xs font-medium text-[var(--foreground)] mb-1.5 inline-flex items-center gap-1.5">
-                  <AlertTriangle size={14} className="text-amber-500 flex-shrink-0" /> Refused for your safety
+                  <AlertTriangle size={14} className="text-amber-500 flex-shrink-0" /> Safety checks
                 </p>
                 <ul className="flex flex-col gap-1 text-sm">
                   {plan.report.warnings.map(line => <li key={line} className="text-[var(--foreground)]">{line}</li>)}
                 </ul>
-                <p className="text-xs text-[var(--muted-foreground)] mt-2">These files were not opened or saved. The rest can still be imported.</p>
+                <p className="text-xs text-[var(--muted-foreground)] mt-2">Anything refused was not opened or saved. The rest can still be imported.</p>
               </div>
             )}
 

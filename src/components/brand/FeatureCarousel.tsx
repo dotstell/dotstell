@@ -261,7 +261,7 @@ function BookmarksMock() {
             <span style={{ fontSize: 16 }}>{b.favicon}</span>
             <div style={{ flex: 1, minWidth: 0 }}>
               <p style={{ fontSize: 12, fontWeight: 500, margin: 0, color: 'var(--foreground)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{b.title}</p>
-              <p style={{ fontSize: 10, margin: 0, color: 'var(--muted-foreground)', opacity: 0.65 }}>{b.url}</p>
+              <p style={{ fontSize: 10, margin: 0, color: 'var(--muted-foreground)' }}>{b.url}</p>
             </div>
             <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: 999, background: 'color-mix(in srgb, var(--primary) 12%, transparent)', color: 'var(--primary)', flexShrink: 0 }}>{b.tag}</span>
           </div>
@@ -415,7 +415,7 @@ function Pill({ icon, label, type, accent }: { icon: string; label: string; type
     <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '4px 10px', borderRadius: 6, fontSize: 11, border: `1px solid ${accent}30`, background: `${accent}10` }}>
       <span style={{ fontSize: 12 }}>{icon}</span>
       <span style={{ color: 'var(--foreground)', fontWeight: 500 }}>{label}</span>
-      <span style={{ fontSize: 9, color: 'var(--muted-foreground)', opacity: 0.6 }}>{type}</span>
+      <span style={{ fontSize: 9, color: 'var(--muted-foreground)' }}>{type}</span>
     </div>
   )
 }
@@ -432,7 +432,7 @@ function CheckItem({ done, text }: { done?: boolean; text: string }) {
 }
 
 function Label({ children }: { children: React.ReactNode }) {
-  return <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--muted-foreground)', opacity: 0.55, margin: '0 0 8px' }}>{children}</p>
+  return <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--muted-foreground)', margin: '0 0 8px' }}>{children}</p>
 }
 
 function ChatBubble({ role, text }: { role: 'user' | 'ai'; text: string }) {
@@ -557,6 +557,8 @@ export function FeatureCarousel() {
           {FEATURES.map((_, i) => (
             <button
               key={i}
+              aria-label={`Show feature ${i + 1} of ${FEATURES.length}`}
+              aria-current={active === i}
               onClick={() => setActive(i)}
               style={{ width: active === i ? 20 : 7, height: 7, borderRadius: 999, background: active === i ? 'var(--primary)' : 'var(--border)', border: 'none', cursor: 'pointer', padding: 0, transition: 'all 0.2s' }}
             />

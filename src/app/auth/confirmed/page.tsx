@@ -31,7 +31,7 @@ export default function EmailConfirmedPage() {
               <p className="text-sm text-[var(--muted-foreground)] mb-4">
                 This confirmation link is no longer valid. Try signing up again, or sign in if you already have an account.
               </p>
-              <Link href="/auth/login" className="text-[var(--primary)] hover:underline text-sm">
+              <Link href="/auth/login" className="text-[var(--primary)] underline underline-offset-2 text-sm">
                 Back to sign in
               </Link>
             </div>
@@ -46,7 +46,7 @@ export default function EmailConfirmedPage() {
               <p className="text-sm text-[var(--muted-foreground)] mb-4">
                 Your account is ready to go.
               </p>
-              <Link href="/dashboard" className="text-[var(--primary)] hover:underline text-sm">
+              <Link href="/dashboard" className="text-[var(--primary)] underline underline-offset-2 text-sm">
                 Continue to dashboard
               </Link>
             </div>

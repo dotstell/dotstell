@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { notebookFieldError, notebookTag, retagNotes, tagCollides } from '@/lib/notebooks'
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const supabase = await createClient()
@@ -9,12 +10,17 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   const { id } = await params
   let body: any
   try { body = await req.json() } catch { return NextResponse.json({ error: 'Invalid request body' }, { status: 400 }) }
+  const invalid = notebookFieldError(body)
+  if (invalid) return NextResponse.json({ error: invalid }, { status: 400 })
   const allowed: Record<string, unknown> = {}
+  let renamedFrom: string | null = null
   if (body.name !== undefined) {
-    if (typeof body.name !== 'string') return NextResponse.json({ error: 'Invalid name' }, { status: 400 })
-    const trimmed = body.name.trim()
-    if (!trimmed) return NextResponse.json({ error: 'Name required' }, { status: 400 })
+    const trimmed = (body.name as string).trim()
+    const { data: current } = await supabase.from('notebooks').select('name').eq('id', id).eq('user_id', user.id).single()
+    if (!current) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+    if (await tagCollides(supabase, user.id, trimmed, id)) return NextResponse.json({ error: 'A notebook with this name already exists.' }, { status: 409 })
     allowed.name = trimmed
+    renamedFrom = current.name
   }
   if (body.color !== undefined) allowed.color = body.color
   if (body.icon !== undefined) allowed.icon = body.icon
@@ -31,7 +37,12 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     .select()
     .single()
 
-  if (error) return NextResponse.json({ error: 'An unexpected error occurred.' }, { status: 500 })
+  if (error) {
+    if (error.code === '23505') return NextResponse.json({ error: 'A notebook with this name already exists.' }, { status: 409 })
+    return NextResponse.json({ error: 'An unexpected error occurred.' }, { status: 500 })
+  }
+  // Membership is a tag derived from the name, so notes follow the notebook to its new name.
+  if (renamedFrom !== null) await retagNotes(supabase, user.id, notebookTag(renamedFrom), notebookTag(allowed.name as string))
   return NextResponse.json(data)
 }
 
@@ -55,7 +66,7 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
   // Membership is stored as a tag on notes (e.g. "nb:my-notebook").
   // Active notes are moved to trash; already-trashed notes just have the tag stripped
   // so they don't ghost-join a future notebook with the same name when restored.
-  const tag = `nb:${notebook.name.toLowerCase().replace(/\s+/g, '-')}`
+  const tag = notebookTag(notebook.name)
   const now = new Date().toISOString()
 
   const [{ data: activeNotes }, { data: trashedNotes }] = await Promise.all([

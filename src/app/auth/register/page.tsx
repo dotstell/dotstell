@@ -55,7 +55,7 @@ export default function RegisterPage() {
               <p className="text-sm text-[var(--muted-foreground)]">
                 We sent a confirmation link to <strong>{email}</strong>
               </p>
-              <Link href="/auth/login" className="block mt-4 text-[var(--primary)] hover:underline text-sm">
+              <Link href="/auth/login" className="block mt-4 text-[var(--primary)] underline underline-offset-2 text-sm">
                 Back to sign in
               </Link>
             </div>
@@ -106,7 +106,7 @@ export default function RegisterPage() {
               </form>
               <p className="text-center text-sm text-[var(--muted-foreground)] mt-4">
                 Already have one?{' '}
-                <Link href="/auth/login" className="text-[var(--primary)] hover:underline">
+                <Link href="/auth/login" className="text-[var(--primary)] underline underline-offset-2">
                   Sign in
                 </Link>
               </p>

@@ -14,11 +14,14 @@
  *   DOTSTELL_AGENT_PORT   Port to listen on (default: 12345)
  *   OLLAMA_HOST           Ollama hostname (default: 127.0.0.1)
  *   OLLAMA_PORT           Ollama port (default: 11434)
+ *   DOTSTELL_ALLOWED_ORIGINS  Extra origins allowed to use the agent, comma separated
+ *                         (for a self-hosted dotstell, e.g. https://notes.example.com)
  */
 
 import http from 'node:http'
+import { isAllowedHost, isAllowedOrigin, isAllowedRoute, parseExtraOrigins } from './guard.mjs'
 
-const AGENT_VERSION = '1.1.0'
+const AGENT_VERSION = '1.2.0'
 const AGENT_PORT    = parseInt(process.env.DOTSTELL_AGENT_PORT ?? '12345', 10)
 const OLLAMA_HOST   = process.env.OLLAMA_HOST ?? '127.0.0.1'
 const OLLAMA_PORT   = parseInt(process.env.OLLAMA_PORT ?? '11434', 10)
@@ -53,25 +56,22 @@ function checkOllama() {
 }
 
 // ── Allowed origins ───────────────────────────────────────────────────────────
-const ALLOWED_ORIGIN_PATTERNS = [
-  /^https:\/\/dotstell\.app$/,
-  /^https:\/\/dotstell\.com$/,
-  /^https:\/\/.*\.vercel\.app$/,
-  /^http:\/\/localhost(:\d+)?$/,
-  /^http:\/\/127\.0\.0\.1(:\d+)?$/,
-]
+// dotstell.app, dotstell.com and localhost, plus whatever DOTSTELL_ALLOWED_ORIGINS lists.
+// There is deliberately no wildcard such as *.vercel.app: anyone can publish a site there.
+const EXTRA_ORIGINS = parseExtraOrigins(process.env.DOTSTELL_ALLOWED_ORIGINS)
 
-function resolveOrigin(requestOrigin) {
-  if (!requestOrigin) return 'https://dotstell.app'
-  return ALLOWED_ORIGIN_PATTERNS.some(p => p.test(requestOrigin))
-    ? requestOrigin
-    : 'https://dotstell.app'
+function refuse(res, status, message) {
+  // Read and discard any request body so the connection can close cleanly.
+  res.req?.resume()
+  res.writeHead(status, { 'Content-Type': 'application/json', Connection: 'close' })
+  res.end(JSON.stringify({ error: message }))
 }
 
 function setCorsHeaders(res, origin) {
-  res.setHeader('Access-Control-Allow-Origin',          resolveOrigin(origin))
+  if (!origin) return
+  res.setHeader('Access-Control-Allow-Origin',          origin)
   res.setHeader('Access-Control-Allow-Private-Network', 'true')
-  res.setHeader('Access-Control-Allow-Methods',         'GET, POST, PUT, PATCH, DELETE, HEAD, OPTIONS')
+  res.setHeader('Access-Control-Allow-Methods',         'GET, POST, HEAD, OPTIONS')
   res.setHeader('Access-Control-Allow-Headers',         'Content-Type, Authorization')
   res.setHeader('Access-Control-Max-Age',               '86400')
   res.setHeader('Vary',                                 'Origin')
@@ -91,6 +91,16 @@ function logRequest(method, url, status) {
 const server = http.createServer((req, res) => {
   const origin = req.headers.origin ?? ''
 
+  // DNS rebinding: a hostile site whose name was switched to 127.0.0.1 still sends its own name as Host.
+  if (!isAllowedHost(req.headers.host, AGENT_PORT)) return refuse(res, 403, 'Host not allowed')
+
+  // Browsers always send Origin on cross-site POSTs, so an unknown one is turned away before anything
+  // is proxied (CORS alone only hides the answer; the request would still have run). A request with no
+  // Origin that the browser marks as cross-site (an <img> or link) is refused too.
+  if (origin ? !isAllowedOrigin(origin, EXTRA_ORIGINS) : req.headers['sec-fetch-site'] === 'cross-site') {
+    return refuse(res, 403, 'Origin not allowed')
+  }
+
   // CORS preflight
   if (req.method === 'OPTIONS') {
     setCorsHeaders(res, origin)
@@ -98,6 +108,8 @@ const server = http.createServer((req, res) => {
     res.end()
     return
   }
+
+  if (!isAllowedRoute(req.method, req.url)) return refuse(res, 403, 'Endpoint not allowed')
 
   // Health check
   if (req.url === '/health' || req.url === '/health/') {

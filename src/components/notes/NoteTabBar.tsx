@@ -166,7 +166,7 @@ export function NoteTabBar({ currentId, paneOpen, onTogglePane }: Props) {
           <div style={{
             display: 'flex', alignItems: 'center',
             padding: '0 16px', fontSize: 12,
-            color: 'var(--muted-foreground)', opacity: 0.4,
+            color: 'var(--muted-foreground)',
             whiteSpace: 'nowrap',
           }}>
             Open a note to start

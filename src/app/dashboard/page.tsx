@@ -643,7 +643,7 @@ export default function DashboardPage() {
                   <p style={{ fontSize: 11, fontWeight: 600, color: 'var(--muted-foreground)', textTransform: 'uppercase', letterSpacing: '0.08em', margin: 0 }}>
                     Focus next
                   </p>
-                  <p style={{ fontSize: 10, color: 'var(--muted-foreground)', opacity: 0.55, margin: '3px 0 0' }}>
+                  <p style={{ fontSize: 10, color: 'var(--muted-foreground)', margin: '3px 0 0' }}>
                     Overdue first · then due date · then priority
                   </p>
                 </div>
@@ -700,7 +700,7 @@ export default function DashboardPage() {
                 </div>
                 <div>
                   <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--foreground)' }}>AI Digest</span>
-                  <span style={{ fontSize: 10, color: 'var(--muted-foreground)', marginLeft: 7, opacity: 0.6 }}>AI-powered briefing</span>
+                  <span style={{ fontSize: 10, color: 'var(--muted-foreground)', marginLeft: 7 }}>AI-powered briefing</span>
                 </div>
               </div>
               <div style={{ display: 'flex', flexDirection: tier === 'compact' ? 'column' : 'row', alignItems: tier === 'compact' ? 'flex-start' : 'center', gap: 6 }}>
@@ -834,7 +834,7 @@ export default function DashboardPage() {
             title="Recent Bookmarks"
             icon={<Bookmark size={13} color="#f59e0b" />}
             href="/bookmarks"
-            action="All bookmarks"
+            action="Add bookmark"
             actionHref="/bookmarks"
           >
             {loading ? <PanelLoading /> : bookmarks.length === 0
@@ -869,7 +869,7 @@ export default function DashboardPage() {
                 <Activity size={14} color="var(--muted-foreground)" />
                 <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--foreground)' }}>Knowledge health</span>
               </div>
-              <span style={{ fontSize: 11, color: 'var(--muted-foreground)', opacity: 0.6 }}>Last 14 days</span>
+              <span style={{ fontSize: 11, color: 'var(--muted-foreground)' }}>Last 14 days</span>
             </div>
 
             {/* Activity area chart — full width */}
@@ -941,7 +941,7 @@ export default function DashboardPage() {
                     )}
                     <p style={{ fontSize: 17, fontWeight: 800, color: valueColor, margin: 0, lineHeight: 1 }}>{value}</p>
                     <p style={{ fontSize: 10, color: 'var(--muted-foreground)', margin: '3px 0 0', letterSpacing: '0.04em' }}>{label}</p>
-                    <p style={{ fontSize: 10, color: 'var(--muted-foreground)', margin: '2px 0 0', opacity: 0.7 }}>{sub}</p>
+                    <p style={{ fontSize: 10, color: 'var(--muted-foreground)', margin: '2px 0 0' }}>{sub}</p>
                     {open && (
                       <div style={{
                         position: 'absolute',
@@ -979,7 +979,7 @@ export default function DashboardPage() {
                 <span style={{ fontSize: 11, color: 'var(--muted-foreground)' }}>
                   <span style={{ color: '#f59e0b', fontWeight: 600 }}>{unindexedCount} items</span> not yet searchable via AI
                 </span>
-                <span style={{ fontSize: 10, color: 'var(--muted-foreground)', marginLeft: 'auto', opacity: 0.55 }}>
+                <span style={{ fontSize: 10, color: 'var(--muted-foreground)', marginLeft: 'auto' }}>
                   Open AI Settings → Build search index
                 </span>
               </div>
@@ -1037,7 +1037,7 @@ export default function DashboardPage() {
                       </span>
                     )}
                   </div>
-                  <p style={{ fontSize: 10, color: 'var(--muted-foreground)', opacity: 0.55, margin: '3px 0 0' }}>
+                  <p style={{ fontSize: 10, color: 'var(--muted-foreground)', margin: '3px 0 0' }}>
                     Notes → opens editor to add tags · Bookmarks → opens bookmarks manager
                   </p>
                   {aiConfigured && queueNotes.length > 0 && (
@@ -1113,11 +1113,11 @@ export default function DashboardPage() {
                                 Apply {sel.size > 0 ? `(${sel.size})` : ''}
                               </button>
                               <button type="button" onClick={() => applyTagSuggestion(n.id, true)}
-                                style={{ fontSize: 10, color: 'var(--muted-foreground)', background: 'none', border: 'none', cursor: 'pointer', padding: '3px 5px', opacity: 0.65 }}>
+                                style={{ fontSize: 10, color: 'var(--muted-foreground)', background: 'none', border: 'none', cursor: 'pointer', padding: '3px 5px' }}>
                                 Accept all
                               </button>
                               <button type="button" onClick={() => dismissTagSuggestion(n.id)}
-                                style={{ fontSize: 10, color: 'var(--muted-foreground)', background: 'none', border: 'none', cursor: 'pointer', padding: '3px 5px', opacity: 0.45 }}>
+                                style={{ fontSize: 10, color: 'var(--muted-foreground)', background: 'none', border: 'none', cursor: 'pointer', padding: '3px 5px' }}>
                                 ✕ Dismiss
                               </button>
                             </div>
@@ -1174,11 +1174,11 @@ export default function DashboardPage() {
                                 Apply {bmSel.size > 0 ? `(${bmSel.size})` : ''}
                               </button>
                               <button type="button" onClick={() => applyTagSuggestion(b.id, true)}
-                                style={{ fontSize: 10, color: 'var(--muted-foreground)', background: 'none', border: 'none', cursor: 'pointer', padding: '3px 5px', opacity: 0.65 }}>
+                                style={{ fontSize: 10, color: 'var(--muted-foreground)', background: 'none', border: 'none', cursor: 'pointer', padding: '3px 5px' }}>
                                 Accept all
                               </button>
                               <button type="button" onClick={() => dismissTagSuggestion(b.id)}
-                                style={{ fontSize: 10, color: 'var(--muted-foreground)', background: 'none', border: 'none', cursor: 'pointer', padding: '3px 5px', opacity: 0.45 }}>
+                                style={{ fontSize: 10, color: 'var(--muted-foreground)', background: 'none', border: 'none', cursor: 'pointer', padding: '3px 5px' }}>
                                 ✕ Dismiss
                               </button>
                             </div>
@@ -1196,7 +1196,7 @@ export default function DashboardPage() {
                       </Link>
                     )}
                     {untaggedBmarks > queueBmarks.length && (
-                      <Link href="/bookmarks" style={{ fontSize: 11, color: 'var(--muted-foreground)', textDecoration: 'none', opacity: 0.7 }}>
+                      <Link href="/bookmarks" style={{ fontSize: 11, color: 'var(--muted-foreground)', textDecoration: 'none' }}>
                         +{untaggedBmarks - queueBmarks.length} bookmarks →
                       </Link>
                     )}
@@ -1299,7 +1299,7 @@ export default function DashboardPage() {
                   Finds notes, tasks, and bookmarks that share topics with your most recently edited note — using AI semantic similarity, not just keyword matching. Helps you rediscover related thinking you might have forgotten.
                 </div>
               )}
-              <span style={{ fontSize: 11, color: 'var(--muted-foreground)', marginLeft: 'auto', opacity: 0.6 }}>based on your recent notes</span>
+              <span style={{ fontSize: 11, color: 'var(--muted-foreground)', marginLeft: 'auto' }}>based on your recent notes</span>
             </div>
             <div style={{ padding: '12px 18px' }}>
               <p style={{ fontSize: 12, color: 'var(--muted-foreground)', margin: '0 0 10px' }}>
@@ -1315,7 +1315,7 @@ export default function DashboardPage() {
                       >
                         <Bookmark size={12} color="var(--muted-foreground)" style={{ flexShrink: 0, opacity: 0.55 }} />
                         <span style={{ fontSize: 12, color: 'var(--foreground)', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.title}</span>
-                        <span style={{ fontSize: 10, color: 'var(--muted-foreground)', flexShrink: 0, opacity: 0.45 }}>bookmark ↗</span>
+                        <span style={{ fontSize: 10, color: 'var(--muted-foreground)', flexShrink: 0 }}>bookmark ↗</span>
                       </a>
                     : <Link key={c.id} href={c.href}
                         style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '7px 8px', borderRadius: 7, textDecoration: 'none', transition: 'background 0.1s' }}
@@ -1328,7 +1328,7 @@ export default function DashboardPage() {
                       </Link>
                 ))}
               </div>
-              <p style={{ fontSize: 11, color: 'var(--muted-foreground)', margin: '10px 0 0', opacity: 0.6 }}>
+              <p style={{ fontSize: 11, color: 'var(--muted-foreground)', margin: '10px 0 0' }}>
                 Shared keywords: {connections.keywords.map(k => <code key={k} style={{ fontSize: 10, padding: '1px 5px', borderRadius: 3, backgroundColor: 'var(--secondary)', marginRight: 4 }}>{k}</code>)}
               </p>
             </div>
@@ -1379,11 +1379,11 @@ function Panel({ title, subtitle, icon, href, action, actionHref, children }: {
           {icon}
           <div>
             <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--foreground)' }}>{title}</span>
-            {subtitle && <p style={{ fontSize: 10, color: 'var(--muted-foreground)', opacity: 0.55, margin: '2px 0 0' }}>{subtitle}</p>}
+            {subtitle && <p style={{ fontSize: 10, color: 'var(--muted-foreground)', margin: '2px 0 0' }}>{subtitle}</p>}
           </div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <Link href={actionHref} className="touch-target-sm" style={{ fontSize: 11, color: 'var(--muted-foreground)', textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 3 }}
+          <Link href={actionHref} aria-label={action} className="touch-target-sm" style={{ fontSize: 11, color: 'var(--muted-foreground)', textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 3 }}
             onMouseEnter={e => (e.currentTarget.style.color = 'var(--primary)')}
             onMouseLeave={e => (e.currentTarget.style.color = 'var(--muted-foreground)')}
           >
@@ -1482,7 +1482,7 @@ function ActivityChart({ data }: { data: number[] }) {
         <circle cx={last.x} cy={last.y} r="6.5" fill="var(--primary)" opacity="0.15" />
       </svg>
       <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4 }}>
-        <span style={{ fontSize: 9, color: 'var(--muted-foreground)', opacity: 0.5 }}>14 days ago</span>
+        <span style={{ fontSize: 9, color: 'var(--muted-foreground)' }}>14 days ago</span>
         <span style={{ fontSize: 9, color: 'var(--primary)', opacity: 0.75, fontWeight: 600 }}>Today</span>
       </div>
     </div>
