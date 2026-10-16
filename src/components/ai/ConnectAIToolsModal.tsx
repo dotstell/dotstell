@@ -213,7 +213,7 @@ export function ConnectAIToolsModal({ onClose }: ConnectAIToolsModalProps) {
             </div>
             <div>
               <p id="connect-ai-title" style={{ margin: 0, fontSize: 15, fontWeight: 700, color: 'var(--foreground)' }}>Connect AI tools</p>
-              <p style={{ margin: 0, ...small }}>Let Claude, Codex, Cursor and other AI tools read your notes</p>
+              <p style={{ margin: 0, ...small }}>Let Codex, Claude and other AI tools read your notes</p>
             </div>
           </div>
           <button type="button" aria-label="Close" onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted-foreground)', padding: 4 }}><X size={15} /></button>
