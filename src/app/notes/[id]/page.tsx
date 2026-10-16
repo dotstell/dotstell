@@ -853,7 +853,7 @@ ${sanitizeHtml(note.content ?? '', 'document')}
             <button
               type="button"
               onClick={() => setSuggestedTags([])}
-              style={{ fontSize: 10, background: 'none', border: 'none', color: 'var(--muted-foreground)', cursor: 'pointer', opacity: 0.6, padding: '0 2px' }}
+              style={{ fontSize: 10, background: 'none', border: 'none', color: 'var(--muted-foreground)', cursor: 'pointer', padding: '0 2px' }}
             >
               Dismiss all
             </button>
@@ -1122,7 +1122,7 @@ ${sanitizeHtml(note.content ?? '', 'document')}
 
                 {tocOpen && (
                   headings.length === 0 ? (
-                    <p style={{ fontSize: 12, color: 'var(--muted-foreground)', margin: 0, opacity: 0.5 }}>
+                    <p style={{ fontSize: 12, color: 'var(--muted-foreground)', margin: 0 }}>
                       Add headings to see outline
                     </p>
                   ) : (
@@ -1273,7 +1273,7 @@ ${sanitizeHtml(note.content ?? '', 'document')}
                   </div>
                 )}
                 {!noteSummary && !summaryLoading && (
-                  <p style={{ margin: 0, fontSize: 11, color: 'var(--muted-foreground)', opacity: 0.5 }}>
+                  <p style={{ margin: 0, fontSize: 11, color: 'var(--muted-foreground)' }}>
                     Click Summarize for a bullet-point TL;DR
                   </p>
                 )}

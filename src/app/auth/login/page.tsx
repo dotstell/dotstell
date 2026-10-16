@@ -126,7 +126,7 @@ function LoginForm() {
                 {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
               </button>
             </div>
-            <Link href="/auth/forgot-password" className="text-sm text-[var(--primary)] hover:underline py-2 -my-1 self-start">
+            <Link href="/auth/forgot-password" className="text-sm text-[var(--primary)] underline underline-offset-2 py-2 -my-1 self-start">
               Forgot password?
             </Link>
             {error && (
@@ -140,7 +140,7 @@ function LoginForm() {
           </form>
           <p className="text-center text-sm text-[var(--muted-foreground)] mt-4">
             No account?{' '}
-            <Link href="/auth/register" className="text-[var(--primary)] hover:underline">
+            <Link href="/auth/register" className="text-[var(--primary)] underline underline-offset-2">
               Create one
             </Link>
           </p>

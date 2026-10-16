@@ -77,7 +77,6 @@ function normaliseUrl(value: string): string {
     .replace(/&#x([0-9a-f]+);?/gi, (_, h: string) => String.fromCodePoint(Math.min(parseInt(h, 16), 0x10ffff)))
     .replace(/&#(\d+);?/g, (_, d: string) => String.fromCodePoint(Math.min(parseInt(d, 10), 0x10ffff)))
     .replace(/&(tab|newline|colon);?/gi, (_, n: string) => ({ tab: '\t', newline: '\n', colon: ':' })[n.toLowerCase() as 'tab'])
-  // eslint-disable-next-line no-control-regex
   return head.replace(/[\u0000- \u007f]/g, '').toLowerCase()
 }
 

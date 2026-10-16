@@ -341,13 +341,13 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
             rel="noopener noreferrer"
             style={{
               fontSize: 10, color: 'var(--muted-foreground)', letterSpacing: '0.04em',
-              textDecoration: 'none', opacity: 0.45, padding: '10px 6px', margin: '-10px -6px',
-              transition: 'opacity 0.15s',
+              textDecoration: 'none', padding: '10px 6px', margin: '-10px -6px',
+              transition: 'color 0.15s',
               pointerEvents: 'auto',
               userSelect: 'none',
             }}
-            onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.opacity = '0.9' }}
-            onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.opacity = '0.45' }}
+            onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.color = 'var(--foreground)' }}
+            onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.color = 'var(--muted-foreground)' }}
           >
             v{APP_VERSION}
           </a>

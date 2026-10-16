@@ -408,7 +408,7 @@ function GraphPageInner() {
               { key: 'Click node', desc: 'Inspect & navigate' },
               { key: 'Click × on edge', desc: 'Remove link' },
             ].map(({ key, desc }) => (
-              <span key={key} style={{ fontSize: 11, color: 'var(--border)' }}>
+              <span key={key} style={{ fontSize: 11, color: 'var(--muted-foreground)' }}>
                 <kbd style={{ backgroundColor: 'var(--secondary)', border: '1px solid var(--border)', padding: '1px 6px', borderRadius: 4, color: 'var(--muted-foreground)', fontSize: 10 }}>{key}</kbd>
                 {' '}{desc}
               </span>
@@ -556,14 +556,14 @@ function GraphPageInner() {
                 </div>
 
                 {selectedLinks.outgoing.length === 0 && selectedLinks.incoming.length === 0 && (
-                  <p style={{ fontSize: 12, color: 'var(--border)', fontStyle: 'italic' }}>
+                  <p style={{ fontSize: 12, color: 'var(--muted-foreground)', fontStyle: 'italic' }}>
                     No connections yet. Drag from the bottom handle to another node to create one.
                   </p>
                 )}
 
                 {selectedLinks.outgoing.length > 0 && (
                   <>
-                    <p style={{ fontSize: 10, color: 'var(--border)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 6px' }}>Links to</p>
+                    <p style={{ fontSize: 10, color: 'var(--muted-foreground)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 6px' }}>Links to</p>
                     {selectedLinks.outgoing.map(({ id, other }) => other && (
                       <ConnectionItem key={id} item={other} onDelete={() => handleDeleteEdge(id)} />
                     ))}
@@ -572,7 +572,7 @@ function GraphPageInner() {
 
                 {selectedLinks.incoming.length > 0 && (
                   <>
-                    <p style={{ fontSize: 10, color: 'var(--border)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', margin: '12px 0 6px' }}>Linked from</p>
+                    <p style={{ fontSize: 10, color: 'var(--muted-foreground)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', margin: '12px 0 6px' }}>Linked from</p>
                     {selectedLinks.incoming.map(({ id, other }) => other && (
                       <ConnectionItem key={id} item={other} onDelete={() => handleDeleteEdge(id)} />
                     ))}

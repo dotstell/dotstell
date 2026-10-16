@@ -900,7 +900,7 @@ export function RichTextEditor({
                   {label}
                 </span>
               ))}
-              <span style={{ fontSize: 11, color: 'var(--border)', marginLeft: 'auto' }}>
+              <span style={{ fontSize: 11, color: 'var(--muted-foreground)', marginLeft: 'auto' }}>
                 Markdown source — click "Rich text" to preview
               </span>
             </div>
@@ -1019,7 +1019,7 @@ export function RichTextEditor({
               boxShadow: '0 12px 40px rgba(0,0,0,0.6)',
               overflowY: 'auto',
             }}>
-            <p style={{ fontSize: 10, color: 'var(--border)', padding: '4px 8px 6px', margin: 0, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Blocks</p>
+            <p style={{ fontSize: 10, color: 'var(--muted-foreground)', padding: '4px 8px 6px', margin: 0, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Blocks</p>
             {flatFiltered.map((cmd, i) => (
               <button
                 key={cmd.label}
@@ -1422,7 +1422,7 @@ function FontDropdown({ editor, open, setOpen, ref, isMobile }: {
             <div key={group.group}>
               {/* Group label */}
               <p style={{
-                fontSize: 10, color: 'var(--border)', margin: '6px 0 3px 8px',
+                fontSize: 10, color: 'var(--muted-foreground)', margin: '6px 0 3px 8px',
                 textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 600,
               }}>
                 {GROUP_ICONS[group.group]} {group.group}

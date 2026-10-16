@@ -95,7 +95,7 @@ export default function TagsPage() {
           <div style={{ textAlign: 'center', padding: '64px 0' }}>
             <Tag size={36} color="var(--border)" style={{ marginBottom: 12 }} />
             <p style={{ color: 'var(--muted-foreground)', fontSize: 14 }}>No tags yet</p>
-            <p style={{ color: 'var(--border)', fontSize: 12, marginTop: 4 }}>Add tags to your notes, people, tasks or bookmarks and they&apos;ll appear here.</p>
+            <p style={{ color: 'var(--muted-foreground)', fontSize: 12, marginTop: 4 }}>Add tags to your notes, people, tasks or bookmarks and they&apos;ll appear here.</p>
           </div>
         ) : (
           <div style={{
@@ -125,7 +125,7 @@ export default function TagsPage() {
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
               {filteredGroups.length === 0 ? (
-                <p style={{ fontSize: 12, color: 'var(--border)', padding: '8px 4px' }}>No tags match</p>
+                <p style={{ fontSize: 12, color: 'var(--muted-foreground)', padding: '8px 4px' }}>No tags match</p>
               ) : filteredGroups.map(({ tag, items }) => (
                 <button
                   key={tag}
@@ -184,7 +184,7 @@ export default function TagsPage() {
                   </div>
                   <div style={{ padding: '8px' }}>
                     {(filteredItems ?? []).length === 0 ? (
-                      <p style={{ fontSize: 13, color: 'var(--border)', padding: '12px 8px' }}>No items match</p>
+                      <p style={{ fontSize: 13, color: 'var(--muted-foreground)', padding: '12px 8px' }}>No items match</p>
                     ) : (filteredItems ?? []).map(item => {
                       const Icon = TYPE_ICON[item.type] ?? FileText
                       const color = TYPE_COLOR[item.type] ?? 'var(--primary)'

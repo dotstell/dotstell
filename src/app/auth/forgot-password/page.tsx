@@ -47,7 +47,7 @@ export default function ForgotPasswordPage() {
               <p className="text-sm text-[var(--muted-foreground)]">
                 If an account exists for <strong>{email}</strong>, we sent a password reset link.
               </p>
-              <Link href="/auth/login" className="block mt-4 text-[var(--primary)] hover:underline text-sm">
+              <Link href="/auth/login" className="block mt-4 text-[var(--primary)] underline underline-offset-2 text-sm">
                 Back to sign in
               </Link>
             </div>
@@ -74,7 +74,7 @@ export default function ForgotPasswordPage() {
                 </Button>
               </form>
               <p className="text-center text-sm text-[var(--muted-foreground)] mt-4">
-                <Link href="/auth/login" className="text-[var(--primary)] hover:underline">
+                <Link href="/auth/login" className="text-[var(--primary)] underline underline-offset-2">
                   Back to sign in
                 </Link>
               </p>
