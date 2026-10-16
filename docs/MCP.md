@@ -127,6 +127,19 @@ Known limits: the in-memory rate limiter resets on cold starts (see `src/lib/rat
    - Cursor: an entry in `.cursor/mcp.json` with `url` and an `Authorization` header.
    - Claude Desktop: through `mcp-remote` (needs Node.js), with the token in an environment variable.
 
+## What to ask
+
+Say "use dotstell" in the first question so the tool knows where to look. Replace the words in brackets.
+
+- "List my 5 most recent notes."
+- "Search my notes for [a word] and tell me the titles." Search matches the words given, so use a word that is in the note.
+- "Read my note called [title] and summarise it in 3 bullets."
+- "List my notebooks and how many notes each has." / "What tags do I use most?"
+- "Show my open tasks and which are due soonest."
+- "List my meeting notes, then read the latest and give me its decisions and action items." Meetings are the notes the meeting assistant has tagged `meeting`.
+- "Search my bookmarks for [a word]."
+- "Who is [a person] in my people, and which notes are linked to them?" / "What is linked to my note called [title]?"
+
 ## What has been verified
 
 | Check | Result |

@@ -24,6 +24,19 @@ const EXPIRY_CHOICES = [
   { days: 365, label: '1 year' },
 ]
 
+const EXAMPLE_QUESTIONS = [
+  'Use dotstell to list my 5 most recent notes.',
+  'Use dotstell to search my notes for [a word] and tell me the titles.',
+  'Read my note called [title] and summarise it in 3 bullets.',
+  'List my notebooks and how many notes each has.',
+  'What tags do I use most?',
+  'Show my open tasks and which are due soonest.',
+  'List my meeting notes, then read the latest and give me its decisions and action items.',
+  'Search my bookmarks for [a word].',
+  'Who is [a person] in my people, and which notes are linked to them?',
+  'What is linked to my note called [title]?',
+]
+
 const TOOL_LABELS: Record<string, string> = {
   search_notes: 'Searched notes', get_note: 'Read a note', recent_notes: 'Listed recent notes', list_meetings: 'Listed meetings',
   search_bookmarks: 'Searched bookmarks', list_notebooks: 'Listed notebooks', list_tags: 'Listed tags', notes_by_tag: 'Listed notes by tag or notebook', get_links: 'Read links',
@@ -326,6 +339,20 @@ export function ConnectAIToolsModal({ onClose }: ConnectAIToolsModalProps) {
             })}
           </ul>
         </section>
+
+        <details style={{ ...card, marginTop: 16 }}>
+          <summary style={{ cursor: 'pointer', fontSize: 12, fontWeight: 700, color: 'var(--foreground)' }}>What can I ask?</summary>
+          <p style={{ margin: '8px 0 6px', ...small }}>
+            Say &ldquo;use dotstell&rdquo; in your first question so the tool knows where to look. Replace the words in [brackets] with your own.
+          </p>
+          <ul style={{ margin: 0, paddingLeft: 18, listStyle: 'disc', ...small, display: 'flex', flexDirection: 'column', gap: 3 }}>
+            {EXAMPLE_QUESTIONS.map(q => <li key={q}>{q}</li>)}
+          </ul>
+          <p style={{ margin: '8px 0 0', ...small }}>
+            Search matches the words you give it, so try the word that is in the note. Meetings are the notes the meeting assistant has tagged <code>meeting</code>.
+            Everything is read-only: a tool cannot change or delete anything.
+          </p>
+        </details>
       </div>
     </div>
   )
