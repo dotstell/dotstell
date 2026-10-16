@@ -1,6 +1,6 @@
 # MCP server (design, v0.9.0)
 
-This document describes how dotstell lets AI tools such as Claude Desktop, Claude Code and Cursor read a user's notes through the [Model Context Protocol](https://modelcontextprotocol.io). It is written before the code so the security design can be reviewed first. Status: proposed.
+This document describes how dotstell lets AI tools such as Claude Desktop, Claude Code and Cursor read a user's notes through the [Model Context Protocol](https://modelcontextprotocol.io). It is written before the code so the security design can be reviewed first. Status: implemented in v0.9.0.
 
 ## Goals
 
@@ -106,6 +106,25 @@ Meeting summaries inserted by the assistant are ordinary note HTML. v0.9.0 adds 
 | Silent misuse | per-token activity log visible to the user |
 
 Known limits: the in-memory rate limiter resets on cold starts (see `src/lib/ratelimit.ts`); anyone holding the public anon key can call the SQL functions directly, which is why the functions rely on token strength and not on the route alone.
+
+## Setting it up
+
+1. **Database (once per installation).** Run `supabase/migrations/012_mcp.sql` in the Supabase SQL editor. Until then the app works as before and the Connect AI tools screen says MCP is not set up. The endpoint answers 503 in that state.
+2. **Create a token.** AI Settings, Connect AI tools, name it, choose an expiry, copy the token once.
+3. **Connect a tool** with the setup the screen shows:
+   - Claude Code: `claude mcp add --transport http dotstell https://dotstell.app/api/mcp --header "Authorization: Bearer <token>"`
+   - Cursor: an entry in `.cursor/mcp.json` with `url` and an `Authorization` header.
+   - Claude Desktop: through `mcp-remote` (needs Node.js), with the token in an environment variable.
+
+## What has been verified
+
+| Check | Result |
+|---|---|
+| Migration against a real Postgres (PGlite) with the cut-down schema | Passes, including cross-user, revoked, expired, deleted and permission checks. Removing the user filter from a function makes the tests fail |
+| Whole endpoint driven by the official MCP TypeScript client | Passes |
+| Claude Code 2.1.299, added with the exact command the screen shows, `claude mcp list` and a real tool call | Connected; a search returned only the signed-in user's matching note |
+| Cursor and Claude Desktop setups | Follow each tool's documented configuration format; not yet run against the real applications |
+| Supabase itself (PostgREST calling the functions) | Not run in tests. The first real use after applying the migration is the check |
 
 ## Testing
 

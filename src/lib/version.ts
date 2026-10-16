@@ -1,3 +1,3 @@
-export const APP_VERSION = '0.8.0'
+export const APP_VERSION = '0.9.0'
 // /releases/latest always redirects to the most recently published release
 export const RELEASES_URL = `https://github.com/dotstell/dotstell/releases/tag/v${APP_VERSION}`

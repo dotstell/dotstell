@@ -372,6 +372,9 @@ export default function HelpPage() {
               <Tip icon="⚙️" title="Setting up AI"
                 body={<>Click the <strong>AI status badge</strong> in the top-right nav (shows an orange dot when unconfigured) or press <Keys keys={['Ctrl', 'Shift', ',']} /> to open AI Settings. Choose a provider — Ollama (local, free), OpenAI, Anthropic, Google Gemini, or Groq. Enter your API key, pick a model, and optionally configure an embedding provider for semantic search features. Keys are stored only in your browser. When you use an AI feature, the key is sent over HTTPS with that one request, passed straight on to your provider, and never saved or logged by dotstell.</>}
               />
+              <Tip icon="🔑" title="Connect AI tools (MCP)"
+                body={<>Open <strong>AI Settings</strong> and press <strong>Connect AI tools</strong> to let Claude Code, Cursor, Claude Desktop and other MCP-capable tools read your notes, tasks, people and meetings. Create a named token with an expiry, copy it once, and paste the ready-made setup. Tokens are <strong>read-only</strong> (a tool cannot change or delete anything), only a fingerprint is stored, you can revoke one at any time, and each token shows which tools it ran and when. Search matches the words you give it; search by meaning is not available to outside tools yet. If you host dotstell yourself, run <code>supabase/migrations/012_mcp.sql</code> first (see docs/MCP.md).</>}
+              />
               <Tip icon="🔌" title="Ollama on the live app — Local AI Agent"
                 body={<>When using <strong>Ollama</strong> from <strong>dotstell.app</strong> (the hosted version), browsers block direct connections to localhost for security reasons (Private Network Access spec). Run the <strong>Dotstell Local AI Agent</strong> to bridge the gap — it's a tiny Node.js proxy that adds the required headers and forwards requests to your local Ollama. First make sure Ollama is running (on Windows it usually auto-starts — check the system tray). Then start the agent with: <code style={{ fontSize: 11, backgroundColor: 'rgba(0,0,0,0.15)', padding: '1px 5px', borderRadius: 3 }}>npx @dotstell/agent</code> (no install needed — runs directly via npx). The AI Settings modal shows a green <strong>"Local Agent is running"</strong> badge when detected. You do not need the agent when running dotstell locally at localhost:3000.</>}
               />
@@ -560,11 +563,25 @@ export default function HelpPage() {
             {/* WHAT'S NEW */}
             <Section id="whats-new" title="✨ Changelog">
 
+              {/* v0.9.0 */}
+              <div style={{ marginBottom: 32 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--primary)', background: 'color-mix(in srgb, var(--primary) 10%, transparent)', border: '1px solid color-mix(in srgb, var(--primary) 25%, transparent)', padding: '3px 10px', borderRadius: 99 }}>v0.9.0</span>
+                  <span style={{ fontSize: 12, fontWeight: 600, color: '#10b981', background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.2)', padding: '2px 8px', borderRadius: 99 }}>Latest</span>
+                  <span style={{ fontSize: 12, color: 'var(--muted-foreground)' }}>Oct 2026</span>
+                </div>
+                <Tip icon="🔑" title="Connect AI tools (MCP)"
+                  body="Let Claude Code, Cursor, Claude Desktop and other AI tools read your notes, tasks, people and meetings. Open AI Settings and press Connect AI tools to create a token. It is read-only, expires, can be revoked at any time, and shows what it was used for."
+                />
+                <Tip icon="📝" title="Meetings are tagged"
+                  body="When the meeting assistant inserts a summary, the note gets a meeting tag so AI tools can list your meetings."
+                />
+              </div>
+
               {/* v0.8.0 */}
               <div style={{ marginBottom: 32 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
                   <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--primary)', background: 'color-mix(in srgb, var(--primary) 10%, transparent)', border: '1px solid color-mix(in srgb, var(--primary) 25%, transparent)', padding: '3px 10px', borderRadius: 99 }}>v0.8.0</span>
-                  <span style={{ fontSize: 12, fontWeight: 600, color: '#10b981', background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.2)', padding: '2px 8px', borderRadius: 99 }}>Latest</span>
                   <span style={{ fontSize: 12, color: 'var(--muted-foreground)' }}>Oct 2026</span>
                 </div>
                 <Tip icon="📝" title="Meeting assistant"

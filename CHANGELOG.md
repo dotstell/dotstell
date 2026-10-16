@@ -4,6 +4,20 @@ All notable changes to Dotstell are documented here.
 
 ---
 
+## [v0.9.0] — Oct 2026
+
+### 🔑 Connect AI tools (MCP)
+
+- **Let AI tools read your notes** — Claude Code, Cursor, Claude Desktop and other tools that speak the Model Context Protocol can search and read your notes, tasks, people and meeting summaries. Open **AI Settings**, press **Connect AI tools**, create a token, and paste the ready-made setup
+- **Read-only** — a connected tool cannot create, change or delete anything. Seven tools: search notes, read a note, recent notes, meetings, tasks, people, and one person with their notes and open tasks
+- **Tokens you control** — each token has a name and an expiry (30 days to 1 year), is shown once, can be revoked at any time, and shows when and how often it was used and which tool ran. What was read is never recorded
+- **Built so nobody else can see your notes** — only a fingerprint of the token is stored, the server holds no master key, and the database itself decides whose notes a token may read. Notes handed to an AI tool are marked as your data, not instructions
+- **Meetings can be listed** — when the meeting assistant inserts a summary, the note is now tagged `meeting`
+- Search matches the words you give it. Search by meaning for outside tools is planned for the local agent
+- Self-hosting: run `supabase/migrations/012_mcp.sql` once. Until then the new screen says it is not set up and nothing else changes. Design and threat model: docs/MCP.md
+
+---
+
 ## [v0.8.0] — Oct 2026
 
 ### 🎙️ Meetings
