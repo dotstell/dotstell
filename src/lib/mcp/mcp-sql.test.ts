@@ -194,7 +194,7 @@ describe('applying and undoing the migration', () => {
   it('rolls back only the MCP objects, leaves notes and tasks alone, and can be applied again', async () => {
     const fresh = await createTestDatabase()
     await fresh.exec(`insert into public.notes (user_id, title) values ('${ALICE}', 'Mine'); insert into public.tasks (user_id, title) values ('${ALICE}', 'Do it')`)
-    expect((await fresh.query<{ functions: number; tables: number }>(objects)).rows[0]).toEqual({ functions: 9, tables: 2 })
+    expect((await fresh.query<{ functions: number; tables: number }>(objects)).rows[0]).toEqual({ functions: 15, tables: 2 })
 
     await fresh.exec(rollback)
     await fresh.exec(rollback)
@@ -203,6 +203,6 @@ describe('applying and undoing the migration', () => {
     expect((await fresh.query('select title from public.tasks')).rows).toEqual([{ title: 'Do it' }])
 
     await fresh.exec(migration)
-    expect((await fresh.query<{ functions: number; tables: number }>(objects)).rows[0]).toEqual({ functions: 9, tables: 2 })
+    expect((await fresh.query<{ functions: number; tables: number }>(objects)).rows[0]).toEqual({ functions: 15, tables: 2 })
   })
 })

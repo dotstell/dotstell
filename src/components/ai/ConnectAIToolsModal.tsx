@@ -26,6 +26,7 @@ const EXPIRY_CHOICES = [
 
 const TOOL_LABELS: Record<string, string> = {
   search_notes: 'Searched notes', get_note: 'Read a note', recent_notes: 'Listed recent notes', list_meetings: 'Listed meetings',
+  search_bookmarks: 'Searched bookmarks', list_notebooks: 'Listed notebooks', list_tags: 'Listed tags', notes_by_tag: 'Listed notes by tag or notebook', get_links: 'Read links',
   list_tasks: 'Listed tasks', list_people: 'Listed people', get_person: 'Read a person',
 }
 
@@ -202,7 +203,7 @@ export function ConnectAIToolsModal({ onClose }: ConnectAIToolsModalProps) {
         <div style={{ ...card, display: 'flex', gap: 10, marginBottom: 14 }}>
           <ShieldCheck size={16} color="var(--primary)" style={{ flexShrink: 0, marginTop: 1 }} />
           <p style={{ margin: 0, ...small }}>
-            Tokens are <strong>read-only</strong>: a connected tool can search and read your notes, tasks, people and meetings, but cannot change or delete anything.
+            Tokens are <strong>read-only</strong>: a connected tool can search and read your notes, bookmarks, notebooks, tags, tasks, people, links and meetings, but cannot change or delete anything.
             Each token expires, and you can revoke it at any time. Only a fingerprint of the token is kept, so it is shown once. Treat it like a password.
             Note text is shared with the tool you connect, and with the AI service behind it.
           </p>

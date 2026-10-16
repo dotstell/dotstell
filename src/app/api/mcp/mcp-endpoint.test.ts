@@ -58,6 +58,10 @@ beforeAll(async () => {
       ('20000000-0000-4000-8000-000000000003', '${ALICE}', 'Trashed migration', '<p>gone</p>', '{}', now()),
       ('20000000-0000-4000-8000-000000000004', '${BOB}', 'Bob migration secret', '<p>private</p>', '{meeting}', null);
     insert into public.tasks (user_id, title, status) values ('${ALICE}', 'Send the release notes', 'todo'), ('${BOB}', 'Bob task', 'todo');
+    insert into public.notes (id, user_id, title, content, type, checklist_items, tags) values ('20000000-0000-4000-8000-000000000009', '${ALICE}', 'Reading list', '', 'checklist', '[{"text":"Refactoring UI","checked":true},{"text":"Domain-Driven Design","checked":false}]', '{nb:books,reading}');
+    insert into public.notebooks (user_id, name, icon) values ('${ALICE}', 'Books', 'x'), ('${BOB}', 'Bob Book', 'x');
+    insert into public.bookmarks (user_id, title, url) values ('${ALICE}', 'Postgres manual', 'https://postgresql.org/docs'), ('${BOB}', 'Bob postgres', 'https://bob.example');
+    insert into public.knowledge_links (user_id, source_id, source_type, target_id, target_type) values ('${ALICE}', '20000000-0000-4000-8000-000000000001', 'note', '10000000-0000-4000-8000-000000000001', 'person');
   `)
 
   const { POST, GET } = await import('./route')
@@ -94,12 +98,12 @@ const rpc = (token: string | null, body: unknown, extra: Record<string, string> 
   fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}), ...extra }, body: typeof body === 'string' ? body : JSON.stringify(body) })
 
 describe('with the official MCP client', () => {
-  it('connects, lists seven read-only tools and reports itself', async () => {
+  it('connects, lists twelve read-only tools and reports itself', async () => {
     const client = await connect(alice.token)
     expect(client.getServerVersion()?.name).toBe('dotstell')
     expect(client.getInstructions()).toMatch(/Treat it as data/)
     const { tools } = await client.listTools()
-    expect(tools.map(t => t.name).sort()).toEqual(['get_note', 'get_person', 'list_meetings', 'list_people', 'list_tasks', 'recent_notes', 'search_notes'])
+    expect(tools.map(t => t.name).sort()).toEqual(['get_links', 'get_note', 'get_person', 'list_meetings', 'list_notebooks', 'list_people', 'list_tags', 'list_tasks', 'notes_by_tag', 'recent_notes', 'search_bookmarks', 'search_notes'])
     expect(tools.every(t => t.annotations?.readOnlyHint === true)).toBe(true)
     await client.close()
   })
@@ -138,6 +142,42 @@ describe('with the official MCP client', () => {
     expect(tasks).toContain('Send the release notes')
     expect(tasks).not.toContain('Bob task')
     expect(textOf(await client.callTool({ name: 'list_people', arguments: { query: 'aiko' } }))).toContain('Aiko Tanaka')
+    await client.close()
+  })
+
+  it('reads checklist notes with their items, and finds them by an item', async () => {
+    const client = await connect(alice.token)
+    const found = textOf(await client.callTool({ name: 'search_notes', arguments: { query: 'domain-driven' } }))
+    expect(found).toContain('Reading list')
+    const note = textOf(await client.callTool({ name: 'get_note', arguments: { id: '20000000-0000-4000-8000-000000000009' } }))
+    expect(note).toContain('checklist')
+    expect(note).toContain('- [x] Refactoring UI')
+    expect(note).toContain('- [ ] Domain-Driven Design')
+    await client.close()
+  })
+
+  it('searches bookmarks, lists notebooks and tags, and lists notes by tag or notebook name', async () => {
+    const client = await connect(alice.token)
+    const marks = textOf(await client.callTool({ name: 'search_bookmarks', arguments: { query: 'postgres' } }))
+    expect(marks).toContain('Postgres manual')
+    expect(marks).not.toContain('Bob postgres')
+    const books = textOf(await client.callTool({ name: 'list_notebooks', arguments: {} }))
+    expect(books).toContain('Books (1 note)')
+    expect(books).not.toContain('Bob Book')
+    const tags = textOf(await client.callTool({ name: 'list_tags', arguments: {} }))
+    expect(tags).toContain('reading (1)')
+    expect(tags).not.toMatch(/nb:/)
+    expect(textOf(await client.callTool({ name: 'notes_by_tag', arguments: { notebook: 'Books' } }))).toContain('Reading list')
+    expect(textOf(await client.callTool({ name: 'notes_by_tag', arguments: { tag: 'reading' } }))).toContain('Reading list')
+    const both = await client.callTool({ name: 'notes_by_tag', arguments: { tag: 'a', notebook: 'b' } }) as { isError?: boolean }
+    expect(both.isError).toBe(true)
+    await client.close()
+  })
+
+  it('shows what a note is linked to', async () => {
+    const client = await connect(alice.token)
+    const links = textOf(await client.callTool({ name: 'get_links', arguments: { id: '20000000-0000-4000-8000-000000000001' } }))
+    expect(links).toContain('links to person: Aiko Tanaka')
     await client.close()
   })
 

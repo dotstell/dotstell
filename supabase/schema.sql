@@ -439,7 +439,26 @@ $$;
 -- Read-only tools. Limits are capped here as well as in the route.
 -- ------------------------------------------------------------
 
--- Notes containing every word of the query (title or text, markup ignored). Title matches first.
+-- The readable text of a note: its content without markup, plus the items of a checklist note (whose content is empty).
+-- Internal; only the functions below call it.
+create or replace function public.mcp_plain(p_content text, p_items jsonb)
+returns text
+language sql
+immutable
+set search_path = ''
+as $$
+  select btrim(regexp_replace(regexp_replace(
+    left(coalesce(p_content, ''), 500000) || ' ' ||
+    case when jsonb_typeof(p_items) = 'array'
+      then coalesce((select string_agg(e.value ->> 'text', ' ') from (select value from jsonb_array_elements(p_items) limit 500) e where jsonb_typeof(e.value) = 'object'), '')
+      else ''
+    end,
+    '<[^>]*>', ' ', 'g'), '\s+', ' ', 'g'))
+$$;
+
+revoke all on function public.mcp_plain(text, jsonb) from public, anon, authenticated;
+
+-- Notes containing every word of the query (title, text or checklist items, markup ignored). Title matches first.
 create or replace function public.mcp_search_notes(p_token text, p_query text, p_limit int default 10)
 returns table (id uuid, title text, excerpt text, tags text[], updated_at timestamptz)
 language plpgsql
@@ -465,7 +484,7 @@ begin
   select n.id, n.title, left(b.plain, 240), n.tags, n.updated_at
   from public.notes n
   cross join lateral (
-    select btrim(regexp_replace(regexp_replace(left(n.content, 500000), '<[^>]*>', ' ', 'g'), '\s+', ' ', 'g')) as plain
+    select public.mcp_plain(n.content, n.checklist_items) as plain
   ) b
   where n.user_id = v_user
     and n.deleted_at is null
@@ -484,7 +503,10 @@ end;
 $$;
 
 create or replace function public.mcp_get_note(p_token text, p_id uuid)
-returns table (id uuid, title text, content text, tags text[], created_at timestamptz, updated_at timestamptz)
+returns table (
+  id uuid, title text, content text, tags text[], created_at timestamptz, updated_at timestamptz,
+  note_type text, checklist_items jsonb
+)
 language plpgsql
 security definer
 set search_path = ''
@@ -493,7 +515,9 @@ declare
   v_user uuid := public.mcp_resolve(p_token, 'get_note');
 begin
   return query
-  select n.id, n.title, left(n.content, 200000), n.tags, n.created_at, n.updated_at
+  select n.id, n.title, left(n.content, 200000), n.tags, n.created_at, n.updated_at, n.type,
+         (select coalesce(jsonb_agg(e.value), '[]'::jsonb)
+          from (select value from jsonb_array_elements(case when jsonb_typeof(n.checklist_items) = 'array' then n.checklist_items else '[]'::jsonb end) limit 500) e)
   from public.notes n
   where n.id = p_id and n.user_id = v_user and n.deleted_at is null;
 end;
@@ -511,7 +535,7 @@ declare
 begin
   return query
   select n.id, n.title,
-         left(btrim(regexp_replace(regexp_replace(left(n.content, 5000), '<[^>]*>', ' ', 'g'), '\s+', ' ', 'g')), 240),
+         left(public.mcp_plain(left(n.content, 5000), n.checklist_items), 240),
          n.tags, n.updated_at
   from public.notes n
   where n.user_id = v_user and n.deleted_at is null
@@ -564,7 +588,7 @@ declare
 begin
   return query
   select n.id, n.title,
-         left(btrim(regexp_replace(regexp_replace(left(n.content, 20000), '<[^>]*>', ' ', 'g'), '\s+', ' ', 'g')), 600),
+         left(public.mcp_plain(left(n.content, 20000), n.checklist_items), 600),
          n.tags, n.updated_at
   from public.notes n
   where n.user_id = v_user and n.deleted_at is null and 'meeting' = any (n.tags)
@@ -630,7 +654,162 @@ begin
 end;
 $$;
 
+-- Bookmarks containing every word of the query (title, address or description). Title matches first.
+create or replace function public.mcp_search_bookmarks(p_token text, p_query text, p_limit int default 10)
+returns table (id uuid, title text, url text, description text, tags text[], created_at timestamptz)
+language plpgsql
+security definer
+set search_path = ''
+set statement_timeout = '5s'
+as $$
+declare
+  v_user  uuid := public.mcp_resolve(p_token, 'search_bookmarks');
+  v_limit int  := least(greatest(coalesce(p_limit, 10), 1), 25);
+  v_terms text[];
+begin
+  select coalesce(array_agg(s.term), '{}') into v_terms
+  from (
+    select x as term from unnest(string_to_array(left(coalesce(p_query, ''), 200), ' ')) as x where x <> '' limit 8
+  ) s;
+
+  if cardinality(v_terms) = 0 then
+    return;
+  end if;
+
+  return query
+  select b.id, b.title, b.url, left(b.description, 240), b.tags, b.created_at
+  from public.bookmarks b
+  where b.user_id = v_user
+    and not exists (
+      select 1 from unnest(v_terms) as q(term)
+      where (b.title || ' ' || b.url || ' ' || coalesce(b.description, '')) not ilike '%' || replace(replace(replace(q.term, '\', '\\'), '%', '\%'), '_', '\_') || '%'
+    )
+  order by
+    not exists (
+      select 1 from unnest(v_terms) as q(term)
+      where b.title not ilike '%' || replace(replace(replace(q.term, '\', '\\'), '%', '\%'), '_', '\_') || '%'
+    ) desc,
+    b.created_at desc
+  limit v_limit;
+end;
+$$;
+
+-- Notebooks with how many notes each holds. The tag is how a notebook's notes are found (see notebookTag in the app).
+create or replace function public.mcp_list_notebooks(p_token text)
+returns table (id uuid, name text, icon text, note_count int, tag text)
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_user uuid := public.mcp_resolve(p_token, 'list_notebooks');
+begin
+  return query
+  select b.id, b.name, b.icon,
+         (select count(*)::int from public.notes n
+          where n.user_id = v_user and n.deleted_at is null
+            and ('nb:' || regexp_replace(lower(btrim(b.name, E' \t\r\n')), '\s+', '-', 'g')) = any (n.tags)),
+         'nb:' || regexp_replace(lower(btrim(b.name, E' \t\r\n')), '\s+', '-', 'g')
+  from public.notebooks b
+  where b.user_id = v_user
+  order by b.sort_order, b.created_at
+  limit 100;
+end;
+$$;
+
+-- Tags in use on notes (not the notebook tags), most used first.
+create or replace function public.mcp_list_tags(p_token text, p_limit int default 50)
+returns table (tag text, note_count int)
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_user  uuid := public.mcp_resolve(p_token, 'list_tags');
+  v_limit int  := least(greatest(coalesce(p_limit, 50), 1), 100);
+begin
+  return query
+  select t.tag, count(*)::int
+  from public.notes n
+  cross join lateral unnest(n.tags) as t(tag)
+  where n.user_id = v_user and n.deleted_at is null and t.tag not like 'nb:%'
+  group by t.tag
+  order by 2 desc, 1
+  limit v_limit;
+end;
+$$;
+
+-- Notes carrying a tag (a notebook's tag works too). Newest first.
+create or replace function public.mcp_notes_by_tag(p_token text, p_tag text, p_limit int default 10)
+returns table (id uuid, title text, excerpt text, tags text[], updated_at timestamptz)
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_user  uuid := public.mcp_resolve(p_token, 'notes_by_tag');
+  v_limit int  := least(greatest(coalesce(p_limit, 10), 1), 25);
+  v_tag   text := lower(btrim(left(coalesce(p_tag, ''), 100)));
+begin
+  if v_tag = '' then
+    return;
+  end if;
+
+  return query
+  select n.id, n.title,
+         left(public.mcp_plain(left(n.content, 5000), n.checklist_items), 240),
+         n.tags, n.updated_at
+  from public.notes n
+  where n.user_id = v_user and n.deleted_at is null and v_tag = any (n.tags)
+  order by n.updated_at desc
+  limit v_limit;
+end;
+$$;
+
+-- What a note, person, bookmark or task is linked to, in either direction, with the title of the other side.
+create or replace function public.mcp_get_links(p_token text, p_id uuid)
+returns table (direction text, kind text, item_id uuid, item_title text)
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_user uuid := public.mcp_resolve(p_token, 'get_links');
+begin
+  return query
+  select k.dir, k.other_type, k.other_id, o.title
+  from (
+    select case when l.source_id = p_id then 'to' else 'from' end as dir,
+           case when l.source_id = p_id then l.target_type else l.source_type end as other_type,
+           case when l.source_id = p_id then l.target_id else l.source_id end as other_id
+    from public.knowledge_links l
+    where l.user_id = v_user and (l.source_id = p_id or l.target_id = p_id)
+    limit 50
+  ) k
+  cross join lateral (
+    select n.title from public.notes n where k.other_type = 'note' and n.id = k.other_id and n.user_id = v_user and n.deleted_at is null
+    union all
+    select p.name from public.people p where k.other_type = 'person' and p.id = k.other_id and p.user_id = v_user
+    union all
+    select b.title from public.bookmarks b where k.other_type = 'bookmark' and b.id = k.other_id and b.user_id = v_user
+    union all
+    select t.title from public.tasks t where k.other_type = 'task' and t.id = k.other_id and t.user_id = v_user
+  ) o;
+end;
+$$;
+
 -- The endpoint uses the public anon key; execution is the only thing granted.
+revoke all on function public.mcp_search_bookmarks(text, text, int)                          from public;
+revoke all on function public.mcp_list_notebooks(text)                                       from public;
+revoke all on function public.mcp_list_tags(text, int)                                       from public;
+revoke all on function public.mcp_notes_by_tag(text, text, int)                              from public;
+revoke all on function public.mcp_get_links(text, uuid)                                      from public;
+grant execute on function public.mcp_search_bookmarks(text, text, int)                       to anon, authenticated;
+grant execute on function public.mcp_list_notebooks(text)                                    to anon, authenticated;
+grant execute on function public.mcp_list_tags(text, int)                                    to anon, authenticated;
+grant execute on function public.mcp_notes_by_tag(text, text, int)                           to anon, authenticated;
+grant execute on function public.mcp_get_links(text, uuid)                                   to anon, authenticated;
+
 revoke all on function public.mcp_check_token(text)                                          from public;
 revoke all on function public.mcp_search_notes(text, text, int)                              from public;
 revoke all on function public.mcp_get_note(text, uuid)                                       from public;

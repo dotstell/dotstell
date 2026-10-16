@@ -4,7 +4,7 @@ This document describes how dotstell lets AI tools such as Claude Desktop, Claud
 
 ## Goals
 
-- Let a user ask their own AI assistant questions about their dotstell notes, tasks, people and meetings.
+- Let a user ask their own AI assistant questions about their dotstell notes, bookmarks, notebooks, tags, tasks, people, links and meetings.
 - Read-only in v0.9.0. Nothing an AI tool does can change or delete data.
 - Off by default. Nothing is exposed until the user creates a token.
 - Small enough to audit: one HTTP endpoint, one SQL file, a handful of read-only tools.
@@ -51,12 +51,19 @@ All are `security definer`, with `set search_path = ''`, execute revoked from `p
 
 | Function | Returns |
 |---|---|
-| `mcp_search_notes(token, query, limit)` | id, title, short excerpt, updated_at; keyword match on title and text |
-| `mcp_get_note(token, id)` | one note, as text |
+| `mcp_search_notes(token, query, limit)` | id, title, short excerpt, updated_at; keyword match on title, text and the items of checklist notes |
+| `mcp_get_note(token, id)` | one note, as text, with the items of a checklist note |
 | `mcp_recent_notes(token, limit)` | newest notes |
 | `mcp_list_tasks(token, status, due_before, limit)` | tasks |
 | `mcp_list_meetings(token, limit)` | notes tagged `meeting`, with their sections |
 | `mcp_list_people(token, query, limit)` / `mcp_get_person` | people and the notes linked to them |
+| `mcp_search_bookmarks(token, query, limit)` | bookmarks matching every word of title, address or description |
+| `mcp_list_notebooks(token)` | notebooks with how many notes each holds |
+| `mcp_list_tags(token, limit)` | tags in use on notes, most used first (notebook tags excluded) |
+| `mcp_notes_by_tag(token, tag, limit)` | notes carrying a tag; a notebook name is turned into its tag by the endpoint |
+| `mcp_get_links(token, id)` | what a note, person, bookmark or task links to or from, with titles; only the token owner's links and items |
+
+Internal: `mcp_resolve` (checks the token, counts use, records the tool name), `mcp_check_token` (checks without counting) and `mcp_plain` (note text for searching). The first and last are not callable by the public role.
 
 Deleted notes (`deleted_at` set) are never returned. Limits are capped inside the function, not only in the route.
 

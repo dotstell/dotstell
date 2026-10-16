@@ -30,6 +30,7 @@ export async function createTestDatabase(): Promise<PGlite> {
     create table public.notes (
       id uuid primary key default gen_random_uuid(), user_id uuid not null references auth.users(id),
       title text not null default '', content text not null default '', tags text[] default '{}',
+      type text not null default 'plain', checklist_items jsonb default '[]',
       person_id uuid references public.people(id), deleted_at timestamptz,
       created_at timestamptz default now(), updated_at timestamptz default now()
     );
@@ -38,13 +39,31 @@ export async function createTestDatabase(): Promise<PGlite> {
       title text not null, description text, status text not null default 'todo', priority text not null default 'medium',
       due_date timestamptz, tags text[] default '{}', person_id uuid references public.people(id), created_at timestamptz default now()
     );
+    create table public.bookmarks (
+      id uuid primary key default gen_random_uuid(), user_id uuid not null references auth.users(id),
+      title text not null, url text not null, description text, tags text[] default '{}', created_at timestamptz default now()
+    );
+    create table public.notebooks (
+      id uuid primary key default gen_random_uuid(), user_id uuid not null references auth.users(id),
+      name text not null, icon text, sort_order integer not null default 0, created_at timestamptz not null default now()
+    );
+    create table public.knowledge_links (
+      id uuid primary key default gen_random_uuid(), user_id uuid not null references auth.users(id),
+      source_id uuid not null, source_type text not null, target_id uuid not null, target_type text not null
+    );
     alter table public.notes enable row level security;
     alter table public.people enable row level security;
     alter table public.tasks enable row level security;
+    alter table public.bookmarks enable row level security;
+    alter table public.notebooks enable row level security;
+    alter table public.knowledge_links enable row level security;
     create policy own_notes on public.notes for all using (auth.uid() = user_id);
     create policy own_people on public.people for all using (auth.uid() = user_id);
     create policy own_tasks on public.tasks for all using (auth.uid() = user_id);
-    grant select, insert, update, delete on public.notes, public.people, public.tasks to authenticated;
+    create policy own_bookmarks on public.bookmarks for all using (auth.uid() = user_id);
+    create policy own_notebooks on public.notebooks for all using (auth.uid() = user_id);
+    create policy own_links on public.knowledge_links for all using (auth.uid() = user_id);
+    grant select, insert, update, delete on public.notes, public.people, public.tasks, public.bookmarks, public.notebooks, public.knowledge_links to authenticated;
     insert into auth.users (id) values ('${ALICE}'), ('${BOB}');
   `)
   await db.exec(migration)
