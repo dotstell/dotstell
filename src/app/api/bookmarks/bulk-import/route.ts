@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { rateLimit } from '@/lib/ratelimit'
+import { tokenizeNetscape } from '@/lib/bookmarks/netscape'
 
 interface ParsedBookmark {
   title: string
@@ -20,27 +21,22 @@ function parseNetscapeHTML(html: string): { bookmarks: ParsedBookmark[]; skipped
   const bookmarks: ParsedBookmark[] = []
   const skipped: SkippedEntry[] = []
 
-  const tokenPattern = /<(\/DL|DL|DT)[^>]*>|<H3[^>]*>([^<]*)<\/H3>|<A\s+[^>]*HREF="([^"]*)"[^>]*>(.*?)<\/A>/gi
   const folderStack: string[] = []
-  let match: RegExpExecArray | null
 
-  while ((match = tokenPattern.exec(html)) !== null) {
-    const [, tagName, h3Text, href, aText] = match
-
-    if (tagName) {
-      if (tagName.toUpperCase() === '/DL') folderStack.pop()
+  for (const token of tokenizeNetscape(html)) {
+    if (token.kind === 'tag') {
+      if (token.name === '/DL') folderStack.pop()
       continue
     }
 
-    if (h3Text !== undefined) {
-      const name = h3Text.replace(/<[^>]+>/g, '').trim()
-      if (name) folderStack.push(name)
+    if (token.kind === 'h3') {
+      if (token.text) folderStack.push(token.text)
       continue
     }
 
-    if (href && aText !== undefined) {
-      const url = href.trim()
-      const title = aText.replace(/<[^>]+>/g, '').trim()
+    {
+      const url = token.href.trim()
+      const title = token.text
 
       if (!url) { skipped.push({ url: title || '(empty)', reason: 'Empty URL' }); continue }
       if (url.startsWith('javascript:')) { skipped.push({ url, reason: 'JavaScript link' }); continue }
@@ -177,7 +173,8 @@ export async function POST(req: NextRequest) {
       imported += data.length
     } else {
       insert_errors += batch.length
-      if (!first_error && error) first_error = error.message
+      // Database wording is not for the client; the count of failed rows says enough.
+      if (!first_error && error) first_error = 'Some bookmarks could not be saved.'
     }
   }
 

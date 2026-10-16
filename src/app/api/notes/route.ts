@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { ilikeContains } from '@/lib/postgrest'
 import { createClient } from '@/lib/supabase/server'
 import { rateLimit } from '@/lib/ratelimit'
 
@@ -28,8 +29,8 @@ export async function GET(req: NextRequest) {
   if (parent_id) query = query.eq('parent_id', parent_id)
   if (root_only === 'true') query = query.is('parent_id', null)
   if (q) {
-    const safe = q.slice(0, 200).replace(/%/g, '\\%').replace(/_/g, '\\_')
-    query = query.or(`title.ilike.%${safe}%,content.ilike.%${safe}%`)
+    const pattern = ilikeContains(q)
+    query = query.or(`title.ilike.${pattern},content.ilike.${pattern}`)
   }
 
   const { data, error } = await query

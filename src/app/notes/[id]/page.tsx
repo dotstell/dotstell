@@ -31,6 +31,7 @@ import { useAITitleSuggest, useAITagSuggest, useAISummarize } from '@/hooks/useA
 import { MarkdownContent } from '@/components/ui/MarkdownContent'
 import { useBreakpoint } from '@/hooks/useBreakpoint'
 import '@/components/editor/editor.css'
+import { sanitizeHtml } from '@/lib/sanitize-html'
 
 type SaveStatus = 'saved' | 'saving' | 'unsaved' | null
 
@@ -337,25 +338,12 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
 </style>
 </head><body>
 <h1>${safe(title)}</h1>
-${sanitizeHtmlForPrint(note.content ?? '')}
+${sanitizeHtml(note.content ?? '', 'document')}
 </body></html>`)
     win.document.close()
     win.focus()
     // Brief delay lets the browser render before the print dialog opens
     setTimeout(() => { win.print(); win.close() }, 600)
-  }
-
-  // Strip dangerous elements from TipTap HTML before writing to a new window.
-  // Guards against <script>/<iframe> injection via paste or direct DB edits.
-  function sanitizeHtmlForPrint(html: string): string {
-    const doc = new DOMParser().parseFromString(html, 'text/html')
-    doc.querySelectorAll('script, iframe, object, embed').forEach(el => el.remove())
-    doc.querySelectorAll('*').forEach(el => {
-      for (const attr of Array.from(el.attributes)) {
-        if (attr.name.startsWith('on')) el.removeAttribute(attr.name)
-      }
-    })
-    return doc.body.innerHTML
   }
 
   // Navigate to a heading by querying the actual rendered DOM inside the editor.
@@ -865,7 +853,7 @@ ${sanitizeHtmlForPrint(note.content ?? '')}
             <button
               type="button"
               onClick={() => setSuggestedTags([])}
-              style={{ fontSize: 10, background: 'none', border: 'none', color: 'var(--muted-foreground)', cursor: 'pointer', opacity: 0.6, padding: '0 2px' }}
+              style={{ fontSize: 10, background: 'none', border: 'none', color: 'var(--muted-foreground)', cursor: 'pointer', padding: '0 2px' }}
             >
               Dismiss all
             </button>
@@ -1134,7 +1122,7 @@ ${sanitizeHtmlForPrint(note.content ?? '')}
 
                 {tocOpen && (
                   headings.length === 0 ? (
-                    <p style={{ fontSize: 12, color: 'var(--muted-foreground)', margin: 0, opacity: 0.5 }}>
+                    <p style={{ fontSize: 12, color: 'var(--muted-foreground)', margin: 0 }}>
                       Add headings to see outline
                     </p>
                   ) : (
@@ -1285,7 +1273,7 @@ ${sanitizeHtmlForPrint(note.content ?? '')}
                   </div>
                 )}
                 {!noteSummary && !summaryLoading && (
-                  <p style={{ margin: 0, fontSize: 11, color: 'var(--muted-foreground)', opacity: 0.5 }}>
+                  <p style={{ margin: 0, fontSize: 11, color: 'var(--muted-foreground)' }}>
                     Click Summarize for a bullet-point TL;DR
                   </p>
                 )}

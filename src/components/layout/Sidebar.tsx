@@ -167,6 +167,7 @@ export function Sidebar({ onOpenPalette, mobileOpen: mobileOpenProp, onMobileOpe
             <DotstellLogo size="md" />
             <button
               type="button"
+              aria-label="Close navigation"
               onClick={closeDrawer}
               style={{
                 width: 32, height: 32, borderRadius: 8,
@@ -287,6 +288,7 @@ export function Sidebar({ onOpenPalette, mobileOpen: mobileOpenProp, onMobileOpe
           {railed ? (
             <button
               type="button"
+              aria-label="Expand sidebar"
               onClick={toggle}
               onMouseEnter={e => showTip(e, 'dotstell')}
               onMouseLeave={hideTip}
@@ -299,6 +301,7 @@ export function Sidebar({ onOpenPalette, mobileOpen: mobileOpenProp, onMobileOpe
               <DotstellLogo size="md" />
               <button
                 type="button"
+                aria-label="Collapse sidebar"
                 className="touch-target-sm"
                 onClick={toggle}
                 style={{
@@ -369,7 +372,7 @@ export function Sidebar({ onOpenPalette, mobileOpen: mobileOpenProp, onMobileOpe
                   key={href}
                   as="link" href={href}
                   active={active}
-                  label={label}
+                  label={isTouch && railLabel ? `${railLabel} (${label})` : label}
                   stacked={isTouch}
                   onMouseEnter={e => showTip(e, label)}
                   onMouseLeave={hideTip}
@@ -548,7 +551,7 @@ interface IconBtnProps {
   stacked?: boolean
 }
 
-function SidebarIconBtn({ as, href, active, danger, children, onMouseEnter, onMouseLeave, onClick, stacked }: IconBtnProps) {
+function SidebarIconBtn({ as, href, label, active, danger, children, onMouseEnter, onMouseLeave, onClick, stacked }: IconBtnProps) {
   const [hovered, setHovered] = useState(false)
 
   const bgColor = active
@@ -590,14 +593,14 @@ function SidebarIconBtn({ as, href, active, danger, children, onMouseEnter, onMo
 
   if (as === 'link' && href) {
     return (
-      <Link href={href} className={className} style={baseStyle} onMouseEnter={handleEnter} onMouseLeave={handleLeave}>
+      <Link href={href} aria-label={label} className={className} style={baseStyle} onMouseEnter={handleEnter} onMouseLeave={handleLeave}>
         {children}
       </Link>
     )
   }
 
   return (
-    <button type="button" className={className} style={baseStyle} onMouseEnter={handleEnter} onMouseLeave={handleLeave} onClick={onClick}>
+    <button type="button" aria-label={label} className={className} style={baseStyle} onMouseEnter={handleEnter} onMouseLeave={handleLeave} onClick={onClick}>
       {children}
     </button>
   )

@@ -117,16 +117,16 @@ export default function HelpPage() {
             {/* GETTING STARTED */}
             <Section id="getting-started" title="🧭 Getting started">
               <Tip icon="1️⃣" title="Create your first note"
-                body={<>Head to <Link href="/notes" style={{ color: 'var(--primary)' }}>Notes</Link> and click <strong>New note</strong>. Pick a template or start blank. Your note auto-saves as you type — the green dot in the top-right confirms it.</>}
+                body={<>Head to <Link href="/notes" style={{ color: 'var(--primary)', textDecoration: 'underline', textUnderlineOffset: 2 }}>Notes</Link> and click <strong>New note</strong>. Pick a template or start blank. Your note auto-saves as you type — the green dot in the top-right confirms it.</>}
               />
               <Tip icon="2️⃣" title="Connect it to something"
                 body={<>Inside any note, type <Kbd>[[</Kbd> and start typing to link to another note. This is the core idea: connections between things reveal what no single item could tell you alone.</>}
               />
               <Tip icon="3️⃣" title="Link notes to people, tasks and bookmarks"
-                body={<>Open any note and click <strong>Link item</strong> in the right panel to attach it to a person, task or bookmark. You can also connect items directly from the <Link href="/graph" style={{ color: 'var(--primary)' }}>Graph</Link> view. Once linked, open a person&apos;s profile and you&apos;ll see every note, task and bookmark connected to them in one place — no searching across apps.</>}
+                body={<>Open any note and click <strong>Link item</strong> in the right panel to attach it to a person, task or bookmark. You can also connect items directly from the <Link href="/graph" style={{ color: 'var(--primary)', textDecoration: 'underline', textUnderlineOffset: 2 }}>Graph</Link> view. Once linked, open a person&apos;s profile and you&apos;ll see every note, task and bookmark connected to them in one place — no searching across apps.</>}
               />
               <Tip icon="4️⃣" title="Watch the graph build itself"
-                body={<>Open <Link href="/graph" style={{ color: 'var(--primary)' }}>Graph</Link> after adding a few linked notes. Every connection you create appears as an edge — the picture that was invisible across separate tools becomes visible.</>}
+                body={<>Open <Link href="/graph" style={{ color: 'var(--primary)', textDecoration: 'underline', textUnderlineOffset: 2 }}>Graph</Link> after adding a few linked notes. Every connection you create appears as an edge — the picture that was invisible across separate tools becomes visible.</>}
               />
             </Section>
 
@@ -369,7 +369,7 @@ export default function HelpPage() {
             {/* AI */}
             <Section id="ai" title="✨ AI features">
               <Tip icon="⚙️" title="Setting up AI"
-                body={<>Click the <strong>AI status badge</strong> in the top-right nav (shows an orange dot when unconfigured) or press <Keys keys={['Ctrl', 'Shift', ',']} /> to open AI Settings. Choose a provider — Ollama (local, free), OpenAI, Anthropic, Google Gemini, or Groq. Enter your API key, pick a model, and optionally configure an embedding provider for semantic search features. All keys are stored locally in your browser — they are never sent to dotstell servers.</>}
+                body={<>Click the <strong>AI status badge</strong> in the top-right nav (shows an orange dot when unconfigured) or press <Keys keys={['Ctrl', 'Shift', ',']} /> to open AI Settings. Choose a provider — Ollama (local, free), OpenAI, Anthropic, Google Gemini, or Groq. Enter your API key, pick a model, and optionally configure an embedding provider for semantic search features. Keys are stored only in your browser. When you use an AI feature, the key is sent over HTTPS with that one request, passed straight on to your provider, and never saved or logged by dotstell.</>}
               />
               <Tip icon="🔌" title="Ollama on the live app — Local AI Agent"
                 body={<>When using <strong>Ollama</strong> from <strong>dotstell.app</strong> (the hosted version), browsers block direct connections to localhost for security reasons (Private Network Access spec). Run the <strong>Dotstell Local AI Agent</strong> to bridge the gap — it's a tiny Node.js proxy that adds the required headers and forwards requests to your local Ollama. First make sure Ollama is running (on Windows it usually auto-starts — check the system tray). Then start the agent with: <code style={{ fontSize: 11, backgroundColor: 'rgba(0,0,0,0.15)', padding: '1px 5px', borderRadius: 3 }}>npx @dotstell/agent</code> (no install needed — runs directly via npx). The AI Settings modal shows a green <strong>"Local Agent is running"</strong> badge when detected. You do not need the agent when running dotstell locally at localhost:3000.</>}
@@ -405,14 +405,14 @@ export default function HelpPage() {
                 body={<>Click the <strong>AI Write</strong> button (pen icon) in the note toolbar to open the Writing Assistant panel. On an <strong>empty note</strong>, choose from eight starter templates — Outline, Meeting notes, Daily log, Research note, OoO email, Proposal, Status update, or Email draft — or describe your intent in the custom field. On a <strong>note with existing content</strong>, pick an improve action: Improve English, Make formal, Make concise, Expand, or Full rewrite. Results stream live; choose to <em>append</em> to the note or <em>replace</em> all content. When a note is blank, quick-pick chips also appear inline so you can start without opening the panel.</>}
               />
               <Tip icon="🔒" title="Privacy"
-                body="Your API keys are stored only in your browser's localStorage — they leave your device only as part of TLS-encrypted requests to your chosen AI provider (OpenAI, Anthropic, etc.), never to dotstell servers. Choosing Ollama keeps everything 100% local."
+                body="Your API keys are stored only in your browser's localStorage. When you use an AI feature, the key travels with that request over HTTPS to the dotstell server, which forwards it to your chosen provider (OpenAI, Anthropic, etc.) and does not save or log it. Choosing Ollama keeps everything on your device."
               />
             </Section>
 
             {/* TAGS */}
             <Section id="tags" title="🏷️ Tags">
               <Tip icon="🗂️" title="Cross-type tag browser"
-                body={<>The <Link href="/tags" style={{ color: 'var(--primary)' }}>Tags page</Link> has a left panel listing all your tags sorted by item count. Click any tag to see every item with that tag — notes, people, bookmarks, and tasks — all in one place.</>}
+                body={<>The <Link href="/tags" style={{ color: 'var(--primary)', textDecoration: 'underline', textUnderlineOffset: 2 }}>Tags page</Link> has a left panel listing all your tags sorted by item count. Click any tag to see every item with that tag — notes, people, bookmarks, and tasks — all in one place.</>}
               />
               <Tip icon="🔍" title="Searching within a tag"
                 body="Once you select a tag, a search bar in the right panel lets you filter items within that tag. Click any item to navigate directly to it."
@@ -445,7 +445,7 @@ export default function HelpPage() {
                 }
               />
               <Tip icon="🔍" title="Universal search page"
-                body={<>The <Link href="/search" style={{ color: 'var(--primary)' }}>Search page</Link> (accessible via the sidebar search bar) lets you search across all content types simultaneously. Results show type icons so you know immediately what kind of item matched.</>}
+                body={<>The <Link href="/search" style={{ color: 'var(--primary)', textDecoration: 'underline', textUnderlineOffset: 2 }}>Search page</Link> (accessible via the sidebar search bar) lets you search across all content types simultaneously. Results show type icons so you know immediately what kind of item matched.</>}
               />
             </Section>
 
@@ -534,11 +534,31 @@ export default function HelpPage() {
             {/* WHAT'S NEW */}
             <Section id="whats-new" title="✨ Changelog">
 
+              {/* v0.7.1 */}
+              <div style={{ marginBottom: 32 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--primary)', background: 'color-mix(in srgb, var(--primary) 10%, transparent)', border: '1px solid color-mix(in srgb, var(--primary) 25%, transparent)', padding: '3px 10px', borderRadius: 99 }}>v0.7.1</span>
+                  <span style={{ fontSize: 12, fontWeight: 600, color: '#10b981', background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.2)', padding: '2px 8px', borderRadius: 99 }}>Latest</span>
+                  <span style={{ fontSize: 12, color: 'var(--muted-foreground)' }}>Oct 2026</span>
+                </div>
+                <Tip icon="🛡️" title="Security hardening"
+                  body="Notes can no longer run scripts: the Markdown and print views now keep only a list of safe elements. Bookmark previews refuse private and internal addresses, and the local AI agent only answers dotstell.app, dotstell.com and localhost. Dependencies are updated."
+                />
+                <Tip icon="🗂️" title="Your data stays put"
+                  body="Deleting a note for good no longer deletes the sub-notes you are still using, a note can't be moved inside itself, saving [[wikilinks]] can't lose existing links, and renaming a notebook keeps its notes."
+                />
+                <Tip icon="♿" title="Easier to read and use"
+                  body="Muted text meets the 4.5:1 contrast ratio in all 14 themes, icon-only buttons have names for screen readers, and links inside sentences are underlined."
+                />
+                <Tip icon="🔧" title="Sturdier import and export"
+                  body="Export carries on past a damaged embedded image, and import copes with very large contact files and very long Google Keep notes. The import safety box is now titled Safety checks."
+                />
+              </div>
+
               {/* v0.7.0 */}
               <div style={{ marginBottom: 32 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
                   <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--primary)', background: 'color-mix(in srgb, var(--primary) 10%, transparent)', border: '1px solid color-mix(in srgb, var(--primary) 25%, transparent)', padding: '3px 10px', borderRadius: 99 }}>v0.7.0</span>
-                  <span style={{ fontSize: 12, fontWeight: 600, color: '#10b981', background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.2)', padding: '2px 8px', borderRadius: 99 }}>Latest</span>
                   <span style={{ fontSize: 12, color: 'var(--muted-foreground)' }}>Oct 2026</span>
                 </div>
                 <Tip icon="📦" title="Import & Export"
@@ -622,7 +642,7 @@ export default function HelpPage() {
                   <span style={{ fontSize: 12, color: 'var(--muted-foreground)' }}>Aug 2026</span>
                 </div>
                 <Tip icon="✨" title="Complete AI integration"
-                  body="Full AI layer across the product. Five provider options: Ollama (local), OpenAI, Anthropic, Google Gemini, Groq. API keys stored in browser only — never sent to dotstell servers."
+                  body="Full AI layer across the product. Five provider options: Ollama (local), OpenAI, Anthropic, Google Gemini, Groq. API keys stay in your browser and are only passed through to your provider with each request — never stored or logged."
                 />
                 <Tip icon="💬" title="AI Chat with RAG"
                   body="Slide-out chat panel on every note. Semantic search grounds every answer in your actual notes. Toggle note-scoped vs. full-library mode. RAG can be turned off for direct model answers."

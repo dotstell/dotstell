@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { taskFieldError } from '@/lib/tasks/validate'
 
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -24,6 +25,8 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   // Allowlist prevents mass-assignment — only these fields may be updated via PATCH
   const fields = ['title','description','status','priority','due_date','tags','person_id'] as const
   for (const f of fields) if (f in body) allowed[f] = body[f]
+  const invalid = taskFieldError(allowed)
+  if (invalid) return NextResponse.json({ error: invalid }, { status: 400 })
   // Ownership check: person_id must belong to the current user
   if ('person_id' in allowed && allowed.person_id) {
     const { data: person } = await supabase

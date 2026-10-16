@@ -60,15 +60,118 @@ export function looksBinary(b: Uint8Array): boolean {
   return false
 }
 
+const BLOCKED_TAGS = new Set(['script', 'iframe', 'object', 'embed', 'link', 'meta', 'base', 'form', 'style', 'svg', 'math'])
+const URL_ATTRIBUTES = new Set(['href', 'src', 'xlink:href', 'action', 'formaction'])
+const IMAGE_DATA_URL = /^data:image\/(png|jpe?g|gif|webp|bmp|avif|svg\+xml);base64,/i
+
+const isSpace = (c: number) => c === 32 || c === 9 || c === 10 || c === 12 || c === 13
+const isLetter = (c: number) => (c >= 65 && c <= 90) || (c >= 97 && c <= 122)
+
+/**
+ * What a browser would make of an attribute value used as an address: character references are
+ * decoded, then tabs, newlines and spaces (which browsers ignore inside a URL) are removed, so
+ * " javascript:", "java&#9;script:" and "&#x0A;javascript:" all read as javascript:.
+ */
+function normaliseUrl(value: string): string {
+  const head = value.slice(0, 200)
+    .replace(/&#x([0-9a-f]+);?/gi, (_, h: string) => String.fromCodePoint(Math.min(parseInt(h, 16), 0x10ffff)))
+    .replace(/&#(\d+);?/g, (_, d: string) => String.fromCodePoint(Math.min(parseInt(d, 10), 0x10ffff)))
+    .replace(/&(tab|newline|colon);?/gi, (_, n: string) => ({ tab: '\t', newline: '\n', colon: ':' })[n.toLowerCase() as 'tab'])
+  return head.replace(/[\u0000- \u007f]/g, '').toLowerCase()
+}
+
+function isUnsafeUrl(tag: string, attribute: string, value: string): boolean {
+  const url = normaliseUrl(value)
+  if (url.startsWith('javascript:') || url.startsWith('vbscript:')) return true
+  if (url.startsWith('data:')) {
+    // The one legitimate use: a picture embedded in an <img>.
+    return !(tag === 'img' && attribute === 'src' && IMAGE_DATA_URL.test(url))
+  }
+  return false
+}
+
 /**
  * Last line of defence before saving, shared by client and server: does this HTML still contain
  * anything that can run? The importer escapes such input, so a hit means something was tampered with.
+ *
+ * It walks the markup once, tag by tag, the way a browser tokenises it, and never goes back. (Regexes
+ * such as /<[^>]*\son[a-z]+=/ restart at every "<", so a note of 2 MB of "<" kept the server busy for
+ * minutes.) Because it reads real attributes, "<img/onerror=x>" and `<img src="x"onerror=x>` are found
+ * too, which the regexes missed.
  */
 export function containsActiveContent(html: string): boolean {
-  return (
-    /<\s*(script|iframe|object|embed|link|meta|base|form|style|svg|math)\b/i.test(html) ||
-    /<[^>]*\son[a-z]+\s*=/i.test(html) ||
-    /<[^>]*\s(href|src|xlink:href|action|formaction)\s*=\s*["']?\s*(javascript|vbscript|data:text)/i.test(html) ||
-    /<img[^>]*\ssrc\s*=\s*["']?\s*data:(?!image\/(png|jpe?g|gif|webp|bmp|avif|svg\+xml);base64,)/i.test(html)
-  )
+  const n = html.length
+  let i = 0
+  while (i < n) {
+    const lt = html.indexOf('<', i)
+    if (lt === -1) return false
+    const first = html.charCodeAt(lt + 1)
+    const closing = first === 47
+    // "<" followed by anything else is plain text to a browser.
+    if (!isLetter(first) && !closing && first !== 33 && first !== 63) { i = lt + 1; continue }
+
+    if (first === 33 && html.startsWith('<!--', lt)) {
+      const end = html.indexOf('-->', lt + 4)
+      if (end === -1) return false
+      i = end + 3
+      continue
+    }
+
+    let j = lt + (closing ? 2 : 1)
+    const nameStart = j
+    while (j < n) {
+      const c = html.charCodeAt(j)
+      if (isSpace(c) || c === 62 || c === 47) break
+      j++
+    }
+    const tag = html.slice(nameStart, j).toLowerCase()
+    if (!closing && BLOCKED_TAGS.has(tag)) return true
+    if (first === 33 || first === 63) {
+      const end = html.indexOf('>', j)
+      if (end === -1) return false
+      i = end + 1
+      continue
+    }
+
+    // Attributes, up to the closing ">".
+    for (;;) {
+      while (j < n && (isSpace(html.charCodeAt(j)) || html.charCodeAt(j) === 47)) j++
+      if (j >= n) return false // an unfinished tag is dropped by browsers
+      if (html.charCodeAt(j) === 62) { j++; break }
+
+      const attrStart = j
+      while (j < n) {
+        const c = html.charCodeAt(j)
+        if (isSpace(c) || c === 61 || c === 62 || c === 47) break
+        j++
+      }
+      const attribute = html.slice(attrStart, j).toLowerCase()
+      if (attribute === '') { j++; continue }
+
+      let k = j
+      while (k < n && isSpace(html.charCodeAt(k))) k++
+      let value = ''
+      if (html.charCodeAt(k) === 61) {
+        k++
+        while (k < n && isSpace(html.charCodeAt(k))) k++
+        const quote = html.charCodeAt(k)
+        if (quote === 34 || quote === 39) {
+          const end = html.indexOf(String.fromCharCode(quote), k + 1)
+          if (end === -1) return false
+          value = html.slice(k + 1, end)
+          k = end + 1
+        } else {
+          const valueStart = k
+          while (k < n && !isSpace(html.charCodeAt(k)) && html.charCodeAt(k) !== 62) k++
+          value = html.slice(valueStart, k)
+        }
+        j = k
+      }
+
+      if (attribute.startsWith('on')) return true
+      if (URL_ATTRIBUTES.has(attribute) && isUnsafeUrl(tag, attribute, value)) return true
+    }
+    i = j
+  }
+  return false
 }

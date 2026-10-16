@@ -60,11 +60,16 @@ const IMAGE_EXT: Record<string, string> = {
   jpeg: 'jpg', 'svg+xml': 'svg', 'x-icon': 'ico', 'vnd.microsoft.icon': 'ico',
 }
 
-function decodeBase64(b64: string): Uint8Array {
-  const bin = atob(b64.replace(/\s+/g, ''))
-  const bytes = new Uint8Array(bin.length)
-  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i)
-  return bytes
+/** Decodes base64, or returns null when the text is not valid base64 (one bad image must not abort the export). */
+function decodeBase64(b64: string): Uint8Array | null {
+  try {
+    const bin = atob(b64.replace(/\s+/g, ''))
+    const bytes = new Uint8Array(bin.length)
+    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i)
+    return bytes
+  } catch {
+    return null
+  }
 }
 
 /**
@@ -165,10 +170,14 @@ export function buildExport(data: ExportData, exportedAt: Date = new Date()): Bu
     // hundreds of KB of base64 into the middle of the Markdown.
     body = body.replace(
       /!\[([^\]]*)\]\(data:image\/([a-zA-Z0-9.+-]+);base64,([A-Za-z0-9+/=\s]+?)(?:\s+"[^"]*")?\)/g,
-      (_m, alt: string, subtype: string, b64: string) => {
-        const ext = IMAGE_EXT[subtype.toLowerCase()] ?? subtype.toLowerCase()
+      (m, alt: string, subtype: string, b64: string) => {
+        const bytes = decodeBase64(b64)
+        if (!bytes) return m
+        const mapped = IMAGE_EXT[subtype.toLowerCase()] ?? subtype.toLowerCase()
+        // The subtype comes from note content, so only a plain short extension is allowed into a file name.
+        const ext = /^[a-z0-9]{1,5}$/.test(mapped) ? mapped : 'img'
         const file = `${attachmentNamer(`${name} image`)}.${ext}`
-        put(`attachments/${file}`, decodeBase64(b64))
+        put(`attachments/${file}`, bytes)
         attachmentCount++
         return `![${alt}](${'../'.repeat(depth)}${encodePath(`attachments/${file}`)})`
       },

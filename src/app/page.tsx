@@ -75,7 +75,7 @@ export default function LandingPage() {
                   {label}
                 </span>
                 {i < arr.length - 1 && (
-                  <span style={{ fontSize: 14, color: 'var(--muted-foreground)', opacity: 0.4 }}>→</span>
+                  <span style={{ fontSize: 14, color: 'var(--muted-foreground)' }}>→</span>
                 )}
               </span>
             ))}
@@ -89,10 +89,10 @@ export default function LandingPage() {
               Sign in
             </Link>
           </div>
-          <p style={{ fontSize: 11, color: 'var(--muted-foreground)', opacity: 0.5, marginBottom: 4 }}>
+          <p style={{ fontSize: 11, color: 'var(--muted-foreground)', marginBottom: 4 }}>
             Run AI privately with Ollama · No data sent to Dotstell · AGPL-3.0 open source
           </p>
-          <p style={{ fontSize: 11, color: 'var(--muted-foreground)', opacity: 0.45 }}>
+          <p style={{ fontSize: 11, color: 'var(--muted-foreground)' }}>
             No credit card required ·{' '}
             <a href="https://www.dotstell.com/" target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'underline', color: 'inherit' }}>Learn more at dotstell.com</a>
           </p>

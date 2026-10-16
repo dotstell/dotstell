@@ -178,7 +178,7 @@ export function OnboardingFlow() {
         {/* Step counter */}
         <p style={{
           textAlign: 'center', marginTop: 14,
-          fontSize: 12, color: 'var(--muted-foreground)', opacity: 0.6,
+          fontSize: 12, color: 'var(--muted-foreground)',
         }}>
           {step + 1} of {STEPS.length}
         </p>

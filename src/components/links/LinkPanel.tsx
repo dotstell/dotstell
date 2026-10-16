@@ -258,7 +258,7 @@ export function LinkPanel({ sourceId, sourceType }: LinkPanelProps) {
       )}
 
       {links.length === 0 && !searching && (
-        <p style={{ fontSize: 12, color: 'var(--border)', fontStyle: 'italic' }}>No linked items yet. Click &quot;Link item&quot; to connect this to a note, person, task or bookmark.</p>
+        <p style={{ fontSize: 12, color: 'var(--muted-foreground)', fontStyle: 'italic' }}>No linked items yet. Click &quot;Link item&quot; to connect this to a note, person, task or bookmark.</p>
       )}
     </div>
   )

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { ilikeContains } from '@/lib/postgrest'
 import { createClient } from '@/lib/supabase/server'
 import { rateLimit } from '@/lib/ratelimit'
 
@@ -12,9 +13,8 @@ export async function GET(req: NextRequest) {
 
   let query = supabase.from('bookmarks').select('*').eq('user_id', user.id).order('created_at', { ascending: false })
   if (q) {
-    // Escape % and _ so user input can't manipulate PostgREST ilike wildcard patterns
-    const safe = q.slice(0, 200).replace(/%/g, '\\%').replace(/_/g, '\\_')
-    query = query.or(`title.ilike.%${safe}%,url.ilike.%${safe}%,description.ilike.%${safe}%`)
+    const pattern = ilikeContains(q)
+    query = query.or(`title.ilike.${pattern},url.ilike.${pattern},description.ilike.${pattern}`)
   }
 
   const { data, error } = await query

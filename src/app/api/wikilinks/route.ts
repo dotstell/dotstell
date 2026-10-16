@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
 // POST /api/wikilinks
 // Body: { sourceNoteId: string, targetNoteIds: string[] }
 // Syncs knowledge_links for wikilinks: deletes removed, inserts new.
@@ -27,10 +29,37 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'targetNoteIds must be strings' }, { status: 400 })
   }
 
-  // Delete-then-insert (replace-all) sync: the editor sends the complete current
-  // set of wikilinks, so stale edges are removed and new ones are added in one round trip.
+  // The editor sends the complete current set of wikilinks. Edges are kept in step by saving the new
+  // set FIRST and removing stale ones afterwards, so a failed save never leaves the note without its
+  // links (deleting first lost them all when the insert was rejected).
   // label='__wikilink__' distinguishes these auto-tracked edges from user-created manual links.
-  await supabase
+  const wanted = [...new Set(targetNoteIds)].filter(id => UUID.test(id) && id !== sourceNoteId)
+
+  // Only notes that belong to this user can be linked to.
+  const owned = new Set<string>()
+  for (let i = 0; i < wanted.length; i += 100) {
+    const { data } = await supabase.from('notes').select('id').eq('user_id', user.id).in('id', wanted.slice(i, i + 100))
+    for (const row of data ?? []) owned.add(row.id)
+  }
+  const targets = wanted.filter(id => owned.has(id))
+
+  if (targets.length) {
+    const rows = targets.map(tid => ({
+      user_id:     user.id,
+      source_id:   sourceNoteId,
+      source_type: 'note',
+      target_id:   tid,
+      target_type: 'note',
+      label:       '__wikilink__',
+    }))
+    const { error } = await supabase.from('knowledge_links').upsert(rows, {
+      onConflict: 'user_id,source_id,target_id',
+      ignoreDuplicates: false,
+    })
+    if (error) return NextResponse.json({ error: 'An unexpected error occurred.' }, { status: 500 })
+  }
+
+  let stale = supabase
     .from('knowledge_links')
     .delete()
     .eq('user_id', user.id)
@@ -38,24 +67,9 @@ export async function POST(req: NextRequest) {
     .eq('source_type', 'note')
     .eq('target_type', 'note')
     .eq('label', '__wikilink__')
+  if (targets.length) stale = stale.not('target_id', 'in', `(${targets.join(',')})`)
+  const { error: deleteError } = await stale
+  if (deleteError) return NextResponse.json({ error: 'An unexpected error occurred.' }, { status: 500 })
 
-  if (targetNoteIds.length === 0) return NextResponse.json({ ok: true })
-
-  // Insert fresh edges
-  const rows = targetNoteIds.map(tid => ({
-    user_id:     user.id,
-    source_id:   sourceNoteId,
-    source_type: 'note',
-    target_id:   tid,
-    target_type: 'note',
-    label:       '__wikilink__',
-  }))
-
-  const { error } = await supabase.from('knowledge_links').upsert(rows, {
-    onConflict: 'user_id,source_id,target_id',
-    ignoreDuplicates: false,
-  })
-
-  if (error) return NextResponse.json({ error: 'An unexpected error occurred.' }, { status: 500 })
-  return NextResponse.json({ ok: true, count: rows.length })
+  return NextResponse.json({ ok: true, count: targets.length })
 }

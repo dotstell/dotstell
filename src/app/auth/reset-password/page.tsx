@@ -57,7 +57,7 @@ export default function ResetPasswordPage() {
               <p className="text-sm text-[var(--muted-foreground)] mb-4">
                 Your password has been changed successfully.
               </p>
-              <Link href="/dashboard" className="text-[var(--primary)] hover:underline text-sm">
+              <Link href="/dashboard" className="text-[var(--primary)] underline underline-offset-2 text-sm">
                 Continue to dashboard
               </Link>
             </div>
@@ -68,7 +68,7 @@ export default function ResetPasswordPage() {
               <p className="text-sm text-[var(--muted-foreground)] mb-4">
                 This password reset link is no longer valid. Request a new one below.
               </p>
-              <Link href="/auth/forgot-password" className="text-[var(--primary)] hover:underline text-sm">
+              <Link href="/auth/forgot-password" className="text-[var(--primary)] underline underline-offset-2 text-sm">
                 Request a new link
               </Link>
             </div>

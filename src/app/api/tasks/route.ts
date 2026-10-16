@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { rateLimit } from '@/lib/ratelimit'
+import { taskFieldError } from '@/lib/tasks/validate'
 
 export async function GET(req: NextRequest) {
   const supabase = await createClient()
@@ -34,11 +35,8 @@ export async function POST(req: NextRequest) {
   if (!body.title || typeof body.title !== 'string') {
     return NextResponse.json({ error: 'Invalid title' }, { status: 400 })
   }
-  // Validate before insert — DB has CHECK constraints too, but API validation gives a cleaner 400 error message
-  const VALID_STATUS   = ['todo', 'in_progress', 'done', 'cancelled']
-  const VALID_PRIORITY = ['low', 'medium', 'high', 'urgent']
-  if (body.status   && !VALID_STATUS.includes(body.status))   return NextResponse.json({ error: 'Invalid status' },   { status: 400 })
-  if (body.priority && !VALID_PRIORITY.includes(body.priority)) return NextResponse.json({ error: 'Invalid priority' }, { status: 400 })
+  const invalid = taskFieldError(body)
+  if (invalid) return NextResponse.json({ error: invalid }, { status: 400 })
 
   // Ownership check: person_id must belong to the current user
   if (body.person_id) {

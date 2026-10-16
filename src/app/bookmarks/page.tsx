@@ -527,7 +527,7 @@ export default function BookmarksPage() {
                   transition: 'width 0.3s ease',
                 }} />
               </div>
-              <p style={{ fontSize: 12, color: 'var(--border)', margin: 0 }}>
+              <p style={{ fontSize: 12, color: 'var(--muted-foreground)', margin: 0 }}>
                 {Math.round((deleteProgress.done / deleteProgress.total) * 100)}% complete
               </p>
             </div>
@@ -609,7 +609,7 @@ export default function BookmarksPage() {
               </span>
             )}
             {selected.size === 0 && (
-              <span style={{ fontSize: 12, color: 'var(--border)' }}>Click cards to select</span>
+              <span style={{ fontSize: 12, color: 'var(--muted-foreground)' }}>Click cards to select</span>
             )}
 
             <div style={{ flex: 1 }} />
@@ -735,7 +735,7 @@ export default function BookmarksPage() {
                 </div>
 
                 {/* Debug: counts */}
-                <div style={{ fontSize: 11, color: 'var(--border)', marginBottom: importResult.skipped_invalid > 0 ? 6 : 0 }}>
+                <div style={{ fontSize: 11, color: 'var(--muted-foreground)', marginBottom: importResult.skipped_invalid > 0 ? 6 : 0 }}>
                   {importResult.total_in_file} links in file
                   {importResult.in_file_duplicates > 0 && ` · ${importResult.in_file_duplicates} duplicate URLs within file (merged tags)`}
                   {` · ${importResult.existing_in_db} already in your library`}
@@ -824,7 +824,7 @@ export default function BookmarksPage() {
                 Save ↵
               </button>
             ) : (
-              <div style={{ padding: '0 16px', display: 'flex', alignItems: 'center', gap: 6, color: 'var(--border)', fontSize: 12 }}>
+              <div style={{ padding: '0 16px', display: 'flex', alignItems: 'center', gap: 6, color: 'var(--muted-foreground)', fontSize: 12 }}>
                 <span>or</span>
               </div>
             )}
@@ -844,7 +844,7 @@ export default function BookmarksPage() {
           return (
             <div style={{ marginBottom: 20 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
-                <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--border)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+                <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--muted-foreground)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
                   Recently visited
                 </span>
               </div>
@@ -879,7 +879,7 @@ export default function BookmarksPage() {
                       <span style={{ fontSize: 12, color: 'var(--foreground)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                         {bm.title}
                       </span>
-                      <span style={{ fontSize: 10, color: 'var(--border)', flexShrink: 0 }}>{formatRelative(bm.last_visited_at!)}</span>
+                      <span style={{ fontSize: 10, color: 'var(--muted-foreground)', flexShrink: 0 }}>{formatRelative(bm.last_visited_at!)}</span>
                     </a>
                   )
                 })}
@@ -1144,7 +1144,7 @@ export default function BookmarksPage() {
                           {meta.count}
                         </span>
                         {tagSort === 'recent' && (
-                          <span style={{ fontSize: 10, color: 'var(--border)' }}>
+                          <span style={{ fontSize: 10, color: 'var(--muted-foreground)' }}>
                             {formatRelative(meta.latestSaved)}
                           </span>
                         )}
@@ -1183,7 +1183,7 @@ export default function BookmarksPage() {
                     </div>
                   ))}
                   {sortedTags.length === 0 && (
-                    <p style={{ fontSize: 13, color: 'var(--border)', textAlign: 'center', padding: '20px 0' }}>No tags match</p>
+                    <p style={{ fontSize: 13, color: 'var(--muted-foreground)', textAlign: 'center', padding: '20px 0' }}>No tags match</p>
                   )}
                 </div>
               </>
@@ -1269,7 +1269,7 @@ export default function BookmarksPage() {
                     fontSize: 12, color: 'var(--muted-foreground)', background: 'none',
                     border: '1px solid var(--border)', borderRadius: 6, padding: '3px 10px', cursor: 'pointer',
                   }}>Deselect all</button>
-                  <span style={{ fontSize: 12, color: 'var(--border)', marginLeft: 4, alignSelf: 'center' }}>
+                  <span style={{ fontSize: 12, color: 'var(--muted-foreground)', marginLeft: 4, alignSelf: 'center' }}>
                     {sorted.length !== previewData.length && `Showing ${sorted.length} of ${previewData.length}`}
                   </span>
                 </div>
@@ -1323,7 +1323,7 @@ export default function BookmarksPage() {
                     )
                   })}
                   {sorted.length === 0 && (
-                    <p style={{ fontSize: 13, color: 'var(--border)', textAlign: 'center', padding: '20px 0' }}>No collections match</p>
+                    <p style={{ fontSize: 13, color: 'var(--muted-foreground)', textAlign: 'center', padding: '20px 0' }}>No collections match</p>
                   )}
                 </div>
               </>
@@ -1534,7 +1534,7 @@ function BookmarkCard({ bookmark: bm, onEdit, onDelete, onTagClick, selectMode, 
                   <Clock size={10} /> {bm.reading_time} min read
                 </span>
               )}
-              <span style={{ fontSize: 11, color: 'var(--border)' }}>{formatRelative(bm.created_at)}</span>
+              <span style={{ fontSize: 11, color: 'var(--muted-foreground)' }}>{formatRelative(bm.created_at)}</span>
             </div>
           </div>
 
@@ -1844,7 +1844,7 @@ function BigDropZone({ dragging, onClickImport }: { dragging: boolean; onClickIm
         <>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', maxWidth: 320 }}>
             <div style={{ flex: 1, height: 1, backgroundColor: 'var(--border)' }} />
-            <span style={{ fontSize: 12, color: 'var(--border)' }}>or</span>
+            <span style={{ fontSize: 12, color: 'var(--muted-foreground)' }}>or</span>
             <div style={{ flex: 1, height: 1, backgroundColor: 'var(--border)' }} />
           </div>
 

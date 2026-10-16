@@ -592,9 +592,9 @@ The Local AI Agent (`packages/agent/index.mjs`) solves the **Private Network Acc
 
 **The solution:** The agent is a zero-dependency Node.js HTTP server that:
 1. Binds to `http://127.0.0.1:12345` (loopback only — not reachable from outside the machine)
-2. Validates the `Origin` header against a hard-coded allow-list (`dotstell.app`, `dotstell.com`, `*.vercel.app`, localhost)
+2. Validates the `Host` header (DNS-rebinding defence) and the `Origin` header against an allow-list (`dotstell.app`, `dotstell.com`, localhost, plus anything in `DOTSTELL_ALLOWED_ORIGINS`). There is no wildcard for preview deployments
 3. Returns correct PNA and CORS headers on OPTIONS preflight
-4. Forwards the request verbatim to Ollama (`127.0.0.1:11434` by default)
+4. Forwards only the endpoints dotstell uses (chat, generate, embeddings, tags, show, version, ps) verbatim to Ollama; model pull, create, copy, push and delete are refused (`127.0.0.1:11434` by default)
 5. Copies Ollama's streaming response back with its own CORS headers
 
 ```mermaid
@@ -620,6 +620,8 @@ sequenceDiagram
 The app detects the agent via `GET http://127.0.0.1:12345/health`. The AI Settings modal shows a live status badge. If the agent is not running, a warning is shown with the start command.
 
 **v1.1.0 additions:** color startup output (ANSI, TTY-guarded), Ollama reachability check at startup (shows ✓/⚠ immediately), per-request log line (method, path, status — health endpoint excluded to avoid noise).
+
+**v1.2.0 hardening:** unknown origins are refused with 403 before anything reaches Ollama (previously any `*.vercel.app` site was accepted), the Host header must be the local address, cross-site requests without an Origin are refused, and only an allow-list of Ollama endpoints is proxied.
 
 ---
 
