@@ -19,6 +19,11 @@ All notable changes to Dotstell are documented here.
 - Summaries work with OpenAI, Anthropic, Gemini, Groq and Ollama; providers that have a JSON mode are asked to use it. Small local models are read in small parts, which found noticeably more action items in testing
 - **Ollama on the live site** now works for Meetings and AI Write: the browser talks to Ollama through the Local AI Agent, as Chat already did. Previously these two features asked the dotstell server, which cannot reach your computer
 - Dates are only turned into due dates when they were actually said (a small model had invented a year for "Monday the 26th"), and the combine step can no longer drop a task
+- AI Chat in "All knowledge" mode now finds your notes when your embeddings run on Ollama and you use the live site (the question is embedded in your browser, not on the server)
+
+### 🛠️ Fixes
+
+- **Enter key in the note editor** did nothing; two copies of the editor's core library were installed after an update, and splitting a line threw an error. Fixed, with a test that fails if it ever happens again
 
 ### 🛡️ Privacy and safety
 

@@ -229,3 +229,23 @@ export async function completeOllamaBrowser(
   }
   return result.trim()
 }
+
+/**
+ * Embed a piece of text through the Local AI Agent, for use when the dotstell server cannot reach the user's Ollama.
+ * Returns null when the agent is not running or the model gives no usable vector, so callers can carry on without it.
+ */
+export async function embedOllamaBrowser(config: AIConfig, text: string): Promise<number[] | null> {
+  try {
+    const res = await fetch(`${LOCAL_AGENT_BASE}/api/embeddings`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model: config.embeddingModel, prompt: text.slice(0, 2000) }),
+      signal: AbortSignal.timeout(15_000),
+    })
+    if (!res.ok) return null
+    const { embedding } = await res.json()
+    return Array.isArray(embedding) && embedding.length > 0 ? embedding : null
+  } catch {
+    return null
+  }
+}
