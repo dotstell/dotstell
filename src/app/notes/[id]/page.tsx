@@ -31,6 +31,7 @@ import { useAITitleSuggest, useAITagSuggest, useAISummarize } from '@/hooks/useA
 import { MarkdownContent } from '@/components/ui/MarkdownContent'
 import { useBreakpoint } from '@/hooks/useBreakpoint'
 import '@/components/editor/editor.css'
+import { sanitizeHtml } from '@/lib/sanitize-html'
 
 type SaveStatus = 'saved' | 'saving' | 'unsaved' | null
 
@@ -337,25 +338,12 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
 </style>
 </head><body>
 <h1>${safe(title)}</h1>
-${sanitizeHtmlForPrint(note.content ?? '')}
+${sanitizeHtml(note.content ?? '', 'document')}
 </body></html>`)
     win.document.close()
     win.focus()
     // Brief delay lets the browser render before the print dialog opens
     setTimeout(() => { win.print(); win.close() }, 600)
-  }
-
-  // Strip dangerous elements from TipTap HTML before writing to a new window.
-  // Guards against <script>/<iframe> injection via paste or direct DB edits.
-  function sanitizeHtmlForPrint(html: string): string {
-    const doc = new DOMParser().parseFromString(html, 'text/html')
-    doc.querySelectorAll('script, iframe, object, embed').forEach(el => el.remove())
-    doc.querySelectorAll('*').forEach(el => {
-      for (const attr of Array.from(el.attributes)) {
-        if (attr.name.startsWith('on')) el.removeAttribute(attr.name)
-      }
-    })
-    return doc.body.innerHTML
   }
 
   // Navigate to a heading by querying the actual rendered DOM inside the editor.
