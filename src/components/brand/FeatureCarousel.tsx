@@ -139,9 +139,9 @@ const FEATURES: Array<{
   {
     key: 'import-export', tab: '📦 Import & Export', accent: '#14b8a6',
     headline: 'Bring your notes in. Take them out any time.',
-    desc: 'Move in from Obsidian, Evernote, Google Keep or your contacts with a preview and one-click undo. Export everything as plain files that open in any editor. Your notes are never held hostage.',
+    desc: 'Move in from Notion, Obsidian, Evernote, Google Keep or your contacts with a preview and one-click undo. Export everything as plain files that open in any editor. Your notes are never held hostage.',
     bullets: [
-      'Import Markdown vaults, Evernote, Google Keep and contacts',
+      'Import Notion and Obsidian exports, Evernote, Google Keep and contacts',
       'Preview first, undo the whole import afterwards',
       'Export a zip of Markdown, CSV, bookmarks and a full JSON backup',
     ],
@@ -527,7 +527,7 @@ function ImportExportMock() {
       <div style={{ display: 'flex', height: '100%' }}>
         <div style={{ flex: 1, borderRight: `1px solid ${C.border}`, padding: '12px', display: 'flex', flexDirection: 'column', gap: 6 }}>
           <Label>Import</Label>
-          {['Obsidian and Markdown', 'Evernote (.enex)', 'Google Keep', 'Contacts (.vcf, .csv)'].map(t => (
+          {['Notion, Obsidian, Markdown', 'Evernote (.enex)', 'Google Keep', 'Contacts (.vcf, .csv)'].map(t => (
             <div key={t} style={{ fontSize: 11, padding: '5px 9px', borderRadius: 6, background: C.sec, color: C.fg, border: `1px solid ${C.border}` }}>{t}</div>
           ))}
           <p style={{ fontSize: 10, color: C.dim, margin: '2px 0 0' }}>Preview first. Undo any time.</p>
