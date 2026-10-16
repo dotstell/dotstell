@@ -83,6 +83,13 @@ const SETUP_HELP: Record<SetupTab, string> = {
   'claude-desktop': 'Add this to claude_desktop_config.json. Needs Node.js; mcp-remote connects Claude Desktop to remote servers.',
 }
 
+const CONNECT_GUIDES: { tool: string; steps: string }[] = [
+  { tool: 'Codex (desktop app, CLI, IDE extension)', steps: 'Open ~/.codex/config.toml (on Windows: C:\\Users\\<you>\\.codex\\config.toml), paste the Codex snippet at the end, save, and restart Codex. All three share that file.' },
+  { tool: 'Claude Code', steps: 'Run the Claude Code command in a terminal once. Then start a new session; /mcp lists dotstell as connected.' },
+  { tool: 'Cursor', steps: 'Paste the Cursor snippet into .cursor/mcp.json (or Settings, MCP, Add server), then reload Cursor.' },
+  { tool: 'Claude Desktop', steps: 'Install Node.js, paste the Claude Desktop snippet into claude_desktop_config.json (Settings, Developer, Edit config), then quit and reopen the app.' },
+]
+
 interface LoadResult { tokens: TokenRow[]; notSetUp: boolean; error: string | null }
 
 async function loadTokens(): Promise<LoadResult> {
@@ -114,6 +121,7 @@ export function ConnectAIToolsModal({ onClose }: ConnectAIToolsModalProps) {
   const [tab, setTab] = useState<SetupTab>('claude-code')
   const [copied, setCopied] = useState<string | null>(null)
   const [confirming, setConfirming] = useState<string | null>(null)
+  const [notice, setNotice] = useState<string | null>(null)
   const [openActivity, setOpenActivity] = useState<string | null>(null)
   const [events, setEvents] = useState<Record<string, EventRow[] | 'loading' | 'error'>>({})
   const dialogRef = useRef<HTMLDivElement>(null)
@@ -159,9 +167,16 @@ export function ConnectAIToolsModal({ onClose }: ConnectAIToolsModalProps) {
 
   async function revoke(id: string) {
     setConfirming(null)
+    const token = tokens?.find(t => t.id === id)
+    const wasActive = !!token && status(token) === 'active'
     const res = await fetch(`/api/mcp-tokens/${id}`, { method: 'DELETE' })
-    if (!res.ok) { setLoadError('Could not revoke that token. Try again.'); return }
-    if (fresh && tokens?.find(t => t.id === id)?.prefix === fresh.token.slice(0, 8)) setFresh(null)
+    if (!res.ok) { setLoadError('Could not update that token. Try again.'); return }
+    setLoadError(null)
+    if (fresh && token?.prefix === fresh.token.slice(0, 8)) setFresh(null)
+    setNotice(wasActive
+      ? `Revoked “${token?.name}”. Any tool using it is refused from now on.`
+      : `Removed “${token?.name}”.`)
+    setTimeout(() => setNotice(null), 8000)
     await load()
   }
 
@@ -192,6 +207,53 @@ export function ConnectAIToolsModal({ onClose }: ConnectAIToolsModalProps) {
   const input: React.CSSProperties = { width: '100%', padding: '8px 10px', borderRadius: 8, border: '1px solid var(--border)', backgroundColor: 'var(--background)', color: 'var(--foreground)', fontSize: 13, boxSizing: 'border-box' }
   const code: React.CSSProperties = { margin: 0, padding: 10, borderRadius: 8, backgroundColor: 'var(--background)', border: '1px solid var(--border)', fontSize: 11, fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', color: 'var(--foreground)', whiteSpace: 'pre-wrap', wordBreak: 'break-all', userSelect: 'all' }
   const ghost: React.CSSProperties = { padding: '5px 9px', borderRadius: 7, border: '1px solid var(--border)', backgroundColor: 'transparent', color: 'var(--foreground)', fontSize: 11, fontWeight: 500, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 5 }
+
+  const activeTokens = (tokens ?? []).filter(t => status(t) === 'active')
+  const inactiveTokens = (tokens ?? []).filter(t => status(t) !== 'active')
+
+  function renderToken(t: TokenRow) {
+    const s = status(t)
+    const isActive = s === 'active'
+    const rows = events[t.id]
+    return (
+      <li key={t.id} style={{ ...card, opacity: isActive ? 1 : 0.75 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, alignItems: 'flex-start', flexWrap: 'wrap' }}>
+          <div style={{ minWidth: 0 }}>
+            <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: 'var(--foreground)', overflowWrap: 'anywhere' }}>
+              {t.name} <span style={{ ...small, fontFamily: 'ui-monospace, monospace' }}>{t.prefix}…</span>
+            </p>
+            <p style={{ margin: '2px 0 0', ...small }}>
+              {isActive ? `Expires ${dateOnly(t.expires_at)}` : s === 'expired' ? `Expired ${dateOnly(t.expires_at)}` : `Revoked ${ago(t.revoked_at)}`}
+              {' · '}last used {ago(t.last_used_at)}{' · '}{t.use_count} {Number(t.use_count) === 1 ? 'request' : 'requests'}
+            </p>
+          </div>
+          <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+            <button type="button" onClick={() => toggleActivity(t.id)} aria-expanded={openActivity === t.id} style={ghost}><Activity size={12} /> Activity</button>
+            {confirming === t.id ? (
+              <>
+                <button type="button" onClick={() => revoke(t.id)} style={{ ...ghost, borderColor: 'var(--destructive, #ef4444)', color: 'var(--destructive, #ef4444)' }}>{isActive ? 'Yes, revoke' : 'Yes, remove'}</button>
+                <button type="button" onClick={() => setConfirming(null)} style={ghost}>Keep</button>
+              </>
+            ) : (
+              <button type="button" onClick={() => setConfirming(t.id)} style={ghost}><Trash2 size={12} /> {isActive ? 'Revoke' : 'Remove'}</button>
+            )}
+          </div>
+        </div>
+        {openActivity === t.id && (
+          <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px solid var(--border)' }}>
+            {rows === 'loading' && <p style={small}>Loading…</p>}
+            {rows === 'error' && <p style={small}>Could not load the activity.</p>}
+            {Array.isArray(rows) && rows.length === 0 && <p style={small}>Not used yet. What was read is never recorded, only which tool ran and when.</p>}
+            {Array.isArray(rows) && rows.length > 0 && (
+              <ul style={{ listStyle: 'none', margin: 0, padding: 0, maxHeight: 140, overflowY: 'auto' }}>
+                {rows.map((e, i) => <li key={i} style={{ ...small, display: 'flex', justifyContent: 'space-between' }}><span>{TOOL_LABELS[e.tool] ?? e.tool}</span><span>{ago(e.at)}</span></li>)}
+              </ul>
+            )}
+          </div>
+        )}
+      </li>
+    )
+  }
 
   return (
     <div
@@ -294,51 +356,34 @@ export function ConnectAIToolsModal({ onClose }: ConnectAIToolsModalProps) {
           {loadError && <p role="alert" style={{ margin: '0 0 8px', fontSize: 12, color: 'var(--destructive, #ef4444)' }}>{loadError}</p>}
           {tokens === null && <p style={small}><Loader2 size={12} style={{ animation: 'spin 1s linear infinite', verticalAlign: 'middle' }} /> Loading…</p>}
           {tokens?.length === 0 && !notSetUp && !loadError && <p style={small}>No tokens yet. Nothing is shared until you create one.</p>}
+          {notice && <p role="status" style={{ ...small, margin: '0 0 8px', color: 'var(--foreground)' }}>{notice}</p>}
           <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {tokens?.map(t => {
-              const s = status(t)
-              const rows = events[t.id]
-              return (
-                <li key={t.id} style={{ ...card, opacity: s === 'active' ? 1 : 0.7 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, alignItems: 'flex-start', flexWrap: 'wrap' }}>
-                    <div style={{ minWidth: 0 }}>
-                      <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: 'var(--foreground)', overflowWrap: 'anywhere' }}>
-                        {t.name} <span style={{ ...small, fontFamily: 'ui-monospace, monospace' }}>{t.prefix}…</span>
-                      </p>
-                      <p style={{ margin: '2px 0 0', ...small }}>
-                        {s === 'active' ? `Expires ${dateOnly(t.expires_at)}` : s === 'expired' ? `Expired ${dateOnly(t.expires_at)}` : `Revoked ${ago(t.revoked_at)}`}
-                        {' · '}last used {ago(t.last_used_at)}{' · '}{t.use_count} {Number(t.use_count) === 1 ? 'request' : 'requests'}
-                      </p>
-                    </div>
-                    <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
-                      <button type="button" onClick={() => toggleActivity(t.id)} aria-expanded={openActivity === t.id} style={ghost}><Activity size={12} /> Activity</button>
-                      {confirming === t.id ? (
-                        <>
-                          <button type="button" onClick={() => revoke(t.id)} style={{ ...ghost, borderColor: 'var(--destructive, #ef4444)', color: 'var(--destructive, #ef4444)' }}>{t.revoked_at ? 'Yes, remove' : 'Yes, revoke'}</button>
-                          <button type="button" onClick={() => setConfirming(null)} style={ghost}>Keep</button>
-                        </>
-                      ) : (
-                        <button type="button" onClick={() => setConfirming(t.id)} style={ghost}><Trash2 size={12} /> {t.revoked_at ? 'Remove' : 'Revoke'}</button>
-                      )}
-                    </div>
-                  </div>
-                  {openActivity === t.id && (
-                    <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px solid var(--border)' }}>
-                      {rows === 'loading' && <p style={small}>Loading…</p>}
-                      {rows === 'error' && <p style={small}>Could not load the activity.</p>}
-                      {Array.isArray(rows) && rows.length === 0 && <p style={small}>Not used yet. What was read is never recorded, only which tool ran and when.</p>}
-                      {Array.isArray(rows) && rows.length > 0 && (
-                        <ul style={{ listStyle: 'none', margin: 0, padding: 0, maxHeight: 140, overflowY: 'auto' }}>
-                          {rows.map((e, i) => <li key={i} style={{ ...small, display: 'flex', justifyContent: 'space-between' }}><span>{TOOL_LABELS[e.tool] ?? e.tool}</span><span>{ago(e.at)}</span></li>)}
-                        </ul>
-                      )}
-                    </div>
-                  )}
-                </li>
-              )
-            })}
+            {activeTokens.map(renderToken)}
           </ul>
+          {inactiveTokens.length > 0 && (
+            <details style={{ marginTop: 10 }}>
+              <summary style={{ cursor: 'pointer', ...small, fontWeight: 600 }}>Revoked and expired ({inactiveTokens.length})</summary>
+              <ul style={{ listStyle: 'none', margin: '8px 0 0', padding: 0, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {inactiveTokens.map(renderToken)}
+              </ul>
+            </details>
+          )}
         </section>
+
+        <details style={{ ...card, marginTop: 16 }}>
+          <summary style={{ cursor: 'pointer', fontSize: 12, fontWeight: 700, color: 'var(--foreground)' }}>How to connect each tool</summary>
+          <p style={{ margin: '8px 0 6px', ...small }}>
+            Create a token above, then follow the steps for your tool. Your token and address are filled in for you right after you create it; later, use your token with this address: <code>{url}</code>
+          </p>
+          <ol style={{ margin: 0, paddingLeft: 18, ...small, display: 'flex', flexDirection: 'column', gap: 6 }}>
+            {CONNECT_GUIDES.map(g => (
+              <li key={g.tool}><strong>{g.tool}.</strong> {g.steps}</li>
+            ))}
+          </ol>
+          <p style={{ margin: '8px 0 0', ...small }}>
+            ChatGPT and claude.ai in the browser cannot connect yet: they need a sign-in flow (OAuth) that dotstell does not offer today. Codex, Claude Code, Cursor and Claude Desktop work now. After connecting, restart the tool and ask: &ldquo;Use dotstell to list my notebooks.&rdquo;
+          </p>
+        </details>
 
         <details style={{ ...card, marginTop: 16 }}>
           <summary style={{ cursor: 'pointer', fontSize: 12, fontWeight: 700, color: 'var(--foreground)' }}>What can I ask?</summary>

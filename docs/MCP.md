@@ -96,7 +96,7 @@ Meeting summaries inserted by the assistant are ordinary note HTML. v0.9.0 adds 
 
 ## App changes
 
-- A "Connect AI tools" screen reached from AI Settings and Help: create, copy once, list, revoke, view activity.
+- A "Connect AI tools" screen reached from AI Settings and Help: create, copy once, list, revoke (one confirmed step; revoked and expired tokens move to a collapsed list where Remove deletes them), view activity, and a "How to connect each tool" guide that stays available after the token is closed.
 - A public setup page with copy-paste configuration for Claude Desktop, Claude Code and Cursor.
 
 ## Threat model
