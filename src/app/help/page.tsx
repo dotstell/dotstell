@@ -428,7 +428,7 @@ export default function HelpPage() {
               <Tip icon="⏺️" title="Record a meeting"
                 body="In the Meeting assistant, press Start recording. Your microphone is recorded in short parts and each part is turned into text as you go, so the transcript fills in during the meeting. For an online meeting in a browser tab, tick the tab option and choose the tab with Also share tab audio. Turning speech into text needs a speech service key: your OpenAI, Groq or Gemini key works, and if your chat provider is Anthropic or Ollama (which cannot transcribe) you add a separate key right in the recording box. Groq and Google AI Studio offer free keys with limits. The sound goes straight from your browser to that service; dotstell does not receive or keep the audio. Tell everyone you are recording."
               />
-              <Tip icon="🤖" title="Which AI provider works best"
+              <Tip icon="🔌" title="Which AI provider works best"
                 body="Meeting summaries work with every provider: OpenAI, Anthropic, Gemini, Groq and Ollama. Larger models find more action items and follow the owner and deadline wording more closely. A small local model (about 4 billion parameters) works, but it is read in small parts, takes a little longer and can miss some commitments, so check the list before creating tasks. With Ollama on the live site, run the Local AI Agent; the summary then never leaves your computer."
               />
               <Tip icon="🛡️" title="Privacy"
