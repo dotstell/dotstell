@@ -5,6 +5,9 @@ import { DICTATION_LANGUAGES } from '@/hooks/useDictation'
 
 const ACK_KEY = 'dotstell:dictation-notice-seen'
 
+/** Whether the user has already accepted the first-use notice about where dictated audio goes. */
+export const dictationNoticeSeen = () => typeof window !== 'undefined' && localStorage.getItem(ACK_KEY) === '1'
+
 interface Props {
   listening: boolean
   interim: string
@@ -23,7 +26,7 @@ interface Props {
  * asks for the microphone, because in Chrome and Edge the browser sends speech to its vendor for recognition.
  */
 export function DictationBar({ listening, interim, error, lang, onLang, onStart, onStop, onDismiss, open }: Props) {
-  const [acknowledged, setAcknowledged] = useState(() => typeof window !== 'undefined' && localStorage.getItem(ACK_KEY) === '1')
+  const [acknowledged, setAcknowledged] = useState(dictationNoticeSeen)
   if (!open) return null
 
   function accept() {

@@ -10,6 +10,8 @@ import { useRecorder } from '@/hooks/useRecorder'
 
 const MAX_FILE_BYTES = 2 * 1024 * 1024
 
+const PROVIDER_NAMES: Record<AIConfig['provider'], string> = { ollama: 'Ollama', openai: 'OpenAI', anthropic: 'Anthropic', gemini: 'Google Gemini', groq: 'Groq' }
+
 interface Person { id: string; name: string }
 
 interface Props {
@@ -34,7 +36,8 @@ function matchPerson(owner: string | null, people: Person[]): Person | null {
 export function AIMeetingPanel({ config, noteTitle, noteId, onInsert, onClose }: Props) {
   const [phase, setPhase] = useState<'input' | 'working' | 'result'>('input')
   const [raw, setRaw] = useState('')
-  const [title, setTitle] = useState(noteTitle ?? '')
+  // An unnamed note is called "Untitled"; that is a placeholder, not a meeting title.
+  const [title, setTitle] = useState(noteTitle && noteTitle !== 'Untitled' ? noteTitle : '')
   const [progress, setProgress] = useState<[number, number]>([0, 1])
   const [error, setError] = useState<string | null>(null)
   const [digest, setDigest] = useState<MeetingDigest | null>(null)
@@ -261,7 +264,7 @@ export function AIMeetingPanel({ config, noteTitle, noteId, onInsert, onClose }:
             <p style={{ margin: 0, fontSize: 11, color: 'var(--muted-foreground)', lineHeight: 1.5 }}>
               {config.provider === 'ollama'
                 ? 'Your transcript is processed by Ollama on your own computer.'
-                : `Your transcript is sent to ${config.provider} using your API key, through the dotstell server, and is not stored.`}
+                : `Your transcript is sent to ${PROVIDER_NAMES[config.provider]} using your API key, through the dotstell server, and is not stored.`}
             </p>
           </>
         )}

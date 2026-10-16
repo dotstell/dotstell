@@ -4,6 +4,23 @@ All notable changes to Dotstell are documented here.
 
 ---
 
+## [v0.8.0] — Oct 2026
+
+### 🎙️ Meetings
+
+- **Meeting assistant** — open a note, press **Meeting**, and paste a transcript or your rough notes (or choose a file). You get a summary, key points, decisions, action items and open questions; edit or remove anything, then insert it into the note
+- **Zoom, Teams and Google Meet transcripts** — `.vtt`, `.srt` and `.txt` files are understood, including Zoom's audio-transcript and chat files. Speakers are detected and passed on as attendees. Long meetings are read in parts with a progress bar and a Cancel button
+- **Action items become tasks** — tick the ones you want and create them in one click. Owners that match someone in People are linked to them, dates written as `2026-10-30` become due dates, and the tasks are linked back to the note
+- **Dictate** — speak and the words are added at the cursor, in 12 languages, using your browser's speech recognition. You are told where the audio goes the first time
+- **Record a meeting** — record your microphone, and optionally a shared browser tab for online meetings, and watch the transcript fill in as you go. Speech-to-text uses your own OpenAI or Groq key, sent straight from your browser; dotstell does not receive or keep the audio
+
+### 🛡️ Privacy and safety
+
+- Transcripts are treated as untrusted: markup is stripped, the model's reply is validated, everything written into the note is escaped, and tasks are only created when you press the button
+- The microphone is allowed for dotstell only, and the macOS app now declares why it needs it
+
+---
+
 ## [v0.7.1] — Oct 2026
 
 A security, reliability and accessibility release. No new screens; everything that was found in a full audit of the app is fixed.

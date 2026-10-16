@@ -22,7 +22,7 @@ import { AIChatPanel } from '@/components/ai/AIChatPanel'
 import { AIInlineAssist } from '@/components/ai/AIInlineAssist'
 import { AIWritingPanel } from '@/components/ai/AIWritingPanel'
 import { AIMeetingPanel } from '@/components/ai/AIMeetingPanel'
-import { DictationBar } from '@/components/editor/DictationBar'
+import { DictationBar, dictationNoticeSeen } from '@/components/editor/DictationBar'
 import { useDictation } from '@/hooks/useDictation'
 import { AIRelatedPanel } from '@/components/ai/AIRelatedPanel'
 import { AISettingsModal } from '@/components/ai/AISettingsModal'
@@ -741,7 +741,11 @@ ${sanitizeHtml(note.content ?? '', 'document')}
               title="Dictate — speak to add text to this note"
               aria-label="Dictate"
               aria-pressed={dictation.listening}
-              onClick={() => { if (dictationOpen) { dictation.stop(); setDictationOpen(false) } else setDictationOpen(true) }}
+              onClick={() => {
+                if (dictationOpen) { dictation.stop(); setDictationOpen(false); return }
+                setDictationOpen(true)
+                if (dictationNoticeSeen()) dictation.start() // first time, the bar asks before the browser asks for the microphone
+              }}
               style={{
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
                 padding: compactHeader ? 6 : '5px 10px', borderRadius: 7,
