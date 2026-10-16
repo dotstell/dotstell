@@ -49,9 +49,6 @@ export async function POST(req: NextRequest) {
   if (body.phone && typeof body.phone === 'string' && body.phone.length > 50) {
     return NextResponse.json({ error: 'phone must be 50 characters or fewer' }, { status: 400 })
   }
-  if (body.notes && typeof body.notes === 'string' && body.notes.length > 5000) {
-    return NextResponse.json({ error: 'notes must be 5000 characters or fewer' }, { status: 400 })
-  }
   if (body.tags !== undefined) {
     if (!Array.isArray(body.tags)) return NextResponse.json({ error: 'tags must be an array' }, { status: 400 })
     if (body.tags.length > 20) return NextResponse.json({ error: 'tags array must contain 20 items or fewer' }, { status: 400 })
@@ -79,7 +76,6 @@ export async function POST(req: NextRequest) {
     email:      body.email,
     phone:      body.phone,
     tags:       body.tags,
-    notes:      body.notes,
     avatar_url: body.avatar_url,
   }).select().single()
   if (error) return NextResponse.json({ error: 'An unexpected error occurred.' }, { status: 500 })
