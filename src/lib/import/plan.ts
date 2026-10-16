@@ -42,13 +42,14 @@ export function planImport(input: VaultFile[], options: PlanOptions = {}): Impor
 
     if (ext === 'enex') {
       consumed.add(f)
-      drafts.push(...parseEnex(decode(f.data), stem(path).slice(0, 100).trim() || 'Evernote', path, report))
+      // Loops rather than push(...list): a large export would exceed the argument limit.
+      for (const d of parseEnex(decode(f.data), stem(path).slice(0, 100).trim() || 'Evernote', path, report)) drafts.push(d)
     } else if (ext === 'vcf') {
       consumed.add(f)
-      contacts.push(...parseVcf(decode(f.data), report))
+      for (const c of parseVcf(decode(f.data), report)) contacts.push(c)
     } else if (ext === 'csv') {
       const parsed = parseContactsCsv(decode(f.data))
-      if (parsed) { consumed.add(f); contacts.push(...parsed) }
+      if (parsed) { consumed.add(f); for (const c of parsed) contacts.push(c) }
     } else if (ext === 'json') {
       const keep = readKeepJson(f.data)
       if (!keep) continue

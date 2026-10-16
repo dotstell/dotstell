@@ -61,7 +61,8 @@ export function keepToNote(
 
   const parts: string[] = []
   const text = str(j.textContent, 200_000)
-  if (text) parts.push(...text.split(/\r?\n/).map(line => `<p>${escapeHtml(line)}</p>`))
+  // A loop rather than push(...lines): spreading a very long note would exceed the argument limit.
+  if (text) for (const line of text.split(/\r?\n/)) parts.push(`<p>${escapeHtml(line)}</p>`)
 
   const items = listItems(j.listContent)
   if (items.length) {

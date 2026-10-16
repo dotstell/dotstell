@@ -58,7 +58,14 @@ function unfold(text: string): string[] {
   for (let i = 0; i < lines.length; i++) {
     let line = lines[i]
     // vCard 2.1 quoted-printable values continue on the next line after a trailing "=".
-    while (/quoted-printable/i.test(line.split(':')[0]) && line.endsWith('=') && i + 1 < lines.length) line = line.slice(0, -1) + lines[++i]
+    if (/quoted-printable/i.test(line.split(':')[0])) {
+      const pieces = [line]
+      while (pieces[pieces.length - 1].endsWith('=') && i + 1 < lines.length) {
+        pieces[pieces.length - 1] = pieces[pieces.length - 1].slice(0, -1)
+        pieces.push(lines[++i])
+      }
+      line = pieces.join('')
+    }
     // Folded lines (3.0 / 4.0) continue with a leading space or tab.
     if (/^[ \t]/.test(line) && out.length) out[out.length - 1] += line.slice(1)
     else out.push(line)
