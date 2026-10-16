@@ -14,6 +14,7 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    // api/mcp authenticates with its own token and has no browser session to refresh.
+    '/((?!_next/static|_next/image|favicon.ico|api/mcp$|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 }
