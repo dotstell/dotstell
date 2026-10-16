@@ -123,6 +123,7 @@ Known limits: the in-memory rate limiter resets on cold starts (see `src/lib/rat
 2. **Create a token.** AI Settings, Connect AI tools, name it, choose an expiry, copy the token once.
 3. **Connect a tool** with the setup the screen shows:
    - Claude Code: `claude mcp add --transport http dotstell https://dotstell.app/api/mcp --header "Authorization: Bearer <token>"`
+   - Codex (desktop app, CLI and IDE extension share `~/.codex/config.toml`): a `[mcp_servers.dotstell]` table with `url` and `http_headers = { Authorization = "Bearer <token>" }`.
    - Cursor: an entry in `.cursor/mcp.json` with `url` and an `Authorization` header.
    - Claude Desktop: through `mcp-remote` (needs Node.js), with the token in an environment variable.
 
@@ -133,6 +134,7 @@ Known limits: the in-memory rate limiter resets on cold starts (see `src/lib/rat
 | Migration against a real Postgres (PGlite) with the cut-down schema | Passes, including cross-user, revoked, expired, deleted and permission checks. Removing the user filter from a function makes the tests fail |
 | Whole endpoint driven by the official MCP TypeScript client | Passes |
 | Claude Code 2.1.299, added with the exact command the screen shows, `claude mcp list` and a real tool call | Connected; a search returned only the signed-in user's matching note |
+| Codex CLI 0.162.1, configured with the same `url` and `http_headers` the screen shows, and a real tool call | Connected; a search returned only the signed-in user's matching note. The desktop app and IDE extension read the same file per OpenAI's documentation; the desktop app itself was not run |
 | Cursor and Claude Desktop setups | Follow each tool's documented configuration format; not yet run against the real applications |
 | Supabase itself (PostgREST calling the functions) | Not run in tests. The first real use after applying the migration is the check |
 

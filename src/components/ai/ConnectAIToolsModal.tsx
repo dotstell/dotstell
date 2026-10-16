@@ -15,7 +15,7 @@ interface TokenRow {
 
 interface EventRow { tool: string; at: string }
 
-type SetupTab = 'claude-code' | 'cursor' | 'claude-desktop'
+type SetupTab = 'claude-code' | 'codex' | 'cursor' | 'claude-desktop'
 
 const EXPIRY_CHOICES = [
   { days: 30, label: '30 days' },
@@ -50,6 +50,11 @@ function setupText(tab: SetupTab, url: string, token: string): string {
   if (tab === 'claude-code') {
     return `claude mcp add --transport http dotstell ${url} --header "Authorization: Bearer ${token}"`
   }
+  if (tab === 'codex') {
+    return `[mcp_servers.dotstell]
+url = "${url}"
+http_headers = { Authorization = "Bearer ${token}" }`
+  }
   if (tab === 'cursor') {
     return JSON.stringify({ mcpServers: { dotstell: { url, headers: { Authorization: `Bearer ${token}` } } } }, null, 2)
   }
@@ -60,6 +65,7 @@ function setupText(tab: SetupTab, url: string, token: string): string {
 
 const SETUP_HELP: Record<SetupTab, string> = {
   'claude-code': 'Run this once in a terminal.',
+  codex: 'Add this to ~/.codex/config.toml. The Codex desktop app, CLI and IDE extension all read that file.',
   cursor: 'Add this to .cursor/mcp.json (or Settings, MCP).',
   'claude-desktop': 'Add this to claude_desktop_config.json. Needs Node.js; mcp-remote connects Claude Desktop to remote servers.',
 }
@@ -194,7 +200,7 @@ export function ConnectAIToolsModal({ onClose }: ConnectAIToolsModalProps) {
             </div>
             <div>
               <p id="connect-ai-title" style={{ margin: 0, fontSize: 15, fontWeight: 700, color: 'var(--foreground)' }}>Connect AI tools</p>
-              <p style={{ margin: 0, ...small }}>Let Claude, Cursor and other AI tools read your notes</p>
+              <p style={{ margin: 0, ...small }}>Let Claude, Codex, Cursor and other AI tools read your notes</p>
             </div>
           </div>
           <button type="button" aria-label="Close" onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted-foreground)', padding: 4 }}><X size={15} /></button>
@@ -255,7 +261,7 @@ export function ConnectAIToolsModal({ onClose }: ConnectAIToolsModalProps) {
             </div>
 
             <div role="tablist" aria-label="Tool to connect" style={{ display: 'flex', gap: 4, marginBottom: 8 }}>
-              {([['claude-code', 'Claude Code'], ['cursor', 'Cursor'], ['claude-desktop', 'Claude Desktop']] as const).map(([key, label]) => (
+              {([['claude-code', 'Claude Code'], ['codex', 'Codex'], ['cursor', 'Cursor'], ['claude-desktop', 'Claude Desktop']] as const).map(([key, label]) => (
                 <button key={key} type="button" role="tab" aria-selected={tab === key} onClick={() => setTab(key)}
                   style={{ ...ghost, backgroundColor: tab === key ? 'color-mix(in srgb, var(--primary) 18%, transparent)' : 'transparent', borderColor: tab === key ? 'var(--primary)' : 'var(--border)', fontWeight: tab === key ? 700 : 500 }}>
                   {label}
