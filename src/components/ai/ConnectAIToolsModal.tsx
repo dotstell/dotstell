@@ -274,7 +274,7 @@ export function ConnectAIToolsModal({ onClose }: ConnectAIToolsModalProps) {
               <Plug size={16} color="var(--primary)" />
             </div>
             <div>
-              <p id="connect-ai-title" style={{ margin: 0, fontSize: 15, fontWeight: 700, color: 'var(--foreground)' }}>Connect AI tools</p>
+              <p id="connect-ai-title" style={{ margin: 0, fontSize: 15, fontWeight: 700, color: 'var(--foreground)' }}>AI tools (MCP server)</p>
               <p style={{ margin: 0, ...small }}>Let Codex, Claude and other AI tools read your notes</p>
             </div>
           </div>

@@ -755,7 +755,7 @@ export function AISettingsModal({ onClose }: AISettingsModalProps) {
           )}
         </div>
 
-        {/* ── Connect AI tools (MCP) ── independent of the provider chosen above */}
+        {/* ── AI tools (MCP server) ── independent of the provider chosen above */}
         <button
           type="button"
           onClick={() => setConnectOpen(true)}
@@ -763,8 +763,8 @@ export function AISettingsModal({ onClose }: AISettingsModalProps) {
         >
           <Plug size={15} color="var(--primary)" style={{ flexShrink: 0 }} />
           <span style={{ flex: 1 }}>
-            <span style={{ display: 'block', fontSize: 12, fontWeight: 700 }}>Connect AI tools</span>
-            <span style={{ display: 'block', fontSize: 11, color: 'var(--muted-foreground)' }}>Let Codex, Claude and other AI tools read your notes, read-only</span>
+            <span style={{ display: 'block', fontSize: 12, fontWeight: 700 }}>AI tools (MCP server)</span>
+            <span style={{ display: 'block', fontSize: 11, color: 'var(--muted-foreground)' }}>Let Codex, Claude Code, Cursor and others read your notes. Read-only.</span>
           </span>
           <ChevronRight size={14} color="var(--muted-foreground)" />
         </button>

@@ -96,7 +96,7 @@ Meeting summaries inserted by the assistant are ordinary note HTML. v0.9.0 adds 
 
 ## App changes
 
-- A "Connect AI tools" screen reached from AI Settings and Help: create, copy once, list, revoke (one confirmed step; revoked and expired tokens move to a collapsed list where Remove deletes them), view activity, and a "How to connect each tool" guide that stays available after the token is closed.
+- A "AI tools (MCP server)" screen reached from AI Settings and Help: create, copy once, list, revoke (one confirmed step; revoked and expired tokens move to a collapsed list where Remove deletes them), view activity, and a "How to connect each tool" guide that stays available after the token is closed.
 - A public setup page with copy-paste configuration for Claude Desktop, Claude Code and Cursor.
 
 ## Threat model
@@ -116,11 +116,11 @@ Known limits: the in-memory rate limiter resets on cold starts (see `src/lib/rat
 
 ## Setting it up
 
-1. **Database (once per installation).** Run `supabase/migrations/012_mcp.sql` in the Supabase SQL editor. Until then the app works as before and the Connect AI tools screen says MCP is not set up. The endpoint answers 503 in that state.
+1. **Database (once per installation).** Run `supabase/migrations/012_mcp.sql` in the Supabase SQL editor. Until then the app works as before and the AI tools (MCP server) screen says MCP is not set up. The endpoint answers 503 in that state.
    - The migration only adds objects (two tables, nine functions, all named `mcp_...`). It does not change or read existing tables or data, and it is safe to run again.
    - Optional check first: `select n.nspname from pg_extension e join pg_namespace n on n.oid = e.extnamespace where e.extname = 'pgcrypto';` should return `extensions` (Supabase's default) or no rows. If it returns another schema, tell us before running; only the MCP functions would be affected.
    - To undo it completely, run `supabase/rollback/012_mcp_down.sql`. Issued tokens stop working; notes, tasks and everything else stay as they are.
-2. **Create a token.** AI Settings, Connect AI tools, name it, choose an expiry, copy the token once.
+2. **Create a token.** AI Settings, AI tools (MCP server), name it, choose an expiry, copy the token once.
 3. **Connect a tool** with the setup the screen shows:
    - Claude Code: `claude mcp add --transport http dotstell https://dotstell.app/api/mcp --header "Authorization: Bearer <token>"`
    - Codex (desktop app, CLI and IDE extension share `~/.codex/config.toml`): a `[mcp_servers.dotstell]` table with `url` and `http_headers = { Authorization = "Bearer <token>" }`.
