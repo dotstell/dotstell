@@ -12,7 +12,7 @@ const nextConfig: NextConfig = {
           { key: "X-Frame-Options", value: "DENY" },
           { key: "X-XSS-Protection", value: "1; mode=block" },
           { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
-          { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
+          { key: "Permissions-Policy", value: "camera=(), microphone=(self), geolocation=()" },
           { key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains; preload" },
           {
             key: "Content-Security-Policy",
@@ -22,7 +22,7 @@ const nextConfig: NextConfig = {
               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
               "img-src 'self' data: https: blob:",
               "font-src 'self' data: https://fonts.gstatic.com",
-              "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://cloudflareinsights.com https://vitals.vercel-insights.com https://generativelanguage.googleapis.com http://127.0.0.1:12345 http://localhost:12345",
+              "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://cloudflareinsights.com https://vitals.vercel-insights.com https://generativelanguage.googleapis.com https://api.openai.com https://api.groq.com http://127.0.0.1:12345 http://localhost:12345",
               "frame-ancestors 'none'",
             ].join("; "),
           },
