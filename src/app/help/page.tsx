@@ -576,6 +576,9 @@ export default function HelpPage() {
                 <Tip icon="⏺️" title="Record a meeting"
                   body="Record your microphone, or a browser tab for online meetings, and watch the transcript fill in as you go. It uses your own OpenAI, Groq or Gemini key (separate from your chat provider if you like), straight from your browser; dotstell does not receive or keep the audio."
                 />
+                <Tip icon="🛠️" title="Fixes"
+                  body="The Enter key works again in the note editor. AI Chat's All knowledge mode now finds your notes when your embeddings run on Ollama and you use the live site. Meetings and AI Write also work with Ollama on the live site."
+                />
               </div>
 
               {/* v0.7.1 */}
