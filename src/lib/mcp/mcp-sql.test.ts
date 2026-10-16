@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeAll } from 'vitest'
+import { readFileSync } from 'node:fs'
 import type { PGlite } from '@electric-sql/pglite'
 import { generateToken } from './token'
 import { ALICE, BOB, createTestDatabase } from './test-db'
@@ -173,5 +174,35 @@ describe('what the public role and a signed-in user can do', () => {
       [(await asUser<{ id: number }>(BOB, 'select id from public.mcp_token_events')).map(r => r.id)],
     )
     expect(owners.map(o => o.user_id)).toEqual([BOB])
+  })
+})
+
+describe('applying and undoing the migration', () => {
+  const migration = readFileSync(new URL('../../../supabase/migrations/012_mcp.sql', import.meta.url), 'utf8')
+  const rollback = readFileSync(new URL('../../../supabase/rollback/012_mcp_down.sql', import.meta.url), 'utf8')
+  const objects = `select (select count(*) from pg_proc where proname like 'mcp\_%')::int as functions,
+                          (select count(*) from pg_tables where schemaname = 'public' and tablename like 'mcp\_%')::int as tables`
+
+  it('can be run again after it has been applied, without errors or losing tokens', async () => {
+    const fresh = await createTestDatabase()
+    const t = generateToken()
+    await fresh.query(`insert into public.mcp_tokens (user_id, name, token_hash, prefix, expires_at) values ($1, 'keep', $2, $3, now() + interval '5 days')`, [ALICE, t.hash, t.prefix])
+    await fresh.exec(migration)
+    expect((await fresh.query('select name from public.mcp_tokens')).rows).toEqual([{ name: 'keep' }])
+  })
+
+  it('rolls back only the MCP objects, leaves notes and tasks alone, and can be applied again', async () => {
+    const fresh = await createTestDatabase()
+    await fresh.exec(`insert into public.notes (user_id, title) values ('${ALICE}', 'Mine'); insert into public.tasks (user_id, title) values ('${ALICE}', 'Do it')`)
+    expect((await fresh.query<{ functions: number; tables: number }>(objects)).rows[0]).toEqual({ functions: 9, tables: 2 })
+
+    await fresh.exec(rollback)
+    await fresh.exec(rollback)
+    expect((await fresh.query<{ functions: number; tables: number }>(objects)).rows[0]).toEqual({ functions: 0, tables: 0 })
+    expect((await fresh.query('select title from public.notes')).rows).toEqual([{ title: 'Mine' }])
+    expect((await fresh.query('select title from public.tasks')).rows).toEqual([{ title: 'Do it' }])
+
+    await fresh.exec(migration)
+    expect((await fresh.query<{ functions: number; tables: number }>(objects)).rows[0]).toEqual({ functions: 9, tables: 2 })
   })
 })

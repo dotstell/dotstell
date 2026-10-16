@@ -110,6 +110,9 @@ Known limits: the in-memory rate limiter resets on cold starts (see `src/lib/rat
 ## Setting it up
 
 1. **Database (once per installation).** Run `supabase/migrations/012_mcp.sql` in the Supabase SQL editor. Until then the app works as before and the Connect AI tools screen says MCP is not set up. The endpoint answers 503 in that state.
+   - The migration only adds objects (two tables, nine functions, all named `mcp_...`). It does not change or read existing tables or data, and it is safe to run again.
+   - Optional check first: `select n.nspname from pg_extension e join pg_namespace n on n.oid = e.extnamespace where e.extname = 'pgcrypto';` should return `extensions` (Supabase's default) or no rows. If it returns another schema, tell us before running; only the MCP functions would be affected.
+   - To undo it completely, run `supabase/rollback/012_mcp_down.sql`. Issued tokens stop working; notes, tasks and everything else stay as they are.
 2. **Create a token.** AI Settings, Connect AI tools, name it, choose an expiry, copy the token once.
 3. **Connect a tool** with the setup the screen shows:
    - Claude Code: `claude mcp add --transport http dotstell https://dotstell.app/api/mcp --header "Authorization: Bearer <token>"`

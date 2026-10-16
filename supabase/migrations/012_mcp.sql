@@ -29,9 +29,13 @@ create table if not exists public.mcp_tokens (
 create index if not exists mcp_tokens_user_idx on public.mcp_tokens (user_id, created_at desc);
 
 alter table public.mcp_tokens enable row level security;
+drop policy if exists "Users read own mcp tokens" on public.mcp_tokens;
 create policy "Users read own mcp tokens"   on public.mcp_tokens for select using (auth.uid() = user_id);
+drop policy if exists "Users create own mcp tokens" on public.mcp_tokens;
 create policy "Users create own mcp tokens" on public.mcp_tokens for insert with check (auth.uid() = user_id);
+drop policy if exists "Users revoke own mcp tokens" on public.mcp_tokens;
 create policy "Users revoke own mcp tokens" on public.mcp_tokens for update using (auth.uid() = user_id) with check (auth.uid() = user_id);
+drop policy if exists "Users delete own mcp tokens" on public.mcp_tokens;
 create policy "Users delete own mcp tokens" on public.mcp_tokens for delete using (auth.uid() = user_id);
 
 -- Row policies alone would let a user edit expiry or counters; limit the columns they can change.
@@ -55,6 +59,7 @@ create index if not exists mcp_token_events_token_idx on public.mcp_token_events
 create index if not exists mcp_token_events_at_idx    on public.mcp_token_events (at);
 
 alter table public.mcp_token_events enable row level security;
+drop policy if exists "Users read events of own mcp tokens" on public.mcp_token_events;
 create policy "Users read events of own mcp tokens" on public.mcp_token_events for select
   using (exists (select 1 from public.mcp_tokens t where t.id = token_id and t.user_id = auth.uid()));
 
