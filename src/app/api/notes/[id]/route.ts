@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { rateLimit } from '@/lib/ratelimit'
+import { wouldCreateCycle } from '@/lib/notes/hierarchy'
 
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -59,6 +60,10 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       .eq('user_id', user.id)
       .single()
     if (!parentNote) return NextResponse.json({ error: 'parent_id not found' }, { status: 400 })
+    // A note cannot sit inside itself or inside one of its own sub-notes.
+    if (await wouldCreateCycle(supabase, user.id, id, allowed.parent_id as string)) {
+      return NextResponse.json({ error: 'A note cannot be moved inside itself' }, { status: 400 })
+    }
   }
 
   const { data, error } = await supabase.from('notes').update(allowed).eq('id', id).eq('user_id', user.id).select().single()
