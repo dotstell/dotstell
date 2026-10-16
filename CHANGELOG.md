@@ -4,6 +4,41 @@ All notable changes to Dotstell are documented here.
 
 ---
 
+## [v0.7.1] — Oct 2026
+
+A security, reliability and accessibility release. No new screens; everything that was found in a full audit of the app is fixed.
+
+### 🛡️ Security
+
+- **Notes can no longer run scripts** — the Markdown view and the print view now rebuild a note from an allow-list of safe elements instead of removing known-bad ones. Links with `javascript:`, `data:` or disguised schemes, SVG, forms, frames and event handlers are removed
+- **Link previews are safer** — fetching a page title for a bookmark refuses private and internal addresses (including addresses a hostile site resolves to), unusual ports, redirects and very large pages, and is rate limited
+- **Faster, safer import checks** — the import safety scanner and the bookmark-file reader no longer slow down on crafted input
+- **Local AI agent 1.2.0** — it now only answers dotstell.app, dotstell.com and localhost (previously any `*.vercel.app` site could reach it), checks the Host header against DNS-rebinding, and only forwards the endpoints dotstell uses (no model pull, create or delete). Self-hosters add their own address with `DOTSTELL_ALLOWED_ORIGINS`
+- **Dependencies updated** — Next.js 16.3.8, Tiptap 3.32 and refreshed transitive packages; the 31 known advisories are down to one in a development-only tool with no fix available
+
+### 🗂️ Your data
+
+- **Deleting a note for good no longer deletes its sub-notes** that you are still using; they move to the top level. Emptying the trash does the same
+- **A note can no longer be moved inside itself** or one of its own sub-notes
+- **Saving `[[wikilinks]]` can no longer lose existing links** if the save fails part-way
+- **Renaming a notebook keeps its notes**; two notebooks whose names differ only by case or spacing are no longer allowed
+- Tasks and notebooks reject values the database would refuse, with a clear message instead of a generic error
+- Search text with commas or brackets is matched literally
+
+### ♿ Accessibility
+
+- Muted text, section titles and small labels meet the 4.5:1 contrast ratio in all 14 themes (brightness adjusted, colours kept); fading by opacity was removed from small text
+- Icon-only buttons and links have names for screen readers (sidebar toggles, drawer close, dashboard quick-add, carousel dots, tablet rail items); links inside sentences are underlined
+
+### 🔧 Fixes
+
+- Export no longer stops on a note that holds a damaged embedded image, and image file names are always plain
+- Import copes with very large vCard files and very long Google Keep notes
+- The import safety box is titled "Safety checks" and no longer says files were skipped when a note was only made harmless
+- The help page now describes accurately how AI keys are handled: stored in your browser, passed through the dotstell server to your provider for each request, never saved or logged
+
+---
+
 ## [v0.7.0] — Oct 2026
 
 ### 📦 Import & Export

@@ -1,6 +1,6 @@
 # Dotstell Local AI Agent
 
-**Version 1.1.0** · Zero dependencies · Node.js 18+
+**Version 1.2.0** · Zero dependencies · Node.js 18+
 
 The Local AI Agent is a tiny HTTP proxy that runs on your machine and bridges the gap between the live dotstell.app web app and a local [Ollama](https://ollama.com) instance. The hosted app runs over `https://` — modern browsers block it from fetching `http://localhost` directly (Private Network Access spec). The agent adds the required headers and proxies everything to Ollama transparently.
 
@@ -82,7 +82,7 @@ node packages/agent/index.mjs
 Expected output:
 
 ```
-  ● dotstell  Local AI Agent v1.1.0
+  ● dotstell  Local AI Agent v1.2.0
 
   Listening   http://127.0.0.1:12345
   Proxying    http://127.0.0.1:11434   ✓ Ollama is running
@@ -193,7 +193,7 @@ The agent is designed to be safe to run persistently in the background:
 ```json
 {
   "name": "@dotstell/agent",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "bin": { "dotstell-agent": "./index.mjs" },
   "engines": { "node": ">=18" }
 }

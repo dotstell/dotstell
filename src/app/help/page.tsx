@@ -534,11 +534,31 @@ export default function HelpPage() {
             {/* WHAT'S NEW */}
             <Section id="whats-new" title="✨ Changelog">
 
+              {/* v0.7.1 */}
+              <div style={{ marginBottom: 32 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--primary)', background: 'color-mix(in srgb, var(--primary) 10%, transparent)', border: '1px solid color-mix(in srgb, var(--primary) 25%, transparent)', padding: '3px 10px', borderRadius: 99 }}>v0.7.1</span>
+                  <span style={{ fontSize: 12, fontWeight: 600, color: '#10b981', background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.2)', padding: '2px 8px', borderRadius: 99 }}>Latest</span>
+                  <span style={{ fontSize: 12, color: 'var(--muted-foreground)' }}>Oct 2026</span>
+                </div>
+                <Tip icon="🛡️" title="Security hardening"
+                  body="Notes can no longer run scripts: the Markdown and print views now keep only a list of safe elements. Bookmark previews refuse private and internal addresses, and the local AI agent only answers dotstell.app, dotstell.com and localhost. Dependencies are updated."
+                />
+                <Tip icon="🗂️" title="Your data stays put"
+                  body="Deleting a note for good no longer deletes the sub-notes you are still using, a note can't be moved inside itself, saving [[wikilinks]] can't lose existing links, and renaming a notebook keeps its notes."
+                />
+                <Tip icon="♿" title="Easier to read and use"
+                  body="Muted text meets the 4.5:1 contrast ratio in all 14 themes, icon-only buttons have names for screen readers, and links inside sentences are underlined."
+                />
+                <Tip icon="🔧" title="Sturdier import and export"
+                  body="Export carries on past a damaged embedded image, and import copes with very large contact files and very long Google Keep notes. The import safety box is now titled Safety checks."
+                />
+              </div>
+
               {/* v0.7.0 */}
               <div style={{ marginBottom: 32 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
                   <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--primary)', background: 'color-mix(in srgb, var(--primary) 10%, transparent)', border: '1px solid color-mix(in srgb, var(--primary) 25%, transparent)', padding: '3px 10px', borderRadius: 99 }}>v0.7.0</span>
-                  <span style={{ fontSize: 12, fontWeight: 600, color: '#10b981', background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.2)', padding: '2px 8px', borderRadius: 99 }}>Latest</span>
                   <span style={{ fontSize: 12, color: 'var(--muted-foreground)' }}>Oct 2026</span>
                 </div>
                 <Tip icon="📦" title="Import & Export"
