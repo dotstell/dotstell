@@ -7,7 +7,7 @@ import {
   X, Maximize2, Minimize2, Plus, FileText,
   ChevronRight, ArrowLeft, LayoutTemplate, Download, MoreHorizontal,
   List, ChevronDown, Sparkles, Settings2,
-  AlignLeft, Loader2, RefreshCw, PenLine, Check, CheckSquare, PanelRight,
+  AlignLeft, Loader2, RefreshCw, PenLine, Users, Mic, Check, CheckSquare, PanelRight,
 } from 'lucide-react'
 import type { Editor } from '@tiptap/react'
 import Link from 'next/link'
@@ -21,6 +21,9 @@ import { BacklinksPanel } from '@/components/notes/BacklinksPanel'
 import { AIChatPanel } from '@/components/ai/AIChatPanel'
 import { AIInlineAssist } from '@/components/ai/AIInlineAssist'
 import { AIWritingPanel } from '@/components/ai/AIWritingPanel'
+import { AIMeetingPanel } from '@/components/ai/AIMeetingPanel'
+import { DictationBar, dictationNoticeSeen } from '@/components/editor/DictationBar'
+import { useDictation } from '@/hooks/useDictation'
 import { AIRelatedPanel } from '@/components/ai/AIRelatedPanel'
 import { AISettingsModal } from '@/components/ai/AISettingsModal'
 import { useNoteTabs } from '@/hooks/useNoteTabs'
@@ -94,6 +97,8 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
   const [aiAssist, setAIAssist] = useState<{ text: string; rect: DOMRect; from: number; to: number } | null>(null)
   // AI Writing panel
   const [writingOpen,   setWritingOpen]   = useState(false)
+  const [meetingOpen,   setMeetingOpen]   = useState(false)
+  const [dictationOpen, setDictationOpen] = useState(false)
   const [writingFormat, setWritingFormat] = useState<'outline' | 'meeting' | 'daily' | 'research' | 'ooo' | 'proposal' | 'status' | 'email' | undefined>(undefined)
   // Smart title suggestion
   const { suggest: suggestTitle, loading: titleLoading } = useAITitleSuggest(aiConfig)
@@ -105,6 +110,8 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
   const saveTimer    = useRef<ReturnType<typeof setTimeout> | null>(null)
   const wikiLinkIds  = useRef<string[]>([])
   const editorRef    = useRef<Editor | null>(null)
+  // Text is inserted as a text node, not parsed as HTML, so nothing dictated can be read as markup.
+  const dictation = useDictation(text => { editorRef.current?.chain().focus().insertContent({ type: 'text', text }).run() })
   const lastCheckRef = useRef<HTMLInputElement>(null)
   const prevCheckLen = useRef(0)
   const titleRef     = useRef<HTMLInputElement>(null)
@@ -710,7 +717,7 @@ ${sanitizeHtml(note.content ?? '', 'document')}
               type="button"
               className="touch-target-sm"
               title="AI Writing — draft from scratch or improve existing content"
-              onClick={() => { setWritingFormat(undefined); setWritingOpen(w => !w) }}
+              onClick={() => { setWritingFormat(undefined); setMeetingOpen(false); setWritingOpen(w => !w) }}
               style={{
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
                 padding: compactHeader ? 6 : '5px 10px', borderRadius: 7,
@@ -723,6 +730,54 @@ ${sanitizeHtml(note.content ?? '', 'document')}
               onMouseLeave={e => { if (!writingOpen) { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = 'var(--muted-foreground)' } }}
             >
               <PenLine size={13} />{!compactHeader && ' AI Write'}
+            </button>
+          )}
+
+          {/* Dictation — speak to add text at the cursor (hidden where the browser has no speech recognition) */}
+          {dictation.supported && (
+            <button
+              type="button"
+              className="touch-target-sm"
+              title="Dictate — speak to add text to this note"
+              aria-label="Dictate"
+              aria-pressed={dictation.listening}
+              onClick={() => {
+                if (dictationOpen) { dictation.stop(); setDictationOpen(false); return }
+                setDictationOpen(true)
+                if (dictationNoticeSeen()) dictation.start() // first time, the bar asks before the browser asks for the microphone
+              }}
+              style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
+                padding: compactHeader ? 6 : '5px 10px', borderRadius: 7,
+                border: `1px solid ${dictationOpen ? 'color-mix(in srgb, var(--primary) 40%, transparent)' : 'var(--border)'}`,
+                background: dictationOpen ? 'color-mix(in srgb, var(--primary) 12%, transparent)' : 'none',
+                color: dictationOpen ? 'var(--primary)' : 'var(--muted-foreground)', fontSize: 12, cursor: 'pointer',
+                transition: 'all 0.12s',
+              }}
+            >
+              <Mic size={13} />{!compactHeader && ' Dictate'}
+            </button>
+          )}
+
+          {/* Meeting assistant — summary, decisions and action items from a transcript */}
+          {aiConfigured && (
+            <button
+              type="button"
+              className="touch-target-sm"
+              title="Meeting assistant — summarise a transcript into decisions and action items"
+              onClick={() => { setWritingOpen(false); setMeetingOpen(m => !m) }}
+              style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
+                padding: compactHeader ? 6 : '5px 10px', borderRadius: 7,
+                border: `1px solid ${meetingOpen ? 'color-mix(in srgb, var(--primary) 40%, transparent)' : 'var(--border)'}`,
+                background: meetingOpen ? 'color-mix(in srgb, var(--primary) 12%, transparent)' : 'none',
+                color: meetingOpen ? 'var(--primary)' : 'var(--muted-foreground)', fontSize: 12, cursor: 'pointer',
+                transition: 'all 0.12s',
+              }}
+              onMouseEnter={e => { if (!meetingOpen) { e.currentTarget.style.background = 'var(--accent)'; e.currentTarget.style.color = 'var(--foreground)' } }}
+              onMouseLeave={e => { if (!meetingOpen) { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = 'var(--muted-foreground)' } }}
+            >
+              <Users size={13} />{!compactHeader && ' Meeting'}
             </button>
           )}
 
@@ -1460,6 +1515,36 @@ ${sanitizeHtml(note.content ?? '', 'document')}
             if (editor) editor.commands.setContent(html)
           }}
           onClose={() => { setWritingOpen(false); setWritingFormat(undefined) }}
+        />
+      )}
+
+      {/* Dictation bar */}
+      <DictationBar
+        open={dictationOpen}
+        listening={dictation.listening}
+        interim={dictation.interim}
+        error={dictation.error}
+        lang={dictation.lang}
+        onLang={dictation.setLang}
+        onStart={dictation.start}
+        onStop={dictation.stop}
+        onDismiss={() => { dictation.stop(); setDictationOpen(false) }}
+      />
+
+      {/* Meeting assistant panel */}
+      {meetingOpen && aiConfigured && (
+        <AIMeetingPanel
+          config={aiConfig}
+          noteTitle={note.title}
+          noteId={noteId ?? undefined}
+          onInsert={html => {
+            const editor = editorRef.current
+            if (editor) {
+              const end = editor.state.doc.content.size
+              editor.chain().focus().insertContentAt(end, html).run()
+            }
+          }}
+          onClose={() => setMeetingOpen(false)}
         />
       )}
 

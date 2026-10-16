@@ -12,6 +12,9 @@ import { errorStatus } from '@/lib/ai/error'
 // "timed out" error instead of a bare gateway error.
 export const maxDuration = 60
 
+/** The notes, bookmarks and tasks tables store vector(768) embeddings. */
+const EMBEDDING_DIMENSIONS = 768
+
 // POST /api/ai/semantic-search
 // Body: { config, query, types?, limit? }
 // Embeds the query and finds semantically similar content via pgvector cosine similarity.
@@ -30,8 +33,16 @@ export async function POST(req: NextRequest) {
 
   if (!body.query?.trim()) return NextResponse.json([], { status: 200 })
 
-  const configError = validateConfig(body.config)
-  if (configError) return NextResponse.json({ error: configError }, { status: 400 })
+  // The browser supplies the vector itself when the server cannot reach the user's Ollama; it must match the column.
+  const given: unknown = body.queryEmbedding
+  const queryEmbedding = Array.isArray(given) && given.length === EMBEDDING_DIMENSIONS && given.every(n => typeof n === 'number' && Number.isFinite(n))
+    ? (given as number[])
+    : null
+
+  if (!queryEmbedding) {
+    const configError = validateConfig(body.config)
+    if (configError) return NextResponse.json({ error: configError }, { status: 400 })
+  }
 
   const limit      = Math.min(body.limit ?? 10, 20)
   const validTypes = ['note', 'bookmark', 'task'] as const
@@ -40,7 +51,7 @@ export async function POST(req: NextRequest) {
   )
 
   try {
-    const { embedding } = await embed(body.config, body.query.slice(0, 2000))
+    const embedding = queryEmbedding ?? (await embed(body.config, body.query.slice(0, 2000))).embedding
 
     const results: Array<{
       id:      string

@@ -4,7 +4,7 @@ import { X, Send, Sparkles, User, Loader2, Trash2, Globe, FileText, Users, Copy,
 import { useRouter } from 'next/navigation'
 import { AIConfig, AIMessage } from '@/lib/ai/types'
 import { useAIStream } from '@/hooks/useAI'
-import { streamOllamaBrowser, isLocalHostname } from '@/lib/ai/ollama-browser'
+import { streamOllamaBrowser, embedOllamaBrowser, isLocalHostname } from '@/lib/ai/ollama-browser'
 import { createClient as createSupabaseBrowserClient } from '@/lib/supabase/client'
 import { AIPersonPanel } from './AIPersonPanel'
 import { MarkdownContent } from '@/components/ui/MarkdownContent'
@@ -98,11 +98,17 @@ export function AIChatPanel({ config, noteId, noteTitle, noteContent, onClose }:
     // limited to the current note — running RAG would inject other notes and confuse the model.
     if (ragActive && mode === 'global') {
       try {
+        // On the live site the server cannot reach Ollama on the user's machine, so embed the question here.
+        const queryEmbedding = config.embeddingProvider === 'ollama' && !isLocalHostname()
+          ? await embedOllamaBrowser(config, text)
+          : null
+        if (config.embeddingProvider === 'ollama' && !isLocalHostname() && !queryEmbedding) throw new Error('no query embedding')
         const ragRes = await fetch('/api/ai/semantic-search', {
           method:  'POST',
           headers: { 'Content-Type': 'application/json' },
           body:    JSON.stringify({
             config,
+            queryEmbedding,
             query:  text,
             types:  ['note', 'bookmark', 'task'],
             limit:  5,

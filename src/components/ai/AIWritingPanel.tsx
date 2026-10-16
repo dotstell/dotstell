@@ -4,6 +4,8 @@ import { X, Loader2, Check, Wand2, RefreshCw, ChevronLeft } from 'lucide-react'
 import { AIConfig } from '@/lib/ai/types'
 import { MarkdownContent } from '@/components/ui/MarkdownContent'
 import { marked } from 'marked'
+import { buildWriteMessages } from '@/lib/ai/write-prompts'
+import { completeOllamaBrowser, isLocalHostname } from '@/lib/ai/ollama-browser'
 
 type DraftFormat   = 'outline' | 'meeting' | 'daily' | 'research' | 'ooo' | 'proposal' | 'status' | 'email' | 'custom'
 type ImproveFormat = 'improve_english' | 'formal' | 'concise' | 'expand' | 'rewrite'
@@ -60,6 +62,14 @@ export function AIWritingPanel({
       const body = isEmpty
         ? { config, mode: 'draft',   format: fmt, intent: intent.trim() || undefined, title: noteTitle }
         : { config, mode: 'improve', format: fmt, content: noteContent }
+      if (config.provider === 'ollama' && !isLocalHostname()) {
+        // On the live site the server cannot reach Ollama on the user's computer, so the browser talks to it directly.
+        const built = buildWriteMessages(body)
+        if ('error' in built) throw new Error(built.error)
+        setResult(await completeOllamaBrowser(config, built.messages))
+        setPhase('result')
+        return
+      }
       const res  = await fetch('/api/ai/write', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error ?? 'Writing failed')
