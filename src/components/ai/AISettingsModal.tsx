@@ -3,8 +3,9 @@ import { useState, useEffect, useCallback } from 'react'
 import {
   X, Sparkles, ChevronDown, Check, AlertCircle, Loader2,
   Wifi, Database, RefreshCw, MessageSquareText, Search, Wand2,
-  HelpCircle, ChevronRight,
+  HelpCircle, ChevronRight, Plug,
 } from 'lucide-react'
+import { ConnectAIToolsModal } from './ConnectAIToolsModal'
 import {
   AIConfig, AIProvider, EmbeddingProvider,
   PROVIDER_LABELS, EMBEDDING_PROVIDER_LABELS,
@@ -72,6 +73,7 @@ export function AISettingsModal({ onClose }: AISettingsModalProps) {
   const { theme } = useTheme()
   const isLight = THEME_DEFS.find(d => d.id === theme)?.dark === false
   const [draft,        setDraft]        = useState<AIConfig>(config)
+  const [connectOpen,  setConnectOpen]  = useState(false)
 
   // useAISettings reads localStorage in a useEffect (async), so `config` starts as
   // DEFAULT_AI_CONFIG on first render. Sync draft once the hook has loaded the real value.
@@ -753,6 +755,20 @@ export function AISettingsModal({ onClose }: AISettingsModalProps) {
           )}
         </div>
 
+        {/* ── Connect AI tools (MCP) ── independent of the provider chosen above */}
+        <button
+          type="button"
+          onClick={() => setConnectOpen(true)}
+          style={{ width: '100%', marginTop: 16, padding: '10px 12px', borderRadius: 8, border: '1px solid var(--border)', backgroundColor: 'var(--muted)', color: 'var(--foreground)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10, textAlign: 'left' }}
+        >
+          <Plug size={15} color="var(--primary)" style={{ flexShrink: 0 }} />
+          <span style={{ flex: 1 }}>
+            <span style={{ display: 'block', fontSize: 12, fontWeight: 700 }}>Connect AI tools</span>
+            <span style={{ display: 'block', fontSize: 11, color: 'var(--muted-foreground)' }}>Let Claude, Cursor and others read your notes, read-only</span>
+          </span>
+          <ChevronRight size={14} color="var(--muted-foreground)" />
+        </button>
+
         {/* ── Save / Cancel ── */}
         <div style={{ display: 'flex', gap: 8, paddingTop: 16 }}>
           <button type="button" onClick={onClose} style={{ flex: 1, padding: '9px', borderRadius: 8, border: '1px solid var(--border)', backgroundColor: 'transparent', color: 'var(--foreground)', fontSize: 13, cursor: 'pointer', fontWeight: 500 }}>
@@ -778,6 +794,7 @@ export function AISettingsModal({ onClose }: AISettingsModalProps) {
           </button>
         </div>
       </div>
+      {connectOpen && <ConnectAIToolsModal onClose={() => setConnectOpen(false)} />}
     </div>
   )
 }
