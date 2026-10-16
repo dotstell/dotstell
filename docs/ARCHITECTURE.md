@@ -23,9 +23,10 @@ This document explains how Dotstell is built: the layers, the languages, the dat
    - [Local AI Agent](#local-ai-agent)
    - [Embedding Pipeline](#embedding-pipeline)
    - [AI Security Model](#ai-security-model)
-8. [Request Lifecycle](#request-lifecycle)
-9. [Desktop vs Web](#desktop-vs-web)
-10. [Database Migrations](#database-migrations)
+8. [MCP Server](#mcp-server)
+9. [Request Lifecycle](#request-lifecycle)
+10. [Desktop vs Web](#desktop-vs-web)
+11. [Database Migrations](#database-migrations)
 
 ---
 
@@ -95,6 +96,8 @@ Next.js App Router. Every folder is a route segment.
 ```
 src/app/
 ├── api/                              # REST API (server-side)
+│   ├── mcp/                          # MCP endpoint for outside AI tools (bearer token, read-only)
+│   ├── mcp-tokens/                   # Create, list, revoke tokens and view activity (signed-in session)
 │   ├── ai/                           # AI routes — all require auth + rate limiting
 │   │   ├── chat/                     # Streaming chat (SSE) — all providers
 │   │   ├── assist/                   # Inline text operations (rewrite, expand, fix…)
@@ -192,6 +195,7 @@ src/lib/
 ├── supabase/
 │   ├── client.ts    # Browser-side Supabase client (anon key)
 │   └── server.ts    # Server-side client (uses cookies for session)
+├── mcp/                       # MCP server: token, tools, protocol handler, guard (see MCP.md)
 ├── tiptap/
 │   └── WikiLinkExtension.ts   # Custom Tiptap node: [[Page Title]] syntax
 └── ratelimit.ts               # Simple in-memory rate limiter for API routes
@@ -693,6 +697,26 @@ Results from all three tables are merged and sorted by score. Each result includ
 
 ---
 
+## MCP Server
+
+Outside AI tools (Codex, Claude Code, Cursor, Claude Desktop) read a user's knowledge through `POST /api/mcp`, a hand-written Model Context Protocol endpoint (Streamable HTTP, stateless). It is read-only and has no runtime dependency on an MCP library.
+
+```
+AI tool ──Bearer dst_…──► /api/mcp (route.ts) ──► src/lib/mcp/server.ts ──► tools.ts
+                                                          │                    │
+                                              guard.ts (Origin, size,   database.ts ─► mcp_* SQL functions
+                                              rate limits)                      (security definer, token checked inside)
+```
+
+- **No service-role key.** The endpoint calls `security definer` functions with the anon key. Each function hashes the raw token inside the database, checks it is not revoked or expired, resolves the user, and only then reads that user's rows.
+- **Tokens** (`mcp_tokens`) are created by `/api/mcp-tokens` using the signed-in session. Only a SHA-256 hash is stored; the raw `dst_…` token is shown once. Users can only update `revoked_at`. Activity (`mcp_token_events`) records tool names only, kept 30 days.
+- **UI:** "Connect AI tools (MCP server)" in AI Settings (`src/components/ai/ConnectAIToolsModal.tsx`).
+- **Schema:** `supabase/migrations/012_mcp.sql` (rollback in `supabase/rollback/`). The endpoint answers 503 until it is applied.
+
+Design, threat model and verification: [MCP.md](./MCP.md).
+
+---
+
 ## Request Lifecycle
 
 A typical note save (PATCH) follows this path:
@@ -790,7 +814,9 @@ supabase/migrations/
 ├── 007_notebooks_constraints.sql  # unique (user_id, name) + explicit WITH CHECK policy
 ├── 008_ai_embeddings.sql          # vector(768) columns on notes + bookmarks; enables pgvector
 ├── 009_ai_match_functions.sql     # match_notes() + match_bookmarks() RPC functions for cosine similarity search
-└── 010_tasks_embedding.sql        # vector(768) column on tasks + match_tasks() RPC; tasks now in AI Chat RAG + semantic search
+├── 010_tasks_embedding.sql        # vector(768) column on tasks + match_tasks() RPC; tasks now in AI Chat RAG + semantic search
+├── 011_fix_function_search_paths.sql # pins search_path on existing functions
+└── 012_mcp.sql                    # MCP tokens, activity log and read-only mcp_* functions (see MCP.md)
 ```
 
 > **Note on `007_notebooks_constraints.sql`:** This migration must be run manually in the Supabase SQL Editor. It adds the `UNIQUE(user_id, name)` constraint that prevents duplicate notebook names from producing colliding `nb:` tags. Without it, creating two notebooks with the same name will cause a 500 error instead of a clean 409 conflict response.
