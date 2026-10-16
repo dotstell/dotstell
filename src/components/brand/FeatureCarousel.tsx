@@ -125,6 +125,39 @@ const FEATURES: Array<{
     ],
     mock: <AIIntelMock />,
   },
+  {
+    key: 'meetings', tab: '📝 Meetings', accent: '#f43f5e',
+    headline: 'Turn every meeting into decisions and tasks',
+    desc: 'Paste a transcript, choose a Zoom, Teams or Meet file, or record the meeting. Get a summary, decisions, action items with owners and due dates, and open questions, then review before anything is saved.',
+    bullets: [
+      'Summary, decisions, action items and open questions in one pass',
+      'Dictate into any note, or record a meeting with your own speech key',
+      'Create tasks linked to the people and the note in one click',
+    ],
+    mock: <MeetingsMock />,
+  },
+  {
+    key: 'import-export', tab: '📦 Import & Export', accent: '#14b8a6',
+    headline: 'Bring your notes in. Take them out any time.',
+    desc: 'Move in from Obsidian, Evernote, Google Keep or your contacts with a preview and one-click undo. Export everything as plain files that open in any editor. Your notes are never held hostage.',
+    bullets: [
+      'Import Markdown vaults, Evernote, Google Keep and contacts',
+      'Preview first, undo the whole import afterwards',
+      'Export a zip of Markdown, CSV, bookmarks and a full JSON backup',
+    ],
+    mock: <ImportExportMock />,
+  },
+  {
+    key: 'mcp', tab: '🔌 Connect AI tools', accent: '#38bdf8',
+    headline: 'Ask Codex or Claude about your own notes',
+    desc: 'Connect Codex, Claude Code, Cursor or Claude Desktop to your knowledge with a token you control. They can search and read your notes, tasks, people and meetings. They can never change anything.',
+    bullets: [
+      'Read-only: a connected tool cannot create, edit or delete',
+      'Tokens expire, revoke in one step, and show which tools ran',
+      'Step-by-step setup for each tool, plus example questions',
+    ],
+    mock: <MCPMock />,
+  },
 ]
 
 // ── Inline mocks ──────────────────────────────────────────────────────────────
@@ -443,6 +476,89 @@ function ChatBubble({ role, text }: { role: 'user' | 'ai'; text: string }) {
         {text}
       </div>
     </div>
+  )
+}
+
+const C = {
+  card: 'var(--card)',
+  sec: 'var(--secondary)',
+  border: 'var(--border)',
+  fg: 'var(--foreground)',
+  muted: 'var(--muted-foreground)',
+  dim: 'var(--muted-foreground)',
+  primary: 'var(--primary)',
+  pfg: 'var(--primary-foreground)',
+}
+
+function MeetingsMock() {
+  return (
+    <MockShell title="Meeting assistant · Sprint planning" accent="#f43f5e" noPad>
+      <div style={{ padding: '10px 14px', display: 'flex', flexDirection: 'column', gap: 6 }}>
+        <div>
+          <Label>Summary</Label>
+          <p style={{ fontSize: 11, color: C.muted, lineHeight: 1.6, margin: 0 }}>Ship the new sign-in on Friday; the export moves to next sprint.</p>
+        </div>
+        <div>
+          <Label>Decisions</Label>
+          <p style={{ fontSize: 11, color: C.fg, margin: 0 }}>✓ Ship sign-in Friday &nbsp;·&nbsp; ✓ Export moves to next sprint</p>
+        </div>
+        <div>
+          <Label>Action items</Label>
+          {[['Write the release notes', 'Sam Lee', 'Fri'], ['Update the help page', 'Aiko Tanaka', 'Mon']].map(([t, who, due]) => (
+            <div key={t} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 5, fontSize: 11 }}>
+              <span style={{ flex: 1, color: C.fg }}>{t}</span>
+              <span style={{ color: C.muted }}>{who}</span>
+              <span style={{ padding: '1px 7px', borderRadius: 999, border: `1px solid ${C.border}`, color: C.dim, fontSize: 10 }}>{due}</span>
+            </div>
+          ))}
+        </div>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <span style={{ fontSize: 11, padding: '5px 10px', borderRadius: 6, background: C.primary, color: C.pfg, fontWeight: 600 }}>Insert into note</span>
+          <span style={{ fontSize: 11, padding: '5px 10px', borderRadius: 6, border: `1px solid ${C.border}`, color: C.fg }}>Create tasks</span>
+        </div>
+      </div>
+    </MockShell>
+  )
+}
+
+function ImportExportMock() {
+  return (
+    <MockShell title="Import & Export" accent="#14b8a6" noPad>
+      <div style={{ display: 'flex', height: '100%' }}>
+        <div style={{ flex: 1, borderRight: `1px solid ${C.border}`, padding: '12px', display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <Label>Import</Label>
+          {['Obsidian and Markdown', 'Evernote (.enex)', 'Google Keep', 'Contacts (.vcf, .csv)'].map(t => (
+            <div key={t} style={{ fontSize: 11, padding: '5px 9px', borderRadius: 6, background: C.sec, color: C.fg, border: `1px solid ${C.border}` }}>{t}</div>
+          ))}
+          <p style={{ fontSize: 10, color: C.dim, margin: '2px 0 0' }}>Preview first. Undo any time.</p>
+        </div>
+        <div style={{ flex: 1, padding: '12px', display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <Label>Export everything</Label>
+          {['notes/ as Markdown', 'people/ and tasks', 'bookmarks.html', 'full JSON backup'].map(t => (
+            <div key={t} style={{ fontSize: 11, padding: '5px 9px', borderRadius: 6, background: C.sec, color: C.fg, border: `1px solid ${C.border}` }}>{t}</div>
+          ))}
+          <span style={{ marginTop: 2, fontSize: 11, padding: '6px 10px', borderRadius: 6, background: '#14b8a6', color: '#fff', fontWeight: 600, textAlign: 'center' }}>Download .zip</span>
+        </div>
+      </div>
+    </MockShell>
+  )
+}
+
+function MCPMock() {
+  return (
+    <MockShell title="Codex · dotstell connected" accent="#38bdf8" noPad>
+      <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+        <div style={{ flex: 1, padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 9, overflow: 'hidden' }}>
+          <ChatBubble role="user" text="Use dotstell to list my meetings from this week." />
+          <div style={{ fontSize: 10, fontFamily: 'ui-monospace, monospace', color: '#38bdf8', padding: '4px 8px', borderRadius: 6, border: '1px solid rgba(56,189,248,0.3)', background: 'rgba(56,189,248,0.08)', alignSelf: 'flex-start' }}>🔌 dotstell · list_meetings</div>
+          <ChatBubble role="ai" text="3 meetings: Sprint planning (Mon), 1:1 with Marcus (Wed), Design review (Thu). The sign-in launch was decided on Monday." />
+        </div>
+        <div style={{ padding: '8px 14px', borderTop: `1px solid ${C.border}`, display: 'flex', justifyContent: 'space-between', fontSize: 10, color: C.dim }}>
+          <span>Read-only · token dst_ab12…</span>
+          <span>Revoke any time</span>
+        </div>
+      </div>
+    </MockShell>
   )
 }
 
