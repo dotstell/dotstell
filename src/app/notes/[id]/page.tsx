@@ -110,6 +110,8 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
   const saveTimer    = useRef<ReturnType<typeof setTimeout> | null>(null)
   const wikiLinkIds  = useRef<string[]>([])
   const editorRef    = useRef<Editor | null>(null)
+  // The newest note state, for work that has to wait until an editor update has been applied
+  const latestNote   = useRef<Partial<Note>>({})
   // Text is inserted as a text node, not parsed as HTML, so nothing dictated can be read as markup.
   const dictation = useDictation(text => { editorRef.current?.chain().focus().insertContent({ type: 'text', text }).run() })
   const lastCheckRef = useRef<HTMLInputElement>(null)
@@ -384,6 +386,18 @@ ${sanitizeHtml(note.content ?? '', 'document')}
   // Debounce saves by 1.5s — every keystroke resets the timer; the API call only
   // fires once the user pauses. This keeps network traffic low while still saving
   // quickly enough that switching notes rarely loses content.
+  useEffect(() => { latestNote.current = note }, [note])
+
+  /** Marks the note as a meeting so MCP tools can list it. Waits a beat so the text just inserted is already in the note. */
+  function tagAsMeeting() {
+    setTimeout(() => {
+      const current = latestNote.current
+      if (current.tags?.includes('meeting')) return
+      const updated = { ...current, tags: [...(current.tags ?? []), 'meeting'] }
+      setNote(updated); scheduleAutoSave(updated)
+    }, 150)
+  }
+
   function scheduleAutoSave(updates: Partial<Note>) {
     setSaveStatus('unsaved')
     if (saveTimer.current) clearTimeout(saveTimer.current)
@@ -1542,6 +1556,7 @@ ${sanitizeHtml(note.content ?? '', 'document')}
             if (editor) {
               const end = editor.state.doc.content.size
               editor.chain().focus().insertContentAt(end, html).run()
+              tagAsMeeting()
             }
           }}
           onClose={() => setMeetingOpen(false)}

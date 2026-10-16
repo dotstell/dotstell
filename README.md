@@ -177,6 +177,7 @@ Dotstell ships a complete AI layer. All features work with five provider options
 
 **AI features:**
 - **Meeting assistant** — paste or upload a Zoom, Teams or Meet transcript (or record the meeting) and get a summary, decisions and action items; turn action items into linked tasks. Dictate into any note by voice
+- **Connect AI tools (MCP server)** — let Codex, Claude Code, Cursor and Claude Desktop read your notes, bookmarks, tasks, people and meetings with a revocable, read-only token (see [docs/MCP.md](docs/MCP.md))
 - **AI Writing Assistant** — draft notes from scratch using 8 starter templates (Outline, Meeting notes, Daily log, Research note, OoO email, Proposal, Status update, Email draft) or a custom prompt; improve existing notes with one-click actions (Improve English, Make formal, Make concise, Expand, Full rewrite)
 - **AI Chat** — slide-out panel with RAG (semantic search grounds answers in your notes, bookmarks, and tasks), "This note" and "All knowledge" modes, People tab for person intelligence
 - **Inline Assist** — select text → rewrite / expand / shorten / fix grammar / outline / checklist / explain
@@ -304,6 +305,7 @@ The full annotated directory tree is in [docs/ARCHITECTURE.md](docs/ARCHITECTURE
 | AI Writing Assistant — draft from scratch (8 templates) + improve existing content | ✅ Live (v0.5.0) |
 | Import (Markdown, Evernote, Google Keep, contacts) and full Export | ✅ Live (v0.7.0) |
 | Meetings — transcript summary, decisions and action items, dictation, recording | ✅ Live (v0.8.0) |
+| MCP server — AI tools read your knowledge, read-only, with revocable tokens | ✅ Live (v0.9.0) |
 | Docs (per-project documentation) | 🔜 Soon |
 | Browser extension | 🔜 Planned |
 | Integrations (Slack, Teams, etc.) | 🔜 Planned |
