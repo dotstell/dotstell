@@ -1,4 +1,4 @@
-import { AIConfig, AIMessage } from '../types'
+import { AIConfig, AIMessage, ChatOptions } from '../types'
 import { providerError, extractMessage } from '../error'
 
 const ALLOWED_BASE_URL_HOSTS = [
@@ -48,6 +48,7 @@ function adaptMessages(config: AIConfig, messages: AIMessage[]): AIMessage[] {
 export async function openaiStream(
   config: AIConfig,
   messages: AIMessage[],
+  opts: ChatOptions = {},
 ): Promise<ReadableStream<Uint8Array>> {
   const baseUrl = config.baseUrl?.replace(/\/$/, '') || 'https://api.openai.com/v1'
   // Validate the baseUrl hostname when a custom one is provided (skip Ollama — it uses assertLocalhost)
@@ -60,7 +61,13 @@ export async function openaiStream(
       'Content-Type': 'application/json',
       Authorization: `Bearer ${config.apiKey ?? ''}`,
     },
-    body:   JSON.stringify({ model: config.model, messages: adaptMessages(config, messages), stream: true }),
+    body:   JSON.stringify({
+      model: config.model, messages: adaptMessages(config, messages), stream: true,
+      // The first-generation o1 models reject response_format; everything else here accepts it.
+      ...(opts.json && !NO_SYSTEM_ROLE_MODELS.test(config.model ?? '') ? { response_format: { type: 'json_object' } } : {}),
+      // OpenAI's newer reasoning models reject a temperature, so it is only sent to the providers that run smaller models.
+      ...(opts.temperature !== undefined && (config.provider === 'ollama' || config.provider === 'groq') ? { temperature: opts.temperature } : {}),
+    }),
     signal: AbortSignal.timeout(30_000),
   })
 
@@ -80,10 +87,12 @@ export async function openaiStream(
 export async function groqStream(
   config: AIConfig,
   messages: AIMessage[],
+  opts: ChatOptions = {},
 ): Promise<ReadableStream<Uint8Array>> {
   return openaiStream(
     { ...config, baseUrl: 'https://api.groq.com/openai/v1' },
     messages,
+    opts,
   )
 }
 

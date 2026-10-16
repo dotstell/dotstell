@@ -15,6 +15,13 @@ export interface AIConfig {
   embeddingBaseUrl?: string   // Ollama embedding endpoint if different from baseUrl
 }
 
+/** Per-request options. `json` asks the provider for a JSON object reply where it has a mode for that. */
+export interface ChatOptions {
+  json?: boolean
+  /** Used by providers that run smaller models (Ollama, Groq); lower is more repeatable. Ignored elsewhere. */
+  temperature?: number
+}
+
 export interface AIMessage {
   role:    'system' | 'user' | 'assistant'
   content: string

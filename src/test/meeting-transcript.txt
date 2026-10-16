@@ -1,0 +1,21 @@
+Aiko Tanaka: Okay, let's get started. This is the weekly platform reliability sync. Main topics today are the release schedule, the on-call rotation, and the database migration.
+Sam Lee: Before we start, quick note that I'm out next Thursday, so someone needs to cover my on-call shift.
+Aiko Tanaka: Noted. Carlos, can you take Sam's shift next Thursday?
+Carlos Mendoza: Yes, I can cover that. I'll swap it in the rota today.
+Aiko Tanaka: Great. Now the release. Where are we on the 4.2 release?
+Sam Lee: Code freeze was yesterday. QA found two blocking bugs, one in the export flow and one in login for SSO users. The export bug is fixed. The SSO one is still open.
+Priya Nair: I looked at the SSO bug this morning. It's a redirect loop when the identity provider returns a lowercase tenant id. I can have a fix ready by tomorrow afternoon.
+Aiko Tanaka: Good. If Priya's fix lands tomorrow, can we still ship on Friday?
+Sam Lee: If QA gets a day to retest, yes. I'd say we ship Friday, but only if the SSO fix is merged by Wednesday evening. Otherwise we slip to the following Tuesday.
+Aiko Tanaka: Let's decide: we target Friday, and Wednesday evening is the cutoff. If the fix isn't in, we move to Tuesday without further discussion.
+Carlos Mendoza: Agreed. I'll tell the customer success team about both dates so they can plan announcements.
+Aiko Tanaka: Thanks Carlos. Next topic, the database migration to the new cluster.
+Priya Nair: The dry run on staging took four hours, which is longer than the two hours we planned. Most of the time was the index rebuild on the events table.
+Sam Lee: We could drop the unused indexes before the migration. I think there are three on the events table that nothing queries.
+Aiko Tanaka: Can you verify that? I don't want to drop something that a report depends on.
+Sam Lee: Yes, I'll check the query logs and send a list of safe-to-drop indexes by Monday the 26th.
+Aiko Tanaka: Good. Open question: do we do the migration in a weekend window or accept a rolling approach with brief read-only periods?
+Priya Nair: I prefer the weekend window, it's simpler. But I don't know if the finance team has a month-end close that weekend.
+Aiko Tanaka: Right, we don't know yet. Carlos, can you ask finance about the month-end calendar?
+Carlos Mendoza: Sure, I'll email them and report back at the next sync.
+Aiko Tanaka: Anything else? No? Then thanks everyone, we're done.

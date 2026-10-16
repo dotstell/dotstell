@@ -5,7 +5,9 @@ import { AIConfig } from '@/lib/ai/types'
 import { parseTranscript, MAX_TRANSCRIPT_CHARS } from '@/lib/meetings/transcript'
 import { digestToHtml, isoDue, type ActionItem, type MeetingDigest } from '@/lib/meetings/digest'
 import { summariseMeeting } from '@/lib/meetings/run'
-import { transcribeAudio, transcriptionTarget } from '@/lib/voice/transcribe'
+import { completeOllamaBrowser, isLocalHostname } from '@/lib/ai/ollama-browser'
+import { SPEECH_PROVIDER_NAMES, transcribeAudio, transcriptionTarget, type SpeechProvider } from '@/lib/voice/transcribe'
+import { loadSpeechSettings, saveSpeechSettings } from '@/lib/voice/settings'
 import { useRecorder } from '@/hooks/useRecorder'
 
 const MAX_FILE_BYTES = 2 * 1024 * 1024
@@ -47,18 +49,34 @@ export function AIMeetingPanel({ config, noteTitle, noteId, onInsert, onClose }:
   const [creating, setCreating] = useState(false)
   const [created, setCreated] = useState<number | null>(null)
   const [tabAudio, setTabAudio] = useState(false)
+  const [own, setOwn] = useState(loadSpeechSettings)
+  const [setup, setSetup] = useState(false)
+  const [setupProvider, setSetupProvider] = useState<SpeechProvider>('groq')
+  const [setupKey, setSetupKey] = useState('')
   const abortRef = useRef<AbortController | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
 
   const parsed = useMemo(() => (raw.trim() ? parseTranscript(raw) : null), [raw])
 
-  const target = useMemo(() => transcriptionTarget(config), [config])
+  const target = useMemo(() => transcriptionTarget(config, own), [config, own])
   const recorder = useRecorder({
-    transcribe: audio => (target ? transcribeAudio(audio, target) : Promise.reject(new Error('Add an OpenAI or Groq key in AI Settings to transcribe recordings.'))),
+    transcribe: audio => (target ? transcribeAudio(audio, target) : Promise.reject(new Error('Choose a speech service in the recording box to transcribe recordings.'))),
     onText: text => setRaw(prev => prev + text),
   })
   const recording = recorder.status !== 'idle'
   const busyTranscribing = recording || recorder.inFlight > 0
+
+  function saveSetup() {
+    if (!setupKey.trim()) return
+    const settings = { provider: setupProvider, apiKey: setupKey.trim() }
+    saveSpeechSettings(settings)
+    setOwn(settings); setSetupKey(''); setSetup(false)
+  }
+
+  function clearSetup() {
+    saveSpeechSettings(null)
+    setOwn(null); setSetup(false)
+  }
 
   function close() {
     if (recording && !window.confirm('A recording is in progress. Stop it and close?')) return
@@ -89,6 +107,10 @@ export function AIMeetingPanel({ config, noteTitle, noteId, onInsert, onClose }:
     try {
       const result = await summariseMeeting(parsed.text, {
         config, title: title.trim() || undefined, attendees: parsed.speakers, signal: ctl.signal,
+        // On the live site the server cannot reach Ollama on the user's computer, so the browser talks to it (through the local agent).
+        completeLocal: config.provider === 'ollama' && !isLocalHostname()
+          ? messages => completeOllamaBrowser(config, messages, { json: true, numCtx: 8192, temperature: 0.1 })
+          : undefined,
         onProgress: (done, total) => setProgress([done, total]),
       })
       setDigest(result)
@@ -128,7 +150,7 @@ export function AIMeetingPanel({ config, noteTitle, noteId, onInsert, onClose }:
     for (const [index, item] of digest.actionItems.entries()) {
       if (!picked.has(index)) continue
       const person = matchPerson(item.owner, people)
-      const due = isoDue(item.due)
+      const due = isoDue(item.due, parsed?.text)
       const notes = [title.trim() && `From the meeting "${title.trim()}".`, item.owner && !person && `Owner: ${item.owner}.`, item.due && !due && `Due: ${item.due}.`].filter(Boolean).join(' ')
       try {
         const res = await fetch('/api/tasks', {
@@ -207,10 +229,24 @@ export function AIMeetingPanel({ config, noteTitle, noteId, onInsert, onClose }:
             {recorder.supported && (
               <div style={{ border: '1px solid var(--border)', borderRadius: 10, padding: 12, display: 'flex', flexDirection: 'column', gap: 8, backgroundColor: 'var(--muted)' }}>
                 <p style={{ margin: 0, fontSize: 12, fontWeight: 600, color: 'var(--foreground)' }}>Record a meeting</p>
-                {!target ? (
-                  <p style={{ margin: 0, fontSize: 11, color: 'var(--muted-foreground)', lineHeight: 1.5 }}>
-                    Recording is turned into text by OpenAI or Groq. Add one of those keys in AI Settings to use it. Pasting a transcript, choosing a file and dictation work without it.
-                  </p>
+                {!target || setup ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <p style={{ margin: 0, fontSize: 11, color: 'var(--muted-foreground)', lineHeight: 1.5 }}>
+                      {!target
+                        ? `Recording is turned into text by a speech service, and ${PROVIDER_NAMES[config.provider]} cannot do that. `
+                        : 'Choose the speech service to use for recordings. '}
+                      Pick one and paste its key; it stays in this browser. Groq and Google AI Studio offer free keys with limits. Pasting a transcript, choosing a file and dictation need no key.
+                    </p>
+                    <select value={setupProvider} onChange={e => setSetupProvider(e.target.value as SpeechProvider)} aria-label="Speech service" style={{ ...inputStyle, padding: '6px 8px' }}>
+                      {(Object.keys(SPEECH_PROVIDER_NAMES) as SpeechProvider[]).map(k => <option key={k} value={k}>{SPEECH_PROVIDER_NAMES[k]}</option>)}
+                    </select>
+                    <input type="password" value={setupKey} onChange={e => setSetupKey(e.target.value)} placeholder="API key" aria-label="Speech service API key" autoComplete="off" style={inputStyle} />
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <button type="button" onClick={saveSetup} disabled={!setupKey.trim()} style={{ ...secondaryBtn, opacity: setupKey.trim() ? 1 : 0.5 }}>Save key</button>
+                      {target && <button type="button" onClick={() => setSetup(false)} style={secondaryBtn}>Cancel</button>}
+                      {own && <button type="button" onClick={clearSetup} style={{ ...secondaryBtn, marginLeft: 'auto' }}>Remove saved key</button>}
+                    </div>
+                  </div>
                 ) : (
                   <>
                     {recording ? (
@@ -243,7 +279,8 @@ export function AIMeetingPanel({ config, noteTitle, noteId, onInsert, onClose }:
                     )}
                     {recorder.error && <p role="alert" style={{ margin: 0, fontSize: 12, color: '#f87171' }}>{recorder.error}</p>}
                     <p style={{ margin: 0, fontSize: 11, color: 'var(--muted-foreground)', lineHeight: 1.5 }}>
-                      Tell everyone you are recording. The sound is sent to {target.provider === 'openai' ? 'OpenAI' : 'Groq'} with your key to be turned into text. dotstell does not receive or keep the audio.
+                      Tell everyone you are recording. The sound is sent to {SPEECH_PROVIDER_NAMES[target.provider]} with your key to be turned into text. dotstell does not receive or keep the audio.
+                      {!recording && <> <button type="button" onClick={() => { setSetupProvider(target.provider); setSetup(true) }} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: 'var(--primary)', textDecoration: 'underline', fontSize: 11 }}>Change speech service</button></>}
                     </p>
                   </>
                 )}
@@ -273,7 +310,7 @@ export function AIMeetingPanel({ config, noteTitle, noteId, onInsert, onClose }:
           <div role="status" aria-live="polite" style={{ display: 'flex', flexDirection: 'column', gap: 12, padding: '24px 0', alignItems: 'center' }}>
             <Loader2 size={22} color="var(--primary)" style={{ animation: 'spin 1s linear infinite' }} />
             <p style={{ margin: 0, fontSize: 13, color: 'var(--foreground)' }}>
-              {total > 1 ? (done >= total ? 'Finishing…' : `Reading part ${Math.min(done + 1, total - 1)} of ${total - 1}…`) : 'Reading the transcript…'}
+              {total > 1 ? (done >= total ? 'Finishing…' : `Working through the meeting… step ${done + 1} of ${total}`) : 'Reading the transcript…'}
             </p>
             <div style={{ width: '100%', height: 4, borderRadius: 4, backgroundColor: 'var(--muted)' }}>
               <div style={{ width: `${Math.round((done / total) * 100)}%`, height: '100%', borderRadius: 4, backgroundColor: 'var(--primary)', transition: 'width 0.3s' }} />

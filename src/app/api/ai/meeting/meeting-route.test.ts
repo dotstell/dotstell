@@ -3,7 +3,7 @@ import { NextRequest } from 'next/server'
 
 let signedIn = true
 let reply = ''
-const completeMock = vi.fn<(config: unknown, messages: { content: string }[]) => Promise<string>>(async () => reply)
+const completeMock = vi.fn<(config: unknown, messages: { content: string }[], opts?: { json?: boolean }) => Promise<string>>(async () => reply)
 
 vi.mock('@/lib/supabase/server', () => ({
   createClient: async () => ({ auth: { getUser: async () => ({ data: { user: signedIn ? { id: 'u1' } : null } }) } }),
@@ -55,5 +55,31 @@ describe('POST /api/ai/meeting', () => {
     const res = await POST(post({ config, mode: 'chunk', text: 'hello' }))
     expect(res.status).toBe(502)
     expect((await res.json()).error).toMatch(/Try again/)
+  })
+})
+
+describe('JSON mode in the route', () => {
+  beforeEach(() => { vi.resetModules(); signedIn = true; reply = good; completeMock.mockClear() })
+
+  it('asks the provider for JSON mode', async () => {
+    const { POST } = await import('./route')
+    await POST(post({ config, mode: 'chunk', text: 'hello' }))
+    expect(completeMock.mock.calls[0][2]).toEqual({ json: true, temperature: 0.1 })
+  })
+
+  it('asks again without JSON mode when the provider rejects it, but not for other errors', async () => {
+    const { providerError } = await import('@/lib/ai/error')
+    const { POST } = await import('./route')
+
+    completeMock.mockReset()
+    completeMock.mockRejectedValueOnce(providerError('Groq', 400, 'response_format unsupported')).mockResolvedValueOnce(good)
+    expect((await POST(post({ config, mode: 'chunk', text: 'hello' }))).status).toBe(200)
+    expect(completeMock.mock.calls.map(c => c[2])).toEqual([{ json: true, temperature: 0.1 }, undefined])
+
+    completeMock.mockReset()
+    completeMock.mockRejectedValue(providerError('Groq', 401, 'bad key'))
+    const res = await POST(post({ config, mode: 'chunk', text: 'hello' }))
+    expect(res.status).toBe(401)
+    expect(completeMock).toHaveBeenCalledTimes(1)
   })
 })

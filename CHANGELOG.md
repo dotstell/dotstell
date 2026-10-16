@@ -12,7 +12,13 @@ All notable changes to Dotstell are documented here.
 - **Zoom, Teams and Google Meet transcripts** — `.vtt`, `.srt` and `.txt` files are understood, including Zoom's audio-transcript and chat files. Speakers are detected and passed on as attendees. Long meetings are read in parts with a progress bar and a Cancel button
 - **Action items become tasks** — tick the ones you want and create them in one click. Owners that match someone in People are linked to them, dates written as `2026-10-30` become due dates, and the tasks are linked back to the note
 - **Dictate** — speak and the words are added at the cursor, in 12 languages, using your browser's speech recognition. You are told where the audio goes the first time
-- **Record a meeting** — record your microphone, and optionally a shared browser tab for online meetings, and watch the transcript fill in as you go. Speech-to-text uses your own OpenAI or Groq key, sent straight from your browser; dotstell does not receive or keep the audio
+- **Record a meeting** — record your microphone, and optionally a shared browser tab for online meetings, and watch the transcript fill in as you go. Speech-to-text uses your own OpenAI, Groq or Gemini key, sent straight from your browser; dotstell does not receive or keep the audio. If your chat provider is Anthropic or Ollama, which cannot transcribe, add a separate speech key in the recording box
+
+### 🤖 Works with every AI provider
+
+- Summaries work with OpenAI, Anthropic, Gemini, Groq and Ollama; providers that have a JSON mode are asked to use it. Small local models are read in small parts, which found noticeably more action items in testing
+- **Ollama on the live site** now works for Meetings and AI Write: the browser talks to Ollama through the Local AI Agent, as Chat already did. Previously these two features asked the dotstell server, which cannot reach your computer
+- Dates are only turned into due dates when they were actually said (a small model had invented a year for "Monday the 26th"), and the combine step can no longer drop a task
 
 ### 🛡️ Privacy and safety
 

@@ -29,7 +29,7 @@ const cleanList = (v: unknown): string[] =>
 /** Null for the many ways a model says "nobody" or "none". */
 function optional(v: unknown, max = 80): string | null {
   const s = clean(v, max)
-  return !s || /^(null|none|n\/a|unknown|unassigned|nobody|tbd|-)$/i.test(s) ? null : s
+  return !s || /^(null|none|n\/?a|unknown|unassigned|nobody|tbd|unspecified|not (specified|mentioned|stated|given|provided|assigned)|[-—–])$/i.test(s) ? null : s
 }
 
 /** Finds the first complete {...} object in the text, ignoring braces inside strings. */
@@ -96,22 +96,53 @@ function uniqueBy<T>(items: T[], key: (item: T) => string): T[] {
   return out.slice(0, MAX_LIST)
 }
 
+const words = (s: string) => new Set(s.toLowerCase().split(/[^a-z0-9぀-鿿]+/).filter(w => w.length > 2 || /^\d+$/.test(w)))
+
+/** Two owners can be the same person: equal names, or one part did not name anybody. */
+const compatibleOwners = (a: string | null, b: string | null) => !a || !b || a.toLowerCase() === b.toLowerCase()
+
+/**
+ * The same task worded twice: identical text, or mostly the same words (for tasks long enough to compare), from the
+ * same or an unnamed owner. The same words for two different people are two tasks.
+ */
+function sameAction(a: ActionItem, b: ActionItem): boolean {
+  if (!compatibleOwners(a.owner, b.owner)) return false
+  if (sameText(a.text, b.text)) return true
+  const x = words(a.text), y = words(b.text)
+  if (Math.min(x.size, y.size) < 3) return false
+  let shared = 0
+  for (const w of x) if (y.has(w)) shared++
+  return shared / Math.min(x.size, y.size) >= 0.75
+}
+
+/** Action items from several parts with repeats removed. Nothing is dropped unless it is a repeat. */
+export function mergeActionItems(items: ActionItem[]): ActionItem[] {
+  const out: ActionItem[] = []
+  for (const item of items) if (!out.some(o => sameAction(o, item))) out.push(item)
+  return out.slice(0, MAX_LIST)
+}
+
 /** Combines the notes of several parts without the model: used when the final merge step fails. */
 export function mergeDigests(parts: MeetingDigest[]): MeetingDigest {
   return {
     summary: parts.map(p => p.summary).filter(Boolean).join(' ').slice(0, MAX_SUMMARY),
     keyPoints: uniqueBy(parts.flatMap(p => p.keyPoints), s => s),
     decisions: uniqueBy(parts.flatMap(p => p.decisions), s => s),
-    actionItems: uniqueBy(parts.flatMap(p => p.actionItems), a => a.text),
+    actionItems: mergeActionItems(parts.flatMap(p => p.actionItems)),
     openQuestions: uniqueBy(parts.flatMap(p => p.openQuestions), s => s),
   }
 }
 
-/** An ISO date (YYYY-MM-DD) when the deadline is one, otherwise null. Words like "Friday" are left to the person. */
-export function isoDue(due: string | null): string | null {
+/**
+ * An ISO date (YYYY-MM-DD) when the deadline is one, otherwise null. Words like "Friday" are left to the person.
+ * When the transcript is given, the date must appear in it: small models invent a year for "Monday the 26th", and a
+ * wrong due date on a task is worse than none.
+ */
+export function isoDue(due: string | null, transcript?: string): string | null {
   if (!due) return null
   const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(due.trim())
   if (!m) return null
+  if (transcript !== undefined && !transcript.includes(m[0])) return null
   const date = new Date(Date.UTC(+m[1], +m[2] - 1, +m[3]))
   return date.getUTCFullYear() === +m[1] && date.getUTCMonth() === +m[2] - 1 && date.getUTCDate() === +m[3] ? m[0] : null
 }

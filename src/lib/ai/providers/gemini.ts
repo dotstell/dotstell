@@ -1,4 +1,4 @@
-import { AIConfig, AIMessage } from '../types'
+import { AIConfig, AIMessage, ChatOptions } from '../types'
 import { providerError, extractMessage } from '../error'
 
 const GEMINI_BASE = 'https://generativelanguage.googleapis.com/v1beta'
@@ -13,6 +13,7 @@ const GEMINI_BASE = 'https://generativelanguage.googleapis.com/v1beta'
 export async function geminiStream(
   config: AIConfig,
   messages: AIMessage[],
+  opts: ChatOptions = {},
 ): Promise<ReadableStream<Uint8Array>> {
   // Gemini separates system instruction from the conversation
   const systemMsg = messages.find(m => m.role === 'system')?.content ?? ''
@@ -26,6 +27,7 @@ export async function geminiStream(
 
   const body: Record<string, unknown> = { contents: chatMsgs }
   if (systemMsg) body.systemInstruction = { parts: [{ text: systemMsg }] }
+  if (opts.json) body.generationConfig = { responseMimeType: 'application/json' }
 
   const url = `${GEMINI_BASE}/models/${config.model}:streamGenerateContent?alt=sse`
 

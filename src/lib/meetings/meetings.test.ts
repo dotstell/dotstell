@@ -189,3 +189,96 @@ describe('summariseMeeting', () => {
     await expect(summariseMeeting(longTranscript, { config, fetchImpl, signal: ctl.signal })).rejects.toThrow()
   })
 })
+
+describe('providers and safety of what the model says', () => {
+  const config = { provider: 'ollama', model: 'm', embeddingProvider: 'ollama', embeddingModel: 'e' } as AIConfig
+  const reply = JSON.stringify({ summary: 'Local.', keyPoints: [], decisions: [], actionItems: [{ text: 'Do it', owner: 'Sam', due: 'Monday the 26th' }], openQuestions: [] })
+
+  it('runs Ollama from the browser without calling the dotstell server', async () => {
+    const seen: string[][] = []
+    const fetchImpl = (async () => { throw new Error('must not call the server') }) as unknown as typeof fetch
+    const d = await summariseMeeting('Aiko: hello there', {
+      config, fetchImpl,
+      completeLocal: async messages => { seen.push(messages.map(m => m.role)); return reply },
+    })
+    expect(d.summary).toBe('Local.')
+    expect(seen).toEqual([['system', 'user']])
+  })
+
+  it('reports an unusable local reply', async () => {
+    await expect(summariseMeeting('Aiko: hello', { config, completeLocal: async () => 'I cannot do that' })).rejects.toThrow('did not return usable notes')
+  })
+
+  it('uses smaller pieces for Ollama than for hosted providers', async () => {
+    const text = Array.from({ length: 400 }, (_, i) => `Aiko: ${'word '.repeat(20)}${i}`).join('\n')
+    let local = 0, hosted = 0
+    await summariseMeeting(text, { config, completeLocal: async () => { local++; return reply } })
+    const fetchImpl = (async () => new Response(JSON.stringify({ digest: JSON.parse(reply) }))) as unknown as typeof fetch
+    const openai = { ...config, provider: 'openai' } as AIConfig
+    await summariseMeeting(text, { config: openai, fetchImpl: (async (...a: Parameters<typeof fetch>) => { hosted++; return fetchImpl(...a) }) as typeof fetch })
+    expect(local).toBeGreaterThan(hosted)
+  })
+
+  it('treats "Not specified" and similar as no value', () => {
+    const d = parseDigest(JSON.stringify({ summary: 's', actionItems: [{ text: 'a', owner: 'Not specified', due: 'N/A' }, { text: 'b', owner: 'Unassigned', due: 'not mentioned' }] }))
+    expect(d?.actionItems.every(a => a.owner === null && a.due === null)).toBe(true)
+  })
+
+  it('only trusts an ISO due date that appears in the transcript', () => {
+    expect(isoDue('2023-04-26', 'Sam: by Monday the 26th')).toBeNull() // a year the model invented
+    expect(isoDue('2026-10-30', 'Sam: notes by 2026-10-30')).toBe('2026-10-30')
+    expect(isoDue('2026-10-30')).toBe('2026-10-30')
+  })
+})
+
+describe('action items are never lost when combining', () => {
+  const config = { provider: 'openai', model: 'm', embeddingProvider: 'openai', embeddingModel: 'e' } as AIConfig
+  const part = (action: { text: string; owner: string | null }) => ({ summary: 's', keyPoints: [], decisions: [], openQuestions: [], actionItems: [{ ...action, due: null }] })
+  const text = Array.from({ length: 400 }, (_, i) => `Aiko: ${'word '.repeat(20)}${i}`).join('\n')
+
+  it('keeps every distinct task even when the model combines them into one', async () => {
+    let n = 0
+    const fetchImpl = (async (_u: string, init: RequestInit) => {
+      const b = JSON.parse(String(init.body))
+      return new Response(JSON.stringify({ digest: b.mode === 'combine'
+        ? { ...part({ text: 'Only one survived', owner: null }), summary: 'Whole.' }
+        : part({ text: `Task number ${++n} for someone`, owner: `Person ${n}` }) }))
+    }) as unknown as typeof fetch
+    const d = await summariseMeeting(text, { config, fetchImpl })
+    expect(d.summary).toBe('Whole.')
+    expect(d.actionItems.length).toBeGreaterThanOrEqual(2)
+    expect(d.actionItems.map(a => a.text)).not.toContain('Only one survived')
+  })
+
+  it('still removes the same task worded twice', () => {
+    const a = { summary: '', keyPoints: [], decisions: [], openQuestions: [], actionItems: [{ text: 'Send the updated release plan to finance', owner: 'Sam', due: null }] }
+    const b = { ...a, actionItems: [{ text: 'Send updated release plan to the finance team', owner: 'sam', due: null }, { text: 'Send the updated release plan to finance', owner: 'Priya', due: null }] }
+    expect(mergeDigests([a, b]).actionItems.map(x => x.owner)).toEqual(['Sam', 'Priya'])
+  })
+})
+
+describe('long meetings on a small local model', () => {
+  const config = { provider: 'ollama', model: 'm', embeddingProvider: 'ollama', embeddingModel: 'e' } as AIConfig
+  const text = Array.from({ length: 800 }, (_, i) => `Aiko: ${'word '.repeat(20)}${i}`).join('\n') // ~80k characters
+
+  it('merges many pieces in groups that fit a small context window, and loses no task', async () => {
+    let chunkCalls = 0
+    const combineSizes: number[] = []
+    const progress: [number, number][] = []
+    const completeLocal = async (messages: { role: string; content: string }[]) => {
+      if (messages[0].content.startsWith('You turn part')) {
+        chunkCalls++
+        return JSON.stringify({ summary: `Piece ${chunkCalls}.`, keyPoints: [], decisions: [], openQuestions: [], actionItems: [{ text: `Unique job number ${chunkCalls} for the team`, owner: `Owner ${chunkCalls}`, due: null }] })
+      }
+      combineSizes.push(JSON.parse(messages[1].content).length)
+      return JSON.stringify({ summary: 'Merged.', keyPoints: [], decisions: [], openQuestions: [], actionItems: [{ text: 'Only this survived', owner: null, due: null }] })
+    }
+    const d = await summariseMeeting(text, { config, completeLocal, onProgress: (a, b) => progress.push([a, b]) })
+    expect(chunkCalls).toBeGreaterThan(30)                       // small pieces
+    expect(Math.max(...combineSizes)).toBeLessThanOrEqual(8)     // never more than a small model can take at once
+    expect(combineSizes.length).toBeGreaterThan(1)               // grouped, then merged again
+    expect(d.actionItems).toHaveLength(Math.min(chunkCalls, 40)) // every distinct task kept, up to the list limit
+    expect(progress.at(-1)![0]).toBe(progress.at(-1)![1])        // progress ends complete
+    expect(progress.every(([a, b]) => a <= b)).toBe(true)
+  })
+})

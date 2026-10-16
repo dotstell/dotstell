@@ -18,7 +18,7 @@ How the Meeting assistant, dictation and recording work, for contributors.
 
 - **Speech-to-text goes browser to provider, not through the server.** It keeps audio off dotstell's servers and avoids Vercel's 4.5 MB request limit. This needs `https://api.openai.com` and `https://api.groq.com` in `connect-src` and `microphone=(self)` in `Permissions-Policy` (`next.config.ts`).
 - **Summaries use the AI settings the user already has**, through the existing `/api/ai/*` pattern (config sent per request, never stored).
-- **Anthropic, Gemini and Ollama have no transcription API**, so recording needs an OpenAI or Groq key. Pasting, files and dictation work with any provider.
+- **Anthropic and Ollama have no transcription API.** Recording uses, in order: a speech key chosen on its own (stored as `dotstell-stt-config` in this browser, set in the recording box), the chat provider when it is OpenAI, Groq or Gemini, or an OpenAI embeddings key. Gemini audio is converted to 16 kHz WAV in the browser first (`src/lib/voice/wav.ts`), because Gemini does not accept WebM. Pasting, files and dictation work with any provider.
 - **macOS desktop** needs `NSMicrophoneUsageDescription`; it is in `src-tauri/Info.plist`.
 
 ## Not done
@@ -26,3 +26,19 @@ How the Meeting assistant, dictation and recording work, for contributors.
 - Local Whisper in the desktop app.
 - A Zoom account connection (OAuth, webhooks). Importing the transcript file covers most of the value.
 - Speaker labels for recordings (the speech service does not return them).
+
+## Providers
+
+| Provider | Summaries | Asks for JSON | Speech-to-text |
+|---|---|---|---|
+| OpenAI | yes | `response_format` (not sent to `o1-mini`/`o1-preview`) | `whisper-1` |
+| Groq | yes | `response_format`, low temperature | `whisper-large-v3-turbo` |
+| Gemini | yes | `responseMimeType: application/json` | `generateContent` with inline WAV (not yet tried against the live service) |
+| Anthropic | yes | no mode; the prompt asks for JSON and the reader is lenient | no, add a separate key |
+| Ollama | yes | `format: json` (browser) / `response_format` (server), low temperature | no, add a separate key |
+
+- If a provider or model rejects JSON mode with a 400, the server route asks again without it.
+- **Ollama on the live site:** the dotstell server cannot reach the user's computer, so `AIMeetingPanel` and `AIWritingPanel` call Ollama from the browser (through the Local AI Agent) when `provider === 'ollama' && !isLocalHostname()`. On localhost, or when self-hosting, the server route is used.
+- **Small models:** transcripts are cut into 1,500-character pieces for Ollama (9,000 for hosted models) and merged in groups of 8. In a test with `phi4-mini` (3.8B), 5,000-character pieces found 3 of 5 commitments, 1,500 found 4, and 800 found 4 to 5. The final action-item list is always the union of the parts, because a combine step can silently drop one.
+- `OLLAMA_INTEGRATION=1 npx vitest run src/app/api/ai/ollama.integration.test.ts` runs the routes and the long-meeting pipeline against a real local Ollama (default model `phi4-mini`, set `OLLAMA_MODEL` to change it).
+

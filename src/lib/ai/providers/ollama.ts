@@ -1,4 +1,4 @@
-import { AIConfig, AIMessage } from '../types'
+import { AIConfig, AIMessage, ChatOptions } from '../types'
 import { openaiStream } from './openai'
 import { providerError, extractMessage } from '../error'
 
@@ -20,6 +20,7 @@ function assertLocalhost(rawUrl: string) {
 export async function ollamaStream(
   config: AIConfig,
   messages: AIMessage[],
+  opts: ChatOptions = {},
 ): Promise<ReadableStream<Uint8Array>> {
   const rawBase = config.baseUrl || 'http://localhost:11434'
   assertLocalhost(rawBase)
@@ -29,6 +30,7 @@ export async function ollamaStream(
   return openaiStream(
     { ...config, baseUrl: `${base}/v1`, apiKey: config.apiKey || 'ollama' },
     messages,
+    opts,
   )
 }
 

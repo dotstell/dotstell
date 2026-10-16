@@ -426,7 +426,10 @@ export default function HelpPage() {
                 body="Press Dictate in the toolbar and speak; words are added at the cursor. It uses your browser's built-in speech recognition (it works in Chrome and Edge), so the button is hidden in browsers that do not have it. In Chrome and Edge your voice is sent to Google or Microsoft to be turned into text, and dotstell never receives the audio. You are told this the first time. Choose the language in the bar."
               />
               <Tip icon="⏺️" title="Record a meeting"
-                body="In the Meeting assistant, press Start recording. Your microphone is recorded in short parts and each part is turned into text as you go, so the transcript fills in during the meeting. For an online meeting in a browser tab, tick the tab option and choose the tab with Also share tab audio. It needs an OpenAI or Groq key in AI Settings; the sound goes straight from your browser to that service. dotstell does not receive or keep the audio. Tell everyone you are recording."
+                body="In the Meeting assistant, press Start recording. Your microphone is recorded in short parts and each part is turned into text as you go, so the transcript fills in during the meeting. For an online meeting in a browser tab, tick the tab option and choose the tab with Also share tab audio. Turning speech into text needs a speech service key: your OpenAI, Groq or Gemini key works, and if your chat provider is Anthropic or Ollama (which cannot transcribe) you add a separate key right in the recording box. Groq and Google AI Studio offer free keys with limits. The sound goes straight from your browser to that service; dotstell does not receive or keep the audio. Tell everyone you are recording."
+              />
+              <Tip icon="🤖" title="Which AI provider works best"
+                body="Meeting summaries work with every provider: OpenAI, Anthropic, Gemini, Groq and Ollama. Larger models find more action items and follow the owner and deadline wording more closely. A small local model (about 4 billion parameters) works, but it is read in small parts, takes a little longer and can miss some commitments, so check the list before creating tasks. With Ollama on the live site, run the Local AI Agent; the summary then never leaves your computer."
               />
               <Tip icon="🛡️" title="Privacy"
                 body="A transcript you summarise goes to the AI provider you chose, through the dotstell server, and is not stored; with Ollama it stays on your computer. Summaries are shown as plain text, and tasks are only created when you press the button."
@@ -571,7 +574,7 @@ export default function HelpPage() {
                   body="Speak to add text at the cursor, in 12 languages, using your browser's speech recognition. You are told where the audio goes the first time."
                 />
                 <Tip icon="⏺️" title="Record a meeting"
-                  body="Record your microphone, or a browser tab for online meetings, and watch the transcript fill in as you go. It uses your own OpenAI or Groq key, straight from your browser; dotstell does not receive or keep the audio."
+                  body="Record your microphone, or a browser tab for online meetings, and watch the transcript fill in as you go. It uses your own OpenAI, Groq or Gemini key (separate from your chat provider if you like), straight from your browser; dotstell does not receive or keep the audio."
                 />
               </div>
 
