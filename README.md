@@ -332,7 +332,7 @@ The full annotated directory tree is in [docs/ARCHITECTURE.md](docs/ARCHITECTURE
 | Meetings — transcript summary, decisions and action items, dictation, recording | ✅ Live (v0.8.0) |
 | MCP server — AI tools read your knowledge, read-only, with revocable tokens | ✅ Live (v0.9.0) |
 | Dictation: phone-friendly bar, High accuracy engine, spoken punctuation and capitals | ✅ Live (v0.9.1) |
-| MCP Registry listing | 🔜 Publishing |
+| MCP Registry listing (`com.dotstell/dotstell`) | ✅ Listed (v0.9.1) |
 | Browser extension — save pages and clip to dotstell | 🔜 Next (v0.10.0) |
 | Docs (per-project documentation) | 🔜 Soon |
 | Integrations (Slack, Teams, etc.) | 🔜 Planned |
