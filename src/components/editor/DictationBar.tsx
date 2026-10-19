@@ -12,6 +12,8 @@ interface Props {
   listening: boolean
   interim: string
   error: string | null
+  /** Raw recognition events, shown only when the page is opened with ?dictationDebug. */
+  debug?: string[]
   lang: string
   onLang: (code: string) => void
   onStart: () => void
@@ -25,7 +27,7 @@ interface Props {
  * Floating control shown while dictating. The first time, it explains where the audio goes before the browser
  * asks for the microphone, because in Chrome and Edge the browser sends speech to its vendor for recognition.
  */
-export function DictationBar({ listening, interim, error, lang, onLang, onStart, onStop, onDismiss, open }: Props) {
+export function DictationBar({ listening, interim, error, debug, lang, onLang, onStart, onStop, onDismiss, open }: Props) {
   const [acknowledged, setAcknowledged] = useState(dictationNoticeSeen)
   if (!open) return null
 
@@ -72,6 +74,12 @@ export function DictationBar({ listening, interim, error, lang, onLang, onStart,
             <button type="button" onClick={onDismiss} aria-label="Close dictation" style={{ ...ghostBtn, padding: 5 }}><X size={14} /></button>
           </div>
           {error && <p role="alert" style={{ margin: 0, fontSize: 12, color: '#f87171' }}>{error}</p>}
+          {debug && debug.length > 0 && (
+            <button type="button" onClick={() => navigator.clipboard?.writeText(debug.join('\n'))} style={{ ...ghostBtn, alignSelf: 'flex-start', fontSize: 11, padding: '3px 8px' }}>Copy debug log</button>
+          )}
+          {debug && debug.length > 0 && (
+            <pre aria-label="Dictation events" style={{ margin: 0, maxHeight: 120, overflow: 'auto', fontSize: 10, lineHeight: 1.4, whiteSpace: 'pre-wrap', color: 'var(--muted-foreground)' }}>{debug.join('\n')}</pre>
+          )}
         </>
       )}
     </div>

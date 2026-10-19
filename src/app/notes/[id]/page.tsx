@@ -24,6 +24,7 @@ import { AIWritingPanel } from '@/components/ai/AIWritingPanel'
 import { AIMeetingPanel } from '@/components/ai/AIMeetingPanel'
 import { DictationBar, dictationNoticeSeen } from '@/components/editor/DictationBar'
 import { useDictation } from '@/hooks/useDictation'
+import { createLiveText, type LiveText } from '@/lib/voice/live-text'
 import { AIRelatedPanel } from '@/components/ai/AIRelatedPanel'
 import { AISettingsModal } from '@/components/ai/AISettingsModal'
 import { useNoteTabs } from '@/hooks/useNoteTabs'
@@ -112,8 +113,11 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
   const editorRef    = useRef<Editor | null>(null)
   // The newest note state, for work that has to wait until an editor update has been applied
   const latestNote   = useRef<Partial<Note>>({})
-  // Text is inserted as a text node, not parsed as HTML, so nothing dictated can be read as markup.
-  const dictation = useDictation(text => { editorRef.current?.chain().focus().insertContent({ type: 'text', text }).run() })
+  // Dictated text is inserted as a text node, not parsed as HTML. The engine's guess of a phrase is shown as provisional
+  // text and replaced on every update, then made final, so revised or repeated words never pile up.
+  const liveTextRef = useRef<LiveText | null>(null)
+  const liveText = () => (liveTextRef.current ??= createLiveText(editorRef))
+  const dictation = useDictation({ onText: text => liveText().commit(text), onLive: text => liveText().live(text) })
   const lastCheckRef = useRef<HTMLInputElement>(null)
   const prevCheckLen = useRef(0)
   const titleRef     = useRef<HTMLInputElement>(null)
@@ -1538,6 +1542,7 @@ ${sanitizeHtml(note.content ?? '', 'document')}
         listening={dictation.listening}
         interim={dictation.interim}
         error={dictation.error}
+        debug={dictation.debug}
         lang={dictation.lang}
         onLang={dictation.setLang}
         onStart={dictation.start}
