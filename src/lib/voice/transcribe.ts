@@ -62,6 +62,10 @@ interface Options {
   fetchImpl?: typeof fetch
   /** For tests: replaces the browser's audio conversion. */
   toWav?: (audio: Blob) => Promise<Blob>
+  /** Two-letter language of the speech (OpenAI and Groq). Saying it avoids a wrong guess on short pieces. */
+  language?: string
+  /** What came just before, so names, spelling and style carry on across pieces (OpenAI and Groq). */
+  prompt?: string
 }
 
 async function post(url: string, init: RequestInit, provider: SpeechProvider, opts: Options): Promise<Response> {
@@ -106,6 +110,8 @@ export async function transcribeAudio(audio: Blob, t: TranscriptionTarget, opts:
   form.append('file', audio, `audio.${extensionFor(audio.type)}`)
   form.append('model', t.model)
   form.append('response_format', 'json')
+  if (opts.language) form.append('language', opts.language)
+  if (opts.prompt?.trim()) form.append('prompt', opts.prompt.trim().slice(-200))
   const res = await post(t.url, { method: 'POST', headers: { Authorization: `Bearer ${t.apiKey}` }, body: form }, t.provider, opts)
   if (!res.ok) throw await failure(res)
   const data = await res.json().catch(() => ({}))
