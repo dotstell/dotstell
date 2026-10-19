@@ -36,6 +36,7 @@ import { HexColorPicker } from 'react-colorful'
 import TurndownService from 'turndown'
 import { marked } from 'marked'
 import { WikiLinkExtension } from '@/lib/tiptap/WikiLinkExtension'
+import { DictationHighlightExtension } from '@/lib/tiptap/DictationHighlightExtension'
 import { useBreakpoint } from '@/hooks/useBreakpoint'
 
 const lowlight = createLowlight(common)
@@ -338,6 +339,7 @@ export function RichTextEditor({
       FontFamily,
       CodeBlockLowlight.configure({ lowlight }),
       WikiLinkExtension,
+      DictationHighlightExtension,
     ],
     content,
     editorProps: {

@@ -9,6 +9,7 @@ All notable changes to Dotstell are documented here.
 ### 🎤 Dictation
 
 - **No more repeated or garbled words on Android phones.** Chrome on Android sends a new result for every update of a phrase, all marked final but with no confidence, and changes words between them. Each of them was inserted, so words appeared two or more times. Dictation now shows the engine's current guess in the note as you speak and replaces it in place on every update, so revised words correct themselves and nothing piles up; the confident result, a pause or stop makes it final
+- **Dictation on a phone is easier to use.** The bar is one slim row, can be dragged (or moved with the arrow keys, or flipped to the other edge) and remembers its place; the language list opens on demand. The words being dictated are tinted so you can see where they are going, and the note scrolls to keep them clear of the bar and the keyboard. A space is added between existing text and dictated text
 - **Fixed words going missing while typing, dictating or pasting quickly.** The editor could roll the note back to an older snapshot when text arrived faster than the page caught up, wiping the newest words. It now recognises its own changes coming back
 - **No double text after a pause.** Words from an ended session can no longer be inserted after dictation restarts, and a device where speech recognition keeps stopping now shows a message instead of retrying forever
 - A test that replays the event streams of desktop and Android browsers now guards this
