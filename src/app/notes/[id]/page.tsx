@@ -1538,6 +1538,7 @@ ${sanitizeHtml(note.content ?? '', 'document')}
         listening={dictation.listening}
         interim={dictation.interim}
         error={dictation.error}
+        debug={dictation.debug}
         lang={dictation.lang}
         onLang={dictation.setLang}
         onStart={dictation.start}

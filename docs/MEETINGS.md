@@ -11,7 +11,7 @@ How the Meeting assistant, dictation and recording work, for contributors.
 | Orchestration | `src/lib/meetings/run.ts` | Client side. One request per chunk (so each stays inside the 60 s function limit), one retry per request, then a combine request; if combining fails the parts are merged locally. Supports cancel. |
 | API | `src/app/api/ai/meeting/route.ts` | `mode: 'chunk'` or `'combine'`. Requires a signed-in user, rate limited, validates sizes, re-parses parts before combining. Returns `{ digest }`. |
 | Panel | `src/components/ai/AIMeetingPanel.tsx` | Input, progress, review. Creates tasks through the normal `/api/tasks` and `/api/links` routes, only when the user presses the button. |
-| Dictation | `src/hooks/useDictation.ts`, `src/components/editor/DictationBar.tsx` | Browser `SpeechRecognition`. Text is inserted as a text node, never parsed as HTML. First use shows a notice about where the audio goes. |
+| Dictation | `src/hooks/useDictation.ts`, `src/lib/voice/dictation-assembler.ts`, `src/components/editor/DictationBar.tsx` | Browser `SpeechRecognition`. Android Chrome can send each result as the whole session so far, all marked final; the assembler turns result lists into text to insert once, and only the newest session is listened to. Open a note with `?dictationDebug` to see the raw events on the device. Text is inserted as a text node, never parsed as HTML. First use shows a notice about where the audio goes. |
 | Recording | `src/hooks/useRecorder.ts`, `src/lib/voice/transcribe.ts` | `MediaRecorder` in 5-minute pieces (optionally mixing in shared-tab audio), each sent from the browser to OpenAI or Groq with the user's own key. Audio is held in memory only until its piece is transcribed. |
 
 ## Decisions
