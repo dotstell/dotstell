@@ -250,6 +250,8 @@ ollama pull gemma4:e4b
 ollama pull nomic-embed-text
 ```
 
+> **Models that think** (Qwen 3.5, Gemma 4 and similar) work: dotstell turns the thinking off so replies are quick. You can allow it with **Let the model think before answering** under the model picker in AI Settings; expect much slower replies.
+
 > **No GPU?** Stick to 3–4B models (`phi4-mini`, `qwen2.5:3b`, `llama3.2`). 7B models are slow on CPU alone.
 
 **Step 3 — Start the Dotstell Local AI Agent**
