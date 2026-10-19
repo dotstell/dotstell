@@ -236,7 +236,9 @@ Dotstell needs two model types — one for chat/writing and one for semantic sea
 
 | Purpose | Model | Size | Notes |
 |---|---|---|---|
-| **Chat** | `phi4-mini` | 3.8B | Best reasoning at small size, fast on CPU — recommended starting point |
+| **Chat** | `gemma4:e4b` | ~4B | Fastest and most accurate in dotstell's meeting tests; fits an 8 GB graphics card — recommended |
+| **Chat** | `qwen3.5:4b` | 4B | Equally accurate, a little slower |
+| **Chat** | `phi4-mini` | 3.8B | Small and fast on CPU |
 | **Chat** | `qwen2.5:3b` | 3B | Strong and multilingual |
 | **Chat** | `llama3.2` | 3B | Reliable all-rounder |
 | **Chat** | `deepseek-r1:7b` | 7B | Best reasoning quality — needs a GPU |
@@ -244,7 +246,7 @@ Dotstell needs two model types — one for chat/writing and one for semantic sea
 | **Embeddings** | `nomic-embed-text` | — | Required for semantic search, Related Notes, and task-aware AI Chat |
 
 ```bash
-ollama pull phi4-mini
+ollama pull gemma4:e4b
 ollama pull nomic-embed-text
 ```
 

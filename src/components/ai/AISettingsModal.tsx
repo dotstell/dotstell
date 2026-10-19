@@ -31,7 +31,7 @@ const PROVIDER_NOTES: Record<AIProvider, string> = {
   groq:      'Requires a Groq account. Very fast inference, generous free tier.',
 }
 
-const FALLBACK_OLLAMA_CHAT_MODELS  = ['llama3.2', 'phi4-mini', 'qwen2.5:7b', 'gemma2:9b', 'llama3.1', 'mistral', 'phi3', 'gemma2', 'qwen2.5']
+const FALLBACK_OLLAMA_CHAT_MODELS  = ['gemma4:e4b', 'qwen3.5:4b', 'llama3.2', 'phi4-mini', 'qwen2.5:7b', 'gemma2:9b', 'llama3.1', 'mistral']
 const FALLBACK_OLLAMA_EMBED_MODELS = ['nomic-embed-text', 'mxbai-embed-large', 'all-minilm']
 
 // First entry in each list is the recommended model for dotstell's use case
@@ -46,7 +46,7 @@ const CHAT_MODEL_SUGGESTIONS: Record<AIProvider, string[]> = {
 // Short guidance shown below the model picker for each provider.
 // Kept generic — no specific model names — so it stays accurate as providers release new models.
 const MODEL_HINTS: Record<AIProvider, string> = {
-  ollama:    'Models at 7B or below work well for all features. Larger models are slow without a dedicated GPU.',
+  ollama:    'Models at 7B or below work well for all features. Larger models are slow without a dedicated GPU. Models that think before answering are supported; dotstell turns the thinking off so replies are quick and never cut short.',
   openai:    'Mini or Turbo variants are recommended — fast, low cost, and ideal for summarisation and tagging.',
   anthropic: 'Haiku is the fastest and most affordable tier — ideal for summarisation and tagging.',
   gemini:    'Flash or Lite models are recommended — fast, free-tier friendly, and ideal for summarisation and tagging.',

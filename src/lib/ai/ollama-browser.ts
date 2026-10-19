@@ -114,6 +114,29 @@ export async function fetchOllamaModelsBrowser(
   }))
 }
 
+const DEFAULT_NUM_CTX = 8192
+
+/**
+ * The request body for Ollama's native chat API. Reasoning models (Qwen 3.5, Gemma 4 and others) think before they
+ * answer by default, and the thinking counts against the reply length, so a short limit can leave nothing for the
+ * answer; dotstell's features do not need it, so thinking is switched off. The context window is raised from Ollama's
+ * small default, which silently drops the start of a long prompt.
+ */
+export function ollamaChatBody(config: AIConfig, messages: AIMessage[], opts: OllamaBrowserOptions = {}, thinkOff = true) {
+  return {
+    model:    config.model,
+    messages: messages.map(m => ({ role: m.role, content: m.content })),
+    stream:   true,
+    ...(thinkOff ? { think: false } : {}),
+    ...(opts.json ? { format: 'json' } : {}),
+    options: {
+      num_ctx: opts.numCtx ?? DEFAULT_NUM_CTX,
+      ...(opts.numCtx ? { num_predict: opts.maxTokens ?? 2048 } : {}),
+      ...(opts.temperature !== undefined ? { temperature: opts.temperature } : {}),
+    },
+  }
+}
+
 /**
  * Stream an Ollama chat response directly from the browser.
  * Returns a ReadableStream emitting normalised SSE lines:
@@ -133,22 +156,17 @@ export async function streamOllamaBrowser(
     if (agentRunning) targetUrl = `${LOCAL_AGENT_BASE}/api/chat`
   }
 
+  const send = (thinkOff: boolean) => fetch(targetUrl, {
+    method:  'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body:    JSON.stringify(ollamaChatBody(config, messages, opts, thinkOff)),
+  })
+
   let res: Response
   try {
-    res = await fetch(targetUrl, {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({
-        model:    config.model,
-        messages: messages.map(m => ({ role: m.role, content: m.content })),
-        stream:   true,
-        ...(opts.json ? { format: 'json' } : {}),
-        // Ollama's default context window is small and silently drops the start of a long prompt.
-        ...(opts.numCtx || opts.temperature !== undefined
-          ? { options: { ...(opts.numCtx ? { num_ctx: opts.numCtx, num_predict: opts.maxTokens ?? 2048 } : {}), ...(opts.temperature !== undefined ? { temperature: opts.temperature } : {}) } }
-          : {}),
-      }),
-    })
+    res = await send(true)
+    // An Ollama or model that does not know the setting says so with a 400; ask again without it rather than fail.
+    if (res.status === 400 && /think/i.test(await res.clone().text().catch(() => ''))) res = await send(false)
   } catch {
     const reachable = await checkConnectivity(baseUrl)
     if (reachable) {
