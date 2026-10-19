@@ -68,7 +68,7 @@ export async function openaiStream(
       // OpenAI's newer reasoning models reject a temperature, so it is only sent to the providers that run smaller models.
       ...(opts.temperature !== undefined && (config.provider === 'ollama' || config.provider === 'groq') ? { temperature: opts.temperature } : {}),
       // Ollama's reasoning models otherwise spend the reply on hidden thinking; this switches it off.
-      ...(thinkOff && config.provider === 'ollama' ? { reasoning_effort: 'none' } : {}),
+      ...(thinkOff && config.provider === 'ollama' && !config.ollamaThinking ? { reasoning_effort: 'none' } : {}),
     }),
     signal: AbortSignal.timeout(30_000),
   })

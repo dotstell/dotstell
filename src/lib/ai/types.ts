@@ -13,6 +13,8 @@ export interface AIConfig {
   embeddingModel:    string
   embeddingApiKey?:  string   // only needed when embeddingProvider ≠ chat provider
   embeddingBaseUrl?: string   // Ollama embedding endpoint if different from baseUrl
+  /** Ollama only: let models that think before answering do so. Off by default; it is slower and uses more memory. */
+  ollamaThinking?:   boolean
 }
 
 /** Per-request options. `json` asks the provider for a JSON object reply where it has a mode for that. */

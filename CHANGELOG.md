@@ -6,9 +6,16 @@ All notable changes to Dotstell are documented here.
 
 ## [Unreleased]
 
+---
+
+## [v0.9.2] — Oct 2026
+
+Local AI that works with reasoning models like Qwen 3.5 and Gemma 4, with a switch to let them think.
+
 ### 🧠 Local AI (Ollama)
 
 - **Models that think now work.** Qwen 3.5, Gemma 4 and other reasoning models think before they answer, and that thinking counted against the reply length, so Meetings and other features could get an empty reply (Qwen 3.5 4B failed every test this way). dotstell now switches thinking off for Ollama, and asks again without the setting if an older Ollama or a model rejects it
+- **A switch to let them think.** In AI Settings, with Ollama selected, **Let the model think before answering** is off by default. Turn it on to let Qwen 3.5, Gemma 4 and similar models reason step by step, which can help with hard questions in AI Chat. It makes replies 2 to 8 times slower in our tests and uses more memory, so dotstell gives it a bigger context and reply limit when it is on. Models that do not think are not affected
 - **Fewer cut-off prompts.** Every local AI feature now asks Ollama for a context window of 8,192 tokens (before, only Meetings did), so long notes in AI Chat and AI Write are no longer silently trimmed at the start
 - **Tested models.** On the meeting tests, `gemma4:e4b` was the fastest and got every item right; `qwen3.5:4b` got every item right but was slower; both beat `phi4-mini` on the harder cases. Both run on an 8 GB graphics card. They are listed first in AI Settings
 

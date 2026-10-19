@@ -115,23 +115,28 @@ export async function fetchOllamaModelsBrowser(
 }
 
 const DEFAULT_NUM_CTX = 8192
+/** When thinking is allowed, the thinking has to fit in the context window and the reply limit as well. */
+const THINKING_NUM_CTX = 16384
+const THINKING_NUM_PREDICT = 8192
 
 /**
  * The request body for Ollama's native chat API. Reasoning models (Qwen 3.5, Gemma 4 and others) think before they
- * answer by default, and the thinking counts against the reply length, so a short limit can leave nothing for the
- * answer; dotstell's features do not need it, so thinking is switched off. The context window is raised from Ollama's
+ * answer, and the thinking counts against the reply length, so a short limit can leave nothing for the answer.
+ * Thinking is therefore switched off unless the user has turned it on (`config.ollamaThinking`), in which case the
+ * context window and reply limit are raised to make room for it. The context window is also raised from Ollama's
  * small default, which silently drops the start of a long prompt.
  */
 export function ollamaChatBody(config: AIConfig, messages: AIMessage[], opts: OllamaBrowserOptions = {}, thinkOff = true) {
+  const thinking = config.ollamaThinking === true
   return {
     model:    config.model,
     messages: messages.map(m => ({ role: m.role, content: m.content })),
     stream:   true,
-    ...(thinkOff ? { think: false } : {}),
+    ...(thinkOff && !thinking ? { think: false } : {}),
     ...(opts.json ? { format: 'json' } : {}),
     options: {
-      num_ctx: opts.numCtx ?? DEFAULT_NUM_CTX,
-      ...(opts.numCtx ? { num_predict: opts.maxTokens ?? 2048 } : {}),
+      num_ctx: Math.max(opts.numCtx ?? DEFAULT_NUM_CTX, thinking ? THINKING_NUM_CTX : 0),
+      ...(opts.numCtx ? { num_predict: opts.maxTokens ?? (thinking ? THINKING_NUM_PREDICT : 2048) } : {}),
       ...(opts.temperature !== undefined ? { temperature: opts.temperature } : {}),
     },
   }
