@@ -809,3 +809,10 @@ html[data-kb-mode="cramped"] .kb-collapsible {
     display: none !important;
   }
 }
+
+/* Text that dictation is still working on. A decoration, so it is never saved with the note. */
+.dictation-live {
+  background-color: color-mix(in srgb, var(--primary) 20%, transparent);
+  border-radius: 3px;
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--primary) 35%, transparent);
+}
