@@ -86,3 +86,30 @@ describe('server path', () => {
     expect(calls[1]).not.toHaveProperty('reasoning_effort')
   })
 })
+
+describe('when the user turns thinking on', () => {
+  const on = cfg({ ollamaThinking: true })
+
+  it('does not switch it off, and makes room for it', () => {
+    const body = ollamaChatBody(on, messages, { json: true, numCtx: 8192 })
+    expect(body).not.toHaveProperty('think')
+    expect(body.options.num_ctx).toBe(16384)
+    expect(body.options.num_predict).toBe(8192)
+  })
+  it('keeps an explicit reply limit', () => {
+    expect(ollamaChatBody(on, messages, { numCtx: 8192, maxTokens: 4000 }).options.num_predict).toBe(4000)
+  })
+  it('is off unless it is exactly true', () => {
+    expect(ollamaChatBody(cfg({ ollamaThinking: false }), messages)).toHaveProperty('think', false)
+    expect(ollamaChatBody(cfg({}), messages)).toHaveProperty('think', false)
+  })
+  it('server path: leaves reasoning alone', async () => {
+    const calls: Record<string, unknown>[] = []
+    vi.stubGlobal('fetch', vi.fn(async (_url: string, init: RequestInit) => {
+      calls.push(JSON.parse(String(init.body)))
+      return new Response('data: {"choices":[{"delta":{"content":"ok"}}]}\n\ndata: [DONE]\n\n', { status: 200 })
+    }))
+    await complete(on, messages)
+    expect(calls[0]).not.toHaveProperty('reasoning_effort')
+  })
+})

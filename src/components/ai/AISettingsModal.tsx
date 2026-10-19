@@ -575,6 +575,26 @@ export function AISettingsModal({ onClose }: AISettingsModalProps) {
           <p style={{ margin: '5px 0 0', fontSize: 11, color: 'var(--muted-foreground)', lineHeight: 1.5 }}>
             💡 {MODEL_HINTS[draft.provider]}
           </p>
+          {/* Thinking switch — Ollama only; off by default because it makes replies slower and can leave small models without an answer */}
+          {draft.provider === 'ollama' && (
+            <label style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginTop: 10, cursor: 'pointer' }}>
+              <input
+                type="checkbox"
+                checked={draft.ollamaThinking === true}
+                onChange={e => setDraft(p => ({ ...p, ollamaThinking: e.target.checked }))}
+                style={{ marginTop: 2 }}
+              />
+              <span style={{ fontSize: 12, color: 'var(--foreground)', lineHeight: 1.5 }}>
+                Let the model think before answering
+                <span style={{ display: 'block', fontSize: 11, color: 'var(--muted-foreground)' }}>
+                  Off is best for most people. Models such as Qwen 3.5 and Gemma 4 can reason step by step first, which can help
+                  with hard questions in AI Chat, but every reply takes much longer (2 to 8 times in our tests) and uses more
+                  memory. Meeting notes and quick actions like titles and tags gain little from it. Models that do not think
+                  are not affected.
+                </span>
+              </span>
+            </label>
+          )}
           {/* Heavy model warning — shown when user picks a known large model */}
           {HEAVY_MODEL_PATTERN.test(draft.model) && (
             <div style={{ marginTop: 6, padding: '6px 10px', borderRadius: 7, backgroundColor: isLight ? 'rgba(180,83,9,0.08)' : 'rgba(251,191,36,0.08)', border: `1px solid ${isLight ? 'rgba(180,83,9,0.3)' : 'rgba(251,191,36,0.25)'}`, fontSize: 11, color: isLight ? '#92400e' : '#fbbf24', display: 'flex', gap: 6, alignItems: 'flex-start' }}>

@@ -566,11 +566,28 @@ export default function HelpPage() {
             {/* WHAT'S NEW */}
             <Section id="whats-new" title="✨ Changelog">
 
+              {/* v0.9.2 */}
+              <div style={{ marginBottom: 32 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--primary)', background: 'color-mix(in srgb, var(--primary) 10%, transparent)', border: '1px solid color-mix(in srgb, var(--primary) 25%, transparent)', padding: '3px 10px', borderRadius: 99 }}>v0.9.2</span>
+                  <span style={{ fontSize: 12, fontWeight: 600, color: '#10b981', background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.2)', padding: '2px 8px', borderRadius: 99 }}>Latest</span>
+                  <span style={{ fontSize: 12, color: 'var(--muted-foreground)' }}>Oct 2026</span>
+                </div>
+                <Tip icon="🧠" title="Local AI with reasoning models"
+                  body="Qwen 3.5, Gemma 4 and other models that think before answering now work with Ollama. dotstell turns the thinking off so replies are quick and never empty. gemma4:e4b and qwen3.5:4b are suggested first and run on an 8 GB graphics card."
+                />
+                <Tip icon="💭" title="Let the model think"
+                  body="In AI Settings, with Ollama selected, switch on Let the model think before answering to allow step-by-step reasoning for hard questions in AI Chat. It is off by default because replies take 2 to 8 times longer."
+                />
+                <Tip icon="📄" title="Longer notes in local AI"
+                  body="Local AI features now use a larger context window, so long notes in AI Chat and AI Write are no longer trimmed at the start."
+                />
+              </div>
+
               {/* v0.9.1 */}
               <div style={{ marginBottom: 32 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
                   <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--primary)', background: 'color-mix(in srgb, var(--primary) 10%, transparent)', border: '1px solid color-mix(in srgb, var(--primary) 25%, transparent)', padding: '3px 10px', borderRadius: 99 }}>v0.9.1</span>
-                  <span style={{ fontSize: 12, fontWeight: 600, color: '#10b981', background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.2)', padding: '2px 8px', borderRadius: 99 }}>Latest</span>
                   <span style={{ fontSize: 12, color: 'var(--muted-foreground)' }}>Oct 2026</span>
                 </div>
                 <Tip icon="🎤" title="High accuracy dictation"
