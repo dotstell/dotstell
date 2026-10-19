@@ -11,7 +11,7 @@
 
 **Capture · Connect · Ask**
 
-Notes · People · Tasks · Bookmarks · Wikilinks · Knowledge Graph · AI Intelligence · AI Writing · Local Ollama
+Notes · People · Tasks · Bookmarks · Wikilinks · Knowledge Graph · Meetings · Voice dictation · AI Chat & Writing · MCP server · Import & Export · Local Ollama
 
 <br/>
 
@@ -66,21 +66,43 @@ Every star, issue, and PR genuinely matters for an early-stage OSS project.
 
 ## Features
 
+### Capture
+
 | | Feature | Description |
 |---|---|---|
-| 📑 | **Rich Text Notes** | Write in rich text with slash commands, tables, code blocks and checklists |
-| ⬡ | **Wikilinks & Backlinks** | Type `[[` in any note to link it to another — backlinks update automatically |
-| 📓 | **Notebooks** | Organise notes into named collections with colour-coded sidebar grouping |
-| 👥 | **People & 1-on-1s** | Track contacts, attach notes, tasks and context directly to people — supports `@mention` in notes |
+| 📑 | **Rich Text Notes** | Slash commands, tables, code blocks, checklists, images, a table of contents and PDF export; sub-notes, note tabs, colour labels, pinning and drag-to-reorder |
+| 📓 | **Notebooks** | Organise notes into named, colour-coded collections; deleted notes stay in the Trash for 30 days |
+| 🎙️ | **Meetings** | Paste or upload a Zoom, Teams or Meet transcript (`.vtt`, `.srt`, `.txt`) or your rough notes and get a summary, decisions, action items and open questions; action items become linked tasks. Record a meeting too — see [docs/MEETINGS.md](docs/MEETINGS.md) |
+| 🗣️ | **Voice dictation** | Speak into any note in 12 languages. **Fast** uses your browser, with spoken punctuation ("comma", "question mark", "new line") and automatic capitals; **High accuracy** uses Whisper-class models with your own OpenAI, Groq or Gemini key. Words appear as you speak, on a draggable bar that works on a phone |
 | 🔖 | **Smart Bookmarks** | Save any URL — title, description and favicon fetched automatically; bulk import from Chrome, Firefox or Safari |
-| ✅ | **Tasks & Priorities** | Kanban board + list view with priorities, due dates and overdue alerts |
-| 🌐 | **Knowledge Graph** | Visual map of everything — wikilinks and manual connections appear as live edges |
-| 🔍 | **Universal Search** | Ctrl+K command palette across all notes, people, tasks and bookmarks |
-| 📤 | **Export & No Lock-in** | One click exports everything as a zip: Markdown notes with wikilinks and front matter (opens in Obsidian), people, tasks (Markdown + CSV), browser-importable bookmarks, and a lossless JSON backup — see [docs/EXPORT.md](docs/EXPORT.md) |
-| 📥 | **Import** | Bring in Markdown (Obsidian, Notion, Bear, a dotstell export), Evernote (`.enex`), Google Keep (Takeout) and contacts (`.vcf`, `.csv`): notebooks, tags, dates and `[[wikilinks]]` are kept; unsafe files are refused; preview first and one-click undo — see [docs/IMPORT.md](docs/IMPORT.md) |
-| 🔗 | **Manual Linking** | Connect any entity to any other — note → person, bookmark → task, etc. |
-| 🏠 | **Dashboard** | Unified home screen: overdue alerts, task progress, recent notes and bookmarks |
-| ✨ | **AI — Chat, Write, Assist & Search** | RAG-grounded chat (notes, bookmarks, and tasks all in context), AI Writing Assistant (draft from scratch or improve existing), inline text assist (rewrite, expand, fix), smart titles, auto-tagging, note summaries, AI Digest, Person Intelligence, semantic Related Notes — works with Ollama (local/private), OpenAI, Anthropic, Gemini, or Groq |
+| ✅ | **Tasks & Priorities** | Kanban board and list view with priorities, due dates and times, reminders and overdue alerts |
+| 👥 | **People & 1-on-1s** | Track contacts, attach notes, tasks and context directly to people; `@mention` them in notes |
+
+### Connect
+
+| | Feature | Description |
+|---|---|---|
+| ⬡ | **Wikilinks & Backlinks** | Type `[[` in any note to link it to another; backlinks and unlinked mentions update automatically |
+| 🔗 | **Manual Linking** | Connect any entity to any other — note → person, bookmark → task, and so on |
+| 🌐 | **Knowledge Graph** | A visual map of everything; wikilinks and manual connections appear as live edges, with AI-found missing links and clusters |
+| 🔍 | **Universal Search** | Ctrl+K command palette across notes, people, tasks and bookmarks, and semantic search by meaning |
+| 🏠 | **Dashboard** | Overdue alerts, task progress, recent notes and bookmarks, knowledge health and an AI digest |
+
+### Ask
+
+| | Feature | Description |
+|---|---|---|
+| ✨ | **AI Chat, Write & Assist** | Chat grounded in your notes, bookmarks and tasks; draft from templates or improve existing text; inline rewrite, expand and fix; smart titles, auto-tags, summaries, related notes and Person Intelligence. Works with Ollama (local and private), OpenAI, Anthropic, Gemini or Groq |
+| 🔌 | **Connect AI tools (MCP server)** | Let Codex, Claude Code, Cursor and Claude Desktop search and read your notes, bookmarks, tasks, people and meetings with a revocable, read-only token — see [docs/MCP.md](docs/MCP.md) |
+
+### Yours to keep
+
+| | Feature | Description |
+|---|---|---|
+| 📤 | **Export & No Lock-in** | One click exports everything as a zip: Markdown notes with wikilinks and front matter (opens in Obsidian), people, tasks (Markdown and CSV), browser-importable bookmarks, and a lossless JSON backup — see [docs/EXPORT.md](docs/EXPORT.md) |
+| 📥 | **Import** | Bring in Markdown (Obsidian, Notion, Bear, Joplin, Logseq), Evernote (`.enex`), Google Keep (Takeout) and contacts (`.vcf`, `.csv`); notebooks, tags, dates and `[[wikilinks]]` are kept. Preview first, one-click undo — see [docs/IMPORT.md](docs/IMPORT.md) |
+| 🖥️ | **Web, desktop and phone** | Use it in the browser, as a ~10 MB desktop app for Windows, macOS and Linux, or on a phone or tablet; 12 themes |
+| 🏠 | **Self-hostable** | Your own Supabase project and any Node.js host — see [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) |
 
 ---
 
@@ -96,7 +118,7 @@ Try the live app at [dotstell.app](https://dotstell.app) or [download the deskto
 
 ### Prerequisites
 
-- Node.js 18+
+- Node.js 20.9+
 - pnpm — `npm install -g pnpm`
   > We use pnpm instead of npm/yarn because it is significantly faster (hard-linked global store, no re-downloading the same package twice), produces a deterministic `pnpm-lock.yaml`, and is required by the Tauri CLI toolchain used for the desktop build. The lockfile is committed — always use `pnpm install`, not `npm install`, to keep the lockfile consistent.
 - A free [Supabase](https://supabase.com) account
@@ -119,7 +141,7 @@ pnpm install
 1. Create a new project at [supabase.com](https://supabase.com)
 2. Go to **SQL Editor** and run `supabase/schema.sql` to create all tables, policies, and triggers.
 
-   For an existing database, apply migrations in order:
+   That one file is all a new project needs. For an existing database, apply any migrations you have not run yet, in order:
 
 ```
 supabase/migrations/
@@ -133,7 +155,9 @@ supabase/migrations/
 ├── 007_notebooks_constraints.sql
 ├── 008_ai_embeddings.sql          ← vector(768) columns on notes + bookmarks (AI semantic search)
 ├── 009_ai_match_functions.sql     ← pgvector cosine similarity RPC functions
-└── 010_tasks_embedding.sql        ← vector(768) column on tasks + match_tasks() (tasks in AI Chat RAG)
+├── 010_tasks_embedding.sql        ← vector(768) column on tasks + match_tasks() (tasks in AI Chat RAG)
+├── 011_fix_function_search_paths.sql
+└── 012_mcp.sql                    ← MCP tokens and the read-only functions behind the MCP server
 ```
 
 3. Copy your project URL and anon key from **Settings → API**
@@ -176,7 +200,8 @@ Dotstell ships a complete AI layer. All features work with five provider options
 | **Groq** | ✅ | — | Extremely fast inference; use a separate embedding provider |
 
 **AI features:**
-- **Meeting assistant** — paste or upload a Zoom, Teams or Meet transcript (or record the meeting) and get a summary, decisions and action items; turn action items into linked tasks. Dictate into any note by voice
+- **Meeting assistant** — paste or upload a Zoom, Teams or Meet transcript (or record the meeting) and get a summary, decisions and action items; turn action items into linked tasks
+- **Voice dictation** — *Fast* (your browser, with spoken punctuation and automatic capitals, English) or *High accuracy* (your own OpenAI, Groq or Gemini speech key, with punctuation and capitals from the model); both work on phones
 - **Connect AI tools (MCP server)** — let Codex, Claude Code, Cursor and Claude Desktop read your notes, bookmarks, tasks, people and meetings with a revocable, read-only token (see [docs/MCP.md](docs/MCP.md))
 - **AI Writing Assistant** — draft notes from scratch using 8 starter templates (Outline, Meeting notes, Daily log, Research note, OoO email, Proposal, Status update, Email draft) or a custom prompt; improve existing notes with one-click actions (Improve English, Make formal, Make concise, Expand, Full rewrite)
 - **AI Chat** — slide-out panel with RAG (semantic search grounds answers in your notes, bookmarks, and tasks), "This note" and "All knowledge" modes, People tab for person intelligence
@@ -188,7 +213,7 @@ Dotstell ships a complete AI layer. All features work with five provider options
 - **Person Intelligence** — searches all your notes and bookmarks for mentions of a person and generates a structured brief
 - **Graph intelligence** — finds missing links, note clusters, and bridgeable gaps in your knowledge graph
 
-API keys are stored only in your browser's `localStorage`. They are never sent to dotstell servers — only to your chosen AI provider directly over TLS.
+API keys are stored only in your browser's `localStorage`. dotstell's servers never store or log them: a request that goes through a dotstell API route carries the key for that one request and passes it to your chosen AI provider over TLS. Speech-to-text (recording and High accuracy dictation) goes straight from your browser to the provider.
 
 ### Using Ollama with the live app — Local AI Agent
 
@@ -285,7 +310,7 @@ The full annotated directory tree is in [docs/ARCHITECTURE.md](docs/ARCHITECTURE
 | `src/app/` | Next.js App Router pages and API routes (auth, notes, AI, bookmarks, tasks…) |
 | `src/components/` | React UI components grouped by domain (`ai/`, `editor/`, `graph/`, `layout/`…) |
 | `src/hooks/` | Data-fetching and behaviour hooks |
-| `src/lib/` | AI client, Supabase clients, rate limiter, TipTap extensions |
+| `src/lib/` | AI client, Supabase clients, rate limiter, TipTap extensions; `meetings/` (transcripts and digests), `voice/` (dictation and speech-to-text), `mcp/` (MCP server), import and export |
 | `src-tauri/` | Rust / Tauri v2 desktop shell |
 | `supabase/` | Schema SQL and incremental migrations |
 | `packages/agent/` | Dotstell Local AI Agent — zero-dep Node.js Ollama proxy |
@@ -306,8 +331,10 @@ The full annotated directory tree is in [docs/ARCHITECTURE.md](docs/ARCHITECTURE
 | Import (Markdown, Evernote, Google Keep, contacts) and full Export | ✅ Live (v0.7.0) |
 | Meetings — transcript summary, decisions and action items, dictation, recording | ✅ Live (v0.8.0) |
 | MCP server — AI tools read your knowledge, read-only, with revocable tokens | ✅ Live (v0.9.0) |
+| Dictation: phone-friendly bar, High accuracy engine, spoken punctuation and capitals | ✅ Live (v0.9.1) |
+| MCP Registry listing | 🔜 Publishing |
+| Browser extension — save pages and clip to dotstell | 🔜 Next (v0.10.0) |
 | Docs (per-project documentation) | 🔜 Soon |
-| Browser extension | 🔜 Planned |
 | Integrations (Slack, Teams, etc.) | 🔜 Planned |
 | Mobile app | 🔜 Planned |
 
@@ -332,7 +359,7 @@ Dotstell is designed to be self-hostable. You need:
 - A Node.js server (or Vercel / any Next.js host)
 - A Supabase project (or self-hosted Supabase)
 
-Full self-hosting guide coming soon. In the meantime the Getting Started steps above cover a local setup.
+The full guide — database, environment, Supabase auth settings, running it, and what each feature needs — is in **[docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)**.
 
 ---
 

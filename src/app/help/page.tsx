@@ -429,7 +429,7 @@ export default function HelpPage() {
                 body="Tick the action items you want and press Create tasks. Each becomes a task. If the owner matches someone in People, the task is linked to them; a date written as 2026-10-30 becomes the due date, and other wording such as Friday is kept in the description. When the note is saved, the tasks are linked back to it."
               />
               <Tip icon="🎤" title="Dictate"
-                body="Press Dictate in the toolbar and speak; words are added at the cursor. It uses your browser's built-in speech recognition (it works in Chrome and Edge), so the button is hidden in browsers that do not have it. In Chrome and Edge your voice is sent to Google or Microsoft to be turned into text, and dotstell never receives the audio. You are told this the first time. Choose the language in the bar."
+                body="Press Dictate in the toolbar and speak; words are added at the cursor, tinted until they are final. Drag the bar by its grip (or use the arrow keys) to put it where it does not hide your note. Open the options (the gear) to choose the engine. Fast uses your browser's built-in speech recognition (Chrome and Edge), where your voice goes to Google or Microsoft and dotstell never receives it; in English you can say comma, question mark, exclamation mark, full stop, new line or new paragraph, and sentences get capital letters. High accuracy records short pieces between your pauses and has OpenAI, Groq or Gemini turn them into text with your own key (the same one the meeting recorder uses): it is more accurate, adds punctuation itself and works in any browser. You are told where the audio goes the first time. Choose the language in the options."
               />
               <Tip icon="⏺️" title="Record a meeting"
                 body="In the Meeting assistant, press Start recording. Your microphone is recorded in short parts and each part is turned into text as you go, so the transcript fills in during the meeting. For an online meeting in a browser tab, tick the tab option and choose the tab with Also share tab audio. Turning speech into text needs a speech service key: your OpenAI, Groq or Gemini key works, and if your chat provider is Anthropic or Ollama (which cannot transcribe) you add a separate key right in the recording box. Groq and Google AI Studio offer free keys with limits. The sound goes straight from your browser to that service; dotstell does not receive or keep the audio. Tell everyone you are recording."
@@ -566,11 +566,28 @@ export default function HelpPage() {
             {/* WHAT'S NEW */}
             <Section id="whats-new" title="✨ Changelog">
 
+              {/* v0.9.1 */}
+              <div style={{ marginBottom: 32 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--primary)', background: 'color-mix(in srgb, var(--primary) 10%, transparent)', border: '1px solid color-mix(in srgb, var(--primary) 25%, transparent)', padding: '3px 10px', borderRadius: 99 }}>v0.9.1</span>
+                  <span style={{ fontSize: 12, fontWeight: 600, color: '#10b981', background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.2)', padding: '2px 8px', borderRadius: 99 }}>Latest</span>
+                  <span style={{ fontSize: 12, color: 'var(--muted-foreground)' }}>Oct 2026</span>
+                </div>
+                <Tip icon="🎤" title="High accuracy dictation"
+                  body="A second dictation engine, chosen in the bar's options. It records your voice, cuts it at pauses and has OpenAI, Groq or Gemini (your own key) write each piece, with punctuation and capitals. Much better on phones and earbuds, and it works in browsers with no built-in speech recognition."
+                />
+                <Tip icon="📱" title="Dictation on a phone"
+                  body="The bar is one slim row you can drag anywhere, the words you are dictating are tinted and kept in view, and the repeated and missing words some Android phones produced are fixed."
+                />
+                <Tip icon="✍️" title="Spoken punctuation and capitals"
+                  body="In English, say comma, question mark, exclamation mark, full stop, new line or new paragraph. Sentences start with capital letters. Turn spoken punctuation off in the dictation options."
+                />
+              </div>
+
               {/* v0.9.0 */}
               <div style={{ marginBottom: 32 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
                   <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--primary)', background: 'color-mix(in srgb, var(--primary) 10%, transparent)', border: '1px solid color-mix(in srgb, var(--primary) 25%, transparent)', padding: '3px 10px', borderRadius: 99 }}>v0.9.0</span>
-                  <span style={{ fontSize: 12, fontWeight: 600, color: '#10b981', background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.2)', padding: '2px 8px', borderRadius: 99 }}>Latest</span>
                   <span style={{ fontSize: 12, color: 'var(--muted-foreground)' }}>Oct 2026</span>
                 </div>
                 <Tip icon="🔑" title="Connect AI tools (MCP server)"
