@@ -39,6 +39,9 @@ interface Props {
   /** Which speech engine is used, and the means to change it. */
   engine: DictationEngine
   onEngine: (engine: DictationEngine) => void
+  /** Whether "comma", "question mark" and the like are written as punctuation (Fast engine, English). */
+  spokenPunctuation: boolean
+  onSpokenPunctuation: (on: boolean) => void
   /** Whether the browser has built-in speech recognition (it does not in Firefox). */
   browserAvailable: boolean
   /** Name of the speech service High accuracy would send audio to, or null when no key is set up. */
@@ -54,7 +57,7 @@ interface Props {
  * It is one slim row so the note stays visible on a phone, can be dragged (or moved with the arrow keys) to wherever
  * it is out of the way, and keeps its place. The language and other options are in a row that opens on demand.
  */
-export function DictationBar({ listening, interim, error, debug, lang, onLang, engine, onEngine, browserAvailable, accurateService, onStart, onStop, onDismiss, open }: Props) {
+export function DictationBar({ listening, interim, error, debug, lang, onLang, engine, onEngine, spokenPunctuation, onSpokenPunctuation, browserAvailable, accurateService, onStart, onStop, onDismiss, open }: Props) {
   const [acknowledged, setAcknowledged] = useState(dictationNoticeSeen)
   const [bottom, setBottom] = useState<number | null>(savedPosition)
   const [options, setOptions] = useState(false)
@@ -204,6 +207,13 @@ export function DictationBar({ listening, interim, error, debug, lang, onLang, e
                     : 'Needs a speech key: add an OpenAI, Groq or Gemini key in AI settings, or in the Meeting assistant recording box.'
                   : 'Words appear as you speak. Your browser decides the accuracy.'}
               </p>
+              {engine === 'browser' && lang.toLowerCase().startsWith('en') && (
+                <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: 'var(--foreground)' }}>
+                  <input type="checkbox" checked={spokenPunctuation} onChange={e => onSpokenPunctuation(e.target.checked)} />
+                  Spoken punctuation
+                  <span style={{ color: 'var(--muted-foreground)', fontSize: 11 }}>say &ldquo;comma&rdquo;, &ldquo;question mark&rdquo;, &ldquo;new line&rdquo;</span>
+                </label>
+              )}
               <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: 'var(--muted-foreground)' }}>
                 Language
                 <select value={lang} onChange={e => onLang(e.target.value)} aria-label="Dictation language" style={{ fontSize: 12, padding: '4px 6px', borderRadius: 6, border: '1px solid var(--border)', backgroundColor: 'var(--muted)', color: 'var(--foreground)', maxWidth: 200 }}>
