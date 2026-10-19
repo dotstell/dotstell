@@ -109,3 +109,21 @@ describe('encodeWav', () => {
     expect([view.getInt16(44, true), view.getInt16(46, true), view.getInt16(48, true), view.getInt16(50, true), view.getInt16(52, true)]).toEqual([0, 32767, -32768, 32767, -32768])
   })
 })
+
+describe('transcribeAudio language and prompt', () => {
+  const target = transcriptionTarget(cfg({ provider: 'openai', apiKey: 'sk-1' }))!
+  it('sends the language and the last 200 characters of context', async () => {
+    let form: FormData | undefined
+    const fetchImpl = (async (_u: string, init: RequestInit) => { form = init.body as FormData; return new Response(JSON.stringify({ text: 'ok' })) }) as unknown as typeof fetch
+    await transcribeAudio(new Blob([new Uint8Array(10)], { type: 'audio/webm' }), target, { fetchImpl, language: 'ja', prompt: 'x'.repeat(300) })
+    expect(form!.get('language')).toBe('ja')
+    expect((form!.get('prompt') as string).length).toBe(200)
+  })
+  it('sends neither when not given', async () => {
+    let form: FormData | undefined
+    const fetchImpl = (async (_u: string, init: RequestInit) => { form = init.body as FormData; return new Response(JSON.stringify({ text: 'ok' })) }) as unknown as typeof fetch
+    await transcribeAudio(new Blob([new Uint8Array(10)], { type: 'audio/webm' }), target, { fetchImpl })
+    expect(form!.has('language')).toBe(false)
+    expect(form!.has('prompt')).toBe(false)
+  })
+})

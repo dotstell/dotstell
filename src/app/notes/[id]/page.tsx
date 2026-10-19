@@ -22,8 +22,11 @@ import { AIChatPanel } from '@/components/ai/AIChatPanel'
 import { AIInlineAssist } from '@/components/ai/AIInlineAssist'
 import { AIWritingPanel } from '@/components/ai/AIWritingPanel'
 import { AIMeetingPanel } from '@/components/ai/AIMeetingPanel'
-import { DictationBar, dictationNoticeSeen } from '@/components/editor/DictationBar'
+import { DictationBar, dictationNoticeSeen, type DictationEngine } from '@/components/editor/DictationBar'
 import { useDictation } from '@/hooks/useDictation'
+import { useAccurateDictation } from '@/hooks/useAccurateDictation'
+import { SPEECH_PROVIDER_NAMES, transcriptionTarget } from '@/lib/voice/transcribe'
+import { loadSpeechSettings } from '@/lib/voice/settings'
 import { createLiveText, type LiveText } from '@/lib/voice/live-text'
 import { AIRelatedPanel } from '@/components/ai/AIRelatedPanel'
 import { AISettingsModal } from '@/components/ai/AISettingsModal'
@@ -118,6 +121,23 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
   const liveTextRef = useRef<LiveText | null>(null)
   const liveText = () => (liveTextRef.current ??= createLiveText(editorRef))
   const dictation = useDictation({ onText: text => liveText().commit(text), onLive: text => liveText().live(text) })
+  // High accuracy dictation sends pieces of audio to a Whisper-class service with the user's own key.
+  const [engineChoice, setEngineChoice] = useState<DictationEngine>(() =>
+    typeof window !== 'undefined' && localStorage.getItem('dotstell:dictation-engine') === 'accurate' ? 'accurate' : 'browser')
+  const speechTarget = useMemo(() => transcriptionTarget(aiConfig, loadSpeechSettings()),
+    // Read again each time the bar opens, so a key added meanwhile is picked up.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [aiConfig, dictationOpen])
+  const accurate = useAccurateDictation({ target: speechTarget, lang: dictation.lang, onText: text => liveText().commit(text) })
+  const engine: DictationEngine = engineChoice === 'accurate' || !dictation.supported ? 'accurate' : 'browser'
+  const voice = engine === 'accurate' ? accurate : dictation
+  const dictationSupported = dictation.supported || accurate.supported
+  function chooseEngine(next: DictationEngine) {
+    if (next === engine) return
+    dictation.stop(); accurate.stop()
+    setEngineChoice(next)
+    localStorage.setItem('dotstell:dictation-engine', next)
+  }
   const lastCheckRef = useRef<HTMLInputElement>(null)
   const prevCheckLen = useRef(0)
   const titleRef     = useRef<HTMLInputElement>(null)
@@ -752,17 +772,17 @@ ${sanitizeHtml(note.content ?? '', 'document')}
           )}
 
           {/* Dictation — speak to add text at the cursor (hidden where the browser has no speech recognition) */}
-          {dictation.supported && (
+          {dictationSupported && (
             <button
               type="button"
               className="touch-target-sm"
               title="Dictate — speak to add text to this note"
               aria-label="Dictate"
-              aria-pressed={dictation.listening}
+              aria-pressed={voice.listening}
               onClick={() => {
-                if (dictationOpen) { dictation.stop(); setDictationOpen(false); return }
+                if (dictationOpen) { voice.stop(); setDictationOpen(false); return }
                 setDictationOpen(true)
-                if (dictationNoticeSeen()) dictation.start() // first time, the bar asks before the browser asks for the microphone
+                if (dictationNoticeSeen()) voice.start() // first time, the bar asks before the browser asks for the microphone
               }}
               style={{
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
@@ -1539,15 +1559,19 @@ ${sanitizeHtml(note.content ?? '', 'document')}
       {/* Dictation bar */}
       <DictationBar
         open={dictationOpen}
-        listening={dictation.listening}
-        interim={dictation.interim}
-        error={dictation.error}
-        debug={dictation.debug}
+        listening={voice.listening}
+        interim={voice.interim}
+        error={voice.error}
+        debug={engine === 'browser' ? dictation.debug : undefined}
         lang={dictation.lang}
         onLang={dictation.setLang}
-        onStart={dictation.start}
-        onStop={dictation.stop}
-        onDismiss={() => { dictation.stop(); setDictationOpen(false) }}
+        engine={engine}
+        onEngine={chooseEngine}
+        browserAvailable={dictation.supported}
+        accurateService={speechTarget ? SPEECH_PROVIDER_NAMES[speechTarget.provider] : null}
+        onStart={voice.start}
+        onStop={voice.stop}
+        onDismiss={() => { voice.stop(); setDictationOpen(false) }}
       />
 
       {/* Meeting assistant panel */}
