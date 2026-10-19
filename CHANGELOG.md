@@ -8,7 +8,7 @@ All notable changes to Dotstell are documented here.
 
 ### 🎤 Dictation
 
-- **No more repeated words on Android phones.** Chrome on Android can report each phrase as the whole sentence so far, which made every word appear two or more times. Dictation now inserts only what is new, whichever way the browser reports it
+- **No more repeated or garbled words on Android phones.** Chrome on Android sends a new result for every update of a phrase, all marked final but with no confidence, and changes words between them. Each of them was inserted, so words appeared two or more times. Dictation now shows those as a live guess and inserts the confident result once; if none arrives, the last guess is inserted after a pause or when you stop
 - **No double text after a pause.** Words from an ended session can no longer be inserted after dictation restarts, and a device where speech recognition keeps stopping now shows a message instead of retrying forever
 - A test that replays the event streams of desktop and Android browsers now guards this
 

@@ -1,6 +1,6 @@
 'use client'
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react'
-import { createDictationAssembler } from '@/lib/voice/dictation-assembler'
+import { createDictationAssembler, type DictationAssembler } from '@/lib/voice/dictation-assembler'
 
 // The Web Speech API is not in TypeScript's DOM types; these are the parts used here.
 interface RecognitionResult { isFinal: boolean; 0: { transcript: string; confidence?: number } }
@@ -41,6 +41,10 @@ const isAndroid = () => typeof navigator !== 'undefined' && /Android/i.test(navi
 /** A session that ends this quickly, this many times in a row, is a failure loop, not a pause in speech. */
 const QUICK_END_MS = 400
 const MAX_QUICK_ENDS = 5
+/** A guess with no confident result after this long is inserted anyway, so a phrase never waits forever. */
+const IDLE_FLUSH_MS = 2000
+/** After stop, wait this long for the engine's last result before inserting the last guess. */
+const STOP_FLUSH_MS = 800
 const DEBUG_KEY = 'dotstell:dictation-debug'
 const DEBUG_LINES = 14
 
@@ -81,16 +85,32 @@ export function useDictation(onText: (text: string) => void) {
   const recRef = useRef<Recognition | null>(null)
   const wantRef = useRef(false)
   const quickEndsRef = useRef(0)
+  const assemblerRef = useRef<DictationAssembler | null>(null)
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const onTextRef = useRef(onText)
 
   useEffect(() => { onTextRef.current = onText }, [onText])
+
+  const clearTimer = useCallback(() => {
+    if (timerRef.current) { clearTimeout(timerRef.current); timerRef.current = null }
+  }, [])
+
+  /** Inserts the last guess of the phrase in progress, when the engine never gave a confident result for it. */
+  const flushGuess = useCallback(() => {
+    clearTimer()
+    for (const text of assemblerRef.current?.flush() ?? []) onTextRef.current(text + ' ')
+    setInterim('')
+  }, [clearTimer])
 
   const stop = useCallback(() => {
     wantRef.current = false
     recRef.current?.stop()
     setListening(false)
     setInterim('')
-  }, [])
+    // The engine sends its last result just after stop; if it does not, the last guess is still kept.
+    clearTimer()
+    timerRef.current = setTimeout(flushGuess, STOP_FLUSH_MS)
+  }, [clearTimer, flushGuess])
 
   const start = useCallback(() => {
     const Ctor = recognitionCtor()
@@ -99,13 +119,17 @@ export function useDictation(onText: (text: string) => void) {
     wantRef.current = true
     quickEndsRef.current = 0
     const logging = debugEnabled()
-    if (logging) setDebug([])
+    if (logging) setDebug([`assembler v3 · android=${isAndroid()} · ${navigator.userAgent.slice(0, 90)}`])
+    // One assembler for the whole run, so text inserted before a restart is still remembered after it.
+    const assembler = createDictationAssembler()
+    assemblerRef.current = assembler
 
     const begin = () => {
       const rec = new Ctor()
       recRef.current = rec
       const startedAt = Date.now()
-      const assembler = createDictationAssembler({ assumeCumulative: isAndroid() })
+      assembler.startSession()
+      if (logging) setDebug(prev => [...prev, `session started ${new Date().toLocaleTimeString()}`].slice(-DEBUG_LINES))
       // Events from a session that has been replaced or stopped are ignored.
       const current = () => recRef.current === rec
 
@@ -114,7 +138,7 @@ export function useDictation(onText: (text: string) => void) {
       rec.interimResults = true
       rec.onresult = e => {
         if (!current()) return
-        const pieces = Array.from(e.results, r => ({ isFinal: r.isFinal, transcript: r[0].transcript }))
+        const pieces = Array.from(e.results, r => ({ isFinal: r.isFinal, transcript: r[0].transcript, confidence: r[0].confidence }))
         if (logging) {
           const line = `#${e.resultIndex} ` + Array.from(e.results, (r, i) => `${i}${r.isFinal ? 'F' : 'i'}${r[0].confidence ?? '?'}:"${r[0].transcript}"`).join(' ')
           setDebug(prev => [...prev, line].slice(-DEBUG_LINES))
@@ -122,6 +146,8 @@ export function useDictation(onText: (text: string) => void) {
         const { insert, interim: partial } = assembler.update(e.resultIndex, pieces)
         for (const text of insert) onTextRef.current(text + ' ')
         setInterim(partial)
+        clearTimer()
+        if (assembler.hasGuess()) timerRef.current = setTimeout(flushGuess, IDLE_FLUSH_MS)
       }
       rec.onerror = e => {
         if (!current()) return
@@ -131,6 +157,7 @@ export function useDictation(onText: (text: string) => void) {
       }
       rec.onend = () => {
         if (!current()) return
+        flushGuess()
         if (wantRef.current) {
           quickEndsRef.current = Date.now() - startedAt < QUICK_END_MS ? quickEndsRef.current + 1 : 0
           if (quickEndsRef.current >= MAX_QUICK_ENDS) {
@@ -148,7 +175,7 @@ export function useDictation(onText: (text: string) => void) {
     }
 
     try { begin(); setListening(true) } catch { wantRef.current = false; setError('Dictation could not start.') }
-  }, [lang])
+  }, [lang, clearTimer, flushGuess])
 
   const setLang = useCallback((code: string) => {
     setLangState(code)
@@ -157,7 +184,7 @@ export function useDictation(onText: (text: string) => void) {
     if (wantRef.current) stop()
   }, [stop])
 
-  useEffect(() => () => { wantRef.current = false; recRef.current?.abort() }, [])
+  useEffect(() => () => { wantRef.current = false; recRef.current?.abort(); clearTimer() }, [clearTimer])
 
   return { supported, listening, interim, error, lang, setLang, start, stop, debug }
 }

@@ -113,3 +113,126 @@ describe('sessions', () => {
     expect(second.update(0, [fin('hello world')]).insert).toEqual(['hello world'])
   })
 })
+
+describe('restarts and repeated chunks (Android, earbuds that reconnect)', () => {
+  it('does not insert again the end of the previous session when a restarted session repeats it', () => {
+    const assembler = createDictationAssembler({ assumeCumulative: true })
+    const out: string[] = []
+    assembler.startSession()
+    out.push(...assembler.update(0, [fin('please send the report to marcus')]).insert)
+    assembler.startSession()
+    out.push(...assembler.update(0, [fin('send the report to marcus by friday')]).insert)
+    expect(out.join(' ')).toBe('please send the report to marcus by friday')
+  })
+
+  it('drops a long chunk that was already inserted, from either session', () => {
+    const assembler = createDictationAssembler({ assumeCumulative: true })
+    const out: string[] = []
+    assembler.startSession()
+    out.push(...assembler.update(0, [fin('we agreed to ship the release on friday')]).insert)
+    assembler.startSession()
+    out.push(...assembler.update(0, [fin('we agreed to ship the release on friday')]).insert)
+    expect(out.join(' ')).toBe('we agreed to ship the release on friday')
+  })
+
+  it('removes a window that slides forward', () => {
+    expect(run(true, [
+      { index: 0, pieces: [fin('the quick brown fox')] },
+      { index: 1, pieces: [fin('the quick brown fox'), fin('brown fox jumps over the dog')] },
+    ])).toBe('the quick brown fox jumps over the dog')
+  })
+
+  it('keeps short common words that happen to appear earlier', () => {
+    expect(run(true, [
+      { index: 0, pieces: [fin('yes I will send it')] },
+      { index: 1, pieces: [fin('yes I will send it'), fin('yes')] },
+      { index: 2, pieces: [fin('yes I will send it'), fin('yes'), fin('and no problem')] },
+    ])).toBe('yes I will send it yes and no problem')
+  })
+
+  it('keeps a repeated phrase on engines that do not repeat results', () => {
+    const assembler = createDictationAssembler({ assumeCumulative: false })
+    assembler.startSession()
+    const first = assembler.update(0, [fin('thank you very much')]).insert
+    assembler.startSession()
+    const second = assembler.update(0, [fin('thank you very much')]).insert
+    expect([...first, ...second].join(' ')).toBe('thank you very much thank you very much')
+  })
+})
+
+describe('guesses (Chrome on Android: every update is a new result, final but with confidence 0)', () => {
+  const guess = (transcript: string): SpeechPiece => ({ isFinal: true, transcript, confidence: 0 })
+  const sure = (transcript: string, confidence = 0.88): SpeechPiece => ({ isFinal: true, transcript, confidence })
+
+  // The sequence captured on a Pixel: indexes 17 to 24, each result the phrase so far, only the last with a confidence.
+  const base = 'hello dark still could you please make'
+  const captured = [
+    guess(base), guess(`${base} a`), guess(`${base} a note`), guess(`${base} a note`), guess(`${base} a note`),
+    guess(`${base} a note what`), guess(`${base} a note what we're`), sure(`${base} a note what are you talking`),
+  ]
+
+  it('inserts the confident result once and none of the guesses before it', () => {
+    const assembler = createDictationAssembler()
+    assembler.startSession()
+    const inserted: string[] = []
+    const list: SpeechPiece[] = []
+    captured.forEach((piece, n) => {
+      list.push(piece)
+      const result = assembler.update(n, [...list])
+      if (n < captured.length - 1) expect(result.insert).toEqual([])
+      inserted.push(...result.insert)
+    })
+    expect(inserted).toEqual([`${base} a note what are you talking`])
+  })
+
+  it('shows the latest guess while the phrase is going', () => {
+    const assembler = createDictationAssembler()
+    assembler.update(0, [guess('hello there')])
+    expect(assembler.update(1, [guess('hello there'), guess('hello there my friend')]).interim).toBe('hello there my friend')
+  })
+
+  it('inserts the last guess when no confident result ever comes', () => {
+    const assembler = createDictationAssembler()
+    assembler.update(0, [guess('please call marcus')])
+    assembler.update(1, [guess('please call marcus'), guess('please call marcus tomorrow')])
+    expect(assembler.hasGuess()).toBe(true)
+    expect(assembler.flush()).toEqual(['please call marcus tomorrow'])
+    expect(assembler.hasGuess()).toBe(false)
+    expect(assembler.flush()).toEqual([])
+  })
+
+  it('does not insert again a confident result that arrives after its guess was flushed', () => {
+    const assembler = createDictationAssembler()
+    assembler.update(0, [guess('please call marcus tomorrow')])
+    const first = assembler.flush()
+    const late = assembler.update(1, [guess('please call marcus tomorrow'), sure('Please call Marcus tomorrow.')]).insert
+    expect([...first, ...late]).toEqual(['please call marcus tomorrow'])
+  })
+
+  it('adds only the extra words when the confident result is longer than the flushed guess', () => {
+    const assembler = createDictationAssembler()
+    assembler.update(0, [guess('please call marcus')])
+    const first = assembler.flush()
+    const late = assembler.update(1, [guess('please call marcus'), sure('please call marcus tomorrow')]).insert
+    expect([...first, ...late].join(' ')).toBe('please call marcus tomorrow')
+  })
+
+  it('finishes a guess of one phrase when a different phrase starts', () => {
+    const assembler = createDictationAssembler()
+    const out: string[] = []
+    out.push(...assembler.update(0, [guess('send the report')]).insert)
+    out.push(...assembler.update(1, [guess('send the report'), guess('book a meeting room')]).insert)
+    out.push(...assembler.update(2, [guess('send the report'), guess('book a meeting room'), sure('book a meeting room for friday')]).insert)
+    expect(out).toEqual(['send the report', 'book a meeting room for friday'])
+  })
+
+  it('handles two phrases in a row', () => {
+    const assembler = createDictationAssembler()
+    const out: string[] = []
+    out.push(...assembler.update(0, [guess('first phrase'), ]).insert)
+    out.push(...assembler.update(1, [guess('first phrase'), sure('first phrase here')]).insert)
+    out.push(...assembler.update(2, [guess('first phrase'), sure('first phrase here'), guess('second one')]).insert)
+    out.push(...assembler.update(3, [guess('first phrase'), sure('first phrase here'), guess('second one'), sure('second one now')]).insert)
+    expect(out).toEqual(['first phrase here', 'second one now'])
+  })
+})

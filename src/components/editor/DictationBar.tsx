@@ -75,6 +75,9 @@ export function DictationBar({ listening, interim, error, debug, lang, onLang, o
           </div>
           {error && <p role="alert" style={{ margin: 0, fontSize: 12, color: '#f87171' }}>{error}</p>}
           {debug && debug.length > 0 && (
+            <button type="button" onClick={() => navigator.clipboard?.writeText(debug.join('\n'))} style={{ ...ghostBtn, alignSelf: 'flex-start', fontSize: 11, padding: '3px 8px' }}>Copy debug log</button>
+          )}
+          {debug && debug.length > 0 && (
             <pre aria-label="Dictation events" style={{ margin: 0, maxHeight: 120, overflow: 'auto', fontSize: 10, lineHeight: 1.4, whiteSpace: 'pre-wrap', color: 'var(--muted-foreground)' }}>{debug.join('\n')}</pre>
           )}
         </>
