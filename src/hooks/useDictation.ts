@@ -41,8 +41,8 @@ const isAndroid = () => typeof navigator !== 'undefined' && /Android/i.test(navi
 /** A session that ends this quickly, this many times in a row, is a failure loop, not a pause in speech. */
 const QUICK_END_MS = 400
 const MAX_QUICK_ENDS = 5
-/** A guess with no confident result after this long is inserted anyway, so a phrase never waits forever. */
-const IDLE_FLUSH_MS = 2000
+/** A guess with no confident result after this long is made final, so a phrase never stays provisional forever. */
+const IDLE_FLUSH_MS = 6000
 /** After stop, wait this long for the engine's last result before inserting the last guess. */
 const STOP_FLUSH_MS = 800
 const DEBUG_KEY = 'dotstell:dictation-debug'
@@ -68,13 +68,15 @@ const ERRORS: Record<string, string> = {
 }
 
 /**
- * Voice dictation with the browser's own speech recognition. `onText` receives each finished phrase, once. Recognition
- * stops by itself after a pause in some browsers, so it is restarted until the user presses stop.
+ * Voice dictation with the browser's own speech recognition. `onText` receives each finished phrase, once. `onLive`
+ * receives the engine's current guess of the phrase in progress (empty when there is none), to show as provisional
+ * text and replace on every update; the finished phrase then arrives through `onText`. Recognition stops by itself
+ * after a pause in some browsers, so it is restarted until the user presses stop.
  *
  * Only the newest recognition session is listened to, and what it reports goes through `createDictationAssembler`,
  * so a late event from an ended session or a result list that repeats earlier words never inserts text twice.
  */
-export function useDictation(onText: (text: string) => void) {
+export function useDictation(sink: { onText: (text: string) => void; onLive?: (text: string) => void }) {
   // Support is a fact about the browser; the server snapshot says no so server and client first render agree.
   const supported = useSyncExternalStore(noSubscription, () => recognitionCtor() !== null, () => false)
   const [listening, setListening] = useState(false)
@@ -87,9 +89,9 @@ export function useDictation(onText: (text: string) => void) {
   const quickEndsRef = useRef(0)
   const assemblerRef = useRef<DictationAssembler | null>(null)
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const onTextRef = useRef(onText)
+  const sinkRef = useRef(sink)
 
-  useEffect(() => { onTextRef.current = onText }, [onText])
+  useEffect(() => { sinkRef.current = sink }, [sink])
 
   const clearTimer = useCallback(() => {
     if (timerRef.current) { clearTimeout(timerRef.current); timerRef.current = null }
@@ -98,7 +100,8 @@ export function useDictation(onText: (text: string) => void) {
   /** Inserts the last guess of the phrase in progress, when the engine never gave a confident result for it. */
   const flushGuess = useCallback(() => {
     clearTimer()
-    for (const text of assemblerRef.current?.flush() ?? []) onTextRef.current(text + ' ')
+    for (const text of assemblerRef.current?.flush() ?? []) sinkRef.current.onText(text + ' ')
+    sinkRef.current.onLive?.('')
     setInterim('')
   }, [clearTimer])
 
@@ -143,8 +146,9 @@ export function useDictation(onText: (text: string) => void) {
           const line = `#${e.resultIndex} ` + Array.from(e.results, (r, i) => `${i}${r.isFinal ? 'F' : 'i'}${r[0].confidence ?? '?'}:"${r[0].transcript}"`).join(' ')
           setDebug(prev => [...prev, line].slice(-DEBUG_LINES))
         }
-        const { insert, interim: partial } = assembler.update(e.resultIndex, pieces)
-        for (const text of insert) onTextRef.current(text + ' ')
+        const { insert, interim: partial, live } = assembler.update(e.resultIndex, pieces)
+        for (const text of insert) sinkRef.current.onText(text + ' ')
+        sinkRef.current.onLive?.(live)
         setInterim(partial)
         clearTimer()
         if (assembler.hasGuess()) timerRef.current = setTimeout(flushGuess, IDLE_FLUSH_MS)

@@ -236,3 +236,88 @@ describe('guesses (Chrome on Android: every update is a new result, final but wi
     expect(out).toEqual(['first phrase here', 'second one now'])
   })
 })
+
+describe('one long phrase of guesses with pauses (captured on a Pixel with earbuds)', () => {
+  const guess = (transcript: string): SpeechPiece => ({ isFinal: true, transcript, confidence: 0 })
+
+  /** Feeds guesses one per event, as Chrome does, and returns what was inserted by each flush. */
+  function speak(assembler: ReturnType<typeof createDictationAssembler>, list: SpeechPiece[], texts: string[]) {
+    for (const t of texts) {
+      list.push(guess(t))
+      expect(assembler.update(list.length - 1, [...list]).insert).toEqual([])
+    }
+    return assembler.flush()
+  }
+
+  it('inserts the phrase once, even when pauses flush it in parts', () => {
+    const assembler = createDictationAssembler()
+    assembler.startSession()
+    const list: SpeechPiece[] = []
+    const a = 'tell can you please help me to take a note what we\'re talking you know I mean'
+    const first = speak(assembler, list, ['', '', '', '', 'tell', 'tell can', 'tell can you please', 'tell can you please help me to take a', 'tell can you please help me to take a note what we\'re', a])
+    const second = speak(assembler, list, [`${a} so`, `${a} so we can`, `${a} so we can make an`])
+    expect([...first, ...second]).toEqual([a, 'so we can make an'])
+  })
+
+  it('does not repeat the opening when the first part was short', () => {
+    const assembler = createDictationAssembler()
+    assembler.startSession()
+    const list: SpeechPiece[] = []
+    const first = speak(assembler, list, ['hi', 'hi there'])
+    const second = speak(assembler, list, ['hi there everyone', 'hi there everyone please listen'])
+    expect([...first, ...second]).toEqual(['hi there', 'everyone please listen'])
+  })
+
+  it('adds only the new words when a word at the end was revised before the next pause', () => {
+    const assembler = createDictationAssembler()
+    assembler.startSession()
+    const list: SpeechPiece[] = []
+    const first = speak(assembler, list, ['we can make an'])
+    const second = speak(assembler, list, ['we can make a note', 'we can make a note please'])
+    expect([...first, ...second].join(' ')).toBe('we can make an note please')
+  })
+
+  it('still inserts a different phrase in full after a flush', () => {
+    const assembler = createDictationAssembler()
+    assembler.startSession()
+    const list: SpeechPiece[] = []
+    const first = speak(assembler, list, ['send the report to marcus'])
+    const second = speak(assembler, list, ['book a meeting room for friday'])
+    expect([...first, ...second]).toEqual(['send the report to marcus', 'book a meeting room for friday'])
+  })
+})
+
+describe('live text (the guess to show in the note while a phrase is going)', () => {
+  const guess = (transcript: string): SpeechPiece => ({ isFinal: true, transcript, confidence: 0 })
+
+  it('is the latest guess and follows its revisions', () => {
+    const assembler = createDictationAssembler()
+    expect(assembler.update(0, [guess('tell can')]).live).toBe('tell can')
+    expect(assembler.update(1, [guess('tell can'), guess("tell can you please what we're")]).live).toBe("tell can you please what we're")
+    expect(assembler.update(2, [guess('x'), guess('y'), guess('tell can you please what are you talking')]).live).toBe('tell can you please what are you talking')
+  })
+
+  it('is empty once a confident result has taken over', () => {
+    const assembler = createDictationAssembler()
+    assembler.update(0, [guess('send the report')])
+    const result = assembler.update(1, [guess('send the report'), { isFinal: true, transcript: 'send the report today', confidence: 0.9 }])
+    expect(result.insert).toEqual(['send the report today'])
+    expect(result.live).toBe('')
+  })
+
+  it('leaves out what was already made final, so a continuing phrase adds only the new words', () => {
+    const assembler = createDictationAssembler()
+    assembler.startSession()
+    assembler.update(0, [guess('we can make')])
+    expect(assembler.flush()).toEqual(['we can make'])
+    expect(assembler.update(1, [guess('we can make'), guess('we can make a plan')]).live).toBe('a plan')
+  })
+
+  it('shows the guess of a new phrase while finishing the one before', () => {
+    const assembler = createDictationAssembler()
+    assembler.update(0, [guess('send the report')])
+    const result = assembler.update(1, [guess('send the report'), guess('book a room for friday')])
+    expect(result.insert).toEqual(['send the report'])
+    expect(result.live).toBe('book a room for friday')
+  })
+})

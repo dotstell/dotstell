@@ -280,6 +280,10 @@ export function RichTextEditor({
   const onWikiLinksChangeRef = useRef(onWikiLinksChange)
   useEffect(() => { onWikiLinksChangeRef.current = onWikiLinksChange }, [onWikiLinksChange])
   const onTextChangeRef = useRef(onTextChange)
+  // What the editor has reported through onChange that the parent has not handed back yet. The parent's `content` lags
+  // the editor by a render, so without this the sync effect below would mistake an older echo for an outside change
+  // and roll the note back, losing whatever was typed, dictated or pasted in between.
+  const reportedRef = useRef<string[]>([])
   useEffect(() => { onTextChangeRef.current = onTextChange }, [onTextChange])
   // Ref keeps onEditorReady stable so the effect below never re-runs due to prop identity changes
   const onEditorReadyRef = useRef(onEditorReady)
@@ -408,6 +412,8 @@ export function RichTextEditor({
     },
     onUpdate: ({ editor }) => {
       const html = editor.getHTML()
+      reportedRef.current.push(html)
+      if (reportedRef.current.length > 100) reportedRef.current.shift()
       onChange(html)
       onTextChangeRef.current?.(editor.getText())
 
@@ -495,9 +501,12 @@ export function RichTextEditor({
 
   // Sync external content
   useEffect(() => {
-    if (editor && content !== editor.getHTML()) {
-      editor.commands.setContent(content)
-    }
+    if (!editor) return
+    // The editor's own change coming back, possibly one that is already out of date: nothing to apply.
+    const echoed = reportedRef.current.indexOf(content)
+    if (echoed >= 0) { reportedRef.current.splice(0, echoed + 1); return }
+    reportedRef.current = []
+    if (content !== editor.getHTML()) editor.commands.setContent(content)
   }, [content, editor])
 
   // Notify parent once the editor is ready — used for ToC scroll-to-heading and initial word count

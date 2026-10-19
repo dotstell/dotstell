@@ -10,6 +10,11 @@ export interface DictationUpdate {
   insert: string[]
   /** What is still being recognised, for display only. */
   interim: string
+  /**
+   * The current guess of the phrase in progress, without anything already inserted. Show it in the note as provisional
+   * text and replace it on every update; it becomes final when `insert` or `flush()` returns it. Empty when none.
+   */
+  live: string
 }
 
 export interface AssemblerOptions {
@@ -26,6 +31,9 @@ const CHUNK_MIN_WORDS = 3
 const CHUNK_MIN_KEYS = 10
 const OVERLAP_MIN_WORDS = 2
 const OVERLAP_MIN_KEYS = 6
+/** A repeated start may differ from what was inserted by about this share of its words (a revised word or two). */
+const FUZZY_ALLOWANCE = 0.15
+const FUZZY_MAX_WORDS = 300
 /** How many recent words are compared against when looking for a repeated chunk. */
 const TAIL_WORDS = 80
 /** A new guess is a revision of the last one when they share at least this many leading letters (or all of a shorter one). */
@@ -54,6 +62,22 @@ function dropKeys(text: string, count: number): string {
   return ''
 }
 
+/** Scripts written without spaces between words, where a repeat can end inside what looks like one word. */
+const UNSPACED = /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Thai}\p{Script=Lao}\p{Script=Khmer}\p{Script=Myanmar}]/u
+
+/** Whether dropping the first `count` letters and digits of `text` would cut a word in half ("an" from "a note"). */
+function cutsWord(text: string, count: number): boolean {
+  let seen = 0
+  const chars = Array.from(text)
+  for (let i = 0; i < chars.length; i++) {
+    if (ALNUM.test(chars[i]) && ++seen === count) {
+      const next = chars[i + 1]
+      return next !== undefined && ALNUM.test(next) && !UNSPACED.test(next)
+    }
+  }
+  return false
+}
+
 function wordsOf(text: string): string[] {
   return (text.match(WORD) ?? []).map(w => w.toLowerCase())
 }
@@ -65,6 +89,47 @@ function dropWords(text: string, count: number): string {
     if (++seen === count) return text.slice((m.index ?? 0) + m[0].length).replace(LEADING_PUNCTUATION, '')
   }
   return ''
+}
+
+function levenshtein(a: string, b: string): number {
+  const row = Array.from({ length: b.length + 1 }, (_, j) => j)
+  for (let i = 1; i <= a.length; i++) {
+    let diagonal = row[0]
+    row[0] = i
+    for (let j = 1; j <= b.length; j++) {
+      const above = row[j]
+      row[j] = Math.min(row[j] + 1, row[j - 1] + 1, diagonal + (a[i - 1] === b[j - 1] ? 0 : 1))
+      diagonal = above
+    }
+  }
+  return row[b.length]
+}
+
+/** 0 for the same word, up to 1 for words with nothing in common. */
+const wordCost = (a: string, b: string) => (a === b ? 0 : Math.min(1, levenshtein(a, b) / Math.max(a.length, b.length)))
+
+/**
+ * How many leading words of `next` repeat `earlier`, allowing a word or two to have been revised, or 0 when the
+ * start of `next` is not a version of `earlier`. A word-level edit distance, so "make an" matches "make a".
+ */
+function repeatedWordCount(earlier: string[], next: string[]): number {
+  if (earlier.length < 3 || earlier.length > FUZZY_MAX_WORDS || next.length === 0) return 0
+  const rows = earlier.length
+  const cols = next.length
+  const d: number[][] = Array.from({ length: rows + 1 }, (_, i) => [i, ...new Array<number>(cols).fill(0)])
+  for (let j = 1; j <= cols; j++) d[0][j] = j
+  for (let i = 1; i <= rows; i++) {
+    for (let j = 1; j <= cols; j++) {
+      d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + wordCost(earlier[i - 1], next[j - 1]))
+    }
+  }
+  let best = 0
+  let bestCost = Infinity
+  for (let m = Math.max(1, rows - 3); m <= Math.min(cols, rows + 3); m++) {
+    const cost = d[rows][m]
+    if (cost < bestCost || (cost === bestCost && Math.abs(m - rows) < Math.abs(best - rows))) { best = m; bestCost = cost }
+  }
+  return bestCost <= Math.max(1, FUZZY_ALLOWANCE * rows) ? best : 0
 }
 
 function startsWithKeys(keys: string[], prefix: string[]): boolean {
@@ -107,7 +172,8 @@ export function createDictationAssembler({ assumeCumulative = false, now = Date.
   const handled = new Map<number, string>()
   let emitted: string[] = []
   let sessionStart = 0
-  let tailWords: string[] = []
+  let insertedWords: string[] = []
+  let sessionWordStart = 0
   let cumulative = assumeCumulative
   let guess: { text: string; index: number } | null = null
   let flushed: { keys: string[]; at: number } | null = null
@@ -116,14 +182,19 @@ export function createDictationAssembler({ assumeCumulative = false, now = Date.
   function withoutInserted(text: string): string {
     let rest = text
     const sessionKeys = emitted.slice(sessionStart)
-    if (sessionKeys.length >= (cumulative ? 1 : DETECT_MIN_KEYS) && startsWithKeys(alnumKeys(rest), sessionKeys)) {
+    if (sessionKeys.length >= (cumulative ? 1 : DETECT_MIN_KEYS) && startsWithKeys(alnumKeys(rest), sessionKeys) && !cutsWord(rest, sessionKeys.length)) {
       cumulative = true
       rest = dropKeys(rest, sessionKeys.length)
+    } else if (cumulative && sessionKeys.length > 0) {
+      // The start may repeat what was inserted with a word or two revised since.
+      const repeated = repeatedWordCount(insertedWords.slice(sessionWordStart), wordsOf(rest))
+      if (repeated > 0) rest = dropWords(rest, repeated)
     }
     if (!cumulative) return rest
 
     const words = wordsOf(rest)
     if (words.length === 0) return rest
+    const tailWords = insertedWords.slice(-TAIL_WORDS)
     // A long enough chunk that was already inserted (a resent result, or the end of the previous session)
     if (words.length >= CHUNK_MIN_WORDS && lettersIn(words) >= CHUNK_MIN_KEYS && containsRun(tailWords, words)) return ''
     // The start of this text is the end of what was inserted: a window that slides forward
@@ -143,7 +214,7 @@ export function createDictationAssembler({ assumeCumulative = false, now = Date.
       // The same result sent again: only text added to it since is new.
       const seenKeys = alnumKeys(before)
       if (seenKeys.length === 0) text = transcript
-      else text = startsWithKeys(alnumKeys(transcript), seenKeys) ? dropKeys(transcript, seenKeys.length) : ''
+      else text = startsWithKeys(alnumKeys(transcript), seenKeys) && !cutsWord(transcript, seenKeys.length) ? dropKeys(transcript, seenKeys.length) : ''
     } else {
       text = withoutInserted(transcript)
     }
@@ -163,8 +234,12 @@ export function createDictationAssembler({ assumeCumulative = false, now = Date.
     const clean = text.trim()
     if (!clean || alnumKeys(clean).length === 0) return ''
     emitted = emitted.concat(alnumKeys(clean))
-    tailWords = tailWords.concat(wordsOf(clean)).slice(-TAIL_WORDS)
-    if (fromGuess) flushed = { keys: alnumKeys(clean), at: now() }
+    insertedWords = insertedWords.concat(wordsOf(clean))
+    if (fromGuess) {
+      flushed = { keys: alnumKeys(clean), at: now() }
+      // Guesses of one phrase each repeat the phrase so far, so what follows this one will repeat it too.
+      cumulative = true
+    }
     return clean
   }
 
@@ -187,6 +262,7 @@ export function createDictationAssembler({ assumeCumulative = false, now = Date.
     startSession(): void {
       handled.clear()
       sessionStart = emitted.length
+      sessionWordStart = insertedWords.length
     },
 
     /** Whether a guess is waiting for its confident result, so the caller can flush it after a quiet moment. */
@@ -233,8 +309,9 @@ export function createDictationAssembler({ assumeCumulative = false, now = Date.
         const done = finish(i, transcript, false)
         if (done) insert.push(done)
       }
-      if (!interim && guess) interim = withoutInserted(guess.text)
-      return { insert, interim: interim.trim() }
+      const live = guess ? withoutInserted(guess.text).trim() : ''
+      if (!interim && guess) interim = live
+      return { insert, interim: interim.trim(), live }
     },
   }
 }
