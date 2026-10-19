@@ -60,6 +60,12 @@ function leadingSpace(editor: Editor, pos: number, text: string): string {
   return before && !/\s/.test(before) ? ' ' : ''
 }
 
+/** The text of the paragraph from its start up to `pos`. */
+function textBefore(editor: Editor, pos: number): string {
+  const $pos = editor.state.doc.resolve(pos)
+  return $pos.parent.textBetween(0, $pos.parentOffset, undefined, '\u0000')
+}
+
 /**
  * Provisional dictated text in a note. While a phrase is being recognised the engine keeps changing its guess, so the
  * guess is shown in the note, tinted, and replaced in place on every update instead of appended. `commit` turns it
@@ -68,7 +74,11 @@ function leadingSpace(editor: Editor, pos: number, text: string): string {
  *
  * Text is inserted as a text node, never parsed as HTML, so nothing dictated can be read as markup.
  */
-export function createLiveText(editorRef: { current: Editor | null }) {
+export function createLiveText(
+  editorRef: { current: Editor | null },
+  /** Turns heard words into written text, given the paragraph's text before the place they go. */
+  format: (text: string, before: string) => string = text => text,
+) {
   let range: { from: number; to: number } | null = null
   /** The space put before the phrase in progress, kept the same for every update of it. */
   let lead = ''
@@ -117,9 +127,11 @@ export function createLiveText(editorRef: { current: Editor | null }) {
         // The first guess replaces anything the user had selected, like typing over a selection.
         const { from, to } = editor.state.selection
         range = { from, to }
-        lead = leadingSpace(editor, from, text)
       }
-      const shown = text ? lead + text : ''
+      // A line break asked for is only made when the text becomes final; until then it shows as a space.
+      const written = text ? format(text, textBefore(editor, range.from)).replace(/\n/g, ' ') : ''
+      lead = leadingSpace(editor, range.from, written)
+      const shown = written ? lead + written : ''
       write(editor, range.from, range.to, shown, true)
       range = shown ? { from: range.from, to: range.from + shown.length } : null
     },
@@ -129,13 +141,17 @@ export function createLiveText(editorRef: { current: Editor | null }) {
       const editor = editorRef.current
       if (!editor) return
       track(editor)
-      if (range) {
-        const { from, to } = range
-        range = null
-        write(editor, from, to, lead + text, false)
-      } else {
-        const { from, to } = editor.state.selection
-        write(editor, from, to, leadingSpace(editor, from, text) + text, false)
+      const { from, to } = range ?? editor.state.selection
+      range = null
+      const written = format(text, textBefore(editor, from))
+      const [first, ...rest] = (leadingSpace(editor, from, written) + written).split('\n')
+      write(editor, from, to, first, false)
+      // Each line break asked for ("new line") starts a new paragraph, as pressing Enter does.
+      for (const line of rest) {
+        editor.chain().focus().splitBlock().run()
+        const at = editor.state.selection.from
+        const body = line.replace(/^\s+/, '')
+        if (body) write(editor, at, at, body, false)
       }
       lead = ''
       keepInView(editor, editor.state.selection.to)
