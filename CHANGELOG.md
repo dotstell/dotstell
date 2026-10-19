@@ -6,6 +6,12 @@ All notable changes to Dotstell are documented here.
 
 ## [Unreleased]
 
+---
+
+## [v0.9.1] — Oct 2026
+
+Dictation that works on phones, a High accuracy mode, spoken punctuation, and a refreshed README with a self-hosting guide.
+
 ### 🎤 Dictation
 
 - **Punctuation and capital letters in Fast dictation (English).** The browser's speech recognition sends words only. Now you can say "comma", "question mark", "exclamation mark", "full stop", "new line" or "new paragraph" and get the mark or the break; "period" counts when it ends a phrase or stands alone, so "the time period" stays words. Sentences start with capital letters (including the start of a note or paragraph) and "I" is capitalised. Spoken punctuation can be switched off in the dictation options
@@ -15,6 +21,12 @@ All notable changes to Dotstell are documented here.
 - **Fixed words going missing while typing, dictating or pasting quickly.** The editor could roll the note back to an older snapshot when text arrived faster than the page caught up, wiping the newest words. It now recognises its own changes coming back
 - **No double text after a pause.** Words from an ended session can no longer be inserted after dictation restarts, and a device where speech recognition keeps stopping now shows a message instead of retrying forever
 - A test that replays the event streams of desktop and Android browsers now guards this
+
+### 📚 Docs and listing
+
+- **README refreshed** — the feature list now covers Meetings, voice dictation, the MCP server, import and export, and the desktop and phone apps, grouped as Capture, Connect, Ask and Yours to keep
+- **Self-hosting guide** — [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) takes you from an empty Supabase project to a running instance, and says what each feature needs
+- **Listed in the official MCP Registry** as `io.github.dotstell/dotstell`, so MCP clients can find the dotstell server (`server.json` in the repository)
 
 ---
 
