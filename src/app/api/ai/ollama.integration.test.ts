@@ -5,6 +5,7 @@ import { describe, it, expect, vi } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { NextRequest } from 'next/server'
 import { summariseMeeting } from '@/lib/meetings/run'
+import { ollamaChatBody } from '@/lib/ai/ollama-browser'
 import type { AIConfig, AIMessage } from '@/lib/ai/types'
 
 vi.mock('@/lib/supabase/server', () => ({
@@ -46,11 +47,11 @@ describe.skipIf(!process.env.OLLAMA_INTEGRATION)('real Ollama through the server
 
   it('summarises a long meeting end to end the way the browser does: small pieces, grouped combine, native Ollama API', async () => {
     const long = Array.from({ length: 4 }, (_, i) => transcript.replace(/4\.2/g, `4.${2 + i}`)).join('\n')
-    // Same request shape as streamOllamaBrowser/completeOllamaBrowser sends to /api/chat.
+    // The same request body the browser sends to /api/chat.
     const completeLocal = async (messages: AIMessage[]) => {
       const res = await fetch('http://127.0.0.1:11434/api/chat', {
         method: 'POST',
-        body: JSON.stringify({ model: config.model, messages, stream: false, format: 'json', options: { num_ctx: 8192, num_predict: 2048, temperature: 0.1 } }),
+        body: JSON.stringify({ ...ollamaChatBody(config as AIConfig, messages, { json: true, numCtx: 8192, temperature: 0.1 }), stream: false }),
       })
       return (await res.json()).message?.content ?? ''
     }

@@ -55,7 +55,7 @@ export async function openaiStream(
   if (config.baseUrl && config.provider !== 'ollama') sanitizeBaseUrl(baseUrl)
   const url = `${baseUrl}/chat/completions`
 
-  const res = await fetch(url, {
+  const request = (thinkOff: boolean) => fetch(url, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -67,9 +67,17 @@ export async function openaiStream(
       ...(opts.json && !NO_SYSTEM_ROLE_MODELS.test(config.model ?? '') ? { response_format: { type: 'json_object' } } : {}),
       // OpenAI's newer reasoning models reject a temperature, so it is only sent to the providers that run smaller models.
       ...(opts.temperature !== undefined && (config.provider === 'ollama' || config.provider === 'groq') ? { temperature: opts.temperature } : {}),
+      // Ollama's reasoning models otherwise spend the reply on hidden thinking; this switches it off.
+      ...(thinkOff && config.provider === 'ollama' ? { reasoning_effort: 'none' } : {}),
     }),
     signal: AbortSignal.timeout(30_000),
   })
+
+  let res = await request(true)
+  // An Ollama that does not know the setting says so with a 400; ask again without it rather than fail.
+  if (config.provider === 'ollama' && res.status === 400 && /reasoning|think/i.test(await res.clone().text().catch(() => ''))) {
+    res = await request(false)
+  }
 
   if (!res.ok) {
     const raw   = await res.text().catch(() => res.statusText)
