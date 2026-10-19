@@ -4,6 +4,8 @@ import { ChevronDown, ChevronUp, GripHorizontal, Mic, Settings2, Square, X } fro
 import { DICTATION_LANGUAGES } from '@/hooks/useDictation'
 import { dictationLayout } from '@/lib/voice/layout'
 
+export type DictationEngine = 'browser' | 'accurate'
+
 const ACK_KEY = 'dotstell:dictation-notice-seen'
 const POSITION_KEY = 'dotstell:dictation-bar-bottom'
 const EDGE = 8
@@ -34,6 +36,13 @@ interface Props {
   onStart: () => void
   onStop: () => void
   onDismiss: () => void
+  /** Which speech engine is used, and the means to change it. */
+  engine: DictationEngine
+  onEngine: (engine: DictationEngine) => void
+  /** Whether the browser has built-in speech recognition (it does not in Firefox). */
+  browserAvailable: boolean
+  /** Name of the speech service High accuracy would send audio to, or null when no key is set up. */
+  accurateService: string | null
   /** True once the user asked to dictate, so the bar shows even before recognition has started. */
   open: boolean
 }
@@ -45,7 +54,7 @@ interface Props {
  * It is one slim row so the note stays visible on a phone, can be dragged (or moved with the arrow keys) to wherever
  * it is out of the way, and keeps its place. The language and other options are in a row that opens on demand.
  */
-export function DictationBar({ listening, interim, error, debug, lang, onLang, onStart, onStop, onDismiss, open }: Props) {
+export function DictationBar({ listening, interim, error, debug, lang, onLang, engine, onEngine, browserAvailable, accurateService, onStart, onStop, onDismiss, open }: Props) {
   const [acknowledged, setAcknowledged] = useState(dictationNoticeSeen)
   const [bottom, setBottom] = useState<number | null>(savedPosition)
   const [options, setOptions] = useState(false)
@@ -150,8 +159,9 @@ export function DictationBar({ listening, interim, error, debug, lang, onLang, o
       {!acknowledged ? (
         <>
           <p style={{ margin: 0, fontSize: 12, color: 'var(--foreground)', lineHeight: 1.5 }}>
-            Dictation uses your browser&apos;s speech service. In Chrome and Edge your voice is sent to Google or Microsoft to be turned into text;
-            dotstell never receives the audio. Nothing is recorded unless you press start.
+            {engine === 'accurate'
+              ? <>High accuracy sends your voice to {accurateService ?? 'your speech service'} to be turned into text, using your own key. dotstell never receives the audio. Nothing is recorded unless you press start.</>
+              : <>Dictation uses your browser&apos;s speech service. In Chrome and Edge your voice is sent to Google or Microsoft to be turned into text; dotstell never receives the audio. Nothing is recorded unless you press start.</>}
           </p>
           <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
             <button type="button" onClick={onDismiss} style={ghostBtn}>Not now</button>
@@ -180,12 +190,27 @@ export function DictationBar({ listening, interim, error, debug, lang, onLang, o
             <button type="button" onClick={onDismiss} aria-label="Close dictation" style={iconBtn}><X size={15} /></button>
           </div>
           {options && (
-            <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: 'var(--muted-foreground)', paddingLeft: 4 }}>
-              Language
-              <select value={lang} onChange={e => onLang(e.target.value)} aria-label="Dictation language" style={{ fontSize: 12, padding: '4px 6px', borderRadius: 6, border: '1px solid var(--border)', backgroundColor: 'var(--muted)', color: 'var(--foreground)', maxWidth: 200 }}>
-                {DICTATION_LANGUAGES.map(l => <option key={l.code} value={l.code}>{l.label}</option>)}
-              </select>
-            </label>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, paddingLeft: 4 }}>
+              <div role="radiogroup" aria-label="Speech engine" style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                {browserAvailable && (
+                  <button type="button" role="radio" aria-checked={engine === 'browser'} onClick={() => onEngine('browser')} style={engine === 'browser' ? chipOn : chipOff}>Fast (browser)</button>
+                )}
+                <button type="button" role="radio" aria-checked={engine === 'accurate'} onClick={() => onEngine('accurate')} style={engine === 'accurate' ? chipOn : chipOff}>High accuracy</button>
+              </div>
+              <p style={{ margin: 0, fontSize: 11, color: 'var(--muted-foreground)', lineHeight: 1.4 }}>
+                {engine === 'accurate'
+                  ? accurateService
+                    ? `Text appears a moment after each pause, with punctuation and capitals. Audio goes to ${accurateService} with your key.`
+                    : 'Needs a speech key: add an OpenAI, Groq or Gemini key in AI settings, or in the Meeting assistant recording box.'
+                  : 'Words appear as you speak. Your browser decides the accuracy.'}
+              </p>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: 'var(--muted-foreground)' }}>
+                Language
+                <select value={lang} onChange={e => onLang(e.target.value)} aria-label="Dictation language" style={{ fontSize: 12, padding: '4px 6px', borderRadius: 6, border: '1px solid var(--border)', backgroundColor: 'var(--muted)', color: 'var(--foreground)', maxWidth: 200 }}>
+                  {DICTATION_LANGUAGES.map(l => <option key={l.code} value={l.code}>{l.label}</option>)}
+                </select>
+              </label>
+            </div>
           )}
           {error && <p role="alert" style={{ margin: 0, fontSize: 12, color: '#f87171' }}>{error}</p>}
           {debug && debug.length > 0 && (
@@ -203,3 +228,6 @@ export function DictationBar({ listening, interim, error, debug, lang, onLang, o
 const primaryBtn: React.CSSProperties = { padding: '6px 12px', borderRadius: 8, fontSize: 12, fontWeight: 600, border: 'none', cursor: 'pointer', backgroundColor: 'var(--primary)', color: 'white', display: 'flex', alignItems: 'center', gap: 5, flexShrink: 0 }
 const ghostBtn: React.CSSProperties = { padding: '6px 12px', borderRadius: 8, fontSize: 12, border: '1px solid var(--border)', cursor: 'pointer', backgroundColor: 'transparent', color: 'var(--foreground)', display: 'flex', alignItems: 'center' }
 const iconBtn: React.CSSProperties = { width: 32, height: 32, borderRadius: 8, border: 'none', cursor: 'pointer', backgroundColor: 'transparent', color: 'var(--muted-foreground)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }
+const chipBase: React.CSSProperties = { padding: '5px 10px', borderRadius: 99, fontSize: 12, cursor: 'pointer', border: '1px solid var(--border)' }
+const chipOn: React.CSSProperties = { ...chipBase, backgroundColor: 'color-mix(in srgb, var(--primary) 14%, transparent)', color: 'var(--primary)', borderColor: 'color-mix(in srgb, var(--primary) 45%, transparent)', fontWeight: 600 }
+const chipOff: React.CSSProperties = { ...chipBase, backgroundColor: 'transparent', color: 'var(--muted-foreground)' }
