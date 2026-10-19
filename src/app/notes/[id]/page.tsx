@@ -28,6 +28,7 @@ import { useAccurateDictation } from '@/hooks/useAccurateDictation'
 import { SPEECH_PROVIDER_NAMES, transcriptionTarget } from '@/lib/voice/transcribe'
 import { loadSpeechSettings } from '@/lib/voice/settings'
 import { createLiveText, type LiveText } from '@/lib/voice/live-text'
+import { formatDictation } from '@/lib/voice/format-dictation'
 import { AIRelatedPanel } from '@/components/ai/AIRelatedPanel'
 import { AISettingsModal } from '@/components/ai/AISettingsModal'
 import { useNoteTabs } from '@/hooks/useNoteTabs'
@@ -119,7 +120,11 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
   // Dictated text is inserted as a text node, not parsed as HTML. The engine's guess of a phrase is shown as provisional
   // text and replaced on every update, then made final, so revised or repeated words never pile up.
   const liveTextRef = useRef<LiveText | null>(null)
-  const liveText = () => (liveTextRef.current ??= createLiveText(editorRef))
+  // Words heard by the browser get punctuation and capitals; High accuracy text already has both.
+  const formatRef = useRef<(text: string, before: string) => string>(text => text)
+  const liveText = () => (liveTextRef.current ??= createLiveText(editorRef, (text, before) => formatRef.current(text, before)))
+  const [spokenPunctuation, setSpokenPunctuation] = useState(() =>
+    typeof window === 'undefined' || localStorage.getItem('dotstell:dictation-spoken') !== '0')
   const dictation = useDictation({ onText: text => liveText().commit(text), onLive: text => liveText().live(text) })
   // High accuracy dictation sends pieces of audio to a Whisper-class service with the user's own key.
   const [engineChoice, setEngineChoice] = useState<DictationEngine>(() =>
@@ -132,6 +137,15 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
   const engine: DictationEngine = engineChoice === 'accurate' || !dictation.supported ? 'accurate' : 'browser'
   const voice = engine === 'accurate' ? accurate : dictation
   const dictationSupported = dictation.supported || accurate.supported
+  useEffect(() => {
+    formatRef.current = engine === 'browser'
+      ? (text, before) => formatDictation(text, before, { spoken: spokenPunctuation, lang: dictation.lang })
+      : text => text
+  }, [engine, spokenPunctuation, dictation.lang])
+  function chooseSpoken(on: boolean) {
+    setSpokenPunctuation(on)
+    localStorage.setItem('dotstell:dictation-spoken', on ? '1' : '0')
+  }
   function chooseEngine(next: DictationEngine) {
     if (next === engine) return
     dictation.stop(); accurate.stop()
@@ -1567,6 +1581,8 @@ ${sanitizeHtml(note.content ?? '', 'document')}
         onLang={dictation.setLang}
         engine={engine}
         onEngine={chooseEngine}
+        spokenPunctuation={spokenPunctuation}
+        onSpokenPunctuation={chooseSpoken}
         browserAvailable={dictation.supported}
         accurateService={speechTarget ? SPEECH_PROVIDER_NAMES[speechTarget.provider] : null}
         onStart={voice.start}
