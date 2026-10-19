@@ -1,6 +1,6 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
-  "name": "io.github.dotstell/dotstell",
+  "name": "com.dotstell/dotstell",
   "title": "dotstell",
   "description": "Read-only access to your dotstell notes, bookmarks, tasks, people and meetings.",
   "repository": {

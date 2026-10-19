@@ -26,7 +26,7 @@ Dictation that works on phones, a High accuracy mode, spoken punctuation, and a 
 
 - **README refreshed** — the feature list now covers Meetings, voice dictation, the MCP server, import and export, and the desktop and phone apps, grouped as Capture, Connect, Ask and Yours to keep
 - **Self-hosting guide** — [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) takes you from an empty Supabase project to a running instance, and says what each feature needs
-- **Listed in the official MCP Registry** as `io.github.dotstell/dotstell`, so MCP clients can find the dotstell server (`server.json` in the repository)
+- **Listed in the official MCP Registry** as `com.dotstell/dotstell`, so MCP clients can find the dotstell server (`server.json` in the repository)
 
 ---
 
