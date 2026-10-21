@@ -157,7 +157,8 @@ supabase/migrations/
 ├── 009_ai_match_functions.sql     ← pgvector cosine similarity RPC functions
 ├── 010_tasks_embedding.sql        ← vector(768) column on tasks + match_tasks() (tasks in AI Chat RAG)
 ├── 011_fix_function_search_paths.sql
-└── 012_mcp.sql                    ← MCP tokens and the read-only functions behind the MCP server
+├── 012_mcp.sql                    ← MCP tokens and the read-only functions behind the MCP server
+└── 013_data_api_grants.sql        ← explicit table grants (needed on new Supabase projects from 30 Oct 2026; safe to run on any)
 ```
 
 3. Copy your project URL and anon key from **Settings → API**

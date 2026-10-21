@@ -15,6 +15,8 @@ dotstell is a Next.js app that stores everything in a Supabase (PostgreSQL) proj
 2. Open **SQL Editor**, paste the whole of [`supabase/schema.sql`](../supabase/schema.sql) and run it. It creates every table, row-level security policy, trigger and function, enables the `vector` extension used for AI search, and includes everything the files in `supabase/migrations/` add. On a fresh project you do not run the migrations.
 3. Open **Settings > API** and copy the **Project URL** and the **anon public key**.
 
+**Supabase and new tables (30 Oct 2026).** From that date Supabase stops granting API access to new tables in `public` automatically. `schema.sql` already contains the grants dotstell needs, so a new project works as before. An existing project keeps the access it has; running `supabase/migrations/013_data_api_grants.sql` once is recommended anyway (it only adds the grants and is safe to run again), so nothing depends on the old default. If you add your own tables, add a `grant` for them too.
+
 Updating an existing installation to a newer dotstell: run any file in `supabase/migrations/` that you have not run yet, in number order. [`CHANGELOG.md`](../CHANGELOG.md) says which release needs one.
 
 ## 2. Configure the app
