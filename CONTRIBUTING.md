@@ -59,6 +59,14 @@ Skipping the second half is not cosmetic. `schema.sql` had drifted by 19 objects
 search — so a fresh self-hosted install was broken on basic use, with nothing in the setup
 steps to explain why.
 
+**A new table also needs its grants, in the same migration.** From 30 Oct 2026 Supabase no longer
+gives the API roles access to new tables in `public` automatically, so a table without a `grant` fails
+with "permission denied" on any new project, preview branch or `supabase db reset`. Follow `013_data_api_grants.sql`:
+`grant select, insert, update, delete on public.your_table to authenticated;` (and `service_role`), keep
+row-level security on, and give `anon` nothing unless the table is meant to be public. A test
+(`src/lib/db/schema-grants.test.ts`) runs the real `schema.sql` with no automatic grants and fails if a table or
+a migration from 012 onward is missing them.
+
 `node scripts/check-schema-sync.mjs` compares the two and lists anything missing. CI runs
 it on any PR touching `supabase/`.
 

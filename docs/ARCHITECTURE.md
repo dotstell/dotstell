@@ -816,7 +816,8 @@ supabase/migrations/
 ├── 009_ai_match_functions.sql     # match_notes() + match_bookmarks() RPC functions for cosine similarity search
 ├── 010_tasks_embedding.sql        # vector(768) column on tasks + match_tasks() RPC; tasks now in AI Chat RAG + semantic search
 ├── 011_fix_function_search_paths.sql # pins search_path on existing functions
-└── 012_mcp.sql                    # MCP tokens, activity log and read-only mcp_* functions (see MCP.md)
+├── 012_mcp.sql                    # MCP tokens, activity log and read-only mcp_* functions (see MCP.md)
+└── 013_data_api_grants.sql        # explicit table grants for the API roles (Supabase stops granting them on 30 Oct 2026)
 ```
 
 > **Note on `007_notebooks_constraints.sql`:** This migration must be run manually in the Supabase SQL Editor. It adds the `UNIQUE(user_id, name)` constraint that prevents duplicate notebook names from producing colliding `nb:` tags. Without it, creating two notebooks with the same name will cause a 500 error instead of a clean 409 conflict response.

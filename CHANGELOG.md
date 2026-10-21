@@ -6,6 +6,11 @@ All notable changes to Dotstell are documented here.
 
 ## [Unreleased]
 
+### 🛡️ Database
+
+- **Ready for Supabase's 30 October change.** From that date new tables in `public` no longer get API access automatically, so a fresh dotstell install, a preview branch or a `supabase db reset` would have failed with "permission denied" on every table. `schema.sql` now grants the access explicitly, and the new `013_data_api_grants.sql` does the same for an existing database (safe to run more than once; existing projects are not affected if they skip it). Signed-in users get exactly what they had before, anonymous visitors get nothing, and row-level security still decides who sees which rows
+- **A test guards it.** It runs the real `schema.sql` in an in-memory Postgres with no automatic grants and checks every table, the AI search functions and MCP tokens, and it fails if a new table or migration is missing its grants
+
 ---
 
 ## [v0.9.2] — Oct 2026
