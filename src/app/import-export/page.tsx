@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { Download, FileText, Users, CheckSquare, Bookmark, Database, Loader2, CheckCircle2, AlertCircle } from 'lucide-react'
 import { toast } from 'sonner'
 import { AppLayout } from '@/components/layout/AppLayout'
+import { GitHubStarPrompt } from '@/components/engagement/GitHubStarPrompt'
 import { PageContainer } from '@/components/layout/PageContainer'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { Button } from '@/components/ui/button'
@@ -92,6 +93,7 @@ export default function SettingsPage() {
                     and {summary.bookmarks} bookmarks.
                   </span>
                 )}
+                {phase === 'done' && summary && <GitHubStarPrompt variant="inline" />}
                 {phase === 'error' && (
                   <span className="inline-flex items-center gap-1.5 text-[var(--destructive)]">
                     <AlertCircle size={15} />
