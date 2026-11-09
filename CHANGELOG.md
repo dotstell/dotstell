@@ -6,6 +6,12 @@ All notable changes to Dotstell are documented here.
 
 ## [Unreleased]
 
+### ⭐ Getting found
+
+- **A one-time invitation to star dotstell.** Once you have ten or more notes the dashboard asks, once, whether you would star the project on GitHub, and a single line appears after a successful export. Starring or choosing "Not now" ends it for good; it never comes back, and it stays quiet if your browser blocks storage
+- **README tour.** The README now leads with the whole idea (everything you write, everyone you know, everything you do, linked in one graph, with AI and the MCP server) and shows it with a short tour and screenshots of AI Chat, the MCP connection, meetings and the graph, all on fictional data
+- **Social preview image** in `docs/assets/social-preview.png` for link cards
+
 ### 🛡️ Database
 
 - **Ready for Supabase's 30 October change.** From that date new tables in `public` no longer get API access automatically, so a fresh dotstell install, a preview branch or a `supabase db reset` would have failed with "permission denied" on every table. `schema.sql` now grants the access explicitly, and the new `013_data_api_grants.sql` does the same for an existing database (safe to run more than once; existing projects are not affected if they skip it). Signed-in users get exactly what they had before, anonymous visitors get nothing, and row-level security still decides who sees which rows

@@ -9,9 +9,21 @@
 
 ### Your knowledge is scattered. Dotstell connects it.
 
+**Everything you write, everyone you know, everything you do —<br/>all linked in one living knowledge graph.**
+
+Ask it in Dotstell, or from Codex, Claude and any other AI tool through the built-in [MCP server](docs/MCP.md).
+
+*"Your knowledge is not lost. It's just not connected yet."*
+
 **Capture · Connect · Ask**
 
-Notes · People · Tasks · Bookmarks · Wikilinks · Knowledge Graph · Meetings · Voice dictation · AI Chat & Writing · MCP server · Import & Export · Local Ollama
+Notes · People · Tasks · Bookmarks · Wikilinks · Knowledge Graph · AI Chat & Writing · MCP server · Meetings · Voice dictation · Local Ollama · Import & Export
+
+<br/>
+
+<img src="docs/assets/dotstell-tour.gif" alt="A tour of Dotstell: asking AI about your notes, connecting Claude Code over MCP, turning a meeting into action items, and the knowledge graph" width="85%" />
+
+<sub>Fictional demo data.</sub>
 
 <br/>
 
@@ -48,6 +60,14 @@ Most productivity tools are built around **capture**. Dotstell is built around *
 The question it answers that other tools don't:
 
 > *"What do I know about this person, this project, this decision — right now, in full context?"*
+
+### See it
+
+| Ask your own knowledge | Connect Codex, Claude and Cursor |
+|---|---|
+| <img src="docs/assets/screenshot-ask.png" alt="AI Chat answering from notes, people and tasks" /> | <img src="docs/assets/screenshot-mcp.png" alt="Connecting Claude Code to Dotstell through the MCP server" /> |
+| **Meetings become action items** | **Everything linked in one graph** |
+| <img src="docs/assets/screenshot-meetings.png" alt="Meeting assistant producing a summary, decisions and tasks" /> | <img src="docs/assets/screenshot-graph.png" alt="Knowledge graph linking notes, people, tasks and bookmarks" /> |
 
 ---
 
