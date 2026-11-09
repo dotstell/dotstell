@@ -8,6 +8,8 @@ import {
   CheckCircle2, Circle, Timer, Sparkles, Loader2, RefreshCw, Tag, Info,
 } from 'lucide-react'
 import { AppLayout } from '@/components/layout/AppLayout'
+import { GitHubStarPrompt } from '@/components/engagement/GitHubStarPrompt'
+import { STAR_MIN_NOTES } from '@/lib/engagement/star-prompt'
 import { Task, Note, Bookmark as BookmarkType } from '@/types'
 import { formatDate, formatRelative } from '@/lib/utils'
 import { EmptyState } from '@/components/ui/empty-state'
@@ -552,6 +554,9 @@ export default function DashboardPage() {
             <p style={{ fontSize: 11, color: 'var(--muted-foreground)', marginTop: 3 }}>{clockDay}</p>
           </div>
         </div>
+
+        {/* ── A one-time invitation to star dotstell, once someone has plenty of notes ── */}
+        {!loading && notes.length >= STAR_MIN_NOTES && <GitHubStarPrompt variant="card" />}
 
         {/* ── Overdue alert ── */}
         {!loading && overdueTasks.length > 0 && (
