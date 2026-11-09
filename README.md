@@ -15,7 +15,7 @@ Ask it in Dotstell, or from Codex, Claude and any other AI tool through the buil
 
 *"Your knowledge is not lost. It's just not connected yet."*
 
-**[Try it free in your browser: dotstell.app](https://dotstell.app)** · [Download the desktop app](https://github.com/dotstell/dotstell/releases/latest)
+**[Try it free in your browser: dotstell.app](https://dotstell.app)** · [Download the desktop app](https://www.dotstell.com/#download)
 
 <sub>Free to start. Open source. No credit card required.</sub>
 
